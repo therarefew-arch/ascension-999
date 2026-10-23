@@ -1,0 +1,14 @@
+{
+  "name": "Pocketvale",
+  "short_name": "Pocketvale",
+  "description": "A cozy medieval idle skilling RPG.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1b1713",
+  "theme_color": "#1b1713",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
