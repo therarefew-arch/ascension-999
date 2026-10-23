@@ -9,7 +9,7 @@ import { ItemIcon, UiIcon } from './icons';
 
 interface Feedback { id: number; text: string; kind: HitGrade | 'combo' | 'info' }
 
-function useFeedback() {
+export function useFeedback() {
   const [items, setItems] = useState<Feedback[]>([]);
   const nextId = useRef(1);
   const push = (text: string, kind: Feedback['kind']) => {
@@ -20,12 +20,12 @@ function useFeedback() {
   return { items, push };
 }
 
-function gainText(r: MinigameResult) {
+export function gainText(r: MinigameResult) {
   const parts = Object.entries(r.gained).map(([id, n]) => `+${n} ${getItem(id).name}`);
-  return `${parts.join(' · ')}  +${r.xp} XP`;
+  return parts.length ? `${parts.join(' · ')}  +${r.xp} XP` : `+${r.xp} XP`;
 }
 
-function FeedbackLayer({ items }: { items: Feedback[] }) {
+export function FeedbackLayer({ items }: { items: Feedback[] }) {
   return (
     <div className="mg-feedback" aria-live="polite">
       {items.map((f) => <div key={f.id} className={`mg-float mg-${f.kind}`}>{f.text}</div>)}
@@ -34,7 +34,7 @@ function FeedbackLayer({ items }: { items: Feedback[] }) {
 }
 
 /** Animation clock that keeps running while the component is on screen. */
-function useAnimationTime() {
+export function useAnimationTime() {
   const [, setFrame] = useState(0);
   const start = useRef(performance.now());
   useEffect(() => {

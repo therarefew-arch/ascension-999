@@ -93,15 +93,102 @@ function ItemShape({ kind, c }: { kind: IconKind; c: Palette }) {
           <path d="M12 16 L36 16 M18 9 L22 16 L24 40 L26 16 L30 9" stroke={c.light} strokeWidth="1.2" fill="none" />
         </g>
       );
+    case 'rock':
+      return (
+        <g strokeLinejoin="round">
+          <path d="M7 36 L11 20 L22 12 L36 15 L42 31 L34 40 L14 41 Z" fill={c.main} stroke={c.dark} strokeWidth="2" />
+          <path d="M11 20 L22 12 L36 15 L28 21 L17 23 Z" fill={c.light} opacity="0.7" />
+          <path d="M20 30 L26 27 M30 33 L34 30" stroke={c.dark} strokeWidth="1.5" strokeLinecap="round" />
+        </g>
+      );
+    case 'log':
+      return (
+        <g strokeLinejoin="round">
+          <path d="M10 18 L36 12 Q42 11 43 20 Q44 28 38 29 L12 35 Z" fill={c.main} stroke={c.dark} strokeWidth="2" />
+          <ellipse cx="11" cy="26.5" rx="5.5" ry="8.5" transform="rotate(-13 11 26.5)" fill={c.light} stroke={c.dark} strokeWidth="2" />
+          <ellipse cx="11" cy="26.5" rx="2.4" ry="4" transform="rotate(-13 11 26.5)" fill="none" stroke={c.dark} strokeWidth="1.2" />
+          <path d="M18 21 L33 17.5 M20 28 L36 24" stroke={c.dark} strokeWidth="1.3" opacity="0.6" strokeLinecap="round" />
+          <path d="M30 13 Q32 8 36 7" stroke="#5d8f45" strokeWidth="2" fill="none" strokeLinecap="round" />
+        </g>
+      );
+    case 'fish':
+      return (
+        <g strokeLinejoin="round">
+          <path d="M6 24 Q16 12 30 16 Q36 18 38 24 Q36 30 30 32 Q16 36 6 24 Z" fill={c.main} stroke={c.dark} strokeWidth="2" />
+          <path d="M37 24 L45 16 L44 32 Z" fill={c.main} stroke={c.dark} strokeWidth="2" />
+          <path d="M12 23 Q20 18 30 20" stroke={c.light} strokeWidth="2" fill="none" strokeLinecap="round" />
+          <circle cx="12" cy="22" r="1.8" fill="#1a1a1a" />
+          <path d="M20 26 Q24 30 28 26" stroke={c.dark} strokeWidth="1.4" fill="none" />
+        </g>
+      );
+    case 'cooked':
+      return (
+        <g strokeLinejoin="round">
+          <ellipse cx="24" cy="32" rx="19" ry="7" fill="#e9e1d1" stroke="#8a7f6c" strokeWidth="2" />
+          <path d="M9 28 Q18 18 30 21 Q35 23 36 27 Q34 31 29 32 Q17 34 9 28 Z" fill={c.dark} stroke="#3a2412" strokeWidth="1.8" />
+          <path d="M35 27 L42 21 L41 32 Z" fill={c.dark} stroke="#3a2412" strokeWidth="1.8" />
+          <path d="M14 26 L18 23 M19 28 L24 24 M25 29 L29 25" stroke="#3a2412" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M16 14 Q14 10 17 7 M23 14 Q21 10 24 7" stroke="#c9c2b5" strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.8" />
+        </g>
+      );
+    case 'axe':
+      return (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 42 L30 10" stroke={WOOD.dark} strokeWidth="6" />
+          <path d="M14 42 L30 10" stroke={WOOD.main} strokeWidth="3.4" />
+          <path d="M26 12 Q34 4 42 10 Q42 22 33 24 Q32 18 26 12 Z" fill={c.main} stroke={c.dark} strokeWidth="2" />
+          <path d="M33 10 Q38 9 40 12" stroke={c.light} strokeWidth="1.6" fill="none" />
+        </g>
+      );
+    case 'rod':
+      return (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 42 L38 8" stroke={c.dark} strokeWidth="4" />
+          <path d="M8 42 L38 8" stroke={c.main} strokeWidth="2" />
+          <path d="M8 42 L14 35" stroke="#3a2412" strokeWidth="5" />
+          <circle cx="16" cy="34" r="3" fill="#aab6bd" stroke="#5f6a70" strokeWidth="1.2" />
+          <path d="M38 8 Q42 20 40 30" stroke="#e8e2d4" strokeWidth="1" fill="none" />
+          <path d="M40 30 Q41 34 38 34" stroke="#aab6bd" strokeWidth="1.6" fill="none" />
+        </g>
+      );
+    case 'tinderbox':
+      return (
+        <g strokeLinejoin="round">
+          <rect x="9" y="20" width="30" height="18" rx="3" fill={c.main} stroke={c.dark} strokeWidth="2" />
+          <path d="M9 24 H39" stroke={c.dark} strokeWidth="1.6" />
+          <path d="M24 18 Q19 12 23 6 Q24 11 28 10 Q31 15 24 18 Z" fill="#f5a742" stroke="#c2410c" strokeWidth="1.4" />
+          <path d="M24 16 Q22 13 24 10 Q26 14 24 16 Z" fill="#ffe08a" />
+          <rect x="13" y="28" width="22" height="5" rx="2" fill={TIER_COLORS.stone.main} stroke={TIER_COLORS.stone.dark} strokeWidth="1.2" />
+        </g>
+      );
+    case 'skillet':
+      return (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <path d="M30 27 L44 21" stroke={c.dark} strokeWidth="6" />
+          <path d="M30 27 L44 21" stroke={c.main} strokeWidth="3.4" />
+          <ellipse cx="18" cy="29" rx="14" ry="8" fill={TIER_COLORS.stone.dark} stroke="#2a2724" strokeWidth="2" />
+          <ellipse cx="18" cy="27.5" rx="11" ry="5.5" fill={TIER_COLORS.stone.main} />
+          <ellipse cx="15" cy="26.5" rx="4" ry="2" fill={TIER_COLORS.stone.light} opacity="0.6" />
+        </g>
+      );
   }
 }
 
 export function ItemIcon({ id, size = 40 }: { id: string; size?: number }) {
   const item = getItem(id);
   const c = TIER_COLORS[item.tier] ?? TIER_COLORS.iron;
+  const plus = item.upgrade?.level ?? 0;
+  const great = item.id.startsWith('great_');
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" className="item-icon">
       <ItemShape kind={item.icon} c={c} />
+      {great && <path d="M38 4 L40 9 L45 9 L41 12 L43 17 L38 14 L33 17 L35 12 L31 9 L36 9 Z" fill="#fbbf24" stroke="#92610f" strokeWidth="1" />}
+      {plus > 0 && (
+        <g>
+          <rect x="27" y="35" width="20" height="12" rx="4" fill="#1a1206" stroke="#f59e0b" strokeWidth="1.2" />
+          <text x="37" y="44.5" textAnchor="middle" fontSize="10" fontWeight="900" fill="#fbbf24" fontFamily="system-ui, sans-serif">+{plus}</text>
+        </g>
+      )}
     </svg>
   );
 }
@@ -109,7 +196,8 @@ export function ItemIcon({ id, size = 40 }: { id: string; size?: number }) {
 export type UiIconName =
   | 'town' | 'skills' | 'bag' | 'bank' | 'gear' | 'settings' | 'close' | 'search'
   | 'stop' | 'clock' | 'up' | 'down' | 'lock' | 'mining' | 'smithing' | 'sound' | 'music'
-  | 'trash' | 'play' | 'refresh' | 'trophy' | 'pin' | 'bolt' | 'door';
+  | 'trash' | 'play' | 'refresh' | 'trophy' | 'pin' | 'bolt' | 'door'
+  | 'woodcutting' | 'firemaking' | 'fishing' | 'cooking' | 'crafting' | 'enhancing';
 
 /** Simple line icons for buttons and navigation. */
 export function UiIcon({ name, size = 24 }: { name: UiIconName; size?: number }) {
@@ -132,6 +220,12 @@ export function UiIcon({ name, size = 24 }: { name: UiIconName; size?: number })
     case 'mining': body = <g {...common}><path d="M6 20 L16 8" /><path d="M5 8 Q12 1 21 9 Q15 6 12 7" /></g>; break;
     case 'smithing': body = <g {...common}><path d="M4 10 H16 Q16 14 12 14 V17 H15 V20 H7 V17 H10 V14 Q4 14 4 10 Z" /><path d="M16 10 L21 9" /></g>; break;
     case 'sound': body = <g {...common}><path d="M4 10 V14 H8 L13 18 V6 L8 10 Z" /><path d="M16 9 Q18 12 16 15" /><path d="M18.5 6.5 Q22 12 18.5 17.5" /></g>; break;
+    case 'woodcutting': body = <g {...common}><path d="M12 21 V14" /><path d="M12 3 L18 12 H15 L19 17 H5 L9 12 H6 Z" /></g>; break;
+    case 'firemaking': body = <g {...common}><path d="M12 21 Q5 19 6 13 Q7 9 10 7 Q10 11 13 11 Q12 6 15 3 Q19 8 19 13 Q19 19 12 21 Z" /><path d="M12 21 Q9.5 19 10.5 16 Q12 17.5 13 15.5 Q15 18 12 21 Z" /></g>; break;
+    case 'fishing': body = <g {...common}><path d="M3 12 Q8 6 15 8 Q18 9 19 12 Q18 15 15 16 Q8 18 3 12 Z" /><path d="M19 12 L22 9 V15 Z" /><circle cx="7" cy="11" r="0.6" fill="currentColor" /></g>; break;
+    case 'cooking': body = <g {...common}><path d="M3 13 H17 Q17 19 10 19 Q3 19 3 13 Z" /><path d="M17 14 L21 12" /><path d="M8 9 Q7 7 8.5 5 M12 9 Q11 7 12.5 5" /></g>; break;
+    case 'crafting': body = <g {...common}><path d="M4 20 L13 11" /><path d="M11 6 L16 3 L21 8 L18 13 Z" /><path d="M3 4 L8 9" /><path d="M2 7 L5 4" /></g>; break;
+    case 'enhancing': body = <g {...common}><path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z" /><circle cx="12" cy="12" r="2" /></g>; break;
     case 'trash': body = <g {...common}><path d="M4 7 H20" /><path d="M9 7 V4 H15 V7" /><path d="M6 7 L7 20 H17 L18 7" /><path d="M10 11 V16 M14 11 V16" /></g>; break;
     case 'play': body = <g {...common}><path d="M8 5 L19 12 L8 19 Z" /></g>; break;
     case 'refresh': body = <g {...common}><path d="M20 11 A8 8 0 0 0 5.5 7" /><path d="M5 3 V7.5 H9.5" /><path d="M4 13 A8 8 0 0 0 18.5 17" /><path d="M19 21 V16.5 H14.5" /></g>; break;

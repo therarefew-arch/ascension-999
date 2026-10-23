@@ -1,10 +1,10 @@
 // "Idle skill slots" popup: see what's idling, its per-hour rates, and change it (skill → resource).
 import { useState } from 'react';
 import type { SkillId } from '../data/items';
-import { ACTIONS, actionsForSkill, SKILL_ORDER, SKILLS, type ActionDef } from '../data/skills';
+import { ACTIONS, SKILL_ORDER, SKILLS, type ActionDef } from '../data/skills';
 import { actionDuration, skillLevel } from '../core/idle';
 import type { PlayerState } from '../core/player';
-import { xpPerHour } from '../core/rates';
+import { visibleActions, xpPerHour } from '../core/rates';
 import { game, useGame } from '../core/store';
 import { ActionProgress } from './components';
 import { ItemIcon, UiIcon } from './icons';
@@ -95,7 +95,7 @@ export function IdleSlots({ onClose }: { onClose: () => void }) {
           <>
             <div className="row-between step-head"><b>Step 2 — {SKILLS[step].name}: choose resource</b><button className="link-btn" onClick={() => setStep('skill')}>‹ Skills</button></div>
             <div className="list scroll-list">
-              {actionsForSkill(step).map((a) => {
+              {visibleActions(player, step).map((a) => {
                 const locked = skillLevel(player, step) < a.level;
                 return (
                   <button key={a.id} className={`list-row ${locked ? 'locked' : ''}`} disabled={locked}

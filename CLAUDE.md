@@ -23,6 +23,9 @@ Full game vision: `docs/design.md`. Build only the phase that is asked for.
 - Iron bars use **iron ore only** for now; coal arrives with the Coalhaven region.
 - Smithing uses materials from the **inventory** (not the bank).
 - **Every skill gets a fun, optional minigame.** The game is cozy and laid back: misses never cost anything, idling never needs the minigame. Rules live in `src/core/minigames.ts`.
+- Crafting makes skilling tools (axe, rod, tinderbox, skillet) and upgrades them +1..+10 (always succeeds). Enhancing upgrades smithed gear +1..+10; failure only uses bars, **never destroys the item**. Minigame bonus copies are never given for crafted tools or upgrades.
+- Cooked food is stored for future combat; "Great" food comes only from the Cooking minigame.
+- Combat skills (Melee, Ranged, Magic, Defense, Health) are the next update.
 - **3 save slots** with a title screen. Big Bag button stays centred in the bottom nav.
 - Visual style follows the "Visual style guide" in `docs/design.md` (dark, gold/orange glow, monospace numbers, pixel-art backdrops).
 

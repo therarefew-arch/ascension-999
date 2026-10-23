@@ -317,6 +317,51 @@ p { margin: 8px 0; }
 
 .idle-cta { padding: 0 14px 14px; }
 
+/* Timber! (woodcutting) */
+.tree-wrap { position: relative; width: 120px; height: 100px; display: flex; align-items: center; justify-content: center; }
+.tree-trunk { position: relative; width: 70px; height: 92px; border-radius: 14px; background: linear-gradient(90deg, #4a3220, #6b4a2b 50%, #4a3220); border: 2px solid #2e1f13; display: flex; align-items: center; justify-content: center; }
+.tree-notch { position: absolute; top: 50%; right: -2px; width: 14px; height: 10px; margin-top: -5px; background: #0d0c0b; clip-path: polygon(100% 0, 0 50%, 100% 100%); }
+.axe-swing { position: absolute; right: -36px; top: 50%; width: 54px; height: 6px; margin-top: -3px; background: #9a6a3c; border-radius: 3px; transform-origin: 100% 50%; }
+.axe-head { position: absolute; left: -6px; top: -9px; width: 16px; height: 24px; background: linear-gradient(180deg, #dbe3e7, #8b949c); border-radius: 8px 2px 2px 8px; border: 1px solid #4a5157; }
+
+/* Reel It In (fishing) */
+.reel-wrap { display: flex; gap: 12px; height: 120px; align-items: stretch; }
+.reel-track { position: relative; width: 56px; border-radius: 14px; background: linear-gradient(180deg, #1d4356, #0f2733); border: 2px solid #3a332b; overflow: hidden; }
+.reel-zone { position: absolute; left: 4px; right: 4px; border-radius: 10px; background: rgba(52, 211, 153, 0.35); border: 2px solid var(--green); display: flex; align-items: center; justify-content: center; }
+.reel-hook { position: absolute; left: 0; right: 0; height: 6px; background: #fff; box-shadow: 0 0 8px #fff; }
+.reel-catch { position: relative; width: 14px; border-radius: 8px; background: #050505; border: 1.5px solid #3a332b; overflow: hidden; }
+.reel-catch-fill { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(0deg, var(--orange-deep), var(--gold)); }
+
+/* Heat Precision (cooking) */
+.pan-wrap { position: relative; }
+.pan { width: 100px; height: 100px; border-radius: 50%; background: radial-gradient(circle, #3a3631, #1f1c19 70%); border: 4px solid #4f4942; display: flex; align-items: center; justify-content: center; }
+.heat-bar { background: linear-gradient(90deg, #1e3a8a, #7c2d12 45%, #b45309 70%, #7f1d1d); }
+
+/* Kindle (firemaking) */
+.fire-wrap { position: relative; width: 110px; height: 100px; display: flex; align-items: flex-end; justify-content: center; }
+.fire { position: absolute; bottom: 26px; width: 64px; height: 74px; border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%; background: radial-gradient(ellipse at 50% 80%, #fff3c4 0%, var(--flame) 45%, transparent 72%); filter: blur(1px); transform-origin: 50% 100%; transition: transform 0.15s, opacity 0.15s; }
+.fire.lit { animation: flicker 0.3s infinite alternate; }
+.fire-logs { position: relative; z-index: 1; }
+.kindle-bar { height: 18px; border-radius: 99px; background: #050505; border: 1.5px solid #3a332b; overflow: hidden; }
+.kindle-fill { height: 100%; border-radius: 99px; box-shadow: 0 0 12px currentColor; }
+
+/* Steady Hands (crafting) */
+.bench { width: 110px; height: 90px; border-radius: 16px; background: linear-gradient(180deg, #7d5a36, #5e4329); border: 2px solid #3a2a1a; display: flex; align-items: center; justify-content: center; }
+.carve-bar { position: relative; height: 40px; border-radius: 12px; background: linear-gradient(180deg, #b58b5c, #7d5a36); border: 1.5px solid #3a2a1a; }
+.carve-notch { position: absolute; top: 6px; bottom: 6px; width: 10px; margin-left: -5px; border-radius: 4px; background: #2e1f13; border: 1px solid #fbbf24; }
+.carve-notch.good { background: var(--orange); }
+.carve-notch.perfect { background: #fde68a; box-shadow: 0 0 8px var(--gold); }
+.carve-blade { position: absolute; top: -4px; bottom: -4px; width: 6px; border-radius: 3px; background: #e5e7eb; box-shadow: 0 0 10px #fff; }
+
+/* Rune Align (enhancing) */
+.rune-wrap { position: relative; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; }
+.rune-ring { position: absolute; inset: 0; border-radius: 50%; border: 3px dashed #6d5bd0; }
+.rune-dot { position: absolute; top: -9px; left: 50%; margin-left: -8px; width: 16px; height: 16px; border-radius: 50%; background: #c4b5fd; box-shadow: 0 0 12px #a78bfa; }
+.rune-top { position: absolute; top: -14px; left: 50%; margin-left: -6px; border: 6px solid transparent; border-top: 10px solid var(--gold); }
+.rune-item { width: 78px; height: 78px; border-radius: 50%; background: #1c162d; border: 2px solid #4c3fa0; display: flex; align-items: center; justify-content: center; }
+
+@keyframes flicker { from { transform: scale(1.1) skewX(-2deg); } to { transform: scale(1.18) skewX(2deg); } }
+
 /* ---------- Skill strip (hotbar) ---------- */
 .skill-strip {
   display: flex;
@@ -355,6 +400,12 @@ p { margin: 8px 0; }
 .locked-tile { opacity: 0.4; cursor: default; }
 .skill-mining { color: #fdba74; background: #2a1a0e; border-color: #7c3f0e; }
 .skill-smithing { color: #fcd34d; background: #29200b; border-color: #92610f; }
+.skill-woodcutting { color: #86efac; background: #0f2416; border-color: #166534; }
+.skill-firemaking { color: #fb923c; background: #2a120a; border-color: #9a3412; }
+.skill-fishing { color: #7dd3fc; background: #0b1f2b; border-color: #075985; }
+.skill-cooking { color: #fca5a5; background: #2a1212; border-color: #991b1b; }
+.skill-crafting { color: #e7c9a0; background: #241a10; border-color: #78502a; }
+.skill-enhancing { color: #c4b5fd; background: #1c162d; border-color: #5b21b6; }
 .skill-bank { color: #6ee7b7; background: #0f241c; border-color: #065f46; }
 .skill-gear { color: #a5b4fc; background: #17173a; border-color: #3730a3; }
 

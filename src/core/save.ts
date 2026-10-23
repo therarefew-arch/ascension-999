@@ -34,7 +34,16 @@ interface SaveFile {
 
 /** MIGRATIONS[n] upgrades a save from version n to n + 1. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const MIGRATIONS: Record<number, (player: any) => any> = {};
+const MIGRATIONS: Record<number, (player: any) => any> = {
+  // v1 → v2: the single "tool" slot became the "pickaxe" slot. New skills are filled in by repair().
+  1: (player) => {
+    if (player?.equipment?.tool) {
+      player.equipment.pickaxe = player.equipment.tool;
+      delete player.equipment.tool;
+    }
+    return player;
+  },
+};
 
 export function saveGame(slot: SlotId, player: PlayerState): boolean {
   const file: SaveFile = { version: SAVE_VERSION, savedAt: Date.now(), player };

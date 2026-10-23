@@ -1,6 +1,7 @@
 // Details for one item, with the actions that make sense where it is (bag, bank, or worn).
 import { useEffect } from 'react';
-import { getItem, SLOT_LABELS } from '../data/items';
+import { getItem, MAX_UPGRADE, SLOT_LABELS } from '../data/items';
+import { SKILLS } from '../data/skills';
 import { canEquip } from '../core/equipment';
 import { countInBag, countInBank } from '../core/inventory';
 import { game, useGame } from '../core/store';
@@ -40,6 +41,12 @@ export function ItemSheet({ id, from, onClose }: { id: string; from: ItemPlace; 
             {slot && <span className="pill">{SLOT_LABELS[slot]} slot</span>}
           </div>
           <p className="muted">{item.description}</p>
+          {item.heals && <p className="small good-text">Heals {item.heals} in combat (coming soon)</p>}
+          {item.upgrade && (
+            <p className="small gold">
+              {item.upgrade.level >= MAX_UPGRADE ? 'Fully upgraded (+10)!' : `Upgrade +${item.upgrade.level} of +${MAX_UPGRADE} · improve at the ${item.upgrade.by === 'crafting' ? 'Workshop' : 'Rune Tower'}`}
+            </p>
+          )}
           <p className="small">In bag: <b>{fmtNum(inBag)}</b> · In bank: <b>{fmtNum(inBank)}</b></p>
         </div>
       </div>
@@ -50,7 +57,7 @@ export function ItemSheet({ id, from, onClose }: { id: string; from: ItemPlace; 
           <StatCompare next={item.equip.stats} current={from === 'worn' ? null : worn?.equip?.stats ?? null} />
           {item.equip.req && (
             <p className={`small ${equipProblem ? 'bad-text' : 'muted'}`}>
-              Requires {item.equip.req.skill === 'mining' ? 'Mining' : 'Smithing'} level {item.equip.req.level}
+              Requires {SKILLS[item.equip.req.skill].name} level {item.equip.req.level}
             </p>
           )}
         </section>

@@ -8,7 +8,7 @@ import { ACTIONS, SKILLS } from '../data/skills';
 import { equip, unequip } from './equipment';
 import { advanceIdle, completeAction, emptyReport, startIdle, stopIdle, whyCantDo, type ProgressReport } from './idle';
 import { deposit, depositAll, withdraw } from './inventory';
-import { validateLootTables } from './loot';
+import { lootFits, validateLootTables } from './loot';
 import { clampReward } from './minigames';
 import { newPlayer, OFFLINE_CAP_MS, type PlayerState } from './player';
 import {
@@ -45,6 +45,8 @@ export interface GameSnapshot {
 
 export interface MinigameResult {
   ok: boolean;
+  /** false when an Enhancing try didn't work (item kept). */
+  succeeded?: boolean;
   reason?: string;
   gained: Record<string, number>;
   xp: number;
@@ -111,7 +113,8 @@ function tick(now = Date.now()) {
   if (!p.idle) return;
   const action = ACTIONS[p.idle.actionId];
   const report = advanceIdle(p, gap, now);
-  if (report.actions > 0 && action) play(action.sound);
+  if (report.actions > 0 && action) play(report.failed > 0 ? 'fail' : action.sound);
+  if (report.failed > 0) toast('Enhance didn’t take this time — item kept safe', 'info');
   announceLevels(report);
   if (report.stopped) {
     play('error');
@@ -147,6 +150,7 @@ export function startGame() {
     (window as unknown as Record<string, unknown>).pocketvaleDebug = {
       skipTime(hours: number) { snap.player.lastActiveAt -= hours * 3_600_000; tick(); },
       player: () => snap.player,
+      game: () => game,
     };
   }
 }
@@ -216,19 +220,33 @@ export const game = {
 
   // ----- Minigames -----
   /** Finishes one action from a minigame, with its bonus. */
-  minigameReward(actionId: string, reward: { xpMult: number; bonusRolls: number }): MinigameResult {
+  minigameReward(
+    actionId: string,
+    reward: { xpMult: number; bonusRolls: number; great?: boolean; chanceBonus?: number },
+  ): MinigameResult {
     const action = ACTIONS[actionId];
     const empty: MinigameResult = { ok: false, gained: {}, xp: 0 };
     if (!action) return { ...empty, reason: 'Unknown activity' };
     const why = whyCantDo(snap.player, action);
     if (why) { fail(why); return { ...empty, reason: why }; }
+    // "Great" food uses its own loot table — only if there's room for it.
+    let lootTable: string | undefined;
+    if (reward.great && action.greatLootTable && lootFits(snap.player, action.greatLootTable)) lootTable = action.greatLootTable;
     const report = emptyReport(actionId);
-    completeAction(snap.player, action, report, clampReward(reward));
-    play(action.sound);
+    const safe = clampReward(reward);
+    // Bonus copies only for gathering/smithing/cooking — never free tools or free upgrades.
+    if (action.kind || action.skill === 'crafting') safe.bonusRolls = 0;
+    const succeeded = completeAction(snap.player, action, report, {
+      ...safe,
+      lootTable,
+      chanceBonus: Math.min(0.15, Math.max(0, reward.chanceBonus ?? 0)),
+    });
+    play(succeeded ? action.sound : 'fail');
     announceLevels(report);
     emit();
     return {
       ok: true,
+      succeeded,
       gained: report.gained,
       xp: report.xp[action.skill] ?? 0,
       levelUp: report.levelUps[0]?.to,

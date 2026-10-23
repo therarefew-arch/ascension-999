@@ -121,11 +121,26 @@ All minigame rewards still go through the central loot system.
 |---|---|---|
 | Mining | **Strike Vein** — tap when the marker is in the gold zone; perfect hits and 5-hit combos give bonus ore | Built |
 | Smithing | **Anvil Rhythm** — tap as the glowing ring lands on the anvil; 3 hits finish an item; all-perfect = masterwork bonus | Built |
-| Woodcutting | e.g. swing timing / chop rhythm | Later |
-| Firemaking | Stick shaving, kindling meter (Immersive XP mode); Wildfire Piano Tiles boss | Later |
-| Fishing | e.g. reel tension | Later |
-| Cooking | e.g. heat precision ("sear in the golden zone"), stoke the fire | Later |
-| Crafting, Enhancing | To be designed | Later |
+| Woodcutting | **Timber!** — tap as the swinging axe lines up with the notch; 3 chops fell a tree; all perfect = bonus logs | Built |
+| Fishing | **Reel It In** — hold to reel, keep the hook on the fish's green zone; a clean catch = bonus fish; fish never escape | Built |
+| Cooking | **Heat Precision** — sear twice; both in the golden zone = Great food (heals more); food never burns | Built |
+| Firemaking | **Kindle** — tap to fill the kindling meter; light it fast for a quick-spark XP bonus; coloured flames per log | Built (stick shaving, Immersive XP mode and the Wildfire rhythm boss come later) |
+| Crafting | **Steady Hands** — tap as the blade passes each notch; the item is always made, clean cuts give bonus XP | Built |
+| Enhancing | **Rune Align** — tap when the rune passes the top for up to +10% success chance | Built |
+| Melee, Ranged, Magic, Defense, Health | To be designed with combat | Later |
+
+## Tools and upgrades
+
+- Each gathering/processing skill has a tool slot: Pickaxe (Mining), Axe (Woodcutting), Rod (Fishing), Tinderbox (Firemaking), Skillet (Cooking).
+- Pickaxes are smithed. Axes, rods, tinderboxes and skillets are crafted from logs and stone (stone comes from Mining).
+- Tools and smithed gear can be improved **+1 to +10**. Each level adds about +12% of the base stat (at least +1).
+  - **Crafting** upgrades crafted tools: always succeeds; costs logs and stone.
+  - **Enhancing** upgrades smithed gear (weapons, armour, pickaxes): chance-based (about 95% for +1 down to about 32% for +10, better with higher Enhancing level and Rune Align luck). A failure only uses the bars — **the item is never lost**. A failed try still gives 25% XP.
+- Upgraded items are separate item ids (`bronze_sword_p3` = Bronze sword +3) so stacking and saving stay simple.
+
+## Food
+
+Cooked fish is stored for combat (heals Health). "Great" food from the Cooking minigame heals more.
 
 ## Visual style guide
 
@@ -159,6 +174,16 @@ Based on the owner's reference screenshots:
 - Sound system with master/effects/music volume and quiet placeholder sounds.
 - Minigames: Strike Vein (Mining) and Anvil Rhythm (Smithing).
 - Title screen with 3 save slots; dark/gold restyle per the style guide; Idle Skill Slots popup with per-hour rates.
+
+### Phase 2 — built
+- Woodcutting (Pine, Oak), Firemaking (burn Pine/Oak), Fishing (Shrimp, River trout), Cooking (normal + Great food),
+  Crafting (stone/oak axes, fishing rods, tinderboxes, skillets + upgrades +1..+10), Enhancing (smithed gear +1..+10).
+- Mining: Stone added (for Crafting).
+- Six new minigames (see table above), new pixel-art scenes, tool slots on the Gear screen.
+- Save version 2 (old "tool" slot → "pickaxe" slot).
+
+### Phase 3 — next
+Combat: Melee, Ranged, Magic, Defense, Health; Pocketvale monsters and mini boss; food healing; boss-only gem drops.
 
 ### Later phases — not built
 Everything else above.

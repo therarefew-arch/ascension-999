@@ -34,6 +34,67 @@ export const ANVIL_RHYTHM = {
   masterworkBonusRolls: 1,
 };
 
+/** Woodcutting — Timber!: tap when the swinging axe lines up with the notch. Three chops fell a tree. */
+export const TIMBER = {
+  /** Seconds for one full swing back and forth. */
+  swingSeconds: 1.8,
+  maxAngle: 55,
+  goodDegrees: 11,
+  perfectDegrees: 4,
+  chopsNeeded: 3,
+  xpPerPerfect: 0.2,
+  /** All perfect = bonus logs. */
+  allPerfectBonusRolls: 1,
+};
+
+/** Fishing — Reel It In: hold to reel; keep the hook in the fish's green zone until the catch bar fills. */
+export const REEL = {
+  riseSpeed: 1.5,
+  fallSpeed: 1.2,
+  zone: 0.3,
+  fillPerSecond: 0.5,
+  /** Out of the zone the catch bar only drains gently — you can never lose the fish. */
+  drainPerSecond: 0.12,
+  /** Stayed in the zone the whole time = bonus fish. */
+  cleanCatchBonusRolls: 1,
+};
+
+/** Cooking — Heat Precision: sear twice; both in the golden zone = Great food. Food never burns. */
+export const HEAT = {
+  sweepSeconds: 1.3,
+  zone: 0.24,
+  searsNeeded: 2,
+  greatXpMult: 1.25,
+};
+
+/** Firemaking — Kindle: tap to add kindling; fill the meter to light the fire. */
+export const KINDLE = {
+  perTap: 0.13,
+  coolPerSecond: 0.22,
+  /** Light it within this many seconds for a "quick spark" XP bonus. */
+  quickSeconds: 2.5,
+  quickXpMult: 1.3,
+};
+
+/** Crafting — Steady Hands: the blade passes once; tap at each carving notch. */
+export const STEADY_HANDS = {
+  passSeconds: 2.6,
+  notches: 3,
+  goodDistance: 0.05,
+  perfectDistance: 0.018,
+  xpPerHit: 0.1,
+  xpPerPerfect: 0.1,
+};
+
+/** Enhancing — Rune Align: tap when the rune passes the top for extra luck on the attempt. */
+export const RUNE_ALIGN = {
+  spinSeconds: 1.8,
+  goodDegrees: 16,
+  perfectDegrees: 5,
+  goodLuck: 0.05,
+  perfectLuck: 0.1,
+};
+
 /** Safety caps so a minigame can never give silly rewards. */
 export function clampReward(r: { xpMult: number; bonusRolls: number }) {
   return {

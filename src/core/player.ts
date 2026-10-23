@@ -2,7 +2,8 @@
 // the market and the loot rules so it can later live on a server for multiplayer.
 import type { EquipSlot, SkillId } from '../data/items';
 
-export const SAVE_VERSION = 1;
+/** v2: added 6 skills; the old "tool" gear slot became "pickaxe". */
+export const SAVE_VERSION = 2;
 export const INVENTORY_SLOTS = 30;
 /** Max of one stackable item in a single bag slot. */
 export const STACK_LIMIT = 500;
@@ -40,7 +41,10 @@ export function newPlayer(now = Date.now()): PlayerState {
     version: SAVE_VERSION,
     createdAt: now,
     lastActiveAt: now,
-    skills: { mining: { xp: 0 }, smithing: { xp: 0 } },
+    skills: {
+      mining: { xp: 0 }, smithing: { xp: 0 }, woodcutting: { xp: 0 }, firemaking: { xp: 0 },
+      fishing: { xp: 0 }, cooking: { xp: 0 }, crafting: { xp: 0 }, enhancing: { xp: 0 },
+    },
     inventory: Array.from({ length: INVENTORY_SLOTS }, () => null),
     bank: [],
     equipment: {},

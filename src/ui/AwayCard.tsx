@@ -37,6 +37,7 @@ export function AwayCard({ away }: { away: AwayReport }) {
             ))}
           </div>
         )}
+        {report.failed > 0 && <p className="small muted">{report.failed} enhance {report.failed === 1 ? 'try' : 'tries'} didn't take (items kept safe).</p>}
         {report.actions === 0 && !report.stopped && <p className="muted">Nothing finished while you were gone.</p>}
 
         {report.stopped && (

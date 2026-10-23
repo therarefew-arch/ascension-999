@@ -1,10 +1,20 @@
 ﻿import { useState } from 'react';
-import { getItem, ITEM_LIST, SLOT_LABELS, SLOT_ORDER, STAT_LABELS, type EquipSlot, type ItemStats } from '../../data/items';
+import {
+  ARMOUR_SLOTS, getItem, ITEM_LIST, SLOT_LABELS, STAT_LABELS, TOOL_SLOTS, type EquipSlot, type ItemStats,
+} from '../../data/items';
 import { canEquip, equipmentStats } from '../../core/equipment';
 import { countInBag, countInBank } from '../../core/inventory';
 import { game, useGame } from '../../core/store';
 import { DiffChips, Sheet, StatCompare } from '../components';
 import { ItemIcon } from '../icons';
+
+const WHERE_TO_GET: Partial<Record<EquipSlot, string>> = {
+  pickaxe: 'Smith one at the Forge.',
+  axe: 'Craft one at the Workshop.',
+  rod: 'Craft one at the Workshop.',
+  tinderbox: 'Craft one at the Workshop.',
+  skillet: 'Craft one at the Workshop.',
+};
 
 function SlotPicker({ slot, onClose }: { slot: EquipSlot; onClose: () => void }) {
   const { player } = useGame();
@@ -26,10 +36,10 @@ function SlotPicker({ slot, onClose }: { slot: EquipSlot; onClose: () => void })
           </div>
           <StatCompare next={worn.equip!.stats} current={null} />
         </section>
-      ) : <p className="muted">Nothing worn here yet.</p>}
+      ) : <p className="muted">Nothing equipped here yet.</p>}
 
       <h3>Your {SLOT_LABELS[slot].toLowerCase()} items</h3>
-      {options.length === 0 && <p className="small muted">You don't have any. Smith some at the Forge!</p>}
+      {options.length === 0 && <p className="small muted">You don't have any. {WHERE_TO_GET[slot] ?? 'Smith some at the Forge!'}</p>}
       <div className="list">
         {options.map(({ item, bag, bank }) => {
           const problem = canEquip(player, item);
@@ -38,7 +48,7 @@ function SlotPicker({ slot, onClose }: { slot: EquipSlot; onClose: () => void })
               onClick={() => { game.equip(item.id); onClose(); }}>
               <ItemIcon id={item.id} size={40} />
               <div className="grow">
-                <div><b>{item.name}</b> <span className="small muted">{bag > 0 ? `bag ${bag}` : ''}{bag > 0 && bank > 0 ? ' Â· ' : ''}{bank > 0 ? `bank ${bank}` : ''}</span></div>
+                <div><b>{item.name}</b> <span className="small muted">{bag > 0 ? `bag ${bag}` : ''}{bag > 0 && bank > 0 ? ' · ' : ''}{bank > 0 ? `bank ${bank}` : ''}</span></div>
                 {problem ? <span className="small bad-text">{problem}</span> : <DiffChips next={item.equip!.stats} current={worn?.equip?.stats ?? null} />}
               </div>
               {!problem && <span className="start-pill">Equip</span>}
@@ -50,6 +60,24 @@ function SlotPicker({ slot, onClose }: { slot: EquipSlot; onClose: () => void })
   );
 }
 
+function SlotGrid({ slots, onPick }: { slots: EquipSlot[]; onPick: (s: EquipSlot) => void }) {
+  const { player } = useGame();
+  return (
+    <div className="gear-grid">
+      {slots.map((slot) => {
+        const id = player.equipment[slot];
+        return (
+          <button key={slot} className={`gear-slot ${id ? 'filled' : ''}`} onClick={() => onPick(slot)}>
+            {id ? <ItemIcon id={id} size={48} /> : <span className="gear-empty" />}
+            <span className="gear-label">{SLOT_LABELS[slot]}</span>
+            {id && <span className="gear-name small">{getItem(id).name}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function GearScreen() {
   const { player } = useGame();
   const [picking, setPicking] = useState<EquipSlot | null>(null);
@@ -58,18 +86,10 @@ export function GearScreen() {
   return (
     <div className="screen">
       <h1 className="screen-title">GEAR</h1>
-      <div className="gear-grid">
-        {SLOT_ORDER.map((slot) => {
-          const id = player.equipment[slot];
-          return (
-            <button key={slot} className={`gear-slot ${id ? 'filled' : ''}`} onClick={() => setPicking(slot)}>
-              {id ? <ItemIcon id={id} size={48} /> : <span className="gear-empty" />}
-              <span className="gear-label">{SLOT_LABELS[slot]}</span>
-              {id && <span className="gear-name small">{getItem(id).name}</span>}
-            </button>
-          );
-        })}
-      </div>
+      <h2 className="section-title">ARMOUR &amp; WEAPONS</h2>
+      <SlotGrid slots={ARMOUR_SLOTS} onPick={setPicking} />
+      <h2 className="section-title">SKILLING TOOLS</h2>
+      <SlotGrid slots={TOOL_SLOTS} onPick={setPicking} />
       <div className="card">
         <h3>Total stats</h3>
         <div className="stat-list">
@@ -77,7 +97,7 @@ export function GearScreen() {
             <div key={k} className="stat-line"><span>{STAT_LABELS[k]}</span><b>{stats[k] ?? 0}</b></div>
           ))}
         </div>
-        <p className="small muted">A pickaxe makes mining faster. Attack and Defense matter once combat arrives.</p>
+        <p className="small muted">Tools make their skill faster. Attack and Defense matter once combat arrives.</p>
       </div>
       {picking && <SlotPicker slot={picking} onClose={() => setPicking(null)} />}
     </div>

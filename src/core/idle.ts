@@ -1,7 +1,8 @@
 // The idle system: one slot that repeats a chosen action. The same code runs
 // while you play and when catching up on time you were away (offline progress).
 import { ACTIONS, type ActionDef } from '../data/skills';
-import { getItem, type SkillId } from '../data/items';
+import { getItem, STAT_LABELS, type ItemStats, type SkillId } from '../data/items';
+import { enhanceChance, FAIL_XP_SHARE } from './enhancing';
 import { countInBag, countInBank, removeFromBag, canFitAll } from './inventory';
 import { giveLoot, maxLoot, rollLoot } from './loot';
 import type { PlayerState } from './player';
@@ -18,6 +19,8 @@ export interface ProgressReport {
   used: Record<string, number>;
   levelUps: { skill: SkillId; from: number; to: number }[];
   stopped: { reason: string; afterMs: number } | null;
+  /** Enhancing tries that didn't succeed (the item was kept). */
+  failed: number;
 }
 
 export function skillLevel(p: PlayerState, skill: SkillId): number {
@@ -26,8 +29,8 @@ export function skillLevel(p: PlayerState, skill: SkillId): number {
 
 /** How long one action takes for this player (tools can speed it up). */
 export function actionDuration(p: PlayerState, action: ActionDef): number {
-  let speed = 0;
-  if (action.skill === 'mining') speed = equipmentStats(p).miningSpeed ?? 0;
+  const statKey = `${action.skill}Speed` as keyof ItemStats;
+  const speed = statKey in STAT_LABELS ? equipmentStats(p)[statKey] ?? 0 : 0;
   return Math.max(500, Math.round(action.durationMs * (1 - speed / 100)));
 }
 
@@ -39,6 +42,9 @@ export function whyCantDo(p: PlayerState, action: ActionDef): string | null {
   for (const input of action.inputs) {
     if (countInBag(p.inventory, input.item) < input.qty) {
       const name = getItem(input.item).name;
+      if (input.item === action.upgrades) {
+        return countInBank(p, input.item) > 0 ? `Withdraw your ${name} from the bank to upgrade it` : `No ${name} in your bag to upgrade`;
+      }
       return countInBank(p, input.item) > 0
         ? `Out of ${name} in your bag (some is in the bank)`
         : `Out of ${name}`;
@@ -66,7 +72,7 @@ export function stopIdle(p: PlayerState): void {
 }
 
 export function emptyReport(actionId: string | null): ProgressReport {
-  return { actionId, ms: 0, actions: 0, xp: {}, gained: {}, used: {}, levelUps: [], stopped: null };
+  return { actionId, ms: 0, actions: 0, xp: {}, gained: {}, used: {}, levelUps: [], stopped: null, failed: 0 };
 }
 
 /**
@@ -78,21 +84,35 @@ export function completeAction(
   p: PlayerState,
   action: ActionDef,
   report: ProgressReport,
-  opts: { xpMult?: number; bonusRolls?: number } = {},
-): void {
+  opts: { xpMult?: number; bonusRolls?: number; lootTable?: string; chanceBonus?: number } = {},
+): boolean {
+  // Enhancing can fail: then only the materials are used, the item itself stays.
+  const success = action.kind !== 'enhance' || Math.random() < enhanceChance(p, action, opts.chanceBonus ?? 0);
   for (const input of action.inputs) {
+    if (!success && input.item === action.upgrades) continue;
     removeFromBag(p.inventory, input.item, input.qty);
     report.used[input.item] = (report.used[input.item] ?? 0) + input.qty;
   }
+  if (!success) {
+    report.failed++;
+    addXp(p, action, report, Math.round(action.xp * FAIL_XP_SHARE));
+    report.actions++;
+    return false;
+  }
   for (let roll = 0; roll <= (opts.bonusRolls ?? 0); roll++) {
-    const loot = rollLoot(action.lootTable);
+    const loot = rollLoot(opts.lootTable ?? action.lootTable);
     const leftover = giveLoot(p, loot);
     for (const st of loot) {
       const lost = leftover.find((l) => l.id === st.id)?.qty ?? 0;
       if (st.qty - lost > 0) report.gained[st.id] = (report.gained[st.id] ?? 0) + st.qty - lost;
     }
   }
-  const xp = Math.round(action.xp * (opts.xpMult ?? 1));
+  addXp(p, action, report, Math.round(action.xp * (opts.xpMult ?? 1)));
+  report.actions++;
+  return true;
+}
+
+function addXp(p: PlayerState, action: ActionDef, report: ProgressReport, xp: number) {
   const skill = p.skills[action.skill];
   const before = levelForXp(skill.xp);
   skill.xp = Math.min(MAX_XP, skill.xp + xp);
@@ -103,7 +123,6 @@ export function completeAction(
     if (existing) existing.to = after;
     else report.levelUps.push({ skill: action.skill, from: before, to: after });
   }
-  report.actions++;
 }
 
 /** Runs the idle slot forward by `ms` milliseconds. Changes the player. */

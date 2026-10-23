@@ -2,7 +2,7 @@
 // Our own art — no image files needed. Each scene is the same every time (seeded).
 import { useEffect, useRef } from 'react';
 
-export type SceneName = 'forest' | 'town' | 'mine' | 'forge';
+export type SceneName = 'forest' | 'town' | 'mine' | 'forge' | 'river' | 'camp' | 'kitchen' | 'workshop' | 'tower';
 
 const W = 72;
 const H = 128;
@@ -119,8 +119,86 @@ function drawForge(px: Px, r: () => number) {
   px(27, 104, 18, 3, '#4a5157');
 }
 
+function drawRiver(px: Px, r: () => number) {
+  const sky = ['#c98b5a', '#d9a06a', '#e5b884'];
+  for (let y = 0; y < 30; y++) px(0, y, W, 1, sky[Math.min(2, Math.floor(y / 10))]);
+  px(0, 30, W, 18, '#4f6b3a');
+  for (let i = 0; i < 30; i++) px(Math.floor(r() * W), 30 + Math.floor(r() * 16), 3, 2, ['#5d7f45', '#3f5a2e'][Math.floor(r() * 2)]);
+  for (let y = 48; y < 104; y++) px(0, y, W, 1, y % 5 === 0 ? '#3d6f86' : '#2f5a70');
+  for (let i = 0; i < 60; i++) px(Math.floor(r() * W), 48 + Math.floor(r() * 56), 3 + Math.floor(r() * 4), 1, '#6aa2b8');
+  px(0, 104, W, H - 104, '#6b5a3f');
+  for (let i = 0; i < 40; i++) px(Math.floor(r() * W), 104 + Math.floor(r() * 24), 2, 1, '#57472f');
+  // reeds & a dock
+  for (let i = 0; i < 12; i++) { const x = Math.floor(r() * W); px(x, 96, 1, 10, '#6d8f3c'); px(x, 95, 1, 2, '#8a5a2b'); }
+  px(44, 92, 28, 4, '#7a5a3a');
+  for (const x of [46, 56, 66]) px(x, 96, 2, 10, '#5e4329');
+}
+
+function drawCamp(px: Px, r: () => number) {
+  px(0, 0, W, H, '#10131f');
+  for (let i = 0; i < 40; i++) px(Math.floor(r() * W), Math.floor(r() * 60), 1, 1, r() > 0.7 ? '#fff7d6' : '#8b93b8');
+  px(56, 10, 6, 6, '#f1ead2');
+  for (let x = 0; x < W; x++) { const h = 62 + Math.round(Math.sin(x / 7) * 3); px(x, h, 1, H - h, '#1c2a1e'); }
+  for (let i = 0; i < 10; i++) { const x = Math.floor(r() * W); px(x, 50, 3, 14, '#142017'); px(x - 2, 46, 7, 6, '#18261b'); }
+  px(0, 96, W, H - 96, '#2a2119');
+  // glow & fire ring
+  px(16, 80, 40, 40, 'rgba(249,115,22,0.10)');
+  px(24, 88, 24, 24, 'rgba(249,115,22,0.12)');
+  for (let i = 0; i < 8; i++) px(22 + i * 4, 108, 3, 2, '#6b645a');
+}
+
+function drawKitchen(px: Px, r: () => number) {
+  px(0, 0, W, H, '#1f1712');
+  for (let y = 0; y < 70; y += 4) for (let x = (y % 8 ? 0 : 4); x < W; x += 8) px(x, y, 7, 3, r() > 0.5 ? '#3b2a20' : '#34251c');
+  // shelves with jars
+  for (const y of [18, 36]) {
+    px(4, y, 64, 2, '#6b4a2b');
+    for (let x = 6; x < 66; x += 7) px(x, y - 5, 4, 5, ['#8fb37a', '#c9a24a', '#a8493a', '#7aa6b8'][Math.floor(r() * 4)]);
+  }
+  // stove
+  px(18, 70, 36, 30, '#2b2622');
+  px(22, 74, 28, 6, '#3d3631');
+  px(24, 86, 24, 10, '#e8742c');
+  px(26, 88, 20, 6, '#f5a742');
+  px(0, 100, W, H - 100, '#2a201a');
+  for (let y = 100; y < H; y += 4) for (let x = (y % 8 ? 0 : 5); x < W; x += 10) px(x, y, 9, 3, '#33271f');
+}
+
+function drawWorkshop(px: Px, r: () => number) {
+  px(0, 0, W, H, '#1d1813');
+  for (let x = 0; x < W; x += 6) px(x, 0, 5, 90, r() > 0.5 ? '#3a2b1f' : '#33261b');
+  // pegboard tools
+  px(8, 14, 56, 30, '#4a3826');
+  for (let i = 0; i < 6; i++) { const x = 12 + i * 9; px(x, 18, 2, 14, '#8a8278'); px(x - 1, 18, 4, 3, '#a8743f'); }
+  // window
+  px(26, 50, 20, 16, '#6aa2b8');
+  px(35, 50, 2, 16, '#3a2b1f');
+  px(26, 57, 20, 2, '#3a2b1f');
+  // workbench
+  px(6, 88, 60, 6, '#7d5a36');
+  px(8, 94, 4, 20, '#5e4329');
+  px(60, 94, 4, 20, '#5e4329');
+  for (let i = 0; i < 10; i++) px(10 + Math.floor(r() * 50), 86, 2, 2, '#d6a66b');
+  px(0, 114, W, H - 114, '#2a2119');
+}
+
+function drawTower(px: Px, r: () => number) {
+  px(0, 0, W, H, '#130f1f');
+  for (let y = 0; y < H; y += 4) for (let x = (y % 8 ? 0 : 4); x < W; x += 8) px(x, y, 7, 3, r() > 0.5 ? '#221a35' : '#1c162d');
+  // glowing runes
+  const runes = ['#a78bfa', '#818cf8', '#c4b5fd'];
+  for (let i = 0; i < 18; i++) { const x = Math.floor(r() * W); const y = Math.floor(r() * 90); px(x, y, 2, 2, runes[Math.floor(r() * 3)]); px(x - 1, y - 1, 4, 4, 'rgba(167,139,250,0.12)'); }
+  // magic circle on the floor
+  px(12, 100, 48, 2, '#6d5bd0');
+  px(18, 96, 36, 2, '#6d5bd0');
+  px(18, 106, 36, 2, '#6d5bd0');
+  px(10, 92, 52, 20, 'rgba(129,140,248,0.08)');
+  px(0, 112, W, H - 112, '#1a1428');
+}
+
 const DRAW: Record<SceneName, (px: Px, r: () => number) => void> = {
   forest: drawForest, town: drawTown, mine: drawMine, forge: drawForge,
+  river: drawRiver, camp: drawCamp, kitchen: drawKitchen, workshop: drawWorkshop, tower: drawTower,
 };
 
 export function PixelScene({ scene, dim = 0.55, className = '' }: { scene: SceneName; dim?: number; className?: string }) {

@@ -1,16 +1,17 @@
 // One skill: pick a resource, play its minigame, or set it to idle.
 import { useEffect, useState } from 'react';
 import type { SkillId } from '../../data/items';
-import { actionsForSkill, SKILL_ORDER, SKILLS, type ActionDef } from '../../data/skills';
+import { ACTIONS, actionsForSkill, SKILL_ORDER, SKILLS, type ActionDef } from '../../data/skills';
 import { skillLevel } from '../../core/idle';
-import { bestAction, timeToNextLevel } from '../../core/rates';
+import { bestAction, timeToNextLevel, visibleActions } from '../../core/rates';
 import { game, useGame } from '../../core/store';
 import { levelProgress, MAX_LEVEL } from '../../core/xp';
 import { ProgressBar } from '../components';
 import { ItemIcon, UiIcon } from '../icons';
 import { fmtDuration, fmtNum } from '../format';
 import { AnvilRhythm, StrikeVein } from '../Minigames';
-import { PixelScene } from '../PixelScene';
+import { HeatPrecision, Kindle, ReelItIn, RuneAlign, SteadyHands, Timber } from '../Minigames2';
+import { PixelScene, type SceneName } from '../PixelScene';
 
 export function shortTime(ms: number) {
   const s = Math.round(ms / 1000);
@@ -46,30 +47,68 @@ export function SkillStrip({ selected, onSelect }: { selected: SkillId; onSelect
   );
 }
 
+const SCENES: Record<SkillId, SceneName> = {
+  mining: 'mine', smithing: 'forge', woodcutting: 'forest', firemaking: 'camp',
+  fishing: 'river', cooking: 'kitchen', crafting: 'workshop', enhancing: 'tower',
+};
+
+const MINIGAMES: Record<SkillId, (p: { action: ActionDef }) => JSX.Element> = {
+  mining: StrikeVein, smithing: AnvilRhythm, woodcutting: Timber, firemaking: Kindle,
+  fishing: ReelItIn, cooking: HeatPrecision, crafting: SteadyHands, enhancing: RuneAlign,
+};
+
 export function SkillScreen({ skill }: { skill: SkillId }) {
   const { player } = useGame();
-  const actions = actionsForSkill(skill);
+  const actions = visibleActions(player, skill);
   const lvl = skillLevel(player, skill);
   const prog = levelProgress(player.skills[skill].xp);
   const eta = timeToNextLevel(player, skill);
-  const [selectedId, setSelectedId] = useState<string>(() => (bestAction(player, skill) ?? actions[0]).id);
+  const defaultId = () => (bestAction(player, skill) ?? actions[0])?.id ?? '';
+  const [selectedId, setSelectedId] = useState<string>(defaultId);
 
   useEffect(() => {
     const idleHere = player.idle && actions.some((a) => a.id === player.idle!.actionId) ? player.idle.actionId : null;
-    setSelectedId(idleHere ?? (bestAction(player, skill) ?? actions[0]).id);
+    setSelectedId(idleHere ?? defaultId());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skill]);
 
-  const action = actions.find((a) => a.id === selectedId) ?? actions[0];
+  // After an upgrade succeeds, follow the item to its next upgrade step.
+  let action = actions.find((a) => a.id === selectedId);
+  if (!action && ACTIONS[selectedId]?.output) {
+    const made = ACTIONS[selectedId].output!.item;
+    action = actions.find((a) => a.upgrades === made);
+  }
+  action = action ?? actions[0];
+  const actionId = action?.id ?? '';
   useEffect(() => {
+    if (actionId && actionId !== selectedId) setSelectedId(actionId);
     document.querySelector('.res-chip.on')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
-  }, [action.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionId]);
+
+  if (!action) {
+    return (
+      <div className="skill-screen">
+        <PixelScene scene={SCENES[skill]} dim={0.6} className="screen-bg" />
+        <div className="screen">
+          <h1 className="mastery-title">{SKILLS[skill].name}</h1>
+          <div className="empty">
+            {skill === 'enhancing'
+              ? 'Nothing to enhance right now. Smith gear at the Forge (weapons, armour, pickaxes), keep it in your bag, and improve it here from +1 up to +10.'
+              : 'Nothing here yet.'}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const unlocked = lvl >= action.level;
   const idlingThis = player.idle?.actionId === action.id;
+  const Minigame = MINIGAMES[skill];
 
   return (
     <div className="skill-screen">
-      <PixelScene scene={skill === 'mining' ? 'mine' : 'forge'} dim={0.6} className="screen-bg" />
+      <PixelScene scene={SCENES[skill]} dim={0.6} className="screen-bg" />
       <div className="skill-top">
         <div className="mastery-row">
           <h1 className="mastery-title">{SKILLS[skill].name}</h1>
@@ -99,7 +138,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
       </div>
 
       {unlocked ? (
-        skill === 'mining' ? <StrikeVein action={action} /> : <AnvilRhythm action={action} />
+        <Minigame key={skill} action={action} />
       ) : (
         <div className="mg">
           <div className="mg-stage">

@@ -13,4 +13,11 @@ as `.mp3`, `.ogg` or `.m4a` (for example `mine.mp3`). The game uses it instead o
 | deposit | Moving items to the bank |
 | error | Something can't be done |
 | welcome | The "welcome back" summary |
+| chop | Each log you chop |
+| splash | Each fish you catch |
+| sizzle | Each food you cook |
+| crackle | Each log you burn |
+| craft | Each tool you craft or upgrade |
+| enchant | A successful enhance |
+| fail | An enhance that didn't take |
 | music_town | Background music in Pocketvale (loops) |

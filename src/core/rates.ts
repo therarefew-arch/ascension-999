@@ -4,6 +4,7 @@ import { ACTIONS, actionsForSkill, type ActionDef } from '../data/skills';
 import { actionDuration, skillLevel } from './idle';
 import type { PlayerState } from './player';
 import { levelProgress } from './xp';
+import { countInBag, countInBank } from './inventory';
 
 export interface NextLevelEstimate {
   ms: number;
@@ -21,10 +22,21 @@ export function bestAction(p: PlayerState, skill: SkillId): ActionDef | null {
   const lvl = skillLevel(p, skill);
   let best: ActionDef | null = null;
   for (const a of actionsForSkill(skill)) {
-    if (a.level > lvl) continue;
+    if (a.level > lvl || a.kind) continue; // upgrades depend on owning the item, so skip them
     if (!best || xpPerHour(p, a) > xpPerHour(p, best)) best = a;
   }
   return best;
+}
+
+/**
+ * Actions to show for a skill. Upgrades only appear for items you own (bag or bank),
+ * and only the next step for each item — otherwise Enhancing would list 120 options.
+ */
+export function visibleActions(p: PlayerState, skill: SkillId): ActionDef[] {
+  return actionsForSkill(skill).filter((a) => {
+    if (!a.upgrades) return true;
+    return countInBag(p.inventory, a.upgrades) + countInBank(p, a.upgrades) > 0;
+  });
 }
 
 export function timeToNextLevel(p: PlayerState, skill: SkillId): NextLevelEstimate | null {

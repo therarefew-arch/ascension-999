@@ -45,7 +45,7 @@ function IdleLine({ onOpen }: { onOpen: () => void }) {
       <button className={`idle-line ${player.lastStop ? 'stopped' : ''}`} onClick={onOpen}>
         {player.lastStop
           ? <><span className="red">Idle stopped:</span> <span className="ellipsis">{player.lastStop.reason}</span></>
-          : <><span className="muted">Not idling.</span> <span className="gold">Tap to choose an idle skill â€º</span></>}
+          : <><span className="muted">Not idling.</span> <span className="gold">Tap to choose an idle skill ›</span></>}
       </button>
     );
   }
