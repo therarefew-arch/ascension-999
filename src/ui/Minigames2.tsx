@@ -4,8 +4,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { getItem } from '../data/items';
 import type { ActionDef } from '../data/skills';
 import { enhanceChance } from '../core/enhancing';
-import { whyCantDo } from '../core/idle';
-import { HEAT, KINDLE, REEL, RUNE_ALIGN, STEADY_HANDS, TIMBER, type HitGrade } from '../core/minigames';
+import { FIRE_LOGS, MAX_FIRE_MS, usableFireLogs, whyCantDo } from '../core/idle';
+import { countInBag } from '../core/inventory';
+import { ACTIONS } from '../data/skills';
+import { CHOP, HEAT, KINDLE, REEL, RUNE_ALIGN, STEADY_HANDS, type HitGrade } from '../core/minigames';
 import { game, useGame } from '../core/store';
 import { ItemIcon, UiIcon, type UiIconName } from './icons';
 import { FeedbackLayer, gainText, useAnimationTime, useFeedback } from './Minigames';
@@ -43,50 +45,35 @@ function BigButton({ icon, label, blocked, onPress, onRelease }: {
 // ---------------------------------------------------------------------------
 // Woodcutting — Timber!
 // ---------------------------------------------------------------------------
-export function Timber({ action }: { action: ActionDef }) {
+export function Chop({ action }: { action: ActionDef }) {
   const { player } = useGame();
   const { items, push } = useFeedback();
-  const clock = useAnimationTime();
-  const [chops, setChops] = useState<HitGrade[]>([]);
-  const blocked = whyCantDo(player, action);
-  useEffect(() => { setChops([]); }, [action.id]);
-
-  const t = (clock.now - clock.start.current) / 1000 / TIMBER.swingSeconds;
-  const angle = TIMBER.maxAngle * Math.sin(t * Math.PI * 2);
+  const [taps, setTaps] = useState(0);
+  const [shake, setShake] = useState(0);
+  const blocked = whyCantDo(player, action, { manual: true });
+  useEffect(() => { setTaps(0); }, [action.id]);
 
   const chop = () => {
     if (blocked) return;
-    const off = Math.abs(angle);
-    const grade: HitGrade = off <= TIMBER.perfectDegrees ? 'perfect' : off <= TIMBER.goodDegrees ? 'good' : 'miss';
-    if (grade === 'miss') { push('Whoosh! Wait for the notch', 'miss'); return; }
-    const next = [...chops, grade];
-    if (next.length < TIMBER.chopsNeeded) {
-      setChops(next);
-      push(grade === 'perfect' ? 'Perfect chop!' : 'Chop!', grade);
-      return;
-    }
-    const perfects = next.filter((g) => g === 'perfect').length;
-    const all = perfects === TIMBER.chopsNeeded;
-    const r = game.minigameReward(action.id, { xpMult: 1 + perfects * TIMBER.xpPerPerfect, bonusRolls: all ? TIMBER.allPerfectBonusRolls : 0 });
-    setChops([]);
-    if (r.ok) push(`TIMBER!  ${gainText(r)}`, all ? 'combo' : 'good');
+    setShake((s) => s + 1);
+    const next = taps + 1;
+    if (next < CHOP.tapsNeeded) { setTaps(next); return; }
+    setTaps(0);
+    const r = game.minigameReward(action.id, { xpMult: 1, bonusRolls: 0 });
+    if (r.ok) push(`TIMBER!  ${gainText(r)}`, 'good');
   };
 
   return (
     <div className="mg">
-      <div className="mg-stage">
-        <div className="tree-wrap">
-          <div className="tree-trunk"><ItemIcon id={action.iconItem} size={56} /><span className="tree-notch" /></div>
-          <div className="axe-swing" style={{ transform: `rotate(${angle}deg)` }}><span className="axe-head" /></div>
-        </div>
+      <div className="mg-stage" onClick={chop} role="presentation">
+        <div key={shake} className={`tree-trunk ${shake ? 'chopped' : ''}`}><ItemIcon id={action.iconItem} size={56} /></div>
         <div className="mg-stage-name">{action.name}</div>
         <div className="mg-stage-xp"><Inputs action={action} /></div>
-        <div className="pips">{Array.from({ length: TIMBER.chopsNeeded }, (_, i) => <span key={i} className={`pip ${chops[i] ?? ''}`} />)}</div>
+        <div className="pips">{Array.from({ length: CHOP.tapsNeeded }, (_, i) => <span key={i} className={`pip ${i < taps ? 'good' : ''}`} />)}</div>
         <FeedbackLayer items={items} />
       </div>
-      <Panel label="Timber!" hint="Tap as the axe lines up with the notch">
+      <Panel label="Chop!" hint={`Tap ${CHOP.tapsNeeded} times for a log`}>
         <BigButton icon="woodcutting" label="CHOP" blocked={blocked} onPress={chop} />
-        <p className="mg-foot">3 chops fell the tree. All perfect = bonus logs.</p>
       </Panel>
     </div>
   );
@@ -98,7 +85,7 @@ export function Timber({ action }: { action: ActionDef }) {
 export function ReelItIn({ action }: { action: ActionDef }) {
   const { player } = useGame();
   const { items, push } = useFeedback();
-  const blocked = whyCantDo(player, action);
+  const blocked = whyCantDo(player, action, { manual: true });
   const [, setFrame] = useState(0);
   const s = useRef({ hook: 0.2, vel: 0, catchBar: 0, clean: true, entered: false, holding: false, last: performance.now(), t0: performance.now() });
 
@@ -172,12 +159,21 @@ export function HeatPrecision({ action }: { action: ActionDef }) {
   const clock = useAnimationTime();
   const [sears, setSears] = useState<boolean[]>([]);
   const [zone, setZone] = useState(0.5);
-  const blocked = whyCantDo(player, action);
+  const blocked = whyCantDo(player, action, { manual: true });
   useEffect(() => { setSears([]); }, [action.id]);
 
   const t = (clock.now - clock.start.current) / 1000 / HEAT.sweepSeconds;
   const phase = t % 2;
   const pos = phase < 1 ? phase : 2 - phase;
+
+  // The fire ticks down while you're in the kitchen.
+  useEffect(() => { game.setCookingOpen(true); return () => game.setCookingOpen(false); }, []);
+  const logs = usableFireLogs(player);
+  const [pickedLog, setStokeLog] = useState<string | null>(null);
+  const stokeLog = pickedLog && logs.includes(pickedLog) ? pickedLog : logs[logs.length - 1] ?? null;
+  const lit = player.fire.heatMs > 0;
+  const heatFrac = Math.min(1, player.fire.heatMs / MAX_FIRE_MS);
+  const flame = FIRE_LOGS[player.fire.log ?? stokeLog ?? 'pine_logs']?.color ?? '#f97316';
 
   const sear = () => {
     if (blocked) return;
@@ -199,21 +195,48 @@ export function HeatPrecision({ action }: { action: ActionDef }) {
     <div className="mg">
       <div className="mg-stage">
         <div className="pan-wrap">
+          <div className="cook-flame" style={{ ['--flame' as string]: flame, opacity: lit ? 0.35 + heatFrac * 0.65 : 0, transform: `scaleY(${0.5 + heatFrac * 0.6})` }} />
           <div className="pan"><ItemIcon id={action.iconItem} size={58} /></div>
-          <div className="steam" />
         </div>
         <div className="mg-stage-name">{action.name}</div>
         <div className="mg-stage-xp"><Inputs action={action} /></div>
         <div className="pips">{Array.from({ length: HEAT.searsNeeded }, (_, i) => <span key={i} className={`pip ${sears[i] === undefined ? '' : sears[i] ? 'perfect' : 'good'}`} />)}</div>
         <FeedbackLayer items={items} />
       </div>
-      <Panel label="Heat Precision" hint="Sear twice in the golden zone for GREAT food">
+      {!lit && <div className="fire-out">The fire has gone out! Stoke it to cook.</div>}
+      <div className="mg-panel">
+        <div className="mg-row">
+          <span className="mg-label">Fire heat</span>
+          <span className="mono small" style={{ color: flame }}>{Math.ceil(player.fire.heatMs / 1000)}s · {Math.round(heatFrac * 100)}%</span>
+        </div>
+        <div className="kindle-bar"><div className="kindle-fill" style={{ width: `${heatFrac * 100}%`, background: flame }} /></div>
+        {logs.length > 1 && (
+          <div className="log-pick">
+            {logs.map((l) => (
+              <button key={l} className={`res-chip ${l === stokeLog ? 'on' : ''}`} onClick={() => setStokeLog(l)}>
+                <ItemIcon id={l} size={20} /> {getItem(l).name} <span className="chip-lv">{countInBag(player.inventory, l)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="mg-row">
+          <span className="mg-label">Heat precision</span>
+          <span className="mg-hint">Sear twice in the golden zone for GREAT food</span>
+        </div>
         <div className="strike-bar heat-bar">
           <div className="strike-zone" style={{ left: `${(zone - HEAT.zone / 2) * 100}%`, width: `${HEAT.zone * 100}%` }} />
           <div className="strike-marker" style={{ left: `calc(${pos * 100}% - 4px)` }} />
         </div>
-        <BigButton icon="cooking" label="SEAR" blocked={blocked} onPress={sear} />
-      </Panel>
+        <div className="btn-pair">
+          <button className="btn btn-fire btn-lg" disabled={!stokeLog} onClick={() => game.stokeFire(stokeLog ?? undefined)}>
+            <UiIcon name="firemaking" size={20} />
+            <span className="btn-two-line"><b>STOKE FIRE</b><small>{stokeLog ? `1 ${getItem(stokeLog).name} · +${ACTIONS[FIRE_LOGS[stokeLog].burnAction].xp} Firemaking XP` : 'No logs you can burn'}</small></span>
+          </button>
+          <button className="btn btn-hero btn-lg" disabled={!!blocked} onClick={sear} data-silent>
+            <UiIcon name="cooking" size={20} /> {blocked ? (lit ? blocked : 'NEED FIRE') : 'SEAR'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -221,12 +244,12 @@ export function HeatPrecision({ action }: { action: ActionDef }) {
 // ---------------------------------------------------------------------------
 // Firemaking — Kindle
 // ---------------------------------------------------------------------------
-const FLAME_COLORS: Record<string, string> = { pine_logs: '#f97316', oak_logs: '#fbbf24' };
+const FLAME_COLORS: Record<string, string> = Object.fromEntries(Object.entries(FIRE_LOGS).map(([k, v]) => [k, v.color]));
 
 export function Kindle({ action }: { action: ActionDef }) {
   const { player } = useGame();
   const { items, push } = useFeedback();
-  const blocked = whyCantDo(player, action);
+  const blocked = whyCantDo(player, action, { manual: true });
   const [, setFrame] = useState(0);
   const s = useRef({ meter: 0, startedAt: 0, last: performance.now(), litUntil: 0 });
   const logItem = action.inputs[0]?.item ?? action.iconItem;
@@ -298,7 +321,7 @@ export function SteadyHands({ action }: { action: ActionDef }) {
   const clock = useAnimationTime();
   const [notches, setNotches] = useState(makeNotches);
   const [hits, setHits] = useState<(HitGrade | null)[]>(() => Array(STEADY_HANDS.notches).fill(null));
-  const blocked = whyCantDo(player, action);
+  const blocked = whyCantDo(player, action, { manual: true });
   const pos = ((clock.now - clock.start.current) / 1000) / STEADY_HANDS.passSeconds;
 
   const finish = (final: (HitGrade | null)[]) => {
@@ -361,7 +384,7 @@ export function RuneAlign({ action }: { action: ActionDef }) {
   const { player } = useGame();
   const { items, push } = useFeedback();
   const clock = useAnimationTime();
-  const blocked = whyCantDo(player, action);
+  const blocked = whyCantDo(player, action, { manual: true });
   const [busyUntil, setBusyUntil] = useState(0);
   const angle = (((clock.now - clock.start.current) / 1000) / RUNE_ALIGN.spinSeconds * 360) % 360;
   const fromTop = Math.min(angle, 360 - angle);

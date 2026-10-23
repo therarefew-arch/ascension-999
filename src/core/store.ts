@@ -6,7 +6,9 @@ import type { SoundKey } from '../audio/soundList';
 import { getItem, type EquipSlot } from '../data/items';
 import { ACTIONS, SKILLS } from '../data/skills';
 import { equip, unequip } from './equipment';
-import { advanceIdle, completeAction, emptyReport, startIdle, stopIdle, whyCantDo, type ProgressReport } from './idle';
+import {
+  addXp, advanceIdle, completeAction, drainFire, emptyReport, startIdle, stokeFire, stopIdle, whyCantDo, type ProgressReport,
+} from './idle';
 import { deposit, depositAll, withdraw } from './inventory';
 import { lootFits, validateLootTables } from './loot';
 import { clampReward } from './minigames';
@@ -110,6 +112,12 @@ function tick(now = Date.now()) {
   }
 
   p.lastActiveAt = now;
+  // The cooking fire burns down while you're at the Kitchen (idle cooking burns it per dish instead).
+  const idleCooking = p.idle && ACTIONS[p.idle.actionId]?.skill === 'cooking';
+  if (cookingOpen && !idleCooking && p.fire.heatMs > 0) {
+    drainFire(p, gap);
+    if (!p.idle) emit();
+  }
   if (!p.idle) return;
   const action = ACTIONS[p.idle.actionId];
   const report = advanceIdle(p, gap, now);
@@ -124,6 +132,7 @@ function tick(now = Date.now()) {
 }
 
 let started = false;
+let cookingOpen = false;
 
 /** Starts the app on the title screen, with the clock and auto-save ready. */
 export function startGame() {
@@ -227,7 +236,7 @@ export const game = {
     const action = ACTIONS[actionId];
     const empty: MinigameResult = { ok: false, gained: {}, xp: 0 };
     if (!action) return { ...empty, reason: 'Unknown activity' };
-    const why = whyCantDo(snap.player, action);
+    const why = whyCantDo(snap.player, action, { manual: true });
     if (why) { fail(why); return { ...empty, reason: why }; }
     // "Great" food uses its own loot table — only if there's room for it.
     let lootTable: string | undefined;
@@ -251,6 +260,31 @@ export const game = {
       xp: report.xp[action.skill] ?? 0,
       levelUp: report.levelUps[0]?.to,
     };
+  },
+
+  /** XP-only reward (the fishing tile game). */
+  minigameXp(actionId: string, xp: number) {
+    const action = ACTIONS[actionId];
+    if (!action || xp <= 0) return;
+    const report = emptyReport(actionId);
+    addXp(snap.player, action, report, Math.round(Math.min(xp, action.xp * 3)));
+    announceLevels(report);
+    emit();
+  },
+
+  // ----- Cooking fire -----
+  setCookingOpen(open: boolean) {
+    cookingOpen = open;
+  },
+  stokeFire(log?: string): boolean {
+    tick();
+    const report = emptyReport(null);
+    const why = stokeFire(snap.player, report, log);
+    if (why) { fail(why); return false; }
+    play('crackle');
+    announceLevels(report);
+    emit();
+    return true;
   },
 
   // ----- Bag & bank -----

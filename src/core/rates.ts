@@ -35,7 +35,8 @@ export function bestAction(p: PlayerState, skill: SkillId): ActionDef | null {
 export function visibleActions(p: PlayerState, skill: SkillId): ActionDef[] {
   return actionsForSkill(skill).filter((a) => {
     if (!a.upgrades) return true;
-    return countInBag(p.inventory, a.upgrades) + countInBank(p, a.upgrades) > 0;
+    const worn = Object.values(p.equipment).includes(a.upgrades) ? 1 : 0;
+    return countInBag(p.inventory, a.upgrades) + countInBank(p, a.upgrades) + worn > 0;
   });
 }
 

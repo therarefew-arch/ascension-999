@@ -2,8 +2,11 @@
 // the market and the loot rules so it can later live on a server for multiplayer.
 import type { EquipSlot, SkillId } from '../data/items';
 
-/** v2: added 6 skills; the old "tool" gear slot became "pickaxe". */
-export const SAVE_VERSION = 2;
+/**
+ * v2: added 6 skills; the old "tool" gear slot became "pickaxe".
+ * v3: pickaxes moved from Smithing to Crafting; tool tiers renamed (pine→stone, oak→bronze); cooking fire.
+ */
+export const SAVE_VERSION = 3;
 export const INVENTORY_SLOTS = 30;
 /** Max of one stackable item in a single bag slot. */
 export const STACK_LIMIT = 500;
@@ -34,6 +37,8 @@ export interface PlayerState {
   idle: IdleSlot | null;
   /** Why idling last stopped by itself (shown to the player). */
   lastStop: { actionId: string; reason: string; at: number } | null;
+  /** The cooking fire: how much heat is left and which log is burning (sets the flame colour). */
+  fire: { heatMs: number; log: string | null };
 }
 
 export function newPlayer(now = Date.now()): PlayerState {
@@ -50,6 +55,7 @@ export function newPlayer(now = Date.now()): PlayerState {
     equipment: {},
     idle: null,
     lastStop: null,
+    fire: { heatMs: 0, log: null },
   };
 }
 

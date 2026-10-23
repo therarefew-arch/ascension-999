@@ -43,6 +43,33 @@ const MIGRATIONS: Record<number, (player: any) => any> = {
     }
     return player;
   },
+  // v2 → v3: pickaxes moved from Smithing to Crafting, tool tiers renamed. Nothing is lost:
+  // old Bronze pickaxe → Stone pickaxe, old Iron pickaxe → Bronze pickaxe, Pine/Oak tools → Stone/Bronze tools.
+  2: (player) => {
+    const renameItem = (id: string): string => {
+      const m = /^(bronze|iron|pine|oak)_(pickaxe|axe|rod|tinderbox|skillet)(_p\d+)?$/.exec(id);
+      if (!m) return id;
+      if (m[2] === 'pickaxe' && (m[1] === 'pine' || m[1] === 'oak')) return id;
+      if (m[2] !== 'pickaxe' && (m[1] === 'bronze' || m[1] === 'iron')) return id;
+      const tier = m[1] === 'bronze' || m[1] === 'pine' ? 'stone' : 'bronze';
+      return `${tier}_${m[2]}${m[3] ?? ''}`;
+    };
+    const renameAction = (id: string): string => {
+      const m = /^(craft|upgrade)_(pine|oak)_(.*)$/.exec(id);
+      return m ? `${m[1]}_${m[2] === 'pine' ? 'stone' : 'bronze'}_${m[3]}` : id;
+    };
+    const fixStack = (s: { id: string; qty: number } | null) => (s ? { ...s, id: renameItem(s.id) } : s);
+    if (Array.isArray(player?.inventory)) player.inventory = player.inventory.map(fixStack);
+    if (Array.isArray(player?.bank)) {
+      const merged: Record<string, number> = {};
+      for (const s of player.bank) if (s?.id) merged[renameItem(s.id)] = (merged[renameItem(s.id)] ?? 0) + s.qty;
+      player.bank = Object.entries(merged).map(([id, qty]) => ({ id, qty }));
+    }
+    if (player?.equipment) for (const k of Object.keys(player.equipment)) player.equipment[k] = renameItem(player.equipment[k]);
+    if (player?.idle?.actionId) player.idle.actionId = renameAction(player.idle.actionId);
+    if (player?.lastStop?.actionId) player.lastStop.actionId = renameAction(player.lastStop.actionId);
+    return player;
+  },
 };
 
 export function saveGame(slot: SlotId, player: PlayerState): boolean {
@@ -143,6 +170,9 @@ function repair(raw: any): PlayerState {
     p.idle = { actionId: raw.idle.actionId, progressMs: Number(raw.idle.progressMs) || 0 };
   }
   if (raw?.lastStop && ACTIONS[raw.lastStop.actionId]) p.lastStop = raw.lastStop;
+  if (raw?.fire && typeof raw.fire.heatMs === 'number') {
+    p.fire = { heatMs: Math.max(0, raw.fire.heatMs), log: ITEMS[raw.fire.log] ? raw.fire.log : null };
+  }
   return p;
 }
 

@@ -360,6 +360,45 @@ p { margin: 8px 0; }
 .rune-top { position: absolute; top: -14px; left: 50%; margin-left: -6px; border: 6px solid transparent; border-top: 10px solid var(--gold); }
 .rune-item { width: 78px; height: 78px; border-radius: 50%; background: #1c162d; border: 2px solid #4c3fa0; display: flex; align-items: center; justify-content: center; }
 
+/* Tabs + recipe lists (Smithing, Crafting) */
+.tab-row { display: flex; gap: 8px; padding: 10px 14px 2px; overflow-x: auto; scrollbar-width: none; }
+.tab-row::-webkit-scrollbar { display: none; }
+.tab-pill { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; min-height: 42px; padding: 0 14px; border-radius: 14px; background: rgba(26, 24, 21, 0.9); border: 1.5px solid var(--line); color: var(--muted); font-weight: 900; font-size: 0.85rem; letter-spacing: 0.6px; cursor: pointer; }
+.tab-pill.on { color: var(--gold); border-color: var(--orange); background: #2a1e0b; box-shadow: 0 0 12px rgba(245, 158, 11, 0.25); }
+.small-tabs { padding-top: 8px; }
+.recipe-list { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px 0; }
+.recipe { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 62px; padding: 8px 14px; border-radius: 16px; background: rgba(20, 18, 16, 0.88); border: 1.5px solid var(--line); text-align: left; cursor: pointer; }
+.recipe.on { border-color: var(--orange); background: linear-gradient(90deg, rgba(124, 63, 14, 0.55), rgba(42, 30, 11, 0.9)); box-shadow: 0 0 14px rgba(245, 158, 11, 0.2); }
+.recipe.locked { opacity: 0.5; }
+.recipe-name { font-weight: 900; }
+.recipe.on .recipe-name { color: var(--gold); }
+.recipe-sub { font-size: 0.8rem; color: var(--muted); }
+.recipe-right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-weight: 800; flex-shrink: 0; }
+
+/* Woodcutting tap */
+.tree-trunk.chopped { animation: thunk 0.22s ease-out; }
+.mg-stage { cursor: default; }
+
+/* Cooking fire */
+.btn-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn-fire { background: linear-gradient(180deg, #ea580c, #9a3412); border-color: #fb923c; color: #fff7ed; padding: 8px 10px; }
+.btn-two-line { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; text-align: left; }
+.btn-two-line small { font-size: 0.7rem; font-weight: 700; opacity: 0.9; }
+.fire-out { margin: 0 14px; align-self: center; padding: 8px 14px; border-radius: 99px; border: 1.5px solid #be123c; background: rgba(76, 5, 25, 0.75); color: #fecdd3; font-weight: 700; font-size: 0.88rem; text-align: center; }
+.cook-flame { position: absolute; left: 50%; bottom: -14px; width: 120px; height: 70px; margin-left: -60px; border-radius: 50% 50% 40% 40% / 70% 70% 30% 30%; background: radial-gradient(ellipse at 50% 100%, #fff3c4 0%, var(--flame) 40%, transparent 72%); filter: blur(2px); transform-origin: 50% 100%; animation: flicker 0.35s infinite alternate; pointer-events: none; }
+.pan-wrap { display: flex; justify-content: center; }
+.pan { position: relative; z-index: 1; }
+.log-pick { display: flex; gap: 8px; overflow-x: auto; }
+
+/* Fishing tile match (mahjong) */
+.mj-board-wrap { position: relative; display: flex; justify-content: center; padding: 6px 0; }
+.mj-board { position: relative; }
+.mj-tile { position: absolute; padding: 0; border-radius: 9px; border: 1.5px solid #8a7f6c; background: linear-gradient(160deg, #fffaf0, #e9dfca); box-shadow: 3px 4px 0 #6b5f4c, 4px 6px 8px rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; font-size: 1.55rem; cursor: pointer; filter: brightness(0.62) saturate(0.7); transition: transform 0.1s; }
+.mj-tile.free { filter: none; }
+.mj-tile.picked { background: linear-gradient(160deg, #fff3c4, #fbbf24); border-color: #f59e0b; transform: translateY(-3px); box-shadow: 3px 7px 0 #92610f, 0 0 16px rgba(251, 191, 36, 0.7); }
+.mj-tile span { pointer-events: none; }
+.mj-done { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 900; color: var(--gold); }
+
 @keyframes flicker { from { transform: scale(1.1) skewX(-2deg); } to { transform: scale(1.18) skewX(2deg); } }
 
 /* ---------- Skill strip (hotbar) ---------- */

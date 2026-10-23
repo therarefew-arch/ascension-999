@@ -57,7 +57,7 @@ export function StrikeVein({ action }: { action: ActionDef }) {
   const [combo, setCombo] = useState(0);
   const [pausedAt, setPausedAt] = useState<number | null>(null);
   const [shake, setShake] = useState(0);
-  const blocked = whyCantDo(player, action);
+  const blocked = whyCantDo(player, action, { manual: true });
 
   // Marker glides back and forth (0 → 1 → 0).
   const t = ((pausedAt ?? clock.now) - clock.start.current) / 1000 / STRIKE_VEIN.sweepSeconds;
@@ -134,7 +134,7 @@ export function AnvilRhythm({ action }: { action: ActionDef }) {
   const { items, push } = useFeedback();
   const clock = useAnimationTime();
   const [hits, setHits] = useState<HitGrade[]>([]);
-  const blocked = whyCantDo(player, action);
+  const blocked = whyCantDo(player, action, { manual: true });
 
   // The ring shrinks from big to small; it lines up with the anvil at 75% of the way.
   const TARGET = 0.75;

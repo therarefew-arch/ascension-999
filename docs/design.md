@@ -121,9 +121,9 @@ All minigame rewards still go through the central loot system.
 |---|---|---|
 | Mining | **Strike Vein** — tap when the marker is in the gold zone; perfect hits and 5-hit combos give bonus ore | Built |
 | Smithing | **Anvil Rhythm** — tap as the glowing ring lands on the anvil; 3 hits finish an item; all-perfect = masterwork bonus | Built |
-| Woodcutting | **Timber!** — tap as the swinging axe lines up with the notch; 3 chops fell a tree; all perfect = bonus logs | Built |
-| Fishing | **Reel It In** — hold to reel, keep the hook on the fish's green zone; a clean catch = bonus fish; fish never escape | Built |
-| Cooking | **Heat Precision** — sear twice; both in the golden zone = Great food (heals more); food never burns | Built |
+| Woodcutting | **Chop!** — just tap the tree 5 times for a log (owner's request: simple) | Built |
+| Fishing | **Reel It In** — hold to reel, keep the hook on the fish's green zone; a clean catch = bonus fish; fish never escape. **Tile Match** — mahjong solitaire (always-solvable boards, free shuffle); each pair = Fishing XP, clearing the board = bonus fish | Built |
+| Cooking | **Fire + Heat Precision** — the cooking fire must be fed with logs (Stoke Fire = 1 log + Firemaking XP for that log; better logs burn longer; flame colour follows the log). The fire ticks down while you're in the Kitchen. Sear twice in the golden zone = Great food; food never burns. Idle cooking feeds the fire from your bag automatically. | Built |
 | Firemaking | **Kindle** — tap to fill the kindling meter; light it fast for a quick-spark XP bonus; coloured flames per log | Built (stick shaving, Immersive XP mode and the Wildfire rhythm boss come later) |
 | Crafting | **Steady Hands** — tap as the blade passes each notch; the item is always made, clean cuts give bonus XP | Built |
 | Enhancing | **Rune Align** — tap when the rune passes the top for up to +10% success chance | Built |
@@ -131,11 +131,14 @@ All minigame rewards still go through the central loot system.
 
 ## Tools and upgrades
 
-- Each gathering/processing skill has a tool slot: Pickaxe (Mining), Axe (Woodcutting), Rod (Fishing), Tinderbox (Firemaking), Skillet (Cooking).
-- Pickaxes are smithed. Axes, rods, tinderboxes and skillets are crafted from logs and stone (stone comes from Mining).
+- Every gathering/making skill has its own tool, all made at the **Crafting** Workshop: Pickaxe (Mining), Axe (Woodcutting), Rod (Fishing), Hammer (Smithing), Knife (Crafting), Tinderbox (Firemaking), Skillet (Cooking).
+- **Tools gate higher resources**: a tool of tier N must be equipped to gather/make that skill's tier-N resources. Tier 0 (level 1 resources) needs no tool.
+  - Tier 0 = **Stone** tools (pine logs + stone). Tier 1 = **Bronze** tools (pine logs + bronze bars, Crafting 50+, needs a Stone knife).
+  - Each tool tier is made from the previous tier's resources, so there's never a dead end. Future: Iron tools (oak + iron) for tier 2, and so on.
 - Tools and smithed gear can be improved **+1 to +10**. Each level adds about +12% of the base stat (at least +1).
-  - **Crafting** upgrades crafted tools: always succeeds; costs logs and stone.
-  - **Enhancing** upgrades smithed gear (weapons, armour, pickaxes): chance-based (about 95% for +1 down to about 32% for +10, better with higher Enhancing level and Rune Align luck). A failure only uses the bars — **the item is never lost**. A failed try still gives 25% XP.
+  - **Crafting** upgrades tools: always succeeds. Works on the equipped tool too — the +1 replaces it right in its slot.
+  - **Enhancing** upgrades weapons and armour: chance-based (about 95% for +1 down to about 32% for +10, better with higher Enhancing level and Rune Align luck). A failure only uses the bars — **the item is never lost**. A failed try still gives 25% XP.
+- Smithing screen has tabs **Smelt / Weapons / Armour**; Crafting has **Tools / Upgrades** (recipe list with have/need counts, like the owner's reference).
 - Upgraded items are separate item ids (`bronze_sword_p3` = Bronze sword +3) so stacking and saving stay simple.
 
 ## Food
@@ -181,6 +184,11 @@ Based on the owner's reference screenshots:
 - Mining: Stone added (for Crafting).
 - Six new minigames (see table above), new pixel-art scenes, tool slots on the Gear screen.
 - Save version 2 (old "tool" slot → "pickaxe" slot).
+
+### Phase 2.1 — built (owner's tweaks)
+- Woodcutting = tap 5 times. Pickaxes moved from Smithing to Crafting; Hammer and Knife tools added; tools gate tier-1 resources; upgrade tools in place.
+- Cooking fire (stoke with logs for Firemaking XP, flame colour per log, ticks down). Shrimp icons. Fishing Tile Match (mahjong). Smithing/Crafting tabs.
+- Save version 3 (old pickaxes and pine/oak tools converted to the new Stone/Bronze tools, keeping their +levels).
 
 ### Phase 3 — next
 Combat: Melee, Ranged, Magic, Defense, Health; Pocketvale monsters and mini boss; food healing; boss-only gem drops.

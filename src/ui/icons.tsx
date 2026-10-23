@@ -6,7 +6,7 @@ interface Palette { main: string; light: string; dark: string }
 const WOOD = { main: '#9a6a3c', dark: '#5e3d1f' };
 const ROCK = { main: '#6d6458', light: '#8b8174', dark: '#423b33' };
 
-function ItemShape({ kind, c }: { kind: IconKind; c: Palette }) {
+function ItemShape({ kind, c }: { kind: IconKind; c: Palette }): JSX.Element {
   switch (kind) {
     case 'ore':
       return (
@@ -131,6 +131,50 @@ function ItemShape({ kind, c }: { kind: IconKind; c: Palette }) {
           <path d="M16 14 Q14 10 17 7 M23 14 Q21 10 24 7" stroke="#c9c2b5" strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.8" />
         </g>
       );
+    case 'shrimp':
+      return (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          {/* curled body made of segments, fan tail, legs and long feelers */}
+          <path d="M14 14 Q30 6 38 18 Q42 28 32 34 Q26 37 22 33" fill="none" stroke={c.dark} strokeWidth="11" />
+          <path d="M14 14 Q30 6 38 18 Q42 28 32 34 Q26 37 22 33" fill="none" stroke={c.main} strokeWidth="8" />
+          <path d="M23 9 Q24 13 22 15 M30 9 Q30 13 28 16 M36 14 Q34 17 32 18 M39 22 Q36 23 34 23 M38 29 Q35 28 33 27" stroke={c.dark} strokeWidth="1.4" fill="none" />
+          <path d="M22 33 L14 38 L18 30 Z M22 33 L16 42 L24 36 Z" fill={c.light} stroke={c.dark} strokeWidth="1.4" />
+          <circle cx="14" cy="13" r="2" fill="#1a1a1a" />
+          <path d="M12 12 Q4 6 3 2 M12 14 Q3 12 1 8" stroke={c.dark} strokeWidth="1.2" fill="none" />
+          <path d="M20 18 L18 24 M25 17 L24 23 M30 19 L30 25" stroke={c.dark} strokeWidth="1.3" />
+          <path d="M18 12 Q28 7 35 15" stroke={c.light} strokeWidth="1.8" fill="none" opacity="0.8" />
+        </g>
+      );
+    case 'cooked_shrimp':
+      return (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <ellipse cx="24" cy="33" rx="19" ry="7" fill="#e9e1d1" stroke="#8a7f6c" strokeWidth="2" />
+          <path d="M14 22 Q24 14 32 22 Q35 28 29 31 Q26 32 24 30" fill="none" stroke="#9a3412" strokeWidth="8" />
+          <path d="M14 22 Q24 14 32 22 Q35 28 29 31 Q26 32 24 30" fill="none" stroke={c.main} strokeWidth="5.5" />
+          <path d="M24 30 L18 33 L21 27 Z" fill={c.light} stroke="#9a3412" strokeWidth="1.2" />
+          <path d="M20 19 L21 23 M25 17 L25 21 M30 19 L28 23" stroke="#9a3412" strokeWidth="1.2" />
+          <path d="M33 12 Q31 8 34 5 M27 12 Q25 8 28 5" stroke="#c9c2b5" strokeWidth="1.6" fill="none" opacity="0.8" />
+          <circle cx="37" cy="30" r="2.5" fill="#86efac" stroke="#166534" strokeWidth="1" />
+        </g>
+      );
+    case 'hammer':
+      return (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 42 L28 18" stroke={WOOD.dark} strokeWidth="6" />
+          <path d="M12 42 L28 18" stroke={WOOD.main} strokeWidth="3.4" />
+          <path d="M20 10 L36 4 L42 18 L26 24 Z" fill={c.main} stroke={c.dark} strokeWidth="2" />
+          <path d="M23 11 L35 6.5" stroke={c.light} strokeWidth="1.6" />
+        </g>
+      );
+    case 'knife':
+      return (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10 40 L20 30" stroke={WOOD.dark} strokeWidth="7" />
+          <path d="M10 40 L20 30" stroke={WOOD.main} strokeWidth="4.4" />
+          <path d="M19 31 L40 6 Q42 12 36 20 L23 33 Z" fill={c.light} stroke={c.dark} strokeWidth="2" />
+          <path d="M22 29 L38 10" stroke={c.main} strokeWidth="1.4" />
+        </g>
+      );
     case 'axe':
       return (
         <g strokeLinecap="round" strokeLinejoin="round">
@@ -197,7 +241,7 @@ export type UiIconName =
   | 'town' | 'skills' | 'bag' | 'bank' | 'gear' | 'settings' | 'close' | 'search'
   | 'stop' | 'clock' | 'up' | 'down' | 'lock' | 'mining' | 'smithing' | 'sound' | 'music'
   | 'trash' | 'play' | 'refresh' | 'trophy' | 'pin' | 'bolt' | 'door'
-  | 'woodcutting' | 'firemaking' | 'fishing' | 'cooking' | 'crafting' | 'enhancing';
+  | 'woodcutting' | 'firemaking' | 'fishing' | 'cooking' | 'crafting' | 'enhancing' | 'sword' | 'shield';
 
 /** Simple line icons for buttons and navigation. */
 export function UiIcon({ name, size = 24 }: { name: UiIconName; size?: number }) {
@@ -226,6 +270,8 @@ export function UiIcon({ name, size = 24 }: { name: UiIconName; size?: number })
     case 'cooking': body = <g {...common}><path d="M3 13 H17 Q17 19 10 19 Q3 19 3 13 Z" /><path d="M17 14 L21 12" /><path d="M8 9 Q7 7 8.5 5 M12 9 Q11 7 12.5 5" /></g>; break;
     case 'crafting': body = <g {...common}><path d="M4 20 L13 11" /><path d="M11 6 L16 3 L21 8 L18 13 Z" /><path d="M3 4 L8 9" /><path d="M2 7 L5 4" /></g>; break;
     case 'enhancing': body = <g {...common}><path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z" /><circle cx="12" cy="12" r="2" /></g>; break;
+    case 'sword': body = <g {...common}><path d="M20 4 L20 8 L9 19 L5 15 L16 4 Z" /><path d="M4 20 L7 17" /><path d="M5 13 L11 19" /></g>; break;
+    case 'shield': body = <g {...common}><path d="M12 3 L20 6 Q20 15 12 21 Q4 15 4 6 Z" /></g>; break;
     case 'trash': body = <g {...common}><path d="M4 7 H20" /><path d="M9 7 V4 H15 V7" /><path d="M6 7 L7 20 H17 L18 7" /><path d="M10 11 V16 M14 11 V16" /></g>; break;
     case 'play': body = <g {...common}><path d="M8 5 L19 12 L8 19 Z" /></g>; break;
     case 'refresh': body = <g {...common}><path d="M20 11 A8 8 0 0 0 5.5 7" /><path d="M5 3 V7.5 H9.5" /><path d="M4 13 A8 8 0 0 0 18.5 17" /><path d="M19 21 V16.5 H14.5" /></g>; break;

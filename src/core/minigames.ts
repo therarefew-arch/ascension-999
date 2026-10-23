@@ -34,17 +34,9 @@ export const ANVIL_RHYTHM = {
   masterworkBonusRolls: 1,
 };
 
-/** Woodcutting — Timber!: tap when the swinging axe lines up with the notch. Three chops fell a tree. */
-export const TIMBER = {
-  /** Seconds for one full swing back and forth. */
-  swingSeconds: 1.8,
-  maxAngle: 55,
-  goodDegrees: 11,
-  perfectDegrees: 4,
-  chopsNeeded: 3,
-  xpPerPerfect: 0.2,
-  /** All perfect = bonus logs. */
-  allPerfectBonusRolls: 1,
+/** Woodcutting — Chop!: simply tap the tree. Every 5 taps gives a log. */
+export const CHOP = {
+  tapsNeeded: 5,
 };
 
 /** Fishing — Reel It In: hold to reel; keep the hook in the fish's green zone until the catch bar fills. */

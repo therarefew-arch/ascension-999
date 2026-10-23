@@ -9,7 +9,9 @@ import { DiffChips, Sheet, StatCompare } from '../components';
 import { ItemIcon } from '../icons';
 
 const WHERE_TO_GET: Partial<Record<EquipSlot, string>> = {
-  pickaxe: 'Smith one at the Forge.',
+  pickaxe: 'Craft one at the Workshop.',
+  hammer: 'Craft one at the Workshop.',
+  knife: 'Craft one at the Workshop.',
   axe: 'Craft one at the Workshop.',
   rod: 'Craft one at the Workshop.',
   tinderbox: 'Craft one at the Workshop.',

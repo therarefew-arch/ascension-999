@@ -1,16 +1,20 @@
 // One skill: pick a resource, play its minigame, or set it to idle.
 import { useEffect, useState } from 'react';
 import type { SkillId } from '../../data/items';
-import { ACTIONS, actionsForSkill, SKILL_ORDER, SKILLS, type ActionDef } from '../../data/skills';
-import { skillLevel } from '../../core/idle';
+import { ACTIONS, actionsForSkill, SKILL_ORDER, SKILLS, tabsForSkill, type ActionDef } from '../../data/skills';
+import { getItem } from '../../data/items';
+import { skillLevel, whyCantDo } from '../../core/idle';
+import { countInBag } from '../../core/inventory';
+import type { PlayerState } from '../../core/player';
 import { bestAction, timeToNextLevel, visibleActions } from '../../core/rates';
 import { game, useGame } from '../../core/store';
 import { levelProgress, MAX_LEVEL } from '../../core/xp';
 import { ProgressBar } from '../components';
-import { ItemIcon, UiIcon } from '../icons';
+import { ItemIcon, UiIcon, type UiIconName } from '../icons';
 import { fmtDuration, fmtNum } from '../format';
 import { AnvilRhythm, StrikeVein } from '../Minigames';
-import { HeatPrecision, Kindle, ReelItIn, RuneAlign, SteadyHands, Timber } from '../Minigames2';
+import { Chop, HeatPrecision, Kindle, RuneAlign, SteadyHands } from '../Minigames2';
+import { FishingGames } from '../TileMatch';
 import { PixelScene, type SceneName } from '../PixelScene';
 
 export function shortTime(ms: number) {
@@ -53,24 +57,74 @@ const SCENES: Record<SkillId, SceneName> = {
 };
 
 const MINIGAMES: Record<SkillId, (p: { action: ActionDef }) => JSX.Element> = {
-  mining: StrikeVein, smithing: AnvilRhythm, woodcutting: Timber, firemaking: Kindle,
-  fishing: ReelItIn, cooking: HeatPrecision, crafting: SteadyHands, enhancing: RuneAlign,
+  mining: StrikeVein, smithing: AnvilRhythm, woodcutting: Chop, firemaking: Kindle,
+  fishing: FishingGames, cooking: HeatPrecision, crafting: SteadyHands, enhancing: RuneAlign,
 };
+
+const TAB_ICONS: Record<string, UiIconName> = {
+  Smelt: 'firemaking', Weapons: 'sword', Armour: 'shield', Tools: 'crafting', Upgrades: 'up',
+};
+
+/** A list of recipes with what you have vs. what you need (Smithing, Crafting). */
+function RecipeList({ player, actions, selected, onSelect }: {
+  player: PlayerState; actions: ActionDef[]; selected: string; onSelect: (id: string) => void;
+}) {
+  const lvl = actions[0] ? skillLevel(player, actions[0].skill) : 0;
+  return (
+    <div className="recipe-list">
+      {actions.map((a) => {
+        const locked = lvl < a.level;
+        // The input that limits how many you can make.
+        const needs = a.inputs.filter((i) => i.item !== a.upgrades);
+        const limiting = needs.reduce<{ have: number; qty: number; n: number } | null>((best, i) => {
+          const have = countInBag(player.inventory, i.item);
+          const n = Math.floor(have / i.qty);
+          return !best || n < best.n ? { have, qty: i.qty, n } : best;
+        }, null);
+        const enough = !limiting || limiting.n > 0;
+        const toolProblem = !locked ? whyCantDo(player, a)?.startsWith('Equip a') : false;
+        return (
+          <button key={a.id} className={`recipe ${a.id === selected ? 'on' : ''} ${locked ? 'locked' : ''}`} onClick={() => onSelect(a.id)}>
+            <ItemIcon id={a.iconItem} size={36} />
+            <div className="grow">
+              <div className="recipe-name">{a.name}{player.idle?.actionId === a.id && <span className="chip-idle"> <UiIcon name="clock" size={12} /></span>}</div>
+              <div className="recipe-sub">{needs.map((i) => `${i.qty}× ${getItem(i.item).name}`).join(' + ')}</div>
+            </div>
+            <div className="recipe-right mono">
+              {limiting && <span className={enough ? 'green' : 'red'}>{fmtNum(limiting.have)}/{limiting.qty}</span>}
+              {locked && <span className="dim small">Lv {a.level}</span>}
+              {!locked && toolProblem && <span className="red small">needs tool</span>}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function SkillScreen({ skill }: { skill: SkillId }) {
   const { player } = useGame();
-  const actions = visibleActions(player, skill);
+  const allActions = visibleActions(player, skill);
+  const tabs = tabsForSkill(skill);
   const lvl = skillLevel(player, skill);
   const prog = levelProgress(player.skills[skill].xp);
   const eta = timeToNextLevel(player, skill);
-  const defaultId = () => (bestAction(player, skill) ?? actions[0])?.id ?? '';
+  // Skills with tabs open on their first tab; others on the best resource you can do.
+  const defaultId = () => (tabs.length
+    ? (allActions.find((a) => a.tab === tabs[0] && a.level <= skillLevel(player, skill)) ?? allActions.find((a) => a.tab === tabs[0]))
+    : (bestAction(player, skill) ?? allActions[0]))?.id ?? '';
   const [selectedId, setSelectedId] = useState<string>(defaultId);
+  const [tab, setTab] = useState<string>(() => ACTIONS[defaultId()]?.tab ?? tabs[0] ?? '');
 
   useEffect(() => {
-    const idleHere = player.idle && actions.some((a) => a.id === player.idle!.actionId) ? player.idle.actionId : null;
-    setSelectedId(idleHere ?? defaultId());
+    const idleHere = player.idle && allActions.some((a) => a.id === player.idle!.actionId) ? player.idle.actionId : null;
+    const id = idleHere ?? defaultId();
+    setSelectedId(id);
+    setTab(ACTIONS[id]?.tab ?? tabs[0] ?? '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skill]);
+
+  const actions = tabs.length ? allActions.filter((a) => a.tab === tab) : allActions;
 
   // After an upgrade succeeds, follow the item to its next upgrade step.
   let action = actions.find((a) => a.id === selectedId);
@@ -78,7 +132,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
     const made = ACTIONS[selectedId].output!.item;
     action = actions.find((a) => a.upgrades === made);
   }
-  action = action ?? actions[0];
+  action = action ?? actions.find((a) => a.level <= lvl) ?? actions[0];
   const actionId = action?.id ?? '';
   useEffect(() => {
     if (actionId && actionId !== selectedId) setSelectedId(actionId);
@@ -86,16 +140,30 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionId]);
 
+  const tabRow = tabs.length > 0 && (
+    <div className="tab-row" role="tablist">
+      {tabs.map((t) => (
+        <button key={t} role="tab" aria-selected={t === tab} className={`tab-pill ${t === tab ? 'on' : ''}`}
+          onClick={() => { setTab(t); const first = allActions.find((a) => a.tab === t && a.level <= lvl) ?? allActions.find((a) => a.tab === t); if (first) setSelectedId(first.id); }}>
+          <UiIcon name={TAB_ICONS[t] ?? 'skills'} size={16} /> {t.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  );
+
   if (!action) {
     return (
       <div className="skill-screen">
         <PixelScene scene={SCENES[skill]} dim={0.6} className="screen-bg" />
         <div className="screen">
           <h1 className="mastery-title">{SKILLS[skill].name}</h1>
+          {tabRow}
           <div className="empty">
             {skill === 'enhancing'
-              ? 'Nothing to enhance right now. Smith gear at the Forge (weapons, armour, pickaxes), keep it in your bag, and improve it here from +1 up to +10.'
-              : 'Nothing here yet.'}
+              ? 'Nothing to enhance right now. Smith weapons or armour at the Forge, then improve them here from +1 up to +10 — even while you wear them.'
+              : tab === 'Upgrades'
+                ? 'Craft a tool first — then upgrade it here, even while it’s equipped. Your +1 replaces the old one.'
+                : 'Nothing here yet.'}
           </div>
         </div>
       </div>
@@ -121,6 +189,10 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
         </div>
       </div>
 
+      {tabRow}
+      {tabs.length > 0 ? (
+        <RecipeList player={player} actions={actions} selected={action.id} onSelect={setSelectedId} />
+      ) : (
       <div className="chip-row" role="tablist" aria-label="Resources">
         {actions.map((a: ActionDef) => {
           const locked = lvl < a.level;
@@ -136,6 +208,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
           );
         })}
       </div>
+      )}
 
       {unlocked ? (
         <Minigame key={skill} action={action} />
