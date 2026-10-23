@@ -321,27 +321,38 @@ export function SteadyHands({ action }: { action: ActionDef }) {
   const clock = useAnimationTime();
   const [notches, setNotches] = useState(makeNotches);
   const [hits, setHits] = useState<(HitGrade | null)[]>(() => Array(STEADY_HANDS.notches).fill(null));
+  // Nothing happens until you press Start — then the blade makes one pass and the item is made.
+  const [running, setRunning] = useState(false);
   const blocked = whyCantDo(player, action, { manual: true });
-  const pos = ((clock.now - clock.start.current) / 1000) / STEADY_HANDS.passSeconds;
+  const pos = running ? ((clock.now - clock.start.current) / 1000) / STEADY_HANDS.passSeconds : 0;
 
-  const finish = (final: (HitGrade | null)[]) => {
-    const good = final.filter(Boolean).length;
-    const perfect = final.filter((h) => h === 'perfect').length;
-    const r = game.minigameReward(action.id, { xpMult: 1 + good * STEADY_HANDS.xpPerHit + perfect * STEADY_HANDS.xpPerPerfect, bonusRolls: 0 });
-    if (r.ok) push(perfect === STEADY_HANDS.notches ? `FINE WORK!  ${gainText(r)}` : `Crafted!  ${gainText(r)}`, perfect === STEADY_HANDS.notches ? 'combo' : 'good');
+  const reset = () => {
+    setRunning(false);
     setNotches(makeNotches());
     setHits(Array(STEADY_HANDS.notches).fill(null));
+  };
+  // Picking another recipe cancels a pass in progress (nothing is used up).
+  useEffect(() => { reset(); }, [action.id]);
+
+  const start = () => {
+    if (blocked) return;
     clock.reset();
+    setRunning(true);
   };
 
-  // When the blade reaches the end, the item is done (misses just mean less bonus XP).
+  // When the blade reaches the end, the item is made (misses just mean less bonus XP).
   useEffect(() => {
-    if (pos >= 1 && !blocked) finish(hits);
-    else if (pos >= 1) clock.reset();
+    if (!running || pos < 1) return;
+    const good = hits.filter(Boolean).length;
+    const perfect = hits.filter((h) => h === 'perfect').length;
+    const r = game.minigameReward(action.id, { xpMult: 1 + good * STEADY_HANDS.xpPerHit + perfect * STEADY_HANDS.xpPerPerfect, bonusRolls: 0 });
+    if (r.ok) push(perfect === STEADY_HANDS.notches ? `FINE WORK!  ${gainText(r)}` : `Crafted!  ${gainText(r)}`, perfect === STEADY_HANDS.notches ? 'combo' : 'good');
+    reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pos >= 1]);
+  }, [running && pos >= 1]);
 
   const carve = () => {
+    if (!running) return start();
     if (blocked || pos >= 1) return;
     let best = -1;
     let bestDist = 1;
@@ -365,13 +376,13 @@ export function SteadyHands({ action }: { action: ActionDef }) {
         <div className="mg-stage-xp"><Inputs action={action} /></div>
         <FeedbackLayer items={items} />
       </div>
-      <Panel label="Steady Hands" hint="Tap as the blade passes each notch">
+      <Panel label="Steady Hands" hint={running ? 'Tap as the blade passes each notch' : 'Pick a recipe, then press Start'}>
         <div className="carve-bar">
           {notches.map((n, i) => <span key={i} className={`carve-notch ${hits[i] ?? ''}`} style={{ left: `${n * 100}%` }} />)}
           <div className="carve-blade" style={{ left: `calc(${Math.min(1, pos) * 100}% - 3px)` }} />
         </div>
-        <BigButton icon="crafting" label="CARVE" blocked={blocked} onPress={carve} />
-        <p className="mg-foot">The item is made every pass. Clean cuts give bonus XP.</p>
+        <BigButton icon={running ? 'crafting' : 'play'} label={running ? 'CARVE' : `START — ${action.name}`} blocked={running ? null : blocked} onPress={carve} />
+        <p className="mg-foot">Press Start to carve one item. Clean cuts give bonus XP.</p>
       </Panel>
     </div>
   );
