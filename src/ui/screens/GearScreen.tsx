@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { getItem, ITEM_LIST, SLOT_LABELS, SLOT_ORDER, STAT_LABELS, type EquipSlot, type ItemStats } from '../../data/items';
 import { canEquip, equipmentStats } from '../../core/equipment';
 import { countInBag, countInBank } from '../../core/inventory';
@@ -38,7 +38,7 @@ function SlotPicker({ slot, onClose }: { slot: EquipSlot; onClose: () => void })
               onClick={() => { game.equip(item.id); onClose(); }}>
               <ItemIcon id={item.id} size={40} />
               <div className="grow">
-                <div><b>{item.name}</b> <span className="small muted">{bag > 0 ? `bag ${bag}` : ''}{bag > 0 && bank > 0 ? ' · ' : ''}{bank > 0 ? `bank ${bank}` : ''}</span></div>
+                <div><b>{item.name}</b> <span className="small muted">{bag > 0 ? `bag ${bag}` : ''}{bag > 0 && bank > 0 ? ' Â· ' : ''}{bank > 0 ? `bank ${bank}` : ''}</span></div>
                 {problem ? <span className="small bad-text">{problem}</span> : <DiffChips next={item.equip!.stats} current={worn?.equip?.stats ?? null} />}
               </div>
               {!problem && <span className="start-pill">Equip</span>}
@@ -57,7 +57,7 @@ export function GearScreen() {
 
   return (
     <div className="screen">
-      <h1 className="screen-title">Gear</h1>
+      <h1 className="screen-title">GEAR</h1>
       <div className="gear-grid">
         {SLOT_ORDER.map((slot) => {
           const id = player.equipment[slot];

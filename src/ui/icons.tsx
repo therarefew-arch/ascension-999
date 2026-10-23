@@ -108,7 +108,8 @@ export function ItemIcon({ id, size = 40 }: { id: string; size?: number }) {
 
 export type UiIconName =
   | 'town' | 'skills' | 'bag' | 'bank' | 'gear' | 'settings' | 'close' | 'search'
-  | 'stop' | 'clock' | 'up' | 'down' | 'lock' | 'mining' | 'smithing' | 'sound' | 'music';
+  | 'stop' | 'clock' | 'up' | 'down' | 'lock' | 'mining' | 'smithing' | 'sound' | 'music'
+  | 'trash' | 'play' | 'refresh' | 'trophy' | 'pin' | 'bolt' | 'door';
 
 /** Simple line icons for buttons and navigation. */
 export function UiIcon({ name, size = 24 }: { name: UiIconName; size?: number }) {
@@ -131,7 +132,14 @@ export function UiIcon({ name, size = 24 }: { name: UiIconName; size?: number })
     case 'mining': body = <g {...common}><path d="M6 20 L16 8" /><path d="M5 8 Q12 1 21 9 Q15 6 12 7" /></g>; break;
     case 'smithing': body = <g {...common}><path d="M4 10 H16 Q16 14 12 14 V17 H15 V20 H7 V17 H10 V14 Q4 14 4 10 Z" /><path d="M16 10 L21 9" /></g>; break;
     case 'sound': body = <g {...common}><path d="M4 10 V14 H8 L13 18 V6 L8 10 Z" /><path d="M16 9 Q18 12 16 15" /><path d="M18.5 6.5 Q22 12 18.5 17.5" /></g>; break;
-    case 'music': body = <g {...common}><path d="M9 18 V6 L19 4 V16" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="16" r="2" /></g>; break;
+    case 'trash': body = <g {...common}><path d="M4 7 H20" /><path d="M9 7 V4 H15 V7" /><path d="M6 7 L7 20 H17 L18 7" /><path d="M10 11 V16 M14 11 V16" /></g>; break;
+    case 'play': body = <g {...common}><path d="M8 5 L19 12 L8 19 Z" /></g>; break;
+    case 'refresh': body = <g {...common}><path d="M20 11 A8 8 0 0 0 5.5 7" /><path d="M5 3 V7.5 H9.5" /><path d="M4 13 A8 8 0 0 0 18.5 17" /><path d="M19 21 V16.5 H14.5" /></g>; break;
+    case 'trophy': body = <g {...common}><path d="M8 4 H16 V10 A4 4 0 0 1 8 10 Z" /><path d="M8 6 H4 Q4 11 8 11 M16 6 H20 Q20 11 16 11" /><path d="M12 14 V18 M8 20 H16" /></g>; break;
+    case 'pin': body = <g {...common}><path d="M12 21 Q5 13 5 9 A7 7 0 0 1 19 9 Q19 13 12 21 Z" /><circle cx="12" cy="9" r="2.5" /></g>; break;
+    case 'bolt': body = <g {...common}><path d="M13 2 L5 14 H11 L10 22 L19 9 H13 Z" /></g>; break;
+    case 'door': body = <g {...common}><path d="M6 21 V4 H15 V21" /><path d="M15 6 L19 7 V21 H3" /><circle cx="12.5" cy="13" r="0.8" fill="currentColor" /></g>; break;
+    case 'music': body =<g {...common}><path d="M9 18 V6 L19 4 V16" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="16" r="2" /></g>; break;
   }
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">

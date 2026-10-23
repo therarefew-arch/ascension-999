@@ -69,6 +69,43 @@ export function emptyReport(actionId: string | null): ProgressReport {
   return { actionId, ms: 0, actions: 0, xp: {}, gained: {}, used: {}, levelUps: [], stopped: null };
 }
 
+/**
+ * Finishes one action: uses inputs, rolls loot (through the central loot system), gives XP.
+ * Used by idling and by the minigames. Call whyCantDo first.
+ * `bonusRolls` = extra loot rolls (minigame bonuses); bonus items that don't fit are simply skipped.
+ */
+export function completeAction(
+  p: PlayerState,
+  action: ActionDef,
+  report: ProgressReport,
+  opts: { xpMult?: number; bonusRolls?: number } = {},
+): void {
+  for (const input of action.inputs) {
+    removeFromBag(p.inventory, input.item, input.qty);
+    report.used[input.item] = (report.used[input.item] ?? 0) + input.qty;
+  }
+  for (let roll = 0; roll <= (opts.bonusRolls ?? 0); roll++) {
+    const loot = rollLoot(action.lootTable);
+    const leftover = giveLoot(p, loot);
+    for (const st of loot) {
+      const lost = leftover.find((l) => l.id === st.id)?.qty ?? 0;
+      if (st.qty - lost > 0) report.gained[st.id] = (report.gained[st.id] ?? 0) + st.qty - lost;
+    }
+  }
+  const xp = Math.round(action.xp * (opts.xpMult ?? 1));
+  const skill = p.skills[action.skill];
+  const before = levelForXp(skill.xp);
+  skill.xp = Math.min(MAX_XP, skill.xp + xp);
+  report.xp[action.skill] = (report.xp[action.skill] ?? 0) + xp;
+  const after = levelForXp(skill.xp);
+  if (after > before) {
+    const existing = report.levelUps.find((l) => l.skill === action.skill);
+    if (existing) existing.to = after;
+    else report.levelUps.push({ skill: action.skill, from: before, to: after });
+  }
+  report.actions++;
+}
+
 /** Runs the idle slot forward by `ms` milliseconds. Changes the player. */
 export function advanceIdle(p: PlayerState, ms: number, now = Date.now()): ProgressReport {
   const report = emptyReport(p.idle?.actionId ?? null);
@@ -99,28 +136,7 @@ export function advanceIdle(p: PlayerState, ms: number, now = Date.now()): Progr
     const why = whyCantDo(p, action);
     if (why) { stop(action.id, why); break; }
 
-    // Use inputs
-    for (const input of action.inputs) {
-      removeFromBag(p.inventory, input.item, input.qty);
-      report.used[input.item] = (report.used[input.item] ?? 0) + input.qty;
-    }
-    // Loot — always through the central loot system
-    const loot = rollLoot(action.lootTable);
-    giveLoot(p, loot);
-    for (const st of loot) report.gained[st.id] = (report.gained[st.id] ?? 0) + st.qty;
-
-    // XP and levels
-    const skill = p.skills[action.skill];
-    const before = levelForXp(skill.xp);
-    skill.xp = Math.min(MAX_XP, skill.xp + action.xp);
-    report.xp[action.skill] = (report.xp[action.skill] ?? 0) + action.xp;
-    const after = levelForXp(skill.xp);
-    if (after > before) {
-      const existing = report.levelUps.find((l) => l.skill === action.skill);
-      if (existing) existing.to = after;
-      else report.levelUps.push({ skill: action.skill, from: before, to: after });
-    }
-    report.actions++;
+    completeAction(p, action, report);
 
     // Stop straight away if the next one can't happen (bag full, out of ore...)
     const next = whyCantDo(p, action);

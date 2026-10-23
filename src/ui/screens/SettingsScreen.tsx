@@ -12,14 +12,13 @@ const SLIDERS: { key: keyof Settings; label: string; icon: 'sound' | 'music' }[]
 ];
 
 export function SettingsScreen() {
-  const { settings, lastSavedAt } = useGame();
-  const [confirming, setConfirming] = useState(0);
+  const { settings, lastSavedAt, slot } = useGame();
   const [, force] = useState(0);
   useEffect(() => { const t = setInterval(() => force((n) => n + 1), 1000); return () => clearInterval(t); }, []);
 
   return (
     <div className="screen">
-      <h1 className="screen-title">Settings</h1>
+      <h1 className="screen-title">SETTINGS</h1>
       <div className="card">
         <h3>Sound</h3>
         {SLIDERS.map((s) => (
@@ -39,16 +38,10 @@ export function SettingsScreen() {
         <p className="small muted">Tip: add Pocketvale to your home screen so your phone keeps the save safe.</p>
       </div>
 
-      <div className="card danger">
-        <h3>Start over</h3>
-        <p className="small muted">Deletes all levels, items and gear on this device. This can't be undone.</p>
-        {confirming === 0 && <button className="btn btn-danger" onClick={() => setConfirming(1)}>Reset all progress</button>}
-        {confirming === 1 && (
-          <div className="row">
-            <button className="btn btn-danger" onClick={() => { game.resetProgress(); setConfirming(0); }}>Yes, delete everything</button>
-            <button className="btn" onClick={() => setConfirming(0)}>Cancel</button>
-          </div>
-        )}
+      <div className="card">
+        <h3>Save slots</h3>
+        <p className="small muted">You're playing save slot {slot}. Switch slots, start over or delete a save from the title screen.</p>
+        <button className="btn btn-wide" onClick={() => game.backToTitle()}><UiIcon name="door" size={18} /> Save &amp; back to title screen</button>
       </div>
       <p className="small muted center">Pocketvale · Phase 1</p>
     </div>

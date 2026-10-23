@@ -1,58 +1,61 @@
-import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import { sound } from '../audio/sound';
+import { SKILL_ORDER, ACTIONS } from '../data/skills';
 import type { SkillId } from '../data/items';
-import { ACTIONS, SKILLS } from '../data/skills';
+import { skillLevel } from '../core/idle';
 import { usedSlots } from '../core/inventory';
 import { INVENTORY_SLOTS } from '../core/player';
-import { game, useGame } from '../core/store';
-import { ActionProgress } from './components';
-import { ItemIcon, UiIcon, type UiIconName } from './icons';
+import { timeToNextLevel, xpPerHour } from '../core/rates';
+import { useGame } from '../core/store';
+import { UiIcon, type UiIconName } from './icons';
 import { AwayCard } from './AwayCard';
 import { BagSheet } from './BagSheet';
+import { IdleSlots } from './IdleSlots';
 import { ItemSheet, type ItemPlace } from './ItemSheet';
+import { TitleScreen } from './TitleScreen';
 import { BankScreen } from './screens/BankScreen';
 import { GearScreen } from './screens/GearScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
-import { SkillDetail, SkillsScreen } from './screens/SkillsScreen';
+import { SkillScreen, SkillStrip } from './screens/SkillScreen';
 import { TownScreen } from './screens/TownScreen';
+import { fmtNum } from './format';
 
 type Tab = 'town' | 'skills' | 'bank' | 'gear' | 'settings';
 
-function ActivityStrip({ onOpen }: { onOpen: (s: SkillId) => void }) {
+function StatusBar({ onIdle, onSettings, settingsOn }: { onIdle: () => void; onSettings: () => void; settingsOn: boolean }) {
+  const { player } = useGame();
+  const total = SKILL_ORDER.reduce((sum, s) => sum + skillLevel(player, s), 0);
+  return (
+    <header className="topbar">
+      <span className="stat-chip gold-chip"><UiIcon name="trophy" size={16} /> LV {total}</span>
+      <span className="stat-chip gold-chip"><UiIcon name="pin" size={16} /> Pocketvale</span>
+      <button className={`stat-chip blue-chip ${player.idle ? 'live' : ''}`} onClick={onIdle}>
+        <UiIcon name="clock" size={16} /> IDLE ({player.idle ? 1 : 0}/1)
+      </button>
+      <button className={`icon-btn ${settingsOn ? 'on' : ''}`} onClick={onSettings} aria-label="Settings"><UiIcon name="settings" /></button>
+    </header>
+  );
+}
+
+function IdleLine({ onOpen }: { onOpen: () => void }) {
   const { player } = useGame();
   const action = player.idle ? ACTIONS[player.idle.actionId] : null;
-  if (action) {
+  if (!action) {
     return (
-      <div className="activity">
-        <button className="activity-main" onClick={() => onOpen(action.skill)}>
-          <ItemIcon id={action.iconItem} size={30} />
-          <div className="grow">
-            <div className="activity-text"><span className="muted">{SKILLS[action.skill].verb}</span> {action.name}</div>
-            <ActionProgress player={player} thin />
-          </div>
-        </button>
-        <button className="icon-btn stop" onClick={() => game.stopAction()} aria-label="Stop"><UiIcon name="stop" size={20} /></button>
-      </div>
-    );
-  }
-  if (player.lastStop) {
-    const stopped = ACTIONS[player.lastStop.actionId];
-    return (
-      <div className="activity stopped">
-        <button className="activity-main" onClick={() => onOpen(stopped.skill)}>
-          <ItemIcon id={stopped.iconItem} size={30} />
-          <div className="activity-text"><span className="bad-text">Stopped:</span> {player.lastStop.reason}</div>
-        </button>
-        <button className="icon-btn" onClick={() => game.clearLastStop()} aria-label="Dismiss"><UiIcon name="close" size={18} /></button>
-      </div>
-    );
-  }
-  return (
-    <div className="activity idle-hint">
-      <button className="activity-main" onClick={() => onOpen('mining')}>
-        <span className="muted">Not doing anything.</span> <b>Choose an activity ›</b>
+      <button className={`idle-line ${player.lastStop ? 'stopped' : ''}`} onClick={onOpen}>
+        {player.lastStop
+          ? <><span className="red">Idle stopped:</span> <span className="ellipsis">{player.lastStop.reason}</span></>
+          : <><span className="muted">Not idling.</span> <span className="gold">Tap to choose an idle skill â€º</span></>}
       </button>
-    </div>
+    );
+  }
+  const eta = timeToNextLevel(player, action.skill);
+  return (
+    <button className="idle-line" onClick={onOpen}>
+      <span className="ellipsis"><UiIcon name="bolt" size={14} /> {action.name}</span>
+      <span className="mono green">{fmtNum(xpPerHour(player, action))} XP/h</span>
+      {eta && <span className="mono blue"><UiIcon name="clock" size={13} /> ~{Math.max(1, Math.round(eta.ms / 60000))}m</span>}
+    </button>
   );
 }
 
@@ -64,10 +67,11 @@ const NAV: { tab: Tab; label: string; icon: UiIconName }[] = [
 ];
 
 export function App() {
-  const { player, away, toasts } = useGame();
+  const { slot, player, away, toasts } = useGame();
   const [tab, setTab] = useState<Tab>('town');
-  const [skill, setSkill] = useState<SkillId | null>(null);
+  const [skill, setSkill] = useState<SkillId>('mining');
   const [bagOpen, setBagOpen] = useState(false);
+  const [idleOpen, setIdleOpen] = useState(false);
   const [itemView, setItemView] = useState<{ id: string; from: ItemPlace } | null>(null);
   const closeItem = useCallback(() => setItemView(null), []);
   const closeBag = useCallback(() => setBagOpen(false), []);
@@ -81,7 +85,7 @@ export function App() {
     return () => { window.removeEventListener('pointerdown', unlock); window.removeEventListener('keydown', unlock); };
   }, []);
 
-  // Light click sound on every button press.
+  // Light click sound on button presses.
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const el = (e.target as HTMLElement).closest('button');
@@ -91,27 +95,34 @@ export function App() {
     return () => document.removeEventListener('click', onClick, true);
   }, []);
 
-  const go = (t: Tab) => { setTab(t); setSkill(null); window.scrollTo(0, 0); document.querySelector('.content')?.scrollTo(0, 0); };
-  const openSkill = (s: SkillId) => { setTab('skills'); setSkill(s); document.querySelector('.content')?.scrollTo(0, 0); };
+  // Back on the title screen: reset to Town for next time.
+  useEffect(() => { if (slot === null) { setTab('town'); setBagOpen(false); setIdleOpen(false); setItemView(null); } }, [slot]);
+
+  const toasts_ = (
+    <div className="toasts" aria-live="polite">
+      {toasts.map((t) => <div key={t.id} className={`toast toast-${t.kind}`}>{t.text}</div>)}
+    </div>
+  );
+
+  if (slot === null) return <div className="app">{<TitleScreen />}{toasts_}</div>;
+
+  const go = (t: Tab) => { setTab(t); document.querySelector('.content')?.scrollTo(0, 0); };
+  const openSkill = (s: SkillId) => { setSkill(s); setTab('skills'); document.querySelector('.content')?.scrollTo(0, 0); };
   const used = usedSlots(player.inventory);
 
   return (
     <div className="app">
-      <header className="topbar">
-        <div className="brand">Pocketvale</div>
-        <button className={`icon-btn ${tab === 'settings' ? 'on' : ''}`} onClick={() => go('settings')} aria-label="Settings">
-          <UiIcon name="settings" />
-        </button>
-      </header>
-      <ActivityStrip onOpen={openSkill} />
+      <StatusBar onIdle={() => setIdleOpen(true)} onSettings={() => go(tab === 'settings' ? 'town' : 'settings')} settingsOn={tab === 'settings'} />
+      <IdleLine onOpen={() => setIdleOpen(true)} />
 
-      <main className="content">
-        {tab === 'town' && <TownScreen onSkill={openSkill} onBank={() => go('bank')} onGear={() => go('gear')} />}
-        {tab === 'skills' && (skill ? <SkillDetail skill={skill} onBack={() => setSkill(null)} /> : <SkillsScreen onOpen={openSkill} />)}
+      <main className={`content ${tab === 'skills' ? 'content-skill' : ''}`}>
+        {tab === 'town' && <TownScreen onSkill={openSkill} onBank={() => go('bank')} onGear={() => go('gear')} onIdle={() => setIdleOpen(true)} />}
+        {tab === 'skills' && <SkillScreen skill={skill} />}
         {tab === 'bank' && <BankScreen onItem={(id) => setItemView({ id, from: 'bank' })} />}
         {tab === 'gear' && <GearScreen />}
         {tab === 'settings' && <SettingsScreen />}
       </main>
+      {tab === 'skills' && <SkillStrip selected={skill} onSelect={setSkill} />}
 
       <nav className="bottomnav" aria-label="Main">
         {NAV.slice(0, 2).map((n) => (
@@ -130,12 +141,10 @@ export function App() {
         ))}
       </nav>
 
-      <div className="toasts" aria-live="polite">
-        {toasts.map((t) => <div key={t.id} className={`toast toast-${t.kind}`}>{t.text}</div>)}
-      </div>
-
+      {toasts_}
       {bagOpen && <BagSheet onClose={closeBag} onItem={(id) => setItemView({ id, from: 'bag' })} />}
       {itemView && <ItemSheet id={itemView.id} from={itemView.from} onClose={closeItem} />}
+      {idleOpen && <IdleSlots onClose={() => setIdleOpen(false)} />}
       {away && <AwayCard away={away} />}
     </div>
   );

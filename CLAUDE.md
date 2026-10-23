@@ -22,6 +22,9 @@ Full game vision: `docs/design.md`. Build only the phase that is asked for.
 - XP curve target: roughly **800–1,000 hours** per skill to reach 500 once all tiers exist (see `src/core/xp.ts`).
 - Iron bars use **iron ore only** for now; coal arrives with the Coalhaven region.
 - Smithing uses materials from the **inventory** (not the bank).
+- **Every skill gets a fun, optional minigame.** The game is cozy and laid back: misses never cost anything, idling never needs the minigame. Rules live in `src/core/minigames.ts`.
+- **3 save slots** with a title screen. Big Bag button stays centred in the bottom nav.
+- Visual style follows the "Visual style guide" in `docs/design.md` (dark, gold/orange glow, monospace numbers, pixel-art backdrops).
 
 ## How the code is organised
 

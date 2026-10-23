@@ -4,10 +4,27 @@ import { ITEMS, type SkillId } from '../data/items';
 import { ACTIONS } from '../data/skills';
 import { INVENTORY_SLOTS, SAVE_VERSION, newPlayer, type ItemStack, type PlayerState } from './player';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
+import { levelForXp } from './xp';
 
-const SAVE_KEY = 'pocketvale.save';
-const BACKUP_KEY = 'pocketvale.save.backup';
+export const SAVE_SLOTS = [1, 2, 3] as const;
+export type SlotId = (typeof SAVE_SLOTS)[number];
+
+const saveKey = (slot: SlotId) => `pocketvale.slot${slot}`;
+const backupKey = (slot: SlotId) => `pocketvale.slot${slot}.backup`;
 const SETTINGS_KEY = 'pocketvale.settings';
+/** Before save slots existed, the game used one save. It becomes slot 1. */
+const OLD_SAVE_KEY = 'pocketvale.save';
+
+function moveOldSave() {
+  try {
+    const old = localStorage.getItem(OLD_SAVE_KEY);
+    if (old && !localStorage.getItem(saveKey(1))) localStorage.setItem(saveKey(1), old);
+    if (old) {
+      localStorage.removeItem(OLD_SAVE_KEY);
+      localStorage.removeItem(`${OLD_SAVE_KEY}.backup`);
+    }
+  } catch { /* ignore */ }
+}
 
 interface SaveFile {
   version: number;
@@ -19,20 +36,21 @@ interface SaveFile {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const MIGRATIONS: Record<number, (player: any) => any> = {};
 
-export function saveGame(player: PlayerState): boolean {
+export function saveGame(slot: SlotId, player: PlayerState): boolean {
   const file: SaveFile = { version: SAVE_VERSION, savedAt: Date.now(), player };
   try {
-    const previous = localStorage.getItem(SAVE_KEY);
-    if (previous) localStorage.setItem(BACKUP_KEY, previous);
-    localStorage.setItem(SAVE_KEY, JSON.stringify(file));
+    const previous = localStorage.getItem(saveKey(slot));
+    if (previous) localStorage.setItem(backupKey(slot), previous);
+    localStorage.setItem(saveKey(slot), JSON.stringify(file));
     return true;
   } catch {
     return false;
   }
 }
 
-export function loadGame(): PlayerState | null {
-  for (const key of [SAVE_KEY, BACKUP_KEY]) {
+export function loadGame(slot: SlotId): PlayerState | null {
+  moveOldSave();
+  for (const key of [saveKey(slot), backupKey(slot)]) {
     try {
       const raw = localStorage.getItem(key);
       if (!raw) continue;
@@ -45,11 +63,35 @@ export function loadGame(): PlayerState | null {
   return null;
 }
 
-export function deleteSave(): void {
+export function deleteSave(slot: SlotId): void {
   try {
-    localStorage.removeItem(SAVE_KEY);
-    localStorage.removeItem(BACKUP_KEY);
+    localStorage.removeItem(saveKey(slot));
+    localStorage.removeItem(backupKey(slot));
   } catch { /* ignore */ }
+}
+
+export interface SlotSummary {
+  slot: SlotId;
+  totalLevel: number;
+  levels: Record<SkillId, number>;
+  lastActiveAt: number;
+  activity: string | null;
+}
+
+/** A quick look at a save slot for the title screen (null = empty). */
+export function slotSummary(slot: SlotId): SlotSummary | null {
+  const p = loadGame(slot);
+  if (!p) return null;
+  const levels = Object.fromEntries(
+    (Object.keys(p.skills) as SkillId[]).map((s) => [s, levelForXp(p.skills[s].xp)]),
+  ) as Record<SkillId, number>;
+  return {
+    slot,
+    totalLevel: Object.values(levels).reduce((a, b) => a + b, 0),
+    levels,
+    lastActiveAt: p.lastActiveAt,
+    activity: p.idle ? ACTIONS[p.idle.actionId]?.name ?? null : null,
+  };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -111,6 +111,35 @@ Unlocks at Enhancing 60. Auto-sorts loot and quick-loots all gems.
 
 Queue presets, XP tracker, loadouts, inventory full warning, collection log, skilling pets.
 
+## Minigames — every skill gets one
+
+The game is cozy and laid back. Every skill has a fun, optional minigame you can play instead of (or alongside) idling.
+Minigames are forgiving: a hit gives the normal reward, a great hit gives a bonus, a miss just means "try again" — never a penalty.
+All minigame rewards still go through the central loot system.
+
+| Skill | Minigame | Status |
+|---|---|---|
+| Mining | **Strike Vein** — tap when the marker is in the gold zone; perfect hits and 5-hit combos give bonus ore | Built |
+| Smithing | **Anvil Rhythm** — tap as the glowing ring lands on the anvil; 3 hits finish an item; all-perfect = masterwork bonus | Built |
+| Woodcutting | e.g. swing timing / chop rhythm | Later |
+| Firemaking | Stick shaving, kindling meter (Immersive XP mode); Wildfire Piano Tiles boss | Later |
+| Fishing | e.g. reel tension | Later |
+| Cooking | e.g. heat precision ("sear in the golden zone"), stoke the fire | Later |
+| Crafting, Enhancing | To be designed | Later |
+
+## Visual style guide
+
+Based on the owner's reference screenshots:
+- Near-black backgrounds with warm gold/orange glow; bold UPPERCASE gold headings.
+- Numbers in a monospace font: XP/hr in green, items/hr in gold.
+- Top status bar of pill chips (total level, location, IDLE slots), with a line under it showing the current idle and its XP/h.
+- Skill hotbar (scrollable tiles with level and time to next level) just above the bottom nav on the Skills tab.
+- Resource chips row at the top of each skill; a large central "stage" card for the minigame; big orange action button.
+- Pixel-art backdrops per place (drawn in code), dimmed behind the UI.
+- Popups: dark panels with an orange border (e.g. "IDLE SKILL SLOTS", step 1 choose skill → step 2 choose resource with XP/hr and items/hr).
+- Title screen "Choose your saga" with 3 save slots.
+- Big Bag button stays centred in the bottom nav (owner's choice).
+
 ## Idle system
 
 - Choose a skill and a specific resource. Start with 1 idle slot (more slots later as a coin sink).
@@ -128,6 +157,8 @@ Queue presets, XP tracker, loadouts, inventory full warning, collection log, ski
 - 1 idle slot, offline progress (24h cap), offline summary card.
 - Auto-save, phone safe areas, bottom nav, big bag button.
 - Sound system with master/effects/music volume and quiet placeholder sounds.
+- Minigames: Strike Vein (Mining) and Anvil Rhythm (Smithing).
+- Title screen with 3 save slots; dark/gold restyle per the style guide; Idle Skill Slots popup with per-hour rates.
 
 ### Later phases — not built
 Everything else above.

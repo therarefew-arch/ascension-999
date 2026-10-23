@@ -6,11 +6,14 @@ import type { SoundKey } from '../audio/soundList';
 import { getItem, type EquipSlot } from '../data/items';
 import { ACTIONS, SKILLS } from '../data/skills';
 import { equip, unequip } from './equipment';
-import { advanceIdle, startIdle, stopIdle, type ProgressReport } from './idle';
+import { advanceIdle, completeAction, emptyReport, startIdle, stopIdle, whyCantDo, type ProgressReport } from './idle';
 import { deposit, depositAll, withdraw } from './inventory';
 import { validateLootTables } from './loot';
+import { clampReward } from './minigames';
 import { newPlayer, OFFLINE_CAP_MS, type PlayerState } from './player';
-import { deleteSave, loadGame, loadSettings, requestPersistentStorage, saveGame, saveSettings } from './save';
+import {
+  deleteSave, loadGame, loadSettings, requestPersistentStorage, saveGame, saveSettings, type SlotId,
+} from './save';
 import type { Settings } from './settings';
 
 /** Gaps longer than this count as "away" and show the summary card. */
@@ -31,11 +34,21 @@ export interface Toast {
 }
 
 export interface GameSnapshot {
+  /** Which save slot is being played. null = on the title screen. */
+  slot: SlotId | null;
   player: PlayerState;
   settings: Settings;
   away: AwayReport | null;
   toasts: Toast[];
   lastSavedAt: number;
+}
+
+export interface MinigameResult {
+  ok: boolean;
+  reason?: string;
+  gained: Record<string, number>;
+  xp: number;
+  levelUp?: number;
 }
 
 let snap: GameSnapshot;
@@ -62,12 +75,20 @@ function play(key: SoundKey) {
 }
 
 function save() {
-  snap.player.lastActiveAt = Math.min(snap.player.lastActiveAt, Date.now());
-  if (saveGame(snap.player)) snap.lastSavedAt = Date.now();
+  if (snap.slot === null) return;
+  if (saveGame(snap.slot, snap.player)) snap.lastSavedAt = Date.now();
+}
+
+function announceLevels(report: ProgressReport) {
+  for (const lv of report.levelUps) {
+    play('levelup');
+    toast(`${SKILLS[lv.skill].name} level ${lv.to}!`, 'level');
+  }
 }
 
 /** Moves the game clock forward to `now`. */
 function tick(now = Date.now()) {
+  if (snap.slot === null) return;
   const p = snap.player;
   const gap = now - p.lastActiveAt;
   if (gap <= 0) return;
@@ -91,29 +112,25 @@ function tick(now = Date.now()) {
   const action = ACTIONS[p.idle.actionId];
   const report = advanceIdle(p, gap, now);
   if (report.actions > 0 && action) play(action.sound);
-  for (const lv of report.levelUps) {
-    play('levelup');
-    toast(`${SKILLS[lv.skill].name} level ${lv.to}!`, 'level');
-  }
+  announceLevels(report);
   if (report.stopped) {
     play('error');
-    toast(`Stopped: ${report.stopped.reason}`, 'bad');
+    toast(`Idle stopped: ${report.stopped.reason}`, 'bad');
   }
   emit();
 }
 
 let started = false;
 
-/** Starts the game: loads the save, catches up offline time, starts the clock and auto-save. */
+/** Starts the app on the title screen, with the clock and auto-save ready. */
 export function startGame() {
   if (started) return;
   started = true;
   validateLootTables();
   const settings = loadSettings();
-  snap = { player: loadGame() ?? newPlayer(), settings, away: null, toasts: [], lastSavedAt: 0 };
+  snap = { slot: null, player: newPlayer(), settings, away: null, toasts: [], lastSavedAt: 0 };
   sound.setVolumes(settings);
   requestPersistentStorage();
-  tick();
 
   setInterval(() => { if (!document.hidden) tick(); }, TICK_MS);
   setInterval(() => { if (!document.hidden) save(); }, AUTOSAVE_MS);
@@ -148,21 +165,77 @@ function fail(reason: string) {
 
 /** Everything the screens are allowed to do. */
 export const game = {
+  // ----- Save slots -----
+  /** Opens a save slot. Catches up any offline time straight away. */
+  playSlot(slot: SlotId) {
+    snap.slot = slot;
+    snap.player = loadGame(slot) ?? newPlayer();
+    snap.away = null;
+    play('click');
+    tick();
+    save();
+    emit();
+  },
+  /** Starts a brand-new game in a slot (replaces what was there). */
+  newGameInSlot(slot: SlotId) {
+    deleteSave(slot);
+    snap.slot = slot;
+    snap.player = newPlayer();
+    snap.away = null;
+    save();
+    toast('Welcome to Pocketvale!', 'good');
+    emit();
+  },
+  deleteSlot(slot: SlotId) {
+    deleteSave(slot);
+    emit();
+  },
+  /** Saves and goes back to the title screen. */
+  backToTitle() {
+    tick();
+    save();
+    snap.slot = null;
+    snap.away = null;
+    emit();
+  },
+
+  // ----- Idle -----
   startAction(actionId: string) {
     tick();
     const why = startIdle(snap.player, actionId);
     if (why) return fail(why);
-    play('click');
-    toast(`Started: ${ACTIONS[actionId].name}`, 'good');
+    toast(`Idling: ${ACTIONS[actionId].name}`, 'good');
     save();
     emit();
   },
   stopAction() {
     stopIdle(snap.player);
-    play('click');
     save();
     emit();
   },
+
+  // ----- Minigames -----
+  /** Finishes one action from a minigame, with its bonus. */
+  minigameReward(actionId: string, reward: { xpMult: number; bonusRolls: number }): MinigameResult {
+    const action = ACTIONS[actionId];
+    const empty: MinigameResult = { ok: false, gained: {}, xp: 0 };
+    if (!action) return { ...empty, reason: 'Unknown activity' };
+    const why = whyCantDo(snap.player, action);
+    if (why) { fail(why); return { ...empty, reason: why }; }
+    const report = emptyReport(actionId);
+    completeAction(snap.player, action, report, clampReward(reward));
+    play(action.sound);
+    announceLevels(report);
+    emit();
+    return {
+      ok: true,
+      gained: report.gained,
+      xp: report.xp[action.skill] ?? 0,
+      levelUp: report.levelUps[0]?.to,
+    };
+  },
+
+  // ----- Bag & bank -----
   deposit(id: string, qty: number) {
     if (deposit(snap.player, id, qty) > 0) play('deposit');
     emit();
@@ -178,9 +251,10 @@ export const game = {
   withdraw(id: string, qty: number) {
     const n = withdraw(snap.player, id, qty);
     if (n === 0) return fail('Your bag is full');
-    play('click');
     emit();
   },
+
+  // ----- Gear -----
   equip(id: string) {
     const why = equip(snap.player, id);
     if (why) return fail(why);
@@ -195,23 +269,16 @@ export const game = {
     save();
     emit();
   },
+
+  // ----- Other -----
   dismissAway() {
     snap.away = null;
-    play('click');
     emit();
   },
   setSettings(next: Settings) {
     snap.settings = next;
     sound.setVolumes(next);
     saveSettings(next);
-    emit();
-  },
-  resetProgress() {
-    deleteSave();
-    snap.player = newPlayer();
-    snap.away = null;
-    save();
-    toast('Progress reset. Welcome to Pocketvale!', 'info');
     emit();
   },
   clearLastStop() {
