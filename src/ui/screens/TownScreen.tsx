@@ -5,7 +5,7 @@ import { useGame } from '../../core/store';
 import { UiIcon } from '../icons';
 import { PixelScene } from '../PixelScene';
 
-export function TownScreen({ onSkill, onBank, onGear, onIdle }: { onSkill: (s: SkillId) => void; onBank: () => void; onGear: () => void; onIdle: () => void }) {
+export function TownScreen({ onSkill, onBank, onGear, onIdle, onCombat }: { onSkill: (s: SkillId) => void; onBank: () => void; onGear: () => void; onIdle: () => void; onCombat: () => void }) {
   const { player } = useGame();
   return (
     <div className="screen">
@@ -26,6 +26,11 @@ export function TownScreen({ onSkill, onBank, onGear, onIdle }: { onSkill: (s: S
             <span className="mono small muted">{SKILLS[s].name} · Lv {skillLevel(player, s)}</span>
           </button>
         ))}
+        <button className="place" onClick={onCombat}>
+          <span className="tile-icon big skill-combat"><UiIcon name="combat" size={26} /></span>
+          <span className="place-name">Training Grounds</span>
+          <span className="mono small muted">Fight monsters</span>
+        </button>
         <button className="place" onClick={onBank}>
           <span className="tile-icon big skill-bank"><UiIcon name="bank" size={26} /></span>
           <span className="place-name">The Bank</span>

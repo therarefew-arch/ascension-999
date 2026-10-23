@@ -2,7 +2,9 @@
 import {
   ARMOUR_SLOTS, getItem, ITEM_LIST, SLOT_LABELS, STAT_LABELS, TOOL_SLOTS, type EquipSlot, type ItemStats,
 } from '../../data/items';
-import { canEquip, equipmentStats } from '../../core/equipment';
+import { canEquip, equipmentStats, SOCKET_SLOTS } from '../../core/equipment';
+import { RARITY_COLORS } from '../../data/items';
+import { UiIcon } from '../icons';
 import { countInBag, countInBank } from '../../core/inventory';
 import { game, useGame } from '../../core/store';
 import { DiffChips, Sheet, StatCompare } from '../components';
@@ -28,6 +30,7 @@ function SlotPicker({ slot, onClose }: { slot: EquipSlot; onClose: () => void })
 
   return (
     <Sheet title={`${SLOT_LABELS[slot]} slot`} onClose={onClose}>
+      {SOCKET_SLOTS.includes(slot) && <SocketPanel slot={slot} />}
       {worn ? (
         <section className="block">
           <h3>Wearing</h3>
@@ -62,14 +65,49 @@ function SlotPicker({ slot, onClose }: { slot: EquipSlot; onClose: () => void })
   );
 }
 
+/** The gem socket of a gear slot. The gem stays in the slot when you swap gear. */
+function SocketPanel({ slot }: { slot: EquipSlot }) {
+  const { player } = useGame();
+  const gem = player.sockets[slot];
+  const gems = player.inventory.filter((s): s is NonNullable<typeof s> => !!s && !!getItem(s.id).gem);
+  const ids = Array.from(new Set(gems.map((g) => g.id)));
+  return (
+    <section className="block socket-panel">
+      <h3><UiIcon name="gem" size={16} /> Gem socket</h3>
+      {gem ? (
+        <div className="row">
+          <ItemIcon id={gem} size={40} />
+          <div className="grow"><b>{getItem(gem).name}</b><div className="small green">{getItem(gem).description.split('.')[0]}</div></div>
+          <button className="btn" onClick={() => game.unsocketGem(slot)}>Remove</button>
+        </div>
+      ) : <p className="small muted">Empty socket. Gems drop from mini bosses. The gem stays here even when you swap gear.</p>}
+      {ids.length > 0 && (
+        <div className="gem-pick">
+          {ids.map((id) => (
+            <button key={id} className="list-row" onClick={() => game.socketGem(slot, id)}>
+              <ItemIcon id={id} size={34} />
+              <div className="grow"><b>{getItem(id).name}</b><div className="small green">{getItem(id).description.split('.')[0]}</div></div>
+              <span className="start-pill">{gem ? 'Swap' : 'Socket'}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function SlotGrid({ slots, onPick }: { slots: EquipSlot[]; onPick: (s: EquipSlot) => void }) {
   const { player } = useGame();
   return (
     <div className="gear-grid">
       {slots.map((slot) => {
         const id = player.equipment[slot];
+        const gem = player.sockets[slot];
         return (
           <button key={slot} className={`gear-slot ${id ? 'filled' : ''}`} onClick={() => onPick(slot)}>
+            {SOCKET_SLOTS.includes(slot) && (
+              <span className={`socket-dot ${gem ? 'full' : ''}`} style={gem ? { background: RARITY_COLORS[getItem(gem).gem!.rarity] } : undefined} title={gem ? getItem(gem).name : 'Empty socket'} />
+            )}
             {id ? <ItemIcon id={id} size={48} /> : <span className="gear-empty" />}
             <span className="gear-label">{SLOT_LABELS[slot]}</span>
             {id && <span className="gear-name small">{getItem(id).name}</span>}
@@ -99,7 +137,7 @@ export function GearScreen() {
             <div key={k} className="stat-line"><span>{STAT_LABELS[k]}</span><b>{stats[k] ?? 0}</b></div>
           ))}
         </div>
-        <p className="small muted">Tools make their skill faster. Attack and Defense matter once combat arrives.</p>
+        <p className="small muted">Includes socketed gems. Tools make their skill faster. Attack, Defense and Max HP help in combat.</p>
       </div>
       {picking && <SlotPicker slot={picking} onClose={() => setPicking(null)} />}
     </div>

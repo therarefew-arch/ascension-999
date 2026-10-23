@@ -2,6 +2,8 @@
 import { useEffect } from 'react';
 import { getItem, MAX_UPGRADE, SLOT_LABELS } from '../data/items';
 import { SKILLS } from '../data/skills';
+import { maxHp } from '../core/combat';
+import { REROLL_COST } from '../core/equipment';
 import { canEquip } from '../core/equipment';
 import { countInBag, countInBank } from '../core/inventory';
 import { game, useGame } from '../core/store';
@@ -11,7 +13,7 @@ import { fmtNum } from './format';
 
 export type ItemPlace = 'bag' | 'bank' | 'worn';
 
-export function ItemSheet({ id, from, onClose }: { id: string; from: ItemPlace; onClose: () => void }) {
+export function ItemSheet({ id, from, onClose, onReroll }: { id: string; from: ItemPlace; onClose: () => void; onReroll?: (newId: string) => void }) {
   const { player } = useGame();
   const item = getItem(id);
   const inBag = countInBag(player.inventory, id);
@@ -64,6 +66,21 @@ export function ItemSheet({ id, from, onClose }: { id: string; from: ItemPlace; 
       )}
 
       <div className="action-stack">
+        {item.heals && from === 'bag' && (
+          <button className="btn btn-primary btn-lg" onClick={() => game.eat(id)}>
+            Eat (+{item.heals} HP) · you have {player.hp}/{maxHp(player)}
+          </button>
+        )}
+        {item.gem && (
+          <section className="block">
+            <h3>Gem</h3>
+            <p className="small muted">Socket it into a gear slot on the Gear screen. Reroll to get a new stat roll of the same rarity.</p>
+            <button className="btn btn-primary btn-lg btn-wide" disabled={from !== 'bag' || player.coins < REROLL_COST[item.gem.rarity]}
+              onClick={() => { const next = game.rerollGem(id); if (next) onReroll?.(next); }}>
+              Reroll for {REROLL_COST[item.gem.rarity]} coins {player.coins < REROLL_COST[item.gem.rarity] ? `(you have ${player.coins})` : ''}
+            </button>
+          </section>
+        )}
         {item.equip && from !== 'worn' && (
           <button className="btn btn-primary btn-lg" disabled={!!equipProblem}
             onClick={() => { game.equip(id); onClose(); }}>

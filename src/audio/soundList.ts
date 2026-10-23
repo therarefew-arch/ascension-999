@@ -3,12 +3,12 @@
 
 export type SoundKey =
   | 'click' | 'mine' | 'smith' | 'levelup' | 'equip' | 'deposit' | 'error' | 'welcome'
-  | 'chop' | 'splash' | 'sizzle' | 'crackle' | 'craft' | 'enchant' | 'fail';
+  | 'chop' | 'splash' | 'sizzle' | 'crackle' | 'craft' | 'enchant' | 'fail' | 'hit' | 'hurt';
 export type MusicKey = 'music_town';
 
 export const EFFECT_SOUNDS: SoundKey[] = [
   'click', 'mine', 'smith', 'levelup', 'equip', 'deposit', 'error', 'welcome',
-  'chop', 'splash', 'sizzle', 'crackle', 'craft', 'enchant', 'fail',
+  'chop', 'splash', 'sizzle', 'crackle', 'craft', 'enchant', 'fail', 'hit', 'hurt',
 ];
 export const MUSIC_TRACKS: MusicKey[] = ['music_town'];
 

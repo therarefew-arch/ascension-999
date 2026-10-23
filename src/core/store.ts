@@ -10,7 +10,11 @@ import {
   addXp, advanceIdle, completeAction, drainFire, emptyReport, startIdle, stokeFire, stopIdle, whyCantDo, type ProgressReport,
 } from './idle';
 import { deposit, depositAll, withdraw } from './inventory';
-import { lootFits, validateLootTables } from './loot';
+import { giveLoot, lootFits, rollGemReroll, validateLootTables } from './loot';
+import { BLOCK_WINDOW_MS, eatFood, endFight, maxHp, regenHp, startFight } from './combat';
+import { REROLL_COST, socketGem, unsocketGem } from './equipment';
+import { countInBag, removeFromBag } from './inventory';
+import { MONSTER_MAP } from '../data/monsters';
 import { clampReward } from './minigames';
 import { newPlayer, OFFLINE_CAP_MS, type PlayerState } from './player';
 import {
@@ -99,8 +103,15 @@ function tick(now = Date.now()) {
 
   if (gap > AWAY_THRESHOLD_MS) {
     const counted = Math.min(gap, OFFLINE_CAP_MS);
+    // Mini boss fights are by hand only — they pause (end safely) while you're away.
+    if (p.fight && MONSTER_MAP[p.fight.monsterId]?.miniboss) {
+      const name = MONSTER_MAP[p.fight.monsterId].name;
+      p.lastStop = { actionId: p.idle?.actionId ?? '', reason: `${name} waits for you — mini boss fights pause while you're away`, at: now - gap };
+      endFight(p);
+    }
     const hadIdle = !!p.idle;
     const report = advanceIdle(p, counted, now);
+    if (!p.fight) regenHp(p, counted);
     p.lastActiveAt = now;
     if (hadIdle) {
       snap.away = { awayMs: gap, countedMs: counted, report };
@@ -118,15 +129,33 @@ function tick(now = Date.now()) {
     drainFire(p, gap);
     if (!p.idle) emit();
   }
+  if (!p.fight && p.hp < maxHp(p)) {
+    const before = p.hp;
+    regenHp(p, gap);
+    if (p.hp !== before && !p.idle) emit();
+  }
   if (!p.idle) return;
   const action = ACTIONS[p.idle.actionId];
+  const fightLogBefore = p.fight?.log.length ?? 0;
+  const lastLog = p.fight?.log[p.fight.log.length - 1];
   const report = advanceIdle(p, gap, now);
   if (report.actions > 0 && action) play(report.failed > 0 ? 'fail' : action.sound);
   if (report.failed > 0) toast('Enhance didn’t take this time — item kept safe', 'info');
+  // Combat sounds
+  if (report.combat) {
+    const newest = p.fight?.log[p.fight.log.length - 1];
+    if (newest && (newest !== lastLog || p.fight!.log.length !== fightLogBefore)) {
+      play(newest.kind === 'you' ? 'hit' : newest.kind === 'them' ? 'hurt' : newest.kind === 'loot' ? 'deposit' : 'click');
+    }
+    if (report.combat.kills > 0 && Object.keys(report.gained).length) {
+      toast(Object.entries(report.gained).map(([id, n]) => id === 'coins' ? `+${n} coins` : `+${n} ${getItem(id).name}`).join(' · '), 'good');
+    }
+  }
   announceLevels(report);
   if (report.stopped) {
-    play('error');
-    toast(`Idle stopped: ${report.stopped.reason}`, 'bad');
+    const won = report.stopped.reason.endsWith('defeated!');
+    play(won ? 'levelup' : 'error');
+    toast(won ? `🏆 ${report.stopped.reason}` : `Stopped: ${report.stopped.reason}`, won ? 'level' : 'bad');
   }
   emit();
 }
@@ -270,6 +299,81 @@ export const game = {
     addXp(snap.player, action, report, Math.round(Math.min(xp, action.xp * 3)));
     announceLevels(report);
     emit();
+  },
+
+  // ----- Combat -----
+  startFight(monsterId: string) {
+    tick();
+    const why = startFight(snap.player, monsterId);
+    if (why) return fail(why);
+    play('click');
+    save();
+    emit();
+  },
+  stopFight() {
+    endFight(snap.player);
+    save();
+    emit();
+  },
+  /** Minigame: a strike in the gold zone makes your next attack a critical hit. */
+  combatCharge(): boolean {
+    const f = snap.player.fight;
+    if (!f || f.critReady || f.respawn > 0) return false;
+    f.critReady = true;
+    play('enchant');
+    emit();
+    return true;
+  },
+  /** Minigame: BLOCK just before the monster attacks to halve its damage. */
+  combatBlock(): 'blocked' | 'early' | 'none' {
+    tick();
+    const f = snap.player.fight;
+    if (!f || f.respawn > 0) return 'none';
+    if (f.monsterTimer > BLOCK_WINDOW_MS) return 'early';
+    f.blockUntil = Date.now() + f.monsterTimer + 60;
+    play('equip');
+    emit();
+    return 'blocked';
+  },
+  eat(id: string) {
+    const why = eatFood(snap.player, id);
+    if (why) return fail(why);
+    play('sizzle');
+    emit();
+  },
+
+  // ----- Gems -----
+  socketGem(slot: EquipSlot, gemId: string) {
+    const why = socketGem(snap.player, slot, gemId);
+    if (why) return fail(why);
+    play('enchant');
+    toast(`${getItem(gemId).name} socketed`, 'good');
+    save();
+    emit();
+  },
+  unsocketGem(slot: EquipSlot) {
+    unsocketGem(snap.player, slot);
+    play('click');
+    save();
+    emit();
+  },
+  /** Pays coins to reroll a gem's stat (same type and rarity). Returns the new gem id. */
+  rerollGem(gemId: string): string | null {
+    const gem = getItem(gemId).gem;
+    if (!gem) return null;
+    const cost = REROLL_COST[gem.rarity];
+    const p = snap.player;
+    if (p.coins < cost) { fail(`Needs ${cost} coins`); return null; }
+    if (countInBag(p.inventory, gemId) < 1) { fail('The gem must be in your bag'); return null; }
+    p.coins -= cost;
+    removeFromBag(p.inventory, gemId, 1);
+    const next = rollGemReroll(gem.type, gem.rarity);
+    giveLoot(p, [{ id: next, qty: 1 }]);
+    play('enchant');
+    toast(`Rerolled: ${getItem(next).description.split(' when')[0]}`, 'good');
+    save();
+    emit();
+    return next;
   },
 
   // ----- Cooking fire -----

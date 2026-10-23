@@ -1,0 +1,210 @@
+// Combat: pick a monster, fight (it runs on its own), and play the optional strike/block minigame.
+import { useEffect, useRef, useState } from 'react';
+import { getItem, ITEMS, type CombatStyle } from '../../data/items';
+import { MONSTERS, type MonsterDef } from '../../data/monsters';
+import { COMBAT_SKILLS, SKILLS } from '../../data/skills';
+import { BLOCK_WINDOW_MS, combatStats, currentAmmo, maxHp, weaponStyle, whyCantFight } from '../../core/combat';
+import { countInBag } from '../../core/inventory';
+import { STRIKE_VEIN } from '../../core/minigames';
+import { game, useGame } from '../../core/store';
+import { levelProgress } from '../../core/xp';
+import { ItemIcon, UiIcon } from '../icons';
+import { fmtNum } from '../format';
+import { MonsterArt } from '../MonsterArt';
+import { useAnimationTime, useFeedback, FeedbackLayer } from '../Minigames';
+import { PixelScene } from '../PixelScene';
+
+const STYLE_ICON = { melee: 'melee', ranged: 'ranged', magic: 'magic' } as const;
+const STYLE_NAME: Record<CombatStyle, string> = { melee: 'Melee', ranged: 'Ranged', magic: 'Magic' };
+const WEAK_TO: Record<CombatStyle, CombatStyle> = { ranged: 'melee', magic: 'ranged', melee: 'magic' };
+
+function HpBar({ hp, max, tone }: { hp: number; max: number; tone: 'green' | 'red' }) {
+  return (
+    <div className="hp-bar">
+      <div className={`hp-fill hp-${tone}`} style={{ width: `${Math.max(0, Math.min(1, hp / max)) * 100}%` }} />
+      <span className="hp-text mono">{Math.max(0, hp)}/{max}</span>
+    </div>
+  );
+}
+
+function CombatSkills() {
+  const { player } = useGame();
+  return (
+    <div className="combat-skills">
+      {COMBAT_SKILLS.map((s) => {
+        const prog = levelProgress(player.skills[s].xp);
+        return (
+          <div key={s} className="cskill">
+            <span className={`tile-icon cs-${s}`}><UiIcon name={s as 'melee'} size={18} /></span>
+            <span className="cskill-lv mono">{prog.level}</span>
+            <span className="cskill-name">{SKILLS[s].name}</span>
+            <div className="cskill-bar"><div style={{ width: `${prog.fraction * 100}%` }} /></div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MonsterCard({ m }: { m: MonsterDef }) {
+  const { player } = useGame();
+  const why = whyCantFight(player, m);
+  const style = weaponStyle(player);
+  const s = combatStats(player, m);
+  const [, force] = useState(0);
+  useEffect(() => {
+    if (!m.miniboss) return;
+    const t = setInterval(() => force((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, [m.miniboss]);
+  return (
+    <div className={`monster-card ${m.miniboss ? 'boss' : ''}`}>
+      <div className="monster-portrait"><MonsterArt monster={m} size={72} /></div>
+      <div className="grow">
+        <div className="monster-name">{m.name} <span className="mono small muted">Lv {m.level}</span></div>
+        {m.miniboss && <div className="boss-tag">MINI BOSS · drops gems</div>}
+        <div className="small monster-meta">
+          <span><UiIcon name={STYLE_ICON[m.style]} size={13} /> {STYLE_NAME[m.style]}</span>
+          <span><UiIcon name="heart" size={13} /> {m.hp}</span>
+          <span className={style === WEAK_TO[m.style] ? 'green' : ''}>Weak to {STYLE_NAME[WEAK_TO[m.style]]}</span>
+        </div>
+        <div className="small mono muted">Your hit chance {Math.round(s.accuracy * 100)}% · max hit {s.maxHit}</div>
+      </div>
+      <button className="btn btn-hero fight-btn" disabled={!!why} onClick={() => game.startFight(m.id)}>
+        {why && m.miniboss ? <span className="small">{why.replace(`${m.name} is resting — `, '')}</span> : 'FIGHT'}
+      </button>
+      {why && !m.miniboss && <div className="small red monster-why">{why}</div>}
+    </div>
+  );
+}
+
+/** The fight itself, with the strike/block minigame. */
+function Fight({ onItem }: { onItem: (id: string) => void }) {
+  const { player } = useGame();
+  const f = player.fight!;
+  const m = MONSTERS.find((x) => x.id === f.monsterId)!;
+  const s = combatStats(player, m);
+  const max = maxHp(player);
+  const clock = useAnimationTime();
+  const { items, push } = useFeedback();
+  const [zone, setZone] = useState(0.5);
+  const lastLog = useRef(0);
+  const [hurt, setHurt] = useState(0);
+
+  // Float the newest combat events.
+  useEffect(() => {
+    const newest = f.log[f.log.length - 1];
+    if (!newest || newest.at === lastLog.current) return;
+    lastLog.current = newest.at;
+    if (newest.kind === 'you' && newest.text !== 'You missed') setHurt((h) => h + 1);
+    push(newest.text, newest.kind === 'you' ? (newest.text.startsWith('CRIT') ? 'perfect' : 'good') : newest.kind === 'loot' ? 'combo' : 'miss');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [f.log.length, f.log[f.log.length - 1]?.at]);
+
+  // Strike timing bar (same feel as Strike Vein).
+  const t = (clock.now - clock.start.current) / 1000 / STRIKE_VEIN.sweepSeconds;
+  const phase = t % 2;
+  const pos = phase < 1 ? phase : 2 - phase;
+  const strike = () => {
+    if (f.critReady) { push('Critical already charged!', 'info'); return; }
+    if (Math.abs(pos - zone) <= STRIKE_VEIN.zone / 2) {
+      if (game.combatCharge()) push('Charged! Next hit is a CRITICAL', 'perfect');
+      setZone(0.2 + Math.random() * 0.6);
+    } else push('Missed the timing — try again', 'miss');
+  };
+  const block = () => {
+    const r = game.combatBlock();
+    if (r === 'blocked') push('Shield up!', 'good');
+    else if (r === 'early') push('Too early — wait for the wind-up', 'miss');
+  };
+
+  const windup = f.respawn > 0 ? 0 : Math.max(0, 1 - f.monsterTimer / BLOCK_WINDOW_MS);
+  const ammo = currentAmmo(player);
+  const foods = player.inventory.filter((x): x is NonNullable<typeof x> => !!x && !!ITEMS[x.id]?.heals);
+  const foodIds = Array.from(new Set(foods.map((x) => x.id)));
+
+  return (
+    <div className="fight">
+      <div className="fight-stage">
+        <div className="fight-monster">
+          {f.respawn > 0 ? <div className="respawn muted">Another {m.name} is coming…</div> : <div key={hurt} className="hit-wobble"><MonsterArt monster={m} size={120} hurt={hurt > 0} /></div>}
+          <div className="fight-name">{m.name} <span className="mono small muted">Lv {m.level}</span></div>
+          <HpBar hp={f.respawn > 0 ? m.hp : f.monsterHp} max={m.hp} tone="red" />
+          <div className={`windup ${windup > 0 ? 'on' : ''}`}>
+            <div className="windup-fill" style={{ width: `${(1 - Math.min(1, f.monsterTimer / m.speedMs)) * 100}%` }} />
+            <span>{windup > 0 ? 'WINDING UP — BLOCK!' : 'attack'}</span>
+          </div>
+        </div>
+        <FeedbackLayer items={items} />
+      </div>
+
+      <div className="mg-panel">
+        <div className="mg-row">
+          <span className="mg-label"><UiIcon name="heart" size={14} /> You</span>
+          <span className="mono small muted">{STYLE_NAME[s.style]} Lv {s.styleLevel} · hit {Math.round(s.accuracy * 100)}% · max {s.maxHit}{s.advantage > 0 ? ' · ADVANTAGE' : s.advantage < 0 ? ' · disadvantage' : ''}</span>
+        </div>
+        <HpBar hp={player.hp} max={max} tone="green" />
+        <div className="strike-bar">
+          <div className="strike-zone" style={{ left: `${(zone - STRIKE_VEIN.zone / 2) * 100}%`, width: `${STRIKE_VEIN.zone * 100}%` }} />
+          <div className="strike-marker" style={{ left: `calc(${pos * 100}% - 4px)` }} />
+        </div>
+        <div className="btn-pair">
+          <button className={`btn btn-hero btn-lg ${f.critReady ? 'charged' : ''}`} onClick={strike} data-silent>
+            <UiIcon name="sword" size={20} /> {f.critReady ? 'CHARGED!' : 'STRIKE'}
+          </button>
+          <button className={`btn btn-block btn-lg ${windup > 0 ? 'ready' : ''}`} onClick={block} data-silent>
+            <UiIcon name="shield" size={20} /> BLOCK
+          </button>
+        </div>
+        <p className="mg-foot">Fights run on their own. STRIKE in the gold zone charges a critical hit; BLOCK during the wind-up halves the damage. Misses cost nothing.</p>
+        {s.style !== 'melee' && (
+          <div className="small">
+            {ammo ? <><ItemIcon id={ammo} size={18} /> {getItem(ammo).name} × {fmtNum(countInBag(player.inventory, ammo))}</> : <span className="red">No {s.style === 'ranged' ? 'arrows' : 'runes'} in your bag!</span>}
+          </div>
+        )}
+        <div className="food-row">
+          {foodIds.length === 0 && <span className="small muted">No food in your bag — you'll eat automatically when low if you have some.</span>}
+          {foodIds.map((id) => (
+            <button key={id} className="food-btn" onClick={() => game.eat(id)} onContextMenu={(e) => { e.preventDefault(); onItem(id); }}>
+              <ItemIcon id={id} size={26} /><span className="mono small">{countInBag(player.inventory, id)}</span><span className="small green">+{ITEMS[id].heals}</span>
+            </button>
+          ))}
+        </div>
+        <button className="btn btn-stop btn-wide" onClick={() => game.stopFight()}><UiIcon name="stop" size={16} /> Leave fight ({f.kills} kills)</button>
+      </div>
+    </div>
+  );
+}
+
+export function CombatScreen({ onGear, onItem }: { onGear: () => void; onItem: (id: string) => void }) {
+  const { player } = useGame();
+  const fighting = !!player.fight && !!player.idle;
+  const style = weaponStyle(player);
+  const max = maxHp(player);
+  return (
+    <div className="skill-screen">
+      <PixelScene scene="forest" dim={0.65} className="screen-bg" />
+      <div className="screen">
+        <div className="row-between">
+          <h1 className="screen-title">COMBAT</h1>
+          <button className="btn btn-outline" onClick={onGear}><UiIcon name="gear" size={16} /> Gear</button>
+        </div>
+        <CombatSkills />
+        {fighting ? <Fight onItem={onItem} /> : (
+          <>
+            <div className="card combat-you">
+              <div className="row-between">
+                <span><UiIcon name={STYLE_ICON[style]} size={16} /> Fighting with <b className="gold">{STYLE_NAME[style]}</b>{player.equipment.weapon ? ` (${getItem(player.equipment.weapon).name})` : ' (fists)'}</span>
+              </div>
+              <HpBar hp={player.hp} max={max} tone="green" />
+              <p className="small muted">Triangle: Melee beats Ranged · Ranged beats Magic · Magic beats Melee. Your weapon sets your style. You heal slowly out of combat, and eat food automatically when low.</p>
+            </div>
+            <h2 className="section-title">POCKETVALE</h2>
+            {MONSTERS.map((m) => <MonsterCard key={m.id} m={m} />)}
+            <p className="small dim center">Knocked out? You wake up safe in town — you never lose items.</p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

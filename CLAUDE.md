@@ -27,6 +27,8 @@ Full game vision: `docs/design.md`. Build only the phase that is asked for.
 - Upgrades +1..+10: Crafting upgrades tools (always succeeds, works on the equipped tool in place). Enhancing upgrades weapons/armour; failure only uses bars, **never destroys the item**. Minigame bonus copies are never given for crafted tools or upgrades.
 - Cooking needs a fire fed with logs (stoking gives Firemaking XP; flame colour per log). Cooked food is stored for future combat; "Great" food comes only from the Cooking minigame.
 - Woodcutting minigame stays simple: tap 5 times for a log. Fishing has Reel It In and Tile Match (mahjong, always solvable).
+- Combat (see docs/design.md Phase 3): weapon sets style; bows need arrows and staffs need runes (from the bag). Fights use the idle slot and run offline, except mini bosses (by hand only, respawn timer). Being knocked out or retreating never loses items. Gems: only from mini bosses/bosses; one socket per weapon/armour slot, gem stays in the slot; reroll costs coins. Coins go to `player.coins` via the loot system.
+- Town is opened from the "Pocketvale" chip in the top bar (bottom nav: Skills, Combat, Bag, Bank, Gear).
 - When testing in the browser pane, only run scripts on `localhost` — never on the live site (it holds real saves).
 - Combat skills (Melee, Ranged, Magic, Defense, Health) are the next update.
 - **3 save slots** with a title screen. Big Bag button stays centred in the bottom nav.

@@ -5,6 +5,7 @@ import { ACTIONS, SKILL_ORDER, SKILLS, type ActionDef } from '../data/skills';
 import { actionDuration, skillLevel } from '../core/idle';
 import type { PlayerState } from '../core/player';
 import { visibleActions, xpPerHour } from '../core/rates';
+import { fightMonster, isFightId } from '../core/combat';
 import { game, useGame } from '../core/store';
 import { ActionProgress } from './components';
 import { ItemIcon, UiIcon } from './icons';
@@ -47,7 +48,7 @@ export function IdleSlots({ onClose }: { onClose: () => void }) {
               <div className="row">
                 {action ? <ItemIcon id={action.iconItem} size={36} /> : <span className="slot-empty-icon"><UiIcon name="clock" size={20} /></span>}
                 <div className="grow">
-                  <div className="slot-title">Slot 1: <span className="gold">{action ? SKILLS[action.skill].name : 'Empty'}</span></div>
+                  <div className="slot-title">Slot 1: <span className="gold">{action ? SKILLS[action.skill].name : player.idle ? 'Combat' : 'Empty'}</span></div>
                   <div className="small muted">{action ? `${SKILLS[action.skill].verb} ${action.name.toLowerCase()}` : 'Pick a skill to idle'}</div>
                 </div>
                 <button className="btn btn-outline" onClick={() => setStep('skill')}>{action ? 'CHANGE' : 'CHOOSE'}</button>
@@ -63,7 +64,13 @@ export function IdleSlots({ onClose }: { onClose: () => void }) {
                   <button className="btn btn-stop btn-wide" onClick={() => game.stopAction()}><UiIcon name="stop" size={16} /> Stop</button>
                 </>
               )}
-              {!action && player.lastStop && (
+              {!action && player.idle && isFightId(player.idle.actionId) && (
+                <>
+                  <div className="warn fight-note">⚔ Fighting {fightMonster(player.idle.actionId).name} — {player.fight?.kills ?? 0} kills so far. Fights count as your idle and keep going while you're away (except mini bosses).</div>
+                  <button className="btn btn-stop btn-wide" onClick={() => game.stopFight()}><UiIcon name="stop" size={16} /> Stop fighting</button>
+                </>
+              )}
+              {!action && !player.idle && player.lastStop && (
                 <div className="warn">Last stopped: {player.lastStop.reason}</div>
               )}
             </div>

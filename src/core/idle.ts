@@ -12,6 +12,7 @@ import { giveLoot, maxLoot, rollLoot } from './loot';
 import type { PlayerState } from './player';
 import { MAX_XP, levelForXp } from './xp';
 import { equipmentStats } from './equipment';
+import { advanceFight, isFightId, type CombatReport } from './combat';
 
 export interface ProgressReport {
   actionId: string | null;
@@ -25,6 +26,7 @@ export interface ProgressReport {
   stopped: { reason: string; afterMs: number } | null;
   /** Enhancing tries that didn't succeed (the item was kept). */
   failed: number;
+  combat?: CombatReport;
 }
 
 export function skillLevel(p: PlayerState, skill: SkillId): number {
@@ -146,12 +148,14 @@ export function startIdle(p: PlayerState, actionId: string): string | null {
   const why = whyCantDo(p, action);
   if (why) return why;
   if (p.idle?.actionId !== actionId) p.idle = { actionId, progressMs: 0 };
+  p.fight = null; // starting a skill ends any fight (one idle slot)
   p.lastStop = null;
   return null;
 }
 
 export function stopIdle(p: PlayerState): void {
   p.idle = null;
+  p.fight = null;
 }
 
 export function emptyReport(actionId: string | null): ProgressReport {
@@ -235,6 +239,20 @@ export function advanceIdle(p: PlayerState, ms: number, now = Date.now()): Progr
     p.idle = null;
     p.lastStop = { actionId, reason, at: now - (ms - elapsed) };
   };
+
+  // Fighting uses the idle slot too.
+  if (p.idle && isFightId(p.idle.actionId)) {
+    const cr = (report.combat = { kills: 0, damageDealt: 0, damageTaken: 0, foodEaten: 0 });
+    const fightId = p.idle.actionId;
+    const { stop: why, usedMs } = advanceFight(p, remaining, report, cr, now - ms);
+    elapsed = usedMs;
+    if (why) {
+      stop(fightId, why);
+      p.fight = null;
+    }
+    report.ms = elapsed;
+    return report;
+  }
 
   while (p.idle && remaining > 0) {
     const action = ACTIONS[p.idle.actionId];

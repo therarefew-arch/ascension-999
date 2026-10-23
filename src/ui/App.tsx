@@ -1,8 +1,10 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import { sound } from '../audio/sound';
-import { SKILL_ORDER, ACTIONS } from '../data/skills';
+import { ACTIONS, ALL_SKILLS } from '../data/skills';
 import type { SkillId } from '../data/items';
 import { skillLevel } from '../core/idle';
+import { fightMonster, isFightId, maxHp } from '../core/combat';
+import { CombatScreen } from './screens/CombatScreen';
 import { usedSlots } from '../core/inventory';
 import { INVENTORY_SLOTS } from '../core/player';
 import { timeToNextLevel, xpPerHour } from '../core/rates';
@@ -20,15 +22,18 @@ import { SkillScreen, SkillStrip } from './screens/SkillScreen';
 import { TownScreen } from './screens/TownScreen';
 import { fmtNum } from './format';
 
-type Tab = 'town' | 'skills' | 'bank' | 'gear' | 'settings';
+type Tab = 'town' | 'skills' | 'combat' | 'bank' | 'gear' | 'settings';
 
-function StatusBar({ onIdle, onSettings, settingsOn }: { onIdle: () => void; onSettings: () => void; settingsOn: boolean }) {
+function StatusBar({ onIdle, onSettings, settingsOn, onTown, townOn }: {
+  onIdle: () => void; onSettings: () => void; settingsOn: boolean; onTown: () => void; townOn: boolean;
+}) {
   const { player } = useGame();
-  const total = SKILL_ORDER.reduce((sum, s) => sum + skillLevel(player, s), 0);
+  const total = ALL_SKILLS.reduce((sum, s) => sum + skillLevel(player, s), 0);
   return (
     <header className="topbar">
       <span className="stat-chip gold-chip"><UiIcon name="trophy" size={16} /> LV {total}</span>
-      <span className="stat-chip gold-chip"><UiIcon name="pin" size={16} /> Pocketvale</span>
+      <span className="stat-chip coin-chip"><UiIcon name="coin" size={16} /> {fmtNum(player.coins)}</span>
+      <button className={`stat-chip gold-chip ${townOn ? 'chip-on' : ''}`} onClick={onTown} aria-label="Open Pocketvale town"><UiIcon name="pin" size={16} /> Pocketvale</button>
       <button className={`stat-chip blue-chip ${player.idle ? 'live' : ''}`} onClick={onIdle}>
         <UiIcon name="clock" size={16} /> IDLE ({player.idle ? 1 : 0}/1)
       </button>
@@ -37,8 +42,18 @@ function StatusBar({ onIdle, onSettings, settingsOn }: { onIdle: () => void; onS
   );
 }
 
-function IdleLine({ onOpen }: { onOpen: () => void }) {
+function IdleLine({ onOpen, onFight }: { onOpen: () => void; onFight: () => void }) {
   const { player } = useGame();
+  if (player.idle && isFightId(player.idle.actionId) && player.fight) {
+    const m = fightMonster(player.idle.actionId);
+    return (
+      <button className="idle-line" onClick={onFight}>
+        <span className="ellipsis"><UiIcon name="combat" size={14} /> Fighting {m.name}</span>
+        <span className="mono red"><UiIcon name="heart" size={13} /> {player.hp}/{maxHp(player)}</span>
+        <span className="mono gold">{player.fight.kills} kills</span>
+      </button>
+    );
+  }
   const action = player.idle ? ACTIONS[player.idle.actionId] : null;
   if (!action) {
     return (
@@ -59,9 +74,10 @@ function IdleLine({ onOpen }: { onOpen: () => void }) {
   );
 }
 
+// Town moved to the "Pocketvale" chip in the top bar to make room for Combat.
 const NAV: { tab: Tab; label: string; icon: UiIconName }[] = [
-  { tab: 'town', label: 'Town', icon: 'town' },
   { tab: 'skills', label: 'Skills', icon: 'skills' },
+  { tab: 'combat', label: 'Combat', icon: 'combat' },
   { tab: 'bank', label: 'Bank', icon: 'bank' },
   { tab: 'gear', label: 'Gear', icon: 'gear' },
 ];
@@ -112,12 +128,14 @@ export function App() {
 
   return (
     <div className="app">
-      <StatusBar onIdle={() => setIdleOpen(true)} onSettings={() => go(tab === 'settings' ? 'town' : 'settings')} settingsOn={tab === 'settings'} />
-      <IdleLine onOpen={() => setIdleOpen(true)} />
+      <StatusBar onIdle={() => setIdleOpen(true)} onSettings={() => go(tab === 'settings' ? 'town' : 'settings')} settingsOn={tab === 'settings'}
+        onTown={() => go('town')} townOn={tab === 'town'} />
+      <IdleLine onOpen={() => setIdleOpen(true)} onFight={() => go('combat')} />
 
       <main className={`content ${tab === 'skills' ? 'content-skill' : ''}`}>
-        {tab === 'town' && <TownScreen onSkill={openSkill} onBank={() => go('bank')} onGear={() => go('gear')} onIdle={() => setIdleOpen(true)} />}
+        {tab === 'town' && <TownScreen onSkill={openSkill} onBank={() => go('bank')} onGear={() => go('gear')} onIdle={() => setIdleOpen(true)} onCombat={() => go('combat')} />}
         {tab === 'skills' && <SkillScreen skill={skill} />}
+        {tab === 'combat' && <CombatScreen onGear={() => go('gear')} onItem={(id) => setItemView({ id, from: 'bag' })} />}
         {tab === 'bank' && <BankScreen onItem={(id) => setItemView({ id, from: 'bank' })} />}
         {tab === 'gear' && <GearScreen />}
         {tab === 'settings' && <SettingsScreen />}
@@ -143,7 +161,7 @@ export function App() {
 
       {toasts_}
       {bagOpen && <BagSheet onClose={closeBag} onItem={(id) => setItemView({ id, from: 'bag' })} />}
-      {itemView && <ItemSheet id={itemView.id} from={itemView.from} onClose={closeItem} />}
+      {itemView && <ItemSheet id={itemView.id} from={itemView.from} onClose={closeItem} onReroll={(next) => setItemView({ id: next, from: 'bag' })} />}
       {idleOpen && <IdleSlots onClose={() => setIdleOpen(false)} />}
       {away && <AwayCard away={away} />}
     </div>

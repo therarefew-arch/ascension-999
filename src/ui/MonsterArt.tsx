@@ -1,0 +1,87 @@
+// Cozy monster portraits, drawn in code.
+import type { MonsterDef } from '../data/monsters';
+
+export function MonsterArt({ monster, size = 96, hurt = false }: { monster: MonsterDef; size?: number; hurt?: boolean }) {
+  const { body, dark, accent } = monster.colors;
+  const eye = <><circle cx="0" cy="0" r="3.2" fill="#1a1410" /><circle cx="-1" cy="-1" r="1" fill="#fff" /></>;
+  let art: JSX.Element;
+  switch (monster.art) {
+    case 'rat':
+      art = (
+        <g>
+          <path d="M70 70 Q92 66 88 50" stroke={accent} strokeWidth="4" fill="none" strokeLinecap="round" />
+          <ellipse cx="48" cy="62" rx="26" ry="18" fill={body} stroke={dark} strokeWidth="3" />
+          <circle cx="28" cy="48" r="14" fill={body} stroke={dark} strokeWidth="3" />
+          <circle cx="22" cy="34" r="7" fill={accent} stroke={dark} strokeWidth="2.5" />
+          <circle cx="36" cy="34" r="7" fill={accent} stroke={dark} strokeWidth="2.5" />
+          <g transform="translate(24 47)">{eye}</g>
+          <circle cx="15" cy="53" r="3" fill={accent} />
+          <path d="M14 57 L4 55 M14 59 L5 61" stroke={dark} strokeWidth="1.5" />
+        </g>
+      );
+      break;
+    case 'sprite':
+      art = (
+        <g>
+          <ellipse cx="30" cy="40" rx="16" ry="24" fill={accent} opacity="0.5" transform="rotate(-25 30 40)" />
+          <ellipse cx="66" cy="40" rx="16" ry="24" fill={accent} opacity="0.5" transform="rotate(25 66 40)" />
+          <circle cx="48" cy="52" r="22" fill={body} stroke={dark} strokeWidth="3" />
+          <path d="M40 30 Q48 14 56 30" fill={dark} />
+          <g transform="translate(40 50)">{eye}</g>
+          <g transform="translate(56 50)">{eye}</g>
+          <path d="M42 62 Q48 67 54 62" stroke={dark} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <circle cx="20" cy="74" r="3" fill={accent} /><circle cx="78" cy="22" r="2.5" fill={accent} /><circle cx="82" cy="70" r="2" fill={accent} />
+        </g>
+      );
+      break;
+    case 'bandit':
+      art = (
+        <g>
+          <path d="M22 88 Q24 60 48 58 Q72 60 74 88 Z" fill={body} stroke={dark} strokeWidth="3" />
+          <circle cx="48" cy="40" r="18" fill="#e8c4a0" stroke={dark} strokeWidth="3" />
+          <path d="M28 36 Q48 8 68 36 Q60 28 48 28 Q36 28 28 36 Z" fill={dark} />
+          <rect x="31" y="38" width="34" height="8" rx="3" fill={accent} />
+          <g transform="translate(41 42)">{eye}</g>
+          <g transform="translate(55 42)">{eye}</g>
+          <path d="M80 30 Q92 56 80 82" stroke="#9a6a3c" strokeWidth="3.5" fill="none" />
+          <path d="M80 30 L80 82" stroke="#e8e2d4" strokeWidth="1" />
+        </g>
+      );
+      break;
+    case 'boar':
+      art = (
+        <g>
+          <ellipse cx="54" cy="58" rx="32" ry="22" fill={body} stroke={dark} strokeWidth="3" />
+          <path d="M30 40 Q50 26 76 40" stroke={accent} strokeWidth="9" fill="none" strokeLinecap="round" />
+          <circle cx="40" cy="36" r="3" fill="#f9a8d4" /><circle cx="60" cy="31" r="3" fill="#fde68a" /><circle cx="70" cy="37" r="2.5" fill="#f9a8d4" />
+          <circle cx="26" cy="58" r="16" fill={body} stroke={dark} strokeWidth="3" />
+          <ellipse cx="14" cy="62" rx="7" ry="6" fill="#d6b49a" stroke={dark} strokeWidth="2" />
+          <path d="M17 68 Q12 76 8 72" stroke="#f5f0e6" strokeWidth="3" fill="none" strokeLinecap="round" />
+          <g transform="translate(26 52)">{eye}</g>
+          <path d="M34 80 V88 M50 80 V88 M66 80 V88 M78 76 V86" stroke={dark} strokeWidth="5" strokeLinecap="round" />
+        </g>
+      );
+      break;
+    case 'bear':
+      art = (
+        <g>
+          <circle cx="26" cy="22" r="10" fill={body} stroke={dark} strokeWidth="3" />
+          <circle cx="70" cy="22" r="10" fill={body} stroke={dark} strokeWidth="3" />
+          <path d="M14 92 Q10 50 48 46 Q86 50 82 92 Z" fill={body} stroke={dark} strokeWidth="3" />
+          <circle cx="48" cy="38" r="26" fill={body} stroke={dark} strokeWidth="3" />
+          <ellipse cx="48" cy="48" rx="12" ry="9" fill="#a8896d" stroke={dark} strokeWidth="2" />
+          <ellipse cx="48" cy="44" rx="4" ry="3" fill="#1a1410" />
+          <g transform="translate(38 33)">{eye}</g>
+          <g transform="translate(58 33)">{eye}</g>
+          <path d="M30 16 L34 22 M64 16 L60 22 M20 60 L26 56 M76 60 L70 56 M30 78 L36 74 M66 78 L60 74" stroke={accent} strokeWidth="3" strokeLinecap="round" />
+          <circle cx="24" cy="70" r="3" fill="#f472b6" /><circle cx="72" cy="66" r="3" fill="#fde68a" />
+        </g>
+      );
+      break;
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 96 96" aria-hidden="true" className={`monster-art ${hurt ? 'hurt' : ''}`}>
+      {art}
+    </svg>
+  );
+}

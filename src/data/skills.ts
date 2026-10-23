@@ -1,5 +1,5 @@
 // Skills and the actions (resources/recipes) you can idle on or play minigames with. Static data only.
-import { CRAFTED_TOOLS, GEAR_PIECES, MAX_UPGRADE, METAL_TIERS, TOOL_TIERS, toolName, upgradeId, type SkillId } from './items';
+import { CRAFTED_TOOLS, GEAR_PIECES, MAX_UPGRADE, METAL_TIERS, RANGED_MAGIC_WEAPONS, TOOL_TIERS, toolName, upgradeId, type SkillId } from './items';
 import type { SoundKey } from '../audio/soundList';
 
 export interface SkillDef {
@@ -19,8 +19,17 @@ export const SKILLS: Record<SkillId, SkillDef> = {
   cooking: { id: 'cooking', name: 'Cooking', verb: 'Cooking', place: 'The Kitchen', description: 'Keep the fire fed with logs and cook fish into food.' },
   crafting: { id: 'crafting', name: 'Crafting', verb: 'Crafting', place: 'The Workshop', description: 'Make a tool for every skill and upgrade it +1 to +10.' },
   enhancing: { id: 'enhancing', name: 'Enhancing', verb: 'Enhancing', place: 'Rune Tower', description: 'Improve weapons and armour +1 to +10. A failed try only uses the bars — never the item.' },
+  melee: { id: 'melee', name: 'Melee', verb: 'Fighting', place: 'Training Grounds', description: 'Fight up close with swords. Beats Ranged.' },
+  ranged: { id: 'ranged', name: 'Ranged', verb: 'Fighting', place: 'Training Grounds', description: 'Fight from afar with bows and arrows. Beats Magic.' },
+  magic: { id: 'magic', name: 'Magic', verb: 'Fighting', place: 'Training Grounds', description: 'Cast spells with staffs and runes. Beats Melee.' },
+  defense: { id: 'defense', name: 'Defense', verb: 'Fighting', place: 'Training Grounds', description: 'Take less damage. Trained by dodging and blocking.' },
+  health: { id: 'health', name: 'Health', verb: 'Fighting', place: 'Training Grounds', description: 'More hit points. Trained by all combat.' },
 };
+/** Gathering & making skills (shown on the Skills tab). */
 export const SKILL_ORDER: SkillId[] = ['mining', 'smithing', 'woodcutting', 'firemaking', 'fishing', 'cooking', 'crafting', 'enhancing'];
+/** Combat skills (shown on the Combat tab). */
+export const COMBAT_SKILLS: SkillId[] = ['melee', 'ranged', 'magic', 'defense', 'health'];
+export const ALL_SKILLS: SkillId[] = [...SKILL_ORDER, ...COMBAT_SKILLS];
 
 export interface ActionDef {
   id: string;
@@ -117,20 +126,32 @@ for (const tier of TOOL_TIERS) {
   }
 }
 
+// ----- Crafting: bows, staffs, arrows and runes for combat -----
+add({ id: 'craft_pine_shortbow', skill: 'crafting', name: 'Pine shortbow', tab: 'Weapons', level: 8, durationMs: 4000, xp: 16, inputs: [{ item: 'pine_logs', qty: 3 }, { item: 'stone', qty: 1 }], output: { item: 'pine_shortbow', qty: 1 }, iconItem: 'pine_shortbow', sound: 'craft' });
+add({ id: 'craft_pine_staff', skill: 'crafting', name: 'Pine staff', tab: 'Weapons', level: 12, durationMs: 4000, xp: 18, inputs: [{ item: 'pine_logs', qty: 2 }, { item: 'stone', qty: 2 }], output: { item: 'pine_staff', qty: 1 }, iconItem: 'pine_staff', sound: 'craft' });
+add({ id: 'craft_oak_longbow', skill: 'crafting', name: 'Oak longbow', tab: 'Weapons', level: 55, needsTool: 0, durationMs: 4500, xp: 40, inputs: [{ item: 'oak_logs', qty: 3 }, { item: 'bronze_bar', qty: 1 }], output: { item: 'oak_longbow', qty: 1 }, iconItem: 'oak_longbow', sound: 'craft' });
+add({ id: 'craft_oak_staff', skill: 'crafting', name: 'Oak staff', tab: 'Weapons', level: 60, needsTool: 0, durationMs: 4500, xp: 44, inputs: [{ item: 'oak_logs', qty: 2 }, { item: 'iron_bar', qty: 1 }], output: { item: 'oak_staff', qty: 1 }, iconItem: 'oak_staff', sound: 'craft' });
+add({ id: 'craft_bronze_arrows', skill: 'crafting', name: 'Bronze arrows ×15', tab: 'Ammo', level: 5, durationMs: 3200, xp: 10, inputs: [{ item: 'pine_logs', qty: 1 }, { item: 'bronze_bar', qty: 1 }], output: { item: 'bronze_arrows', qty: 15 }, iconItem: 'bronze_arrows', sound: 'craft' });
+add({ id: 'craft_minor_runes', skill: 'crafting', name: 'Minor runes ×10', tab: 'Ammo', level: 6, durationMs: 3200, xp: 10, inputs: [{ item: 'stone', qty: 2 }], output: { item: 'minor_rune', qty: 10 }, iconItem: 'minor_rune', sound: 'craft' });
+add({ id: 'craft_iron_arrows', skill: 'crafting', name: 'Iron arrows ×15', tab: 'Ammo', level: 52, needsTool: 1, durationMs: 3500, xp: 18, inputs: [{ item: 'oak_logs', qty: 1 }, { item: 'iron_bar', qty: 1 }], output: { item: 'iron_arrows', qty: 15 }, iconItem: 'iron_arrows', sound: 'craft' });
+add({ id: 'craft_major_runes', skill: 'crafting', name: 'Major runes ×10', tab: 'Ammo', level: 54, needsTool: 1, durationMs: 3500, xp: 18, inputs: [{ item: 'stone', qty: 2 }, { item: 'iron_ore', qty: 1 }], output: { item: 'major_rune', qty: 10 }, iconItem: 'major_rune', sound: 'craft' });
+
 // ----- Enhancing: improve weapons and armour (chance-based; failure only uses the bars) -----
-for (const metal of METAL_TIERS) {
-  for (const piece of GEAR_PIECES) {
-    const id = `${metal.tier}_${piece.key}`;
-    const name = `${metal.name} ${piece.name}`;
-    for (let n = 0; n < MAX_UPGRADE; n++) {
-      add({
-        id: `enhance_${id}_${n + 1}`, skill: 'enhancing', name: `${name} +${n + 1}`,
-        level: metal.level + 4 * n, durationMs: 4000, xp: Math.round(metal.barXp * (n + 1) * 1.5),
-        inputs: [{ item: upgradeId(id, n), qty: 1 }, { item: metal.bar, qty: n + 1 }],
-        output: { item: upgradeId(id, n + 1), qty: 1 }, iconItem: upgradeId(id, n + 1), sound: 'enchant',
-        kind: 'enhance', upgrades: upgradeId(id, n),
-      });
-    }
+const ENHANCEABLE: { id: string; name: string; bar: string; level: number; barXp: number }[] = [
+  ...METAL_TIERS.flatMap((metal) => GEAR_PIECES.map((piece) => ({
+    id: `${metal.tier}_${piece.key}`, name: `${metal.name} ${piece.name}`, bar: metal.bar as string, level: metal.level, barXp: metal.barXp as number,
+  }))),
+  ...RANGED_MAGIC_WEAPONS.map((w) => ({ id: w.id, name: w.name, bar: w.bar as string, level: w.req > 1 ? 50 : 1, barXp: w.req > 1 ? 12 : 8 })),
+];
+for (const g of ENHANCEABLE) {
+  for (let n = 0; n < MAX_UPGRADE; n++) {
+    add({
+      id: `enhance_${g.id}_${n + 1}`, skill: 'enhancing', name: `${g.name} +${n + 1}`,
+      level: g.level + 4 * n, durationMs: 4000, xp: Math.round(g.barXp * (n + 1) * 1.5),
+      inputs: [{ item: upgradeId(g.id, n), qty: 1 }, { item: g.bar, qty: n + 1 }],
+      output: { item: upgradeId(g.id, n + 1), qty: 1 }, iconItem: upgradeId(g.id, n + 1), sound: 'enchant',
+      kind: 'enhance', upgrades: upgradeId(g.id, n),
+    });
   }
 }
 

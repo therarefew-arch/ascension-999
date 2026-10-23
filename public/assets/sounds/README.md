@@ -20,4 +20,6 @@ as `.mp3`, `.ogg` or `.m4a` (for example `mine.mp3`). The game uses it instead o
 | craft | Each tool you craft or upgrade |
 | enchant | A successful enhance |
 | fail | An enhance that didn't take |
+| hit | You attack in combat |
+| hurt | A monster attacks you |
 | music_town | Background music in Pocketvale (loops) |

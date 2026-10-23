@@ -190,8 +190,25 @@ Based on the owner's reference screenshots:
 - Cooking fire (stoke with logs for Firemaking XP, flame colour per log, ticks down). Shrimp icons. Fishing Tile Match (mahjong). Smithing/Crafting tabs.
 - Save version 3 (old pickaxes and pine/oak tools converted to the new Stone/Bronze tools, keeping their +levels).
 
-### Phase 3 — next
-Combat: Melee, Ranged, Magic, Defense, Health; Pocketvale monsters and mini boss; food healing; boss-only gem drops.
+### Phase 3 — built (combat)
+- Skills: Melee, Ranged, Magic (trained by damage you deal with that style), Defense (dodging/blocking), Health (all combat; max HP = 20 + 4 × Health level + gems).
+- Weapon sets the style: swords (Smithing) = Melee; bows (Workshop) = Ranged + arrows; staffs (Workshop) = Magic + runes.
+  Arrows/runes are crafted (15 arrows / 10 runes per craft), used from the bag, 25% chance to be saved. Best ammo is used automatically.
+- Triangle: the right style gets +10% accuracy and ×1.25 max hit; the wrong one −10% and ×0.8.
+- Pocketvale monsters: Field Rat (Lv1 Melee), Hedge Sprite (Lv8 Magic), Bandit Archer (Lv18 Ranged), Mossback Boar (Lv30 Melee).
+- Mini boss: **Old Thornhide** (Lv45). Fought by hand only (pauses while you're away), respawns 5 minutes after defeat (countdown shown). Drops gems (70% per kill) — the only gem source.
+- Fights use the idle slot and continue offline. Auto-eat below 50% HP. You heal 1 HP / 5s, also in fights.
+  Cozy: with no food left below 25% HP you head home; if knocked out you wake up in town with full HP. **Nothing is ever lost.**
+- Combat minigame: STRIKE in the gold zone charges a critical hit (×1.75 max hit, never misses); BLOCK during the monster's wind-up halves its damage. Misses cost nothing.
+- Coins drop from monsters (shown in the top bar). First coin sink: gem rerolls.
+- Gems: Ruby (+Attack), Sapphire (+Defense), Emerald (+Max HP) × 6 rarities; rolls get better with rarity.
+  Each weapon/armour slot has one socket; **the gem stays in the slot** when you swap gear. Removing is free. Reroll costs 50–5,000 coins by rarity.
+- Food heals: shrimp 6 (Great 9), trout 14 (Great 20).
+- Navigation: Combat tab added; Town is opened from the "Pocketvale" chip in the top bar (and Town has a Training Grounds place).
+- Save version 4.
+
+### Phase 4 — ideas for next
+Ironmoor region, weekly boss with "Defeated" screen, NPC Trading Post and shops (coin sinks), more idle slots, Loot Belt (Enhancing 60).
 
 ### Later phases — not built
 Everything else above.

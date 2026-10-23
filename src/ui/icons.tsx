@@ -1,5 +1,5 @@
 // Hand-drawn SVG icons. Item icons are tinted per metal tier so every tier looks unique.
-import { getItem, TIER_COLORS, type IconKind } from '../data/items';
+import { getItem, RARITY_COLORS, TIER_COLORS, type IconKind } from '../data/items';
 
 interface Palette { main: string; light: string; dark: string }
 
@@ -131,6 +131,57 @@ function ItemShape({ kind, c }: { kind: IconKind; c: Palette }): JSX.Element {
           <path d="M16 14 Q14 10 17 7 M23 14 Q21 10 24 7" stroke="#c9c2b5" strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.8" />
         </g>
       );
+    case 'bow':
+      return (
+        <g strokeLinecap="round" strokeLinejoin="round" fill="none">
+          <path d="M14 6 Q40 10 40 34" stroke={c.dark} strokeWidth="6" />
+          <path d="M14 6 Q40 10 40 34" stroke={c.main} strokeWidth="3.5" />
+          <path d="M14 6 L40 34" stroke="#e8e2d4" strokeWidth="1.2" />
+          <path d="M8 40 L30 18" stroke="#9a6a3c" strokeWidth="2" />
+          <path d="M30 18 L26 18 M30 18 L30 22" stroke="#8b949c" strokeWidth="2" />
+          <path d="M8 40 L11 36 M8 40 L12 40" stroke="#f9fafb" strokeWidth="1.6" />
+        </g>
+      );
+    case 'staff':
+      return (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 44 L32 14" stroke={WOOD.dark} strokeWidth="6" />
+          <path d="M12 44 L32 14" stroke={c.main} strokeWidth="3.4" />
+          <circle cx="35" cy="10" r="7" fill="#7dd3fc" stroke="#0369a1" strokeWidth="2" />
+          <circle cx="33" cy="8" r="2.4" fill="#f0f9ff" />
+          <path d="M28 16 Q34 18 38 14" stroke={c.dark} strokeWidth="2" fill="none" />
+        </g>
+      );
+    case 'arrows':
+      return (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          {[0, 7, 14].map((d) => (
+            <g key={d} transform={`translate(${d - 7} ${d / 2 - 3})`}>
+              <path d="M12 38 L34 12" stroke="#9a6a3c" strokeWidth="2.4" />
+              <path d="M34 12 L36 6 L40 10 Z" fill={c.main} stroke={c.dark} strokeWidth="1.2" />
+              <path d="M12 38 L9 36 M12 38 L11 41 M15 35 L12 33 M15 35 L14 38" stroke="#f3f4f6" strokeWidth="1.6" />
+            </g>
+          ))}
+        </g>
+      );
+    case 'rune':
+      return (
+        <g strokeLinejoin="round">
+          <path d="M24 5 L40 14 L40 34 L24 43 L8 34 L8 14 Z" fill={c.dark} stroke={c.main} strokeWidth="2.2" />
+          <path d="M24 12 L33 18 L33 30 L24 36 L15 30 L15 18 Z" fill={c.main} opacity="0.35" />
+          <path d="M24 15 L24 33 M18 21 L30 27 M30 21 L18 27" stroke={c.light} strokeWidth="2.2" strokeLinecap="round" />
+        </g>
+      );
+    case 'coins':
+      return (
+        <g>
+          <ellipse cx="20" cy="32" rx="12" ry="5" fill="#92610f" />
+          <ellipse cx="20" cy="30" rx="12" ry="5" fill="#fbbf24" stroke="#92610f" strokeWidth="1.5" />
+          <ellipse cx="29" cy="22" rx="12" ry="5" fill="#92610f" />
+          <ellipse cx="29" cy="20" rx="12" ry="5" fill="#fcd34d" stroke="#92610f" strokeWidth="1.5" />
+          <path d="M26 19 Q29 17 32 19" stroke="#92610f" strokeWidth="1.4" fill="none" />
+        </g>
+      );
     case 'shrimp':
       return (
         <g strokeLinecap="round" strokeLinejoin="round">
@@ -223,8 +274,10 @@ export function ItemIcon({ id, size = 40 }: { id: string; size?: number }) {
   const c = TIER_COLORS[item.tier] ?? TIER_COLORS.iron;
   const plus = item.upgrade?.level ?? 0;
   const great = item.id.startsWith('great_');
+  const rarity = item.gem ? RARITY_COLORS[item.gem.rarity] : null;
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" className="item-icon">
+      {rarity && <circle cx="24" cy="25" r="21" fill={rarity} opacity="0.18" stroke={rarity} strokeWidth="2" />}
       <ItemShape kind={item.icon} c={c} />
       {great && <path d="M38 4 L40 9 L45 9 L41 12 L43 17 L38 14 L33 17 L35 12 L31 9 L36 9 Z" fill="#fbbf24" stroke="#92610f" strokeWidth="1" />}
       {plus > 0 && (
@@ -241,7 +294,8 @@ export type UiIconName =
   | 'town' | 'skills' | 'bag' | 'bank' | 'gear' | 'settings' | 'close' | 'search'
   | 'stop' | 'clock' | 'up' | 'down' | 'lock' | 'mining' | 'smithing' | 'sound' | 'music'
   | 'trash' | 'play' | 'refresh' | 'trophy' | 'pin' | 'bolt' | 'door'
-  | 'woodcutting' | 'firemaking' | 'fishing' | 'cooking' | 'crafting' | 'enhancing' | 'sword' | 'shield';
+  | 'woodcutting' | 'firemaking' | 'fishing' | 'cooking' | 'crafting' | 'enhancing' | 'sword' | 'shield'
+  | 'melee' | 'ranged' | 'magic' | 'defense' | 'health' | 'combat' | 'coin' | 'heart' | 'gem' | 'ammo';
 
 /** Simple line icons for buttons and navigation. */
 export function UiIcon({ name, size = 24 }: { name: UiIconName; size?: number }) {
@@ -270,6 +324,13 @@ export function UiIcon({ name, size = 24 }: { name: UiIconName; size?: number })
     case 'cooking': body = <g {...common}><path d="M3 13 H17 Q17 19 10 19 Q3 19 3 13 Z" /><path d="M17 14 L21 12" /><path d="M8 9 Q7 7 8.5 5 M12 9 Q11 7 12.5 5" /></g>; break;
     case 'crafting': body = <g {...common}><path d="M4 20 L13 11" /><path d="M11 6 L16 3 L21 8 L18 13 Z" /><path d="M3 4 L8 9" /><path d="M2 7 L5 4" /></g>; break;
     case 'enhancing': body = <g {...common}><path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z" /><circle cx="12" cy="12" r="2" /></g>; break;
+    case 'melee': case 'combat': body = <g {...common}><path d="M4 4 L14 14 M20 4 L10 14" /><path d="M12 16 L8 20 M12 16 L16 20" /><path d="M6 12 L12 18 L18 12" /></g>; break;
+    case 'ranged': case 'ammo': body = <g {...common}><path d="M6 3 Q20 6 21 18" /><path d="M6 3 L21 18" strokeWidth="1" /><path d="M3 21 L16 8" /><path d="M16 8 L13 8 M16 8 L16 11" /></g>; break;
+    case 'magic': body = <g {...common}><path d="M5 21 L15 9" /><circle cx="17" cy="7" r="3" /><path d="M20 2 L21 4 M22 8 L23 8 M13 3 L13 2" /></g>; break;
+    case 'defense': body = <g {...common}><path d="M12 3 L20 6 Q20 15 12 21 Q4 15 4 6 Z" /><path d="M12 8 V16 M8 11 H16" /></g>; break;
+    case 'health': case 'heart': body = <g {...common}><path d="M12 20 Q3 13 4 8 Q5 4 9 4 Q11 4 12 7 Q13 4 15 4 Q19 4 20 8 Q21 13 12 20 Z" /></g>; break;
+    case 'coin': body = <g {...common}><ellipse cx="12" cy="12" rx="8" ry="8" /><path d="M12 7 V17 M9.5 9.5 Q12 8 14.5 9.5 M9.5 14.5 Q12 16 14.5 14.5" /></g>; break;
+    case 'gem': body = <g {...common}><path d="M6 9 L9 5 H15 L18 9 L12 20 Z" /><path d="M6 9 H18 M10 5 L12 9 L14 5 M12 9 V20" /></g>; break;
     case 'sword': body = <g {...common}><path d="M20 4 L20 8 L9 19 L5 15 L16 4 Z" /><path d="M4 20 L7 17" /><path d="M5 13 L11 19" /></g>; break;
     case 'shield': body = <g {...common}><path d="M12 3 L20 6 Q20 15 12 21 Q4 15 4 6 Z" /></g>; break;
     case 'trash': body = <g {...common}><path d="M4 7 H20" /><path d="M9 7 V4 H15 V7" /><path d="M6 7 L7 20 H17 L18 7" /><path d="M10 11 V16 M14 11 V16" /></g>; break;

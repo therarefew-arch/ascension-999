@@ -1,14 +1,20 @@
 // Static item definitions. No player data lives here.
 
-export type ItemCategory = 'ore' | 'bar' | 'log' | 'material' | 'fish' | 'food' | 'weapon' | 'armour' | 'tool' | 'gem';
+export type ItemCategory = 'ore' | 'bar' | 'log' | 'material' | 'fish' | 'food' | 'weapon' | 'armour' | 'tool' | 'gem' | 'ammo' | 'currency';
+export type CombatStyle = 'melee' | 'ranged' | 'magic';
+export type GemType = 'ruby' | 'sapphire' | 'emerald';
+export type GemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 export type EquipSlot =
   | 'head' | 'body' | 'legs' | 'weapon' | 'shield'
   | 'pickaxe' | 'axe' | 'rod' | 'tinderbox' | 'skillet' | 'hammer' | 'knife';
 export type IconKind =
   | 'ore' | 'rock' | 'bar' | 'log' | 'fish' | 'cooked' | 'shrimp' | 'cooked_shrimp' | 'gem'
   | 'pickaxe' | 'axe' | 'rod' | 'tinderbox' | 'skillet' | 'hammer' | 'knife'
-  | 'sword' | 'shield' | 'helmet' | 'chest' | 'legs';
-export type SkillId = 'mining' | 'smithing' | 'woodcutting' | 'firemaking' | 'fishing' | 'cooking' | 'crafting' | 'enhancing';
+  | 'sword' | 'shield' | 'helmet' | 'chest' | 'legs'
+  | 'bow' | 'staff' | 'arrows' | 'rune' | 'coins';
+export type SkillId =
+  | 'mining' | 'smithing' | 'woodcutting' | 'firemaking' | 'fishing' | 'cooking' | 'crafting' | 'enhancing'
+  | 'melee' | 'ranged' | 'magic' | 'defense' | 'health';
 
 /** Colour keys. Each tier/material gets its own tint so icons look unique. */
 export const TIER_COLORS: Record<string, { main: string; light: string; dark: string }> = {
@@ -21,11 +27,24 @@ export const TIER_COLORS: Record<string, { main: string; light: string; dark: st
   oak: { main: '#7d5a36', light: '#b58b5c', dark: '#45301a' },
   shrimp: { main: '#f08a6c', light: '#ffc2ad', dark: '#a04a33' },
   trout: { main: '#7aa6b8', light: '#c3dde6', dark: '#3f6473' },
+  gold: { main: '#fbbf24', light: '#fde68a', dark: '#92610f' },
+  minor: { main: '#7dd3fc', light: '#e0f2fe', dark: '#0369a1' },
+  major: { main: '#c084fc', light: '#f3e8ff', dark: '#6b21a8' },
+  ruby: { main: '#ef4444', light: '#fecaca', dark: '#7f1d1d' },
+  sapphire: { main: '#3b82f6', light: '#bfdbfe', dark: '#1e3a8a' },
+  emerald: { main: '#22c55e', light: '#bbf7d0', dark: '#14532d' },
+};
+
+export const RARITIES: GemRarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+export const RARITY_COLORS: Record<GemRarity, string> = {
+  common: '#a8a29e', uncommon: '#4ade80', rare: '#60a5fa', epic: '#c084fc', legendary: '#fb923c', mythic: '#f472b6',
 };
 
 export interface ItemStats {
   attack?: number;
   defense?: number;
+  /** Extra maximum hit points. */
+  health?: number;
   /** Percent faster actions in that skill, e.g. 5 = 5% less time. */
   miningSpeed?: number;
   woodcuttingSpeed?: number;
@@ -39,6 +58,7 @@ export interface ItemStats {
 export const STAT_LABELS: Record<keyof ItemStats, string> = {
   attack: 'Attack',
   defense: 'Defense',
+  health: 'Max HP',
   miningSpeed: 'Mining speed %',
   woodcuttingSpeed: 'Woodcutting speed %',
   fishingSpeed: 'Fishing speed %',
@@ -55,6 +75,10 @@ export interface EquipInfo {
   req?: { skill: SkillId; level: number };
   /** Tools: which resource tier this tool unlocks (0 = Stone, 1 = Bronze, ...). */
   toolTier?: number;
+  /** Weapons: which combat style they use. */
+  style?: CombatStyle;
+  /** Weapons: milliseconds between attacks. */
+  speedMs?: number;
 }
 
 /** For items that can be improved +1 to +10. */
@@ -76,8 +100,12 @@ export interface ItemDef {
   description: string;
   equip?: EquipInfo;
   upgrade?: UpgradeInfo;
-  /** Food: how much Health it restores once combat arrives. */
+  /** Food: how many hit points it restores. */
   heals?: number;
+  /** Arrows and runes: used up by Ranged/Magic attacks; power adds to max hit. */
+  ammo?: { style: 'ranged' | 'magic'; power: number };
+  /** Gems: socket into a gear slot. Higher rarity = better stat rolls. */
+  gem?: { type: GemType; rarity: GemRarity; value: number };
 }
 
 export const MAX_UPGRADE = 10;
@@ -98,11 +126,53 @@ const items: ItemDef[] = [
   // Fish & food
   { id: 'raw_shrimp', name: 'Raw shrimp', category: 'fish', tier: 'shrimp', icon: 'shrimp', stackable: true, description: 'Fresh from the river. Cook it before eating.' },
   { id: 'raw_trout', name: 'Raw river trout', category: 'fish', tier: 'trout', icon: 'fish', stackable: true, description: 'A lively trout. Cook it before eating.' },
-  { id: 'cooked_shrimp', name: 'Cooked shrimp', category: 'food', tier: 'shrimp', icon: 'cooked_shrimp', stackable: true, heals: 3, description: 'Tasty! Heals you in combat (coming soon).' },
-  { id: 'great_shrimp', name: 'Great shrimp', category: 'food', tier: 'shrimp', icon: 'cooked_shrimp', stackable: true, heals: 5, description: 'Perfectly seared. Heals more in combat.' },
-  { id: 'cooked_trout', name: 'Cooked trout', category: 'food', tier: 'trout', icon: 'cooked', stackable: true, heals: 7, description: 'A hearty meal. Heals you in combat (coming soon).' },
-  { id: 'great_trout', name: 'Great trout', category: 'food', tier: 'trout', icon: 'cooked', stackable: true, heals: 10, description: 'Perfectly seared. Heals more in combat.' },
+  { id: 'cooked_shrimp', name: 'Cooked shrimp', category: 'food', tier: 'shrimp', icon: 'cooked_shrimp', stackable: true, heals: 6, description: 'Tasty! Eat it in combat to heal.' },
+  { id: 'great_shrimp', name: 'Great shrimp', category: 'food', tier: 'shrimp', icon: 'cooked_shrimp', stackable: true, heals: 9, description: 'Perfectly seared. Heals more in combat.' },
+  { id: 'cooked_trout', name: 'Cooked trout', category: 'food', tier: 'trout', icon: 'cooked', stackable: true, heals: 14, description: 'A hearty meal. Eat it in combat to heal.' },
+  { id: 'great_trout', name: 'Great trout', category: 'food', tier: 'trout', icon: 'cooked', stackable: true, heals: 20, description: 'Perfectly seared. Heals more in combat.' },
+  // Coins (go straight to your purse, not your bag)
+  { id: 'coins', name: 'Coins', category: 'currency', tier: 'gold', icon: 'coins', stackable: true, description: 'Shiny coins. Spend them on gem rerolls now — shops and the market are coming.' },
+  // Ammo
+  { id: 'bronze_arrows', name: 'Bronze arrows', category: 'ammo', tier: 'bronze', icon: 'arrows', stackable: true, ammo: { style: 'ranged', power: 2 }, description: 'Fired by bows. Each shot uses one (sometimes you get it back).' },
+  { id: 'iron_arrows', name: 'Iron arrows', category: 'ammo', tier: 'iron', icon: 'arrows', stackable: true, ammo: { style: 'ranged', power: 4 }, description: 'Sharper arrows that hit harder.' },
+  { id: 'minor_rune', name: 'Minor rune', category: 'ammo', tier: 'minor', icon: 'rune', stackable: true, ammo: { style: 'magic', power: 2 }, description: 'Powers a spell from a staff. Each cast uses one (sometimes you keep it).' },
+  { id: 'major_rune', name: 'Major rune', category: 'ammo', tier: 'major', icon: 'rune', stackable: true, ammo: { style: 'magic', power: 4 }, description: 'A stronger rune for stronger spells.' },
 ];
+
+// ----- Gems: 3 types × 6 rarities × each possible stat roll -----
+export const GEM_TYPES: { type: GemType; name: string; stat: 'attack' | 'defense' | 'health'; mult: number }[] = [
+  { type: 'ruby', name: 'Ruby', stat: 'attack', mult: 1 },
+  { type: 'sapphire', name: 'Sapphire', stat: 'defense', mult: 1 },
+  { type: 'emerald', name: 'Emerald', stat: 'health', mult: 3 },
+];
+/** Stat range for each rarity (before the type multiplier). */
+export const GEM_RANGES: Record<GemRarity, [number, number]> = {
+  common: [1, 2], uncommon: [2, 3], rare: [3, 5], epic: [5, 7], legendary: [7, 10], mythic: [10, 14],
+};
+export const gemId = (type: GemType, rarity: GemRarity, value: number) => `${type}_${rarity}_${value}`;
+for (const g of GEM_TYPES) {
+  for (const rarity of RARITIES) {
+    const [lo, hi] = GEM_RANGES[rarity];
+    for (let v = lo; v <= hi; v++) {
+      const value = v * g.mult;
+      const rarityName = rarity[0].toUpperCase() + rarity.slice(1);
+      items.push({
+        id: gemId(g.type, rarity, value),
+        name: `${rarityName} ${g.name}`,
+        category: 'gem', tier: g.type, icon: 'gem', stackable: true,
+        gem: { type: g.type, rarity, value },
+        description: `+${value} ${g.stat === 'health' ? 'Max HP' : g.stat === 'attack' ? 'Attack' : 'Defense'} when socketed. Rolls ${lo * g.mult}–${hi * g.mult} at this rarity.`,
+      });
+    }
+  }
+}
+
+export function gemStats(id: string): ItemStats {
+  const g = ITEMS[id]?.gem;
+  if (!g) return {};
+  const stat = GEM_TYPES.find((t) => t.type === g.type)!.stat;
+  return { [stat]: g.value };
+}
 
 /** Stats grow with each upgrade level: roughly +12% of the base per level, at least +1. */
 export function upgradedStats(base: ItemStats, level: number): ItemStats {
@@ -158,10 +228,33 @@ for (const metal of METAL_TIERS) {
       tier: metal.tier,
       icon: piece.icon,
       stackable: false,
-      description: `Sturdy ${metal.name.toLowerCase()} gear. Improve it with Enhancing. Combat arrives in a later update.`,
-      equip: { slot: piece.slot, stats: gearStats(piece.key, metal.power) },
+      description: piece.key === 'sword'
+        ? `A ${metal.name.toLowerCase()} sword for Melee combat. Improve it with Enhancing.`
+        : `Sturdy ${metal.name.toLowerCase()} armour. Improve it with Enhancing.`,
+      equip: {
+        slot: piece.slot,
+        stats: gearStats(piece.key, metal.power),
+        req: metal.level >= 50 ? { skill: piece.key === 'sword' ? 'melee' : 'defense', level: 30 } : undefined,
+        ...(piece.key === 'sword' ? { style: 'melee' as const, speedMs: 2400 } : {}),
+      },
     }, 'enhancing');
   }
+}
+
+/** Bows (Ranged) and staffs (Magic), made at the Workshop. Improve them with Enhancing (uses bars). */
+export const RANGED_MAGIC_WEAPONS = [
+  { id: 'pine_shortbow', name: 'Pine shortbow', icon: 'bow', tier: 'pine', style: 'ranged', attack: 5, speedMs: 2600, req: 1, bar: 'bronze_bar' },
+  { id: 'oak_longbow', name: 'Oak longbow', icon: 'bow', tier: 'oak', style: 'ranged', attack: 10, speedMs: 2600, req: 30, bar: 'iron_bar' },
+  { id: 'pine_staff', name: 'Pine staff', icon: 'staff', tier: 'pine', style: 'magic', attack: 5, speedMs: 3000, req: 1, bar: 'bronze_bar' },
+  { id: 'oak_staff', name: 'Oak staff', icon: 'staff', tier: 'oak', style: 'magic', attack: 10, speedMs: 3000, req: 30, bar: 'iron_bar' },
+] as const;
+
+for (const w of RANGED_MAGIC_WEAPONS) {
+  addUpgradable({
+    id: w.id, name: w.name, category: 'weapon', tier: w.tier, icon: w.icon, stackable: false,
+    description: w.style === 'ranged' ? 'A bow for Ranged combat. Needs arrows in your bag.' : 'A staff for Magic combat. Needs runes in your bag.',
+    equip: { slot: 'weapon', stats: { attack: w.attack }, style: w.style, speedMs: w.speedMs, req: w.req > 1 ? { skill: w.style, level: w.req } : undefined },
+  }, 'enhancing');
 }
 
 /**

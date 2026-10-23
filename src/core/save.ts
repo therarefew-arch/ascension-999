@@ -5,6 +5,8 @@ import { ACTIONS } from '../data/skills';
 import { INVENTORY_SLOTS, SAVE_VERSION, newPlayer, type ItemStack, type PlayerState } from './player';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
 import { levelForXp } from './xp';
+import { MONSTER_MAP } from '../data/monsters';
+import { isFightId, maxHp } from './combat';
 
 export const SAVE_SLOTS = [1, 2, 3] as const;
 export type SlotId = (typeof SAVE_SLOTS)[number];
@@ -126,7 +128,9 @@ export function slotSummary(slot: SlotId): SlotSummary | null {
     totalLevel: Object.values(levels).reduce((a, b) => a + b, 0),
     levels,
     lastActiveAt: p.lastActiveAt,
-    activity: p.idle ? ACTIONS[p.idle.actionId]?.name ?? null : null,
+    activity: p.idle
+      ? (isFightId(p.idle.actionId) ? `Fighting ${MONSTER_MAP[p.idle.actionId.slice(6)]?.name ?? ''}` : ACTIONS[p.idle.actionId]?.name ?? null)
+      : null,
   };
 }
 
@@ -166,13 +170,34 @@ function repair(raw: any): PlayerState {
       if (typeof id === 'string' && ITEMS[id]?.equip?.slot === slot) p.equipment[slot as keyof PlayerState['equipment']] = id;
     }
   }
-  if (raw?.idle && ACTIONS[raw.idle.actionId]) {
+  const fightOk = raw?.fight && MONSTER_MAP[raw.fight.monsterId] && isFightId(raw?.idle?.actionId);
+  if (raw?.idle && (ACTIONS[raw.idle.actionId] || fightOk)) {
     p.idle = { actionId: raw.idle.actionId, progressMs: Number(raw.idle.progressMs) || 0 };
   }
-  if (raw?.lastStop && ACTIONS[raw.lastStop.actionId]) p.lastStop = raw.lastStop;
+  if (fightOk) {
+    const f = raw.fight;
+    p.fight = {
+      monsterId: f.monsterId, monsterHp: Number(f.monsterHp) || MONSTER_MAP[f.monsterId].hp,
+      playerTimer: Number(f.playerTimer) || 2400, monsterTimer: Number(f.monsterTimer) || 3000, respawn: Number(f.respawn) || 0,
+      critReady: false, blockUntil: 0, kills: Number(f.kills) || 0, log: [],
+    };
+  }
+  if (raw?.lastStop && (ACTIONS[raw.lastStop.actionId] || isFightId(raw.lastStop.actionId))) p.lastStop = raw.lastStop;
   if (raw?.fire && typeof raw.fire.heatMs === 'number') {
     p.fire = { heatMs: Math.max(0, raw.fire.heatMs), log: ITEMS[raw.fire.log] ? raw.fire.log : null };
   }
+  if (typeof raw?.coins === 'number' && raw.coins >= 0) p.coins = Math.floor(raw.coins);
+  if (raw?.sockets && typeof raw.sockets === 'object') {
+    for (const [slot, id] of Object.entries(raw.sockets)) {
+      if (typeof id === 'string' && ITEMS[id]?.gem) p.sockets[slot as keyof PlayerState['sockets']] = id;
+    }
+  }
+  if (raw?.bossReadyAt && typeof raw.bossReadyAt === 'object') {
+    for (const [id, at] of Object.entries(raw.bossReadyAt)) if (MONSTER_MAP[id] && typeof at === 'number') p.bossReadyAt[id] = at;
+  }
+  p.hp = typeof raw?.hp === 'number' && raw.hp > 0 ? raw.hp : maxHp(p);
+  p.hp = Math.min(p.hp, maxHp(p));
+  p.regenMs = Number(raw?.regenMs) || 0;
   return p;
 }
 

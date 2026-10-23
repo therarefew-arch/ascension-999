@@ -51,12 +51,12 @@ export function SkillStrip({ selected, onSelect }: { selected: SkillId; onSelect
   );
 }
 
-const SCENES: Record<SkillId, SceneName> = {
+const SCENES: Partial<Record<SkillId, SceneName>> = {
   mining: 'mine', smithing: 'forge', woodcutting: 'forest', firemaking: 'camp',
   fishing: 'river', cooking: 'kitchen', crafting: 'workshop', enhancing: 'tower',
 };
 
-const MINIGAMES: Record<SkillId, (p: { action: ActionDef }) => JSX.Element> = {
+const MINIGAMES: Partial<Record<SkillId, (p: { action: ActionDef }) => JSX.Element>> = {
   mining: StrikeVein, smithing: AnvilRhythm, woodcutting: Chop, firemaking: Kindle,
   fishing: FishingGames, cooking: HeatPrecision, crafting: SteadyHands, enhancing: RuneAlign,
 };
@@ -154,7 +154,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
   if (!action) {
     return (
       <div className="skill-screen">
-        <PixelScene scene={SCENES[skill]} dim={0.6} className="screen-bg" />
+        <PixelScene scene={SCENES[skill] ?? 'town'} dim={0.6} className="screen-bg" />
         <div className="screen">
           <h1 className="mastery-title">{SKILLS[skill].name}</h1>
           {tabRow}
@@ -172,11 +172,11 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
 
   const unlocked = lvl >= action.level;
   const idlingThis = player.idle?.actionId === action.id;
-  const Minigame = MINIGAMES[skill];
+  const Minigame = MINIGAMES[skill] ?? AnvilRhythm;
 
   return (
     <div className="skill-screen">
-      <PixelScene scene={SCENES[skill]} dim={0.6} className="screen-bg" />
+      <PixelScene scene={SCENES[skill] ?? 'town'} dim={0.6} className="screen-bg" />
       <div className="skill-top">
         <div className="mastery-row">
           <h1 className="mastery-title">{SKILLS[skill].name}</h1>
