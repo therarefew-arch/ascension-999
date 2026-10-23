@@ -73,7 +73,7 @@ export function StrikeVein({ action }: { action: ActionDef }) {
       // Resume from the same spot so the marker doesn't jump.
       clock.start.current += performance.now() - (clock.now);
       setPausedAt(null);
-    }, 350);
+    }, STRIKE_VEIN.pauseMs);
 
     if (grade === 'miss') {
       setCombo(0);

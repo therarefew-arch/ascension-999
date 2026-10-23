@@ -119,7 +119,7 @@ All minigame rewards still go through the central loot system.
 
 | Skill | Minigame | Status |
 |---|---|---|
-| Mining | **Strike Vein** — tap when the marker is in the gold zone; perfect hits and 5-hit combos give bonus ore | Built |
+| Mining | **Strike Vein** — tap when the marker is in the gold zone (0.9s sweep, wide zone). Good hit = 2 ore, perfect = 3 ore + 50% XP, every 5-hit combo = +3 ore (owner asked for faster/more ore) | Built |
 | Smithing | **Anvil Rhythm** — tap as the glowing ring lands on the anvil; 3 hits finish an item; all-perfect = masterwork bonus | Built |
 | Woodcutting | **Chop!** — just tap the tree 5 times for a log (owner's request: simple) | Built |
 | Fishing | **Reel It In** — hold to reel, keep the hook on the fish's green zone; a clean catch = bonus fish; fish never escape. **Tile Match** — mahjong solitaire (always-solvable boards, free shuffle); each pair = Fishing XP, clearing the board = bonus fish | Built |

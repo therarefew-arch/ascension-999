@@ -7,18 +7,20 @@ export type HitGrade = 'perfect' | 'good' | 'miss';
 /** Mining — Strike Vein: tap while the marker is in the gold zone. */
 export const STRIKE_VEIN = {
   /** Width of the gold zone, as a fraction of the bar. */
-  zone: 0.26,
+  zone: 0.3,
   /** The centre part of the zone that counts as perfect. */
-  perfectZone: 0.08,
-  /** Seconds for the marker to cross the bar once. Slow and relaxed. */
-  sweepSeconds: 1.5,
+  perfectZone: 0.1,
+  /** Seconds for the marker to cross the bar once. Quick and snappy. */
+  sweepSeconds: 0.9,
+  /** Short pause after each tap (ms). */
+  pauseMs: 120,
   rewards: {
-    good: { xpMult: 1, bonusRolls: 0 },
-    perfect: { xpMult: 1.5, bonusRolls: 1 },
+    good: { xpMult: 1, bonusRolls: 1 }, // 2 ore
+    perfect: { xpMult: 1.5, bonusRolls: 2 }, // 3 ore
   },
   /** Every N hits in a row without a miss gives combo bonus ore. */
   comboEvery: 5,
-  comboBonusRolls: 2,
+  comboBonusRolls: 3,
 };
 
 /** Smithing — Anvil Rhythm: tap as the glowing ring lands on the anvil. Three good taps finish the item. */
@@ -100,6 +102,6 @@ export const RUNE_TRACE = {
 export function clampReward(r: { xpMult: number; bonusRolls: number }) {
   return {
     xpMult: Math.min(2, Math.max(1, r.xpMult)),
-    bonusRolls: Math.min(3, Math.max(0, Math.floor(r.bonusRolls))),
+    bonusRolls: Math.min(5, Math.max(0, Math.floor(r.bonusRolls))),
   };
 }
