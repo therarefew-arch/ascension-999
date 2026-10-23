@@ -273,7 +273,7 @@ export const game = {
     const report = emptyReport(actionId);
     const safe = clampReward(reward);
     // Bonus copies only for gathering/smithing/cooking — never free tools or free upgrades.
-    if (action.kind || action.skill === 'crafting') safe.bonusRolls = 0;
+    if (action.kind || action.skill === 'crafting' || !action.output || !getItem(action.output.item).stackable) safe.bonusRolls = 0;
     const succeeded = completeAction(snap.player, action, report, {
       ...safe,
       lootTable,
@@ -320,7 +320,9 @@ export const game = {
     const f = snap.player.fight;
     if (!f || f.critReady || f.respawn > 0) return false;
     f.critReady = true;
+    f.playerTimer = 0; // strike right away — no waiting for the next swing
     play('enchant');
+    tick();
     emit();
     return true;
   },

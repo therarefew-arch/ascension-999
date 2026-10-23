@@ -117,6 +117,11 @@ export function whyCantDo(p: PlayerState, action: ActionDef, opts: { manual?: bo
   if (action.needsTool !== undefined && equippedToolTier(p, action.skill) < action.needsTool) {
     return toolNeededText(action.skill, action.needsTool);
   }
+  if (action.requires && countInBag(p.inventory, action.requires) < 1) {
+    const name = getItem(action.requires).name;
+    const article = /^[aeiou]/i.test(name) ? 'an' : 'a';
+    return countInBank(p, action.requires) > 0 ? `Withdraw your ${name} from the bank (it's not used up)` : `Needs ${article} ${name} in your bag (it's not used up)`;
+  }
   const fromSlot = upgradeSource(p, action);
   for (const input of action.inputs) {
     const name = getItem(input.item).name;

@@ -47,7 +47,7 @@ for (const [id, item] of Object.entries(GREAT_FOOD)) {
 const e = (item: string, min: number, max: number, chance: number): LootEntry => ({ item, min, max, chance });
 tables.push(
   { id: 'mon_field_rat', source: 'monster', entries: [e('coins', 1, 4, 1), e('raw_shrimp', 1, 2, 0.15), e('pine_logs', 1, 2, 0.15)] },
-  { id: 'mon_hedge_sprite', source: 'monster', entries: [e('coins', 3, 9, 1), e('minor_rune', 3, 8, 0.4), e('stone', 2, 4, 0.2)] },
+  { id: 'mon_hedge_sprite', source: 'monster', entries: [e('coins', 3, 9, 1), e('air_rune', 3, 8, 0.4), e('rune_essence', 2, 5, 0.3), e('stone', 2, 4, 0.2)] },
   { id: 'mon_bandit_archer', source: 'monster', entries: [e('coins', 8, 18, 1), e('bronze_arrows', 5, 12, 0.45), e('bronze_bar', 1, 2, 0.15), e('cooked_shrimp', 1, 2, 0.2)] },
   { id: 'mon_mossback_boar', source: 'monster', entries: [e('coins', 14, 30, 1), e('raw_trout', 1, 3, 0.3), e('iron_ore', 1, 3, 0.25), e('oak_logs', 1, 3, 0.2)] },
 );
@@ -70,7 +70,7 @@ function gemGroup(chance: number): LootGroup {
 }
 tables.push({
   id: 'boss_old_thornhide', source: 'miniboss',
-  entries: [e('coins', 80, 160, 1), e('iron_bar', 2, 5, 0.5), e('great_trout', 1, 3, 0.4), e('iron_arrows', 10, 25, 0.35), e('major_rune', 8, 20, 0.35)],
+  entries: [e('coins', 80, 160, 1), e('iron_bar', 2, 5, 0.5), e('great_trout', 1, 3, 0.4), e('iron_arrows', 10, 25, 0.35), e('earth_rune', 8, 20, 0.25), e('fire_rune', 6, 15, 0.2), e('rune_essence', 10, 25, 0.4)],
   groups: [gemGroup(0.7)],
 });
 

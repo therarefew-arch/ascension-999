@@ -13,7 +13,7 @@ import { ProgressBar } from '../components';
 import { ItemIcon, UiIcon, type UiIconName } from '../icons';
 import { fmtDuration, fmtNum } from '../format';
 import { AnvilRhythm, StrikeVein } from '../Minigames';
-import { Chop, HeatPrecision, Kindle, RuneAlign, SteadyHands } from '../Minigames2';
+import { Chop, HeatPrecision, Kindle, RuneAlign, RuneTrace, SteadyHands } from '../Minigames2';
 import { FishingGames } from '../TileMatch';
 import { PixelScene, type SceneName } from '../PixelScene';
 
@@ -53,16 +53,17 @@ export function SkillStrip({ selected, onSelect }: { selected: SkillId; onSelect
 
 const SCENES: Partial<Record<SkillId, SceneName>> = {
   mining: 'mine', smithing: 'forge', woodcutting: 'forest', firemaking: 'camp',
-  fishing: 'river', cooking: 'kitchen', crafting: 'workshop', enhancing: 'tower',
+  fishing: 'river', cooking: 'kitchen', crafting: 'workshop', enhancing: 'tower', runecrafting: 'altar',
 };
 
 const MINIGAMES: Partial<Record<SkillId, (p: { action: ActionDef }) => JSX.Element>> = {
   mining: StrikeVein, smithing: AnvilRhythm, woodcutting: Chop, firemaking: Kindle,
-  fishing: FishingGames, cooking: HeatPrecision, crafting: SteadyHands, enhancing: RuneAlign,
+  fishing: FishingGames, cooking: HeatPrecision, crafting: SteadyHands, enhancing: RuneAlign, runecrafting: RuneTrace,
 };
 
 const TAB_ICONS: Record<string, UiIconName> = {
   Smelt: 'firemaking', Weapons: 'sword', Armour: 'shield', Tools: 'crafting', Upgrades: 'up',
+  Ammo: 'ammo', Talismans: 'gem', Runes: 'runecrafting', Staffs: 'magic',
 };
 
 /** A list of recipes with what you have vs. what you need (Smithing, Crafting). */

@@ -11,9 +11,10 @@ export type IconKind =
   | 'ore' | 'rock' | 'bar' | 'log' | 'fish' | 'cooked' | 'shrimp' | 'cooked_shrimp' | 'gem'
   | 'pickaxe' | 'axe' | 'rod' | 'tinderbox' | 'skillet' | 'hammer' | 'knife'
   | 'sword' | 'shield' | 'helmet' | 'chest' | 'legs'
-  | 'bow' | 'staff' | 'arrows' | 'rune' | 'coins';
+  | 'bow' | 'staff' | 'arrows' | 'rune' | 'coins' | 'talisman';
 export type SkillId =
   | 'mining' | 'smithing' | 'woodcutting' | 'firemaking' | 'fishing' | 'cooking' | 'crafting' | 'enhancing'
+  | 'runecrafting'
   | 'melee' | 'ranged' | 'magic' | 'defense' | 'health';
 
 /** Colour keys. Each tier/material gets its own tint so icons look unique. */
@@ -28,8 +29,11 @@ export const TIER_COLORS: Record<string, { main: string; light: string; dark: st
   shrimp: { main: '#f08a6c', light: '#ffc2ad', dark: '#a04a33' },
   trout: { main: '#7aa6b8', light: '#c3dde6', dark: '#3f6473' },
   gold: { main: '#fbbf24', light: '#fde68a', dark: '#92610f' },
-  minor: { main: '#7dd3fc', light: '#e0f2fe', dark: '#0369a1' },
-  major: { main: '#c084fc', light: '#f3e8ff', dark: '#6b21a8' },
+  essence: { main: '#c7d2fe', light: '#eef2ff', dark: '#6366f1' },
+  air: { main: '#e0f2fe', light: '#ffffff', dark: '#7dd3fc' },
+  water: { main: '#3b82f6', light: '#bfdbfe', dark: '#1e3a8a' },
+  earth: { main: '#84cc16', light: '#d9f99d', dark: '#3f6212' },
+  fire: { main: '#f97316', light: '#fed7aa', dark: '#9a3412' },
   ruby: { main: '#ef4444', light: '#fecaca', dark: '#7f1d1d' },
   sapphire: { main: '#3b82f6', light: '#bfdbfe', dark: '#1e3a8a' },
   emerald: { main: '#22c55e', light: '#bbf7d0', dark: '#14532d' },
@@ -79,6 +83,8 @@ export interface EquipInfo {
   style?: CombatStyle;
   /** Weapons: milliseconds between attacks. */
   speedMs?: number;
+  /** Elemental staffs: which runes they cast with. */
+  element?: Element;
 }
 
 /** For items that can be improved +1 to +10. */
@@ -103,7 +109,7 @@ export interface ItemDef {
   /** Food: how many hit points it restores. */
   heals?: number;
   /** Arrows and runes: used up by Ranged/Magic attacks; power adds to max hit. */
-  ammo?: { style: 'ranged' | 'magic'; power: number };
+  ammo?: { style: 'ranged' | 'magic'; power: number; element?: Element };
   /** Gems: socket into a gear slot. Higher rarity = better stat rolls. */
   gem?: { type: GemType; rarity: GemRarity; value: number };
 }
@@ -135,9 +141,26 @@ const items: ItemDef[] = [
   // Ammo
   { id: 'bronze_arrows', name: 'Bronze arrows', category: 'ammo', tier: 'bronze', icon: 'arrows', stackable: true, ammo: { style: 'ranged', power: 2 }, description: 'Fired by bows. Each shot uses one (sometimes you get it back).' },
   { id: 'iron_arrows', name: 'Iron arrows', category: 'ammo', tier: 'iron', icon: 'arrows', stackable: true, ammo: { style: 'ranged', power: 4 }, description: 'Sharper arrows that hit harder.' },
-  { id: 'minor_rune', name: 'Minor rune', category: 'ammo', tier: 'minor', icon: 'rune', stackable: true, ammo: { style: 'magic', power: 2 }, description: 'Powers a spell from a staff. Each cast uses one (sometimes you keep it).' },
-  { id: 'major_rune', name: 'Major rune', category: 'ammo', tier: 'major', icon: 'rune', stackable: true, ammo: { style: 'magic', power: 4 }, description: 'A stronger rune for stronger spells.' },
+  { id: 'rune_essence', name: 'Rune essence', category: 'material', tier: 'essence', icon: 'rock', stackable: true, description: 'Glittering stone humming with magic. Runecrafting turns it into runes and talismans.' },
 ];
+
+// ----- Runecrafting: elements, talismans, runes -----
+export type Element = 'air' | 'water' | 'earth' | 'fire';
+export const ELEMENTS: { element: Element; name: string; level: number; power: number }[] = [
+  { element: 'air', name: 'Air', level: 1, power: 2 },
+  { element: 'water', name: 'Water', level: 10, power: 3 },
+  { element: 'earth', name: 'Earth', level: 20, power: 4 },
+  { element: 'fire', name: 'Fire', level: 30, power: 5 },
+];
+for (const el of ELEMENTS) {
+  items.push(
+    { id: `${el.element}_talisman`, name: `${el.name} talisman`, category: 'material', tier: el.element, icon: 'talisman', stackable: false,
+      description: `Keep it in your bag to craft ${el.name} runes. It's never used up.` },
+    { id: `${el.element}_rune`, name: `${el.name} rune`, category: 'ammo', tier: el.element, icon: 'rune', stackable: true,
+      ammo: { style: 'magic', power: el.power, element: el.element },
+      description: `Powers ${el.name} staffs. Each cast uses one (sometimes you keep it). Also used to make ${el.name} staffs.` },
+  );
+}
 
 // ----- Gems: 3 types × 6 rarities × each possible stat roll -----
 export const GEM_TYPES: { type: GemType; name: string; stat: 'attack' | 'defense' | 'health'; mult: number }[] = [
@@ -204,6 +227,9 @@ export const GEAR_PIECES = [
   { key: 'chestplate', name: 'chestplate', icon: 'chest', slot: 'body', category: 'armour', bars: 5, levelOffset: 36, tab: 'Armour' },
 ] as const;
 
+/** Milliseconds between your attacks for each style (lower = faster, snappier fights). */
+export const WEAPON_SPEED = { melee: 1600, ranged: 1700, magic: 1900 } as const;
+
 export const METAL_TIERS = [
   { tier: 'bronze', name: 'Bronze', bar: 'bronze_bar', level: 1, power: 1, barXp: 8 },
   { tier: 'iron', name: 'Iron', bar: 'iron_bar', level: 50, power: 2, barXp: 12 },
@@ -235,26 +261,45 @@ for (const metal of METAL_TIERS) {
         slot: piece.slot,
         stats: gearStats(piece.key, metal.power),
         req: metal.level >= 50 ? { skill: piece.key === 'sword' ? 'melee' : 'defense', level: 30 } : undefined,
-        ...(piece.key === 'sword' ? { style: 'melee' as const, speedMs: 2400 } : {}),
+        ...(piece.key === 'sword' ? { style: 'melee' as const, speedMs: WEAPON_SPEED.melee } : {}),
       },
     }, 'enhancing');
   }
 }
 
-/** Bows (Ranged) and staffs (Magic), made at the Workshop. Improve them with Enhancing (uses bars). */
-export const RANGED_MAGIC_WEAPONS = [
-  { id: 'pine_shortbow', name: 'Pine shortbow', icon: 'bow', tier: 'pine', style: 'ranged', attack: 5, speedMs: 2600, req: 1, bar: 'bronze_bar' },
-  { id: 'oak_longbow', name: 'Oak longbow', icon: 'bow', tier: 'oak', style: 'ranged', attack: 10, speedMs: 2600, req: 30, bar: 'iron_bar' },
-  { id: 'pine_staff', name: 'Pine staff', icon: 'staff', tier: 'pine', style: 'magic', attack: 5, speedMs: 3000, req: 1, bar: 'bronze_bar' },
-  { id: 'oak_staff', name: 'Oak staff', icon: 'staff', tier: 'oak', style: 'magic', attack: 10, speedMs: 3000, req: 30, bar: 'iron_bar' },
+/** Bows (Ranged), made at the Workshop. Improve them with Enhancing (uses bars). */
+export const BOWS = [
+  { id: 'pine_shortbow', name: 'Pine shortbow', tier: 'pine', attack: 5, req: 1, bar: 'bronze_bar' },
+  { id: 'oak_longbow', name: 'Oak longbow', tier: 'oak', attack: 10, req: 30, bar: 'iron_bar' },
 ] as const;
-
-for (const w of RANGED_MAGIC_WEAPONS) {
+for (const w of BOWS) {
   addUpgradable({
-    id: w.id, name: w.name, category: 'weapon', tier: w.tier, icon: w.icon, stackable: false,
-    description: w.style === 'ranged' ? 'A bow for Ranged combat. Needs arrows in your bag.' : 'A staff for Magic combat. Needs runes in your bag.',
-    equip: { slot: 'weapon', stats: { attack: w.attack }, style: w.style, speedMs: w.speedMs, req: w.req > 1 ? { skill: w.style, level: w.req } : undefined },
+    id: w.id, name: w.name, category: 'weapon', tier: w.tier, icon: 'bow', stackable: false,
+    description: 'A bow for Ranged combat. Needs arrows in your bag.',
+    equip: { slot: 'weapon', stats: { attack: w.attack }, style: 'ranged', speedMs: WEAPON_SPEED.ranged, req: w.req > 1 ? { skill: 'ranged', level: w.req } : undefined },
   }, 'enhancing');
+}
+
+/** Blank staffs come from the Workshop; Runecrafting turns them into elemental staffs with runes. */
+export const STAFF_WOODS = [
+  { wood: 'pine', name: 'Pine', attack: 5, req: 1, bar: 'bronze_bar', runes: 50, imbueLevel: 2 },
+  { wood: 'oak', name: 'Oak', attack: 10, req: 30, bar: 'iron_bar', runes: 100, imbueLevel: 50 },
+] as const;
+for (const s of STAFF_WOODS) {
+  items.push({
+    id: `${s.wood}_staff`, name: `Blank ${s.name.toLowerCase()} staff`, category: 'material', tier: s.wood, icon: 'staff', stackable: false,
+    description: 'A plain staff with no magic yet. At Runecrafting, add runes to make it an elemental staff.',
+  });
+  for (const el of ELEMENTS) {
+    addUpgradable({
+      id: `${s.wood}_${el.element}_staff`, name: `${s.name} ${el.name.toLowerCase()} staff`, category: 'weapon', tier: el.element, icon: 'staff', stackable: false,
+      description: `A Magic staff that casts ${el.name} spells using ${el.name} runes from your bag.`,
+      equip: {
+        slot: 'weapon', stats: { attack: s.attack }, style: 'magic', element: el.element, speedMs: WEAPON_SPEED.magic,
+        req: s.req > 1 ? { skill: 'magic', level: s.req } : undefined,
+      },
+    }, 'enhancing');
+  }
 }
 
 /**

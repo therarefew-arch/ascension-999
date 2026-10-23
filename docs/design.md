@@ -207,6 +207,17 @@ Based on the owner's reference screenshots:
 - Navigation: Combat tab added; Town is opened from the "Pocketvale" chip in the top bar (and Town has a Training Grounds place).
 - Save version 4.
 
+### Phase 3.1 — built (owner's tweaks)
+- **Runecrafting** skill (Rune Altar). Mining gets **Rune essence** (Lv 5).
+  - Talismans (Air Lv1, Water Lv10, Earth Lv20, Fire Lv30): 5 essence + 2 stone. Kept in the bag, never used up.
+  - Runes: 1 essence → 2 runes of an element; needs that element's talisman in the bag.
+  - Staffs: Crafting makes **blank** staffs; Runecrafting turns blank staff + runes (50 pine / 100 oak) into an elemental staff.
+  - Elemental staffs only cast with their own element's runes. Rune power: Air 2, Water 3, Earth 4, Fire 5.
+  - Minigame **Rune Trace**: tap the glowing rune points in number order; a clean trace = bonus XP (+ bonus runes).
+- Crafting no longer makes runes (arrows stay).
+- Faster combat: attacks every 1.6s (melee) / 1.7s (ranged) / 1.9s (magic); monsters ~35% faster; next monster in 0.8s; quicker strike bar; a successful STRIKE hits immediately as a critical.
+- Save version 5: Minor runes → Air runes, Major runes → Earth runes, old staffs → Air staffs (keeping +levels).
+
 ### Phase 4 — ideas for next
 Ironmoor region, weekly boss with "Defeated" screen, NPC Trading Post and shops (coin sinks), more idle slots, Loot Belt (Enhancing 60).
 

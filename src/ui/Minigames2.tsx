@@ -7,7 +7,7 @@ import { enhanceChance } from '../core/enhancing';
 import { FIRE_LOGS, MAX_FIRE_MS, usableFireLogs, whyCantDo } from '../core/idle';
 import { countInBag } from '../core/inventory';
 import { ACTIONS } from '../data/skills';
-import { CHOP, HEAT, KINDLE, REEL, RUNE_ALIGN, STEADY_HANDS, type HitGrade } from '../core/minigames';
+import { CHOP, HEAT, KINDLE, REEL, RUNE_ALIGN, RUNE_TRACE, STEADY_HANDS, type HitGrade } from '../core/minigames';
 import { game, useGame } from '../core/store';
 import { ItemIcon, UiIcon, type UiIconName } from './icons';
 import { FeedbackLayer, gainText, useAnimationTime, useFeedback } from './Minigames';
@@ -383,6 +383,79 @@ export function SteadyHands({ action }: { action: ActionDef }) {
         </div>
         <BigButton icon={running ? 'crafting' : 'play'} label={running ? 'CARVE' : `START — ${action.name}`} blocked={running ? null : blocked} onPress={carve} />
         <p className="mg-foot">Press Start to carve one item. Clean cuts give bonus XP.</p>
+      </Panel>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Runecrafting — Rune Trace
+// ---------------------------------------------------------------------------
+function makeTrace() {
+  const order = Array.from({ length: RUNE_TRACE.nodes }, (_, i) => i).sort(() => Math.random() - 0.5);
+  return order.slice(0, RUNE_TRACE.traceLength);
+}
+
+export function RuneTrace({ action }: { action: ActionDef }) {
+  const { player } = useGame();
+  const { items, push } = useFeedback();
+  const [trace, setTrace] = useState<number[]>(makeTrace);
+  const [step, setStep] = useState(0);
+  const [mistakes, setMistakes] = useState(0);
+  const [flash, setFlash] = useState<number | null>(null);
+  const blocked = whyCantDo(player, action, { manual: true });
+  const element = action.output ? getItem(action.output.item).tier : 'air';
+  useEffect(() => { setTrace(makeTrace()); setStep(0); setMistakes(0); }, [action.id]);
+
+  const tapNode = (i: number) => {
+    if (blocked) return;
+    if (trace[step] !== i) {
+      if (trace.slice(0, step).includes(i)) return; // already traced — ignore
+      setMistakes((m) => m + 1);
+      setFlash(i);
+      setTimeout(() => setFlash(null), 250);
+      return;
+    }
+    if (step + 1 < trace.length) { setStep(step + 1); return; }
+    const clean = mistakes === 0;
+    const r = game.minigameReward(action.id, { xpMult: clean ? RUNE_TRACE.cleanXpMult : 1, bonusRolls: clean ? RUNE_TRACE.cleanBonusRolls : 0 });
+    if (r.ok) push(clean ? `CLEAN TRACE!  ${gainText(r)}` : gainText(r), clean ? 'combo' : 'good');
+    setTrace(makeTrace());
+    setStep(0);
+    setMistakes(0);
+  };
+
+  const pos = (i: number) => {
+    const a = (i / RUNE_TRACE.nodes) * Math.PI * 2 - Math.PI / 2;
+    return { x: 50 + 38 * Math.cos(a), y: 50 + 38 * Math.sin(a) };
+  };
+  const traced = trace.slice(0, step);
+
+  return (
+    <div className="mg">
+      <div className="mg-stage trace-stage">
+        <svg className="trace-svg" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="38" fill="none" stroke="var(--rune)" strokeOpacity="0.25" strokeWidth="1.5" strokeDasharray="3 3" />
+          {traced.length > 1 && <polyline points={traced.map((i) => `${pos(i).x},${pos(i).y}`).join(' ')} fill="none" stroke="var(--rune)" strokeWidth="2.5" strokeLinecap="round" />}
+        </svg>
+        <div className="trace-center"><ItemIcon id={action.iconItem} size={44} /></div>
+        {Array.from({ length: RUNE_TRACE.nodes }, (_, i) => {
+          const order = trace.indexOf(i);
+          const done = traced.includes(i);
+          const next = trace[step] === i;
+          return (
+            <button key={i} data-silent className={`trace-node ${done ? 'done' : ''} ${next ? 'next' : ''} ${flash === i ? 'wrong' : ''} ${order < 0 ? 'idle' : ''}`}
+              style={{ left: `${pos(i).x}%`, top: `${pos(i).y}%` }} onClick={() => tapNode(i)} disabled={!!blocked}>
+              {order >= 0 ? order + 1 : ''}
+            </button>
+          );
+        })}
+        <FeedbackLayer items={items} />
+      </div>
+      <Panel label="Rune Trace" hint="Tap the glowing points in number order">
+        <div className={`mg-stage-xp trace-info rune-${element}`}><Inputs action={action} /></div>
+        {blocked && <div className="warn">{blocked}</div>}
+        <p className="mg-foot">A clean trace (no wrong taps) gives bonus XP{action.output && getItem(action.output.item).stackable ? ' and bonus runes' : ''}. Wrong taps cost nothing.</p>
       </Panel>
     </div>
   );

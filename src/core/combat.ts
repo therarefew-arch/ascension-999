@@ -1,7 +1,7 @@
 // Combat: fights run on the same game clock as idling (and keep going offline, except mini bosses).
 // Triangle: Melee beats Ranged, Ranged beats Magic, Magic beats Melee.
 // Cozy rule: being knocked out never costs items — you just wake up in town with full health.
-import { getItem, ITEMS, type CombatStyle, type SkillId } from '../data/items';
+import { getItem, ITEMS, WEAPON_SPEED, type CombatStyle, type SkillId } from '../data/items';
 import { MONSTER_MAP, type MonsterDef } from '../data/monsters';
 import { equipmentStats } from './equipment';
 import { addXp, type ProgressReport } from './idle';
@@ -15,7 +15,7 @@ export const isFightId = (actionId: string | undefined | null) => !!actionId && 
 export const fightMonster = (actionId: string) => MONSTER_MAP[actionId.slice(FIGHT_PREFIX.length)];
 
 /** Pause between one monster falling and the next one showing up. */
-const RESPAWN_MS = 1500;
+const RESPAWN_MS = 800;
 /** Eat when below this share of max HP. */
 const EAT_BELOW = 0.5;
 /** Chance an arrow or rune is saved instead of used up. */
@@ -26,7 +26,9 @@ const hasFood = (p: PlayerState) => p.inventory.some((s) => !!s && !!ITEMS[s.id]
 /** You heal 1 HP every this many ms (in and out of combat). */
 export const REGEN_MS = 5000;
 /** BLOCK works if tapped within this long before the monster's attack. */
-export const BLOCK_WINDOW_MS = 900;
+export const BLOCK_WINDOW_MS = 750;
+/** The STRIKE timing bar in fights crosses this fast (seconds). */
+export const STRIKE_SWEEP_SECONDS = 0.9;
 export const CRIT_MULT = 1.75;
 
 const BEATS: Record<CombatStyle, CombatStyle> = { melee: 'ranged', ranged: 'magic', magic: 'melee' };
@@ -64,11 +66,15 @@ export function maxHp(p: PlayerState): number {
 export function currentAmmo(p: PlayerState): string | null {
   const style = weaponStyle(p);
   if (style === 'melee') return null;
+  // Elemental staffs only cast with runes of their own element.
+  const element = p.equipment.weapon ? getItem(p.equipment.weapon).equip?.element : undefined;
   let best: string | null = null;
   for (const s of p.inventory) {
     if (!s) continue;
     const a = ITEMS[s.id]?.ammo;
-    if (a?.style === style && (!best || a.power > ITEMS[best].ammo!.power)) best = s.id;
+    if (!a || a.style !== style) continue;
+    if (style === 'magic' && a.element !== element) continue;
+    if (!best || a.power > ITEMS[best].ammo!.power) best = s.id;
   }
   return best;
 }
@@ -92,7 +98,7 @@ export function combatStats(p: PlayerState, monster?: MonsterDef) {
     : 0;
   return {
     style, styleLevel, attack, defense, ammo, ammoPower, accuracy, maxHit, enemyAccuracy, advantage,
-    speedMs: weapon?.equip?.speedMs ?? 2400, maxHp: maxHp(p),
+    speedMs: weapon?.equip?.speedMs ?? WEAPON_SPEED.melee, maxHp: maxHp(p),
   };
 }
 
@@ -101,7 +107,11 @@ export function whyCantFight(p: PlayerState, monster: MonsterDef, now = Date.now
   const ready = p.bossReadyAt[monster.id] ?? 0;
   if (monster.miniboss && ready > now) return `${monster.name} is resting — back in ${Math.ceil((ready - now) / 1000)}s`;
   const style = weaponStyle(p);
-  if (style !== 'melee' && !currentAmmo(p)) return style === 'ranged' ? 'Your bow needs arrows in your bag' : 'Your staff needs runes in your bag';
+  if (style !== 'melee' && !currentAmmo(p)) {
+    if (style === 'ranged') return 'Your bow needs arrows in your bag';
+    const el = p.equipment.weapon ? getItem(p.equipment.weapon).equip?.element : undefined;
+    return el ? `Your staff needs ${el[0].toUpperCase() + el.slice(1)} runes in your bag` : 'Your staff needs runes in your bag';
+  }
   return null;
 }
 

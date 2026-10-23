@@ -7,8 +7,9 @@ import type { FightState } from './combat';
  * v2: added 6 skills; the old "tool" gear slot became "pickaxe".
  * v3: pickaxes moved from Smithing to Crafting; tool tiers renamed (pine→stone, oak→bronze); cooking fire.
  * v4: combat — 5 combat skills, hit points, coins, gem sockets, fights, mini boss timers.
+ * v5: Runecrafting — minor/major runes → air/earth runes, old staffs → air staffs (blank staffs are new).
  */
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 export const INVENTORY_SLOTS = 30;
 /** Max of one stackable item in a single bag slot. */
 export const STACK_LIMIT = 500;
@@ -56,7 +57,7 @@ export interface PlayerState {
 export function newSkills(): Record<SkillId, { xp: number }> {
   return {
     mining: { xp: 0 }, smithing: { xp: 0 }, woodcutting: { xp: 0 }, firemaking: { xp: 0 },
-    fishing: { xp: 0 }, cooking: { xp: 0 }, crafting: { xp: 0 }, enhancing: { xp: 0 },
+    fishing: { xp: 0 }, cooking: { xp: 0 }, crafting: { xp: 0 }, enhancing: { xp: 0 }, runecrafting: { xp: 0 },
     melee: { xp: 0 }, ranged: { xp: 0 }, magic: { xp: 0 }, defense: { xp: 0 }, health: { xp: 0 },
   };
 }

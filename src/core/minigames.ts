@@ -87,6 +87,15 @@ export const RUNE_ALIGN = {
   perfectLuck: 0.1,
 };
 
+/** Runecrafting — Rune Trace: tap the glowing points of the rune in number order. */
+export const RUNE_TRACE = {
+  nodes: 6,
+  traceLength: 4,
+  /** A clean trace (no wrong taps) gives bonus XP and, for runes, a bonus batch. */
+  cleanXpMult: 1.3,
+  cleanBonusRolls: 1,
+};
+
 /** Safety caps so a minigame can never give silly rewards. */
 export function clampReward(r: { xpMult: number; bonusRolls: number }) {
   return {

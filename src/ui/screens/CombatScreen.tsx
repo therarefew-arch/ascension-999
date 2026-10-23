@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getItem, ITEMS, type CombatStyle } from '../../data/items';
 import { MONSTERS, type MonsterDef } from '../../data/monsters';
 import { COMBAT_SKILLS, SKILLS } from '../../data/skills';
-import { BLOCK_WINDOW_MS, combatStats, currentAmmo, maxHp, weaponStyle, whyCantFight } from '../../core/combat';
+import { BLOCK_WINDOW_MS, STRIKE_SWEEP_SECONDS, combatStats, currentAmmo, maxHp, weaponStyle, whyCantFight } from '../../core/combat';
 import { countInBag } from '../../core/inventory';
 import { STRIKE_VEIN } from '../../core/minigames';
 import { game, useGame } from '../../core/store';
@@ -102,13 +102,13 @@ function Fight({ onItem }: { onItem: (id: string) => void }) {
   }, [f.log.length, f.log[f.log.length - 1]?.at]);
 
   // Strike timing bar (same feel as Strike Vein).
-  const t = (clock.now - clock.start.current) / 1000 / STRIKE_VEIN.sweepSeconds;
+  const t = (clock.now - clock.start.current) / 1000 / STRIKE_SWEEP_SECONDS;
   const phase = t % 2;
   const pos = phase < 1 ? phase : 2 - phase;
   const strike = () => {
     if (f.critReady) { push('Critical already charged!', 'info'); return; }
     if (Math.abs(pos - zone) <= STRIKE_VEIN.zone / 2) {
-      if (game.combatCharge()) push('Charged! Next hit is a CRITICAL', 'perfect');
+      if (!game.combatCharge()) push('Wait for the next monster', 'miss');
       setZone(0.2 + Math.random() * 0.6);
     } else push('Missed the timing — try again', 'miss');
   };

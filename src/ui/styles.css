@@ -399,6 +399,19 @@ p { margin: 8px 0; }
 .mj-tile span { pointer-events: none; }
 .mj-done { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 900; color: var(--gold); }
 
+/* Runecrafting — Rune Trace */
+.skill-runecrafting { color: #a5b4fc; background: #161a33; border-color: #4338ca; }
+.trace-stage { --rune: #a5b4fc; height: clamp(190px, 30vh, 240px); width: min(250px, 70vw); }
+.trace-svg { position: absolute; inset: 8px; width: calc(100% - 16px); height: calc(100% - 16px); }
+.trace-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; border-radius: 50%; background: #161a33; border: 2px solid #4338ca; display: flex; align-items: center; justify-content: center; }
+.trace-node { position: absolute; transform: translate(-50%, -50%); width: 44px; height: 44px; border-radius: 50%; border: 2px solid #4338ca; background: #0f1320; color: #c7d2fe; font-weight: 900; font-size: 1rem; cursor: pointer; padding: 0; }
+.trace-node.idle { opacity: 0.45; }
+.trace-node.next { border-color: #e0e7ff; background: #312e81; box-shadow: 0 0 16px rgba(165, 180, 252, 0.9); animation: pulse 0.9s infinite alternate; }
+.trace-node.done { background: #4f46e5; border-color: #c7d2fe; color: #fff; }
+.trace-node.wrong { background: #7f1d1d; border-color: var(--red); }
+.trace-info { justify-content: flex-start; }
+@keyframes pulse { from { transform: translate(-50%, -50%) scale(1); } to { transform: translate(-50%, -50%) scale(1.12); } }
+
 /* Combat */
 .coin-chip { color: #fde68a; border-color: #92610f; background: #241a08; }
 .chip-on { box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }

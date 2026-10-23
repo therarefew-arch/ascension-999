@@ -72,6 +72,30 @@ const MIGRATIONS: Record<number, (player: any) => any> = {
     if (player?.lastStop?.actionId) player.lastStop.actionId = renameAction(player.lastStop.actionId);
     return player;
   },
+  // v4 → v5: runes moved to Runecrafting. Minor runes → Air runes, Major runes → Earth runes.
+  // Staffs you already had keep working: they become Air staffs (with their +level). New staffs start blank.
+  4: (player) => {
+    const renameItem = (id: string): string => {
+      if (id === 'minor_rune') return 'air_rune';
+      if (id === 'major_rune') return 'earth_rune';
+      const m = /^(pine|oak)_staff(_p\d+)?$/.exec(id);
+      return m ? `${m[1]}_air_staff${m[2] ?? ''}` : id;
+    };
+    const renameAction = (id: string): string => {
+      const m = /^enhance_(pine|oak)_staff_(\d+)$/.exec(id);
+      return m ? `enhance_${m[1]}_air_staff_${m[2]}` : id;
+    };
+    const fixStack = (s: { id: string; qty: number } | null) => (s ? { ...s, id: renameItem(s.id) } : s);
+    if (Array.isArray(player?.inventory)) player.inventory = player.inventory.map(fixStack);
+    if (Array.isArray(player?.bank)) {
+      const merged: Record<string, number> = {};
+      for (const s of player.bank) if (s?.id) merged[renameItem(s.id)] = (merged[renameItem(s.id)] ?? 0) + s.qty;
+      player.bank = Object.entries(merged).map(([id, qty]) => ({ id, qty }));
+    }
+    if (player?.equipment) for (const k of Object.keys(player.equipment)) player.equipment[k] = renameItem(player.equipment[k]);
+    if (player?.idle?.actionId) player.idle.actionId = renameAction(player.idle.actionId);
+    return player;
+  },
 };
 
 export function saveGame(slot: SlotId, player: PlayerState): boolean {

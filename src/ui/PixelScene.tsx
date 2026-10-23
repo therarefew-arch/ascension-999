@@ -2,7 +2,7 @@
 // Our own art — no image files needed. Each scene is the same every time (seeded).
 import { useEffect, useRef } from 'react';
 
-export type SceneName = 'forest' | 'town' | 'mine' | 'forge' | 'river' | 'camp' | 'kitchen' | 'workshop' | 'tower';
+export type SceneName = 'forest' | 'town' | 'mine' | 'forge' | 'river' | 'camp' | 'kitchen' | 'workshop' | 'tower' | 'altar';
 
 const W = 72;
 const H = 128;
@@ -196,9 +196,23 @@ function drawTower(px: Px, r: () => number) {
   px(0, 112, W, H - 112, '#1a1428');
 }
 
+function drawAltar(px: Px, r: () => number) {
+  px(0, 0, W, H, '#0f1320');
+  for (let i = 0; i < 50; i++) px(Math.floor(r() * W), Math.floor(r() * 70), 1, 1, r() > 0.6 ? '#e0e7ff' : '#6366f1');
+  // standing stones
+  for (const x of [6, 20, 46, 60]) { px(x, 50, 7, 40, '#4b5563'); px(x + 1, 50, 5, 2, '#6b7280'); px(x + 2, 60, 3, 3, ['#7dd3fc', '#3b82f6', '#84cc16', '#f97316'][Math.floor(r() * 4)]); }
+  px(0, 90, W, H - 90, '#1f2937');
+  for (let y = 90; y < H; y += 4) for (let x = (y % 8 ? 0 : 4); x < W; x += 9) px(x, y, 8, 3, '#273244');
+  // altar & glow
+  px(22, 96, 28, 10, '#6b7280');
+  px(24, 94, 24, 3, '#9ca3af');
+  px(14, 80, 44, 30, 'rgba(129,140,248,0.10)');
+  px(30, 86, 12, 8, 'rgba(199,210,254,0.35)');
+}
+
 const DRAW: Record<SceneName, (px: Px, r: () => number) => void> = {
   forest: drawForest, town: drawTown, mine: drawMine, forge: drawForge,
-  river: drawRiver, camp: drawCamp, kitchen: drawKitchen, workshop: drawWorkshop, tower: drawTower,
+  river: drawRiver, camp: drawCamp, kitchen: drawKitchen, workshop: drawWorkshop, tower: drawTower, altar: drawAltar,
 };
 
 export function PixelScene({ scene, dim = 0.55, className = '' }: { scene: SceneName; dim?: number; className?: string }) {
