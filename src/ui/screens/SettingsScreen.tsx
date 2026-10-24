@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { sound } from '../../audio/sound';
 import { game, useGame } from '../../core/store';
-import type { Settings } from '../../core/settings';
 import { UiIcon } from '../icons';
 import { fmtDuration } from '../format';
 
-const SLIDERS: { key: keyof Settings; label: string; icon: 'sound' | 'music' }[] = [
+const SLIDERS: { key: 'master' | 'effects' | 'music'; label: string; icon: 'sound' | 'music' }[] = [
   { key: 'master', label: 'Master volume', icon: 'sound' },
   { key: 'effects', label: 'Effects volume', icon: 'sound' },
   { key: 'music', label: 'Music volume', icon: 'music' },
@@ -28,6 +27,10 @@ export function SettingsScreen() {
               onChange={(e) => game.setSettings({ ...settings, [s.key]: Number(e.target.value) / 100 })} />
           </label>
         ))}
+        <label className="toggle-row">
+          <span><b>Vibration</b><span className="small muted"> — gentle buzz on level-ups and good hits (Android)</span></span>
+          <input type="checkbox" checked={settings.vibrate} onChange={(e) => game.setSettings({ ...settings, vibrate: e.target.checked })} />
+        </label>
         <button className="btn" onClick={() => sound.play('levelup')}>Play a test sound</button>
         <p className="small muted">Sounds are quiet placeholders for now. Real sounds go in the assets/sounds folder.</p>
       </div>

@@ -1,6 +1,6 @@
 // Pixel-art backdrops drawn in code at low resolution, then scaled up with crisp pixels.
 // Our own art — no image files needed. Each scene is the same every time (seeded).
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export type SceneName = 'forest' | 'town' | 'mine' | 'forge' | 'river' | 'camp' | 'kitchen' | 'workshop' | 'tower' | 'altar' | 'ironmoor';
 
@@ -246,18 +246,55 @@ const DRAW: Record<SceneName, (px: Px, r: () => number) => void> = {
   river: drawRiver, camp: drawCamp, kitchen: drawKitchen, workshop: drawWorkshop, tower: drawTower, altar: drawAltar, ironmoor: drawIronmoor,
 };
 
+/** Outdoor scenes follow the real clock on your phone. Indoor ones stay cosy all day. */
+const OUTDOOR: SceneName[] = ['forest', 'town', 'river', 'ironmoor'];
+
+export type DayPhase = 'dawn' | 'day' | 'dusk' | 'night';
+
+export function dayPhase(hour = new Date().getHours()): DayPhase {
+  if (hour >= 5 && hour < 8) return 'dawn';
+  if (hour >= 8 && hour < 17) return 'day';
+  if (hour >= 17 && hour < 20) return 'dusk';
+  return 'night';
+}
+
+/** Re-checks the clock every minute so the sky changes while you play. */
+export function useDayPhase(): DayPhase {
+  const [phase, setPhase] = useState(dayPhase);
+  useEffect(() => {
+    const t = setInterval(() => setPhase(dayPhase()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  return phase;
+}
+
+function drawNight(px: Px, r: () => number) {
+  // twinkly stars in the top of the sky and warm window lights
+  for (let i = 0; i < 34; i++) px(Math.floor(r() * W), Math.floor(r() * 34), 1, 1, r() > 0.7 ? '#fff7d6' : '#b8c0e0');
+  px(10, 8, 5, 5, '#f1ead2');
+  px(11, 7, 3, 7, '#f1ead2');
+}
+
 export function PixelScene({ scene, dim = 0.55, className = '' }: { scene: SceneName; dim?: number; className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const clock = useDayPhase();
+  const phase: DayPhase = OUTDOOR.includes(scene) ? clock : 'day';
   useEffect(() => {
     const ctx = ref.current?.getContext('2d');
     if (!ctx) return;
     ctx.clearRect(0, 0, W, H);
     const px: Px = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
     DRAW[scene](px, rng(scene.length * 7919 + 17));
-  }, [scene]);
+    if (phase === 'night') {
+      ctx.fillStyle = 'rgba(16,22,52,0.55)';
+      ctx.fillRect(0, 0, W, H);
+      drawNight(px, rng(424242));
+    }
+  }, [scene, phase]);
   return (
-    <div className={`pixel-scene ${className}`} aria-hidden="true">
+    <div className={`pixel-scene ${className} sky-${phase}`} aria-hidden="true">
       <canvas ref={ref} width={W} height={H} />
+      <div className="pixel-sky" />
       <div className="pixel-dim" style={{ opacity: dim }} />
     </div>
   );

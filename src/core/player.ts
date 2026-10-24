@@ -3,6 +3,7 @@
 import type { EquipSlot, SkillId } from '../data/items';
 import type { FightState } from './combat';
 import type { Region } from '../data/tiers';
+import type { TownRequest } from './cozy';
 
 /**
  * v2: added 6 skills; the old "tool" gear slot became "pickaxe".
@@ -13,8 +14,9 @@ import type { Region } from '../data/tiers';
  * v7: quality of life — XP tracker, collection log, pets, gear loadouts, idle presets.
  * v8: weekly boss, Wildfire, bonfires.
  * v9: regions — where you are, which regions you've discovered, travelling.
+ * v10: cozy — daily gift streak, Town Requests.
  */
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;
 /** Starting bag size. Can be upgraded with coins up to MAX_BAG_SLOTS. */
 export const INVENTORY_SLOTS = 30;
 export const MAX_BAG_SLOTS = 50;
@@ -81,6 +83,10 @@ export interface PlayerState {
   regions: Region[];
   /** Walking to another town. */
   travel: { to: Region; arriveAt: number; startedAt: number } | null;
+  /** Daily gift: last day claimed and the current streak. */
+  daily: { lastDay: string | null; streak: number };
+  /** Today's three Town Requests. */
+  requests: { day: string; tasks: TownRequest[]; bonusClaimed: boolean };
 }
 
 export interface Loadout {
@@ -131,6 +137,8 @@ export function newPlayer(now = Date.now()): PlayerState {
     location: 'Pocketvale',
     regions: ['Pocketvale'],
     travel: null,
+    daily: { lastDay: null, streak: 0 },
+    requests: { day: '', tasks: [], bonusClaimed: false },
   };
 }
 

@@ -36,6 +36,7 @@ Full game vision: `docs/design.md`. Build only the phase that is asked for.
 - The top-right button is **Profile** (Character with avatar + gear, Stats, Pets, Settings).
 - Mahjong (Tile Match) plays its own calm lofi track (`music_mahjong`), a `tile` thud on taps and a `match` sound.
 - Town is opened from the "Pocketvale" chip in the top bar (bottom nav: Skills, Combat, Bag, Bank, Gear).
+- Cozy daily features live in `src/core/cozy.ts`: daily gift (streak, 7-day cycle) and 3 Town Requests a day + bonus; rewards go through `giveLoot`. Outdoor scenes follow the phone's real clock (dawn/day/dusk/night). Confetti on every 10th level, new towns and bonus claims. Vibration can be switched off in Settings. Loot is not toasted per kill (keep toasts few).
 - When testing in the browser pane, only run scripts on `localhost` — never on the live site (it holds real saves).
 - Combat skills (Melee, Ranged, Magic, Defense, Health) are the next update.
 - **3 save slots** with a title screen. Big Bag button stays centred in the bottom nav.

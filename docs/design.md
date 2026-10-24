@@ -262,6 +262,15 @@ Based on the owner's reference screenshots:
 - **Ironmoor monsters**: Ore Mole (95), Rust Sprite (110, Magic), Ironmoor Raider (125, Ranged), Ironhide Boar (145); **mini boss Forgefather Brask** (170, gems 80% with slightly better rarities, 5-min respawn).
 - Save version 9 (location, discovered regions, travel).
 
+### Phase 5.1 — built (cozy update + tidier UI)
+- **Daily gift** in Town's TODAY card: one per calendar day; a streak grows the gift up to day 7 (coins, food, logs, essence, bars). Missing a day restarts at day 1.
+- **Town Requests**: 3 small goals each day (collect an item, earn skill XP, defeat monsters or play minigame rounds) that pay coins; finish all three for a bonus bundle. Progress counts from idling, offline time, fights and minigames.
+- **Day and night**: outdoor scenes follow the phone's clock (warm dawn, orange dusk, starry night); Town greets you by time of day.
+- **Pet your pet**: tap your pet in Town for a wiggle, hearts and a happy sound.
+- **Confetti** on every 10th level, discovering a town, finishing all requests and 7-day streaks. **Gentle vibration** on phones that support it (toggle in Settings).
+- **Tidier UI**: slimmer top bar (total level, coins, location, idle n/m) with a red dot when something is waiting in Town; thinner idle line; smaller toasts and no toast for every loot drop; Town has a compact hero, TODAY card, a shortcut row (Journal, Trading, Training, Bank, Armoury), a 3-column places grid and a fold-away travel map.
+- Save version 10 (daily gift, requests).
+
 ### Phase 4 — ideas for next
 Ironmoor region, weekly boss with "Defeated" screen, NPC Trading Post and shops (coin sinks), more idle slots, Loot Belt (Enhancing 60).
 

@@ -9,6 +9,12 @@ import { UiIcon } from '../icons';
 import { PixelScene } from '../PixelScene';
 import { PET_MAP } from '../../data/pets';
 import { fmtDuration } from '../format';
+import { PettablePet, TodayCard } from '../Cozy';
+import { dayPhase } from '../PixelScene';
+
+function greeting() {
+  return { dawn: 'Good morning', day: 'Good day', dusk: 'Good evening', night: 'A quiet night' }[dayPhase()];
+}
 
 /** Some places have a local name in each town. */
 const PLACE_NAMES: Partial<Record<Region, Partial<Record<SkillId, string>>>> = {
@@ -25,9 +31,14 @@ function TravelMap() {
   const [, force] = useState(0);
   useEffect(() => { const t = setInterval(() => force((n) => n + 1), 1000); return () => clearInterval(t); }, []);
   const best = highestSkill(player);
+  const [open, setOpen] = useState(false);
+  const next = REGIONS.find((r) => OPEN_REGIONS.includes(r) && r !== player.location);
   return (
-    <section className="block">
-      <h2 className="section-title">TRAVEL</h2>
+    <section className="block today-card">
+      <button className="collapse-head" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        <h2 className="section-title">🗺️ TRAVEL</h2>
+        <span className="small muted">{open ? 'Hide ▲' : `${next ? `Walk to ${next}` : 'Open map'} ▼`}</span>
+      </button>
       {player.travel && (
         <div className="travel-card on-road">
           <span className="travel-walker bob">🚶</span>
@@ -39,7 +50,7 @@ function TravelMap() {
           <button className="icon-btn" aria-label="Turn back" onClick={() => game.cancelTravel()}><UiIcon name="close" size={18} /></button>
         </div>
       )}
-      <div className="region-list">
+      {open && <div className="region-list">
         {REGIONS.map((r, i) => {
           const built = OPEN_REGIONS.includes(r);
           const info = REGION_INFO[r];
@@ -73,7 +84,7 @@ function TravelMap() {
             </div>
           );
         })}
-      </div>
+      </div>}
     </section>
   );
 }
@@ -85,56 +96,38 @@ export function TownScreen({ onSkill, onBank, onGear, onIdle, onCombat, onMarket
   const names = PLACE_NAMES[here] ?? {};
   return (
     <div className="screen">
-      <div className="town-hero">
+      <div className="town-hero compact">
         <PixelScene scene={info?.scene ?? 'town'} dim={0} />
         <div className="town-title">
           <h1>{here.toUpperCase()}</h1>
-          <p>{info?.blurb}</p>
+          <p>{greeting()} · {info?.blurb}</p>
         </div>
         {player.activePet && PET_MAP[player.activePet] && (
-          <button className="town-pet" onClick={onJournal} aria-label={`${PET_MAP[player.activePet].name} follows you`}>
-            <span className="pet-emoji bob">{PET_MAP[player.activePet].emoji}</span>
-            <span className="small">{PET_MAP[player.activePet].name}</span>
-          </button>
+          <PettablePet emoji={PET_MAP[player.activePet].emoji} name={PET_MAP[player.activePet].name} />
         )}
       </div>
 
+      <TodayCard />
+
+      <div className="services">
+        <button className="service" onClick={onJournal}><span className="tile-icon skill-journal"><UiIcon name="bolt" size={20} /></span>Journal</button>
+        <button className="service" onClick={onMarket}><span className="tile-icon skill-market"><UiIcon name="coin" size={20} /></span>Trading</button>
+        <button className="service" onClick={onCombat} title={TRAINING[here] ?? 'Training Grounds'}><span className="tile-icon skill-combat"><UiIcon name="combat" size={20} /></span>{here === 'Ironmoor' ? 'Tunnels' : 'Training'}</button>
+        <button className="service" onClick={onBank}><span className="tile-icon skill-bank"><UiIcon name="bank" size={20} /></span>Bank</button>
+        <button className="service" onClick={onGear}><span className="tile-icon skill-gear"><UiIcon name="gear" size={20} /></span>Armoury</button>
+      </div>
+
       <h2 className="section-title">PLACES IN TOWN</h2>
-      <div className="places">
+      <div className="places-grid">
         {SKILL_ORDER.map((s) => (
-          <button key={s} className="place" onClick={() => onSkill(s)}>
-            <span className={`tile-icon big skill-${s}`}><UiIcon name={s} size={26} /></span>
+          <button key={s} className="place-mini" onClick={() => onSkill(s)} title={`${names[s] ?? SKILLS[s].place} — ${SKILLS[s].name}`}>
+            <span className={`tile-icon skill-${s}`}><UiIcon name={s} size={22} /></span>
             <span className="place-name">{names[s] ?? SKILLS[s].place}</span>
-            <span className="mono small muted">{SKILLS[s].name} · Lv {skillLevel(player, s)}</span>
+            <span className="mono muted">{SKILLS[s].name} {skillLevel(player, s)}</span>
           </button>
         ))}
-        <button className="place" onClick={onJournal}>
-          <span className="tile-icon big skill-journal"><UiIcon name="bolt" size={26} /></span>
-          <span className="place-name">Adventurer's Journal</span>
-          <span className="mono small muted">XP tracker · collection · pets</span>
-        </button>
-        <button className="place" onClick={onMarket}>
-          <span className="tile-icon big skill-market"><UiIcon name="coin" size={26} /></span>
-          <span className="place-name">Trading Post</span>
-          <span className="mono small muted">Sell, buy, deals</span>
-        </button>
-        <button className="place" onClick={onCombat}>
-          <span className="tile-icon big skill-combat"><UiIcon name="combat" size={26} /></span>
-          <span className="place-name">{TRAINING[here] ?? 'Training Grounds'}</span>
-          <span className="mono small muted">Fight monsters</span>
-        </button>
-        <button className="place" onClick={onBank}>
-          <span className="tile-icon big skill-bank"><UiIcon name="bank" size={26} /></span>
-          <span className="place-name">The Bank</span>
-          <span className="mono small muted">Store your items</span>
-        </button>
-        <button className="place" onClick={onGear}>
-          <span className="tile-icon big skill-gear"><UiIcon name="gear" size={26} /></span>
-          <span className="place-name">Armoury</span>
-          <span className="mono small muted">Equip your gear</span>
-        </button>
       </div>
-      <button className="btn btn-idle btn-lg btn-wide" onClick={onIdle}><UiIcon name="clock" size={18} /> Idle skill slots</button>
+      <button className="btn btn-idle btn-wide" onClick={onIdle}><UiIcon name="clock" size={18} /> Idle skill slots</button>
       <TravelMap />
     </div>
   );

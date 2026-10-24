@@ -242,6 +242,16 @@ function repair(raw: any): PlayerState {
   p.hp = typeof raw?.hp === 'number' && raw.hp > 0 ? raw.hp : maxHp(p);
   p.hp = Math.min(p.hp, maxHp(p));
   p.regenMs = Number(raw?.regenMs) || 0;
+  // Cozy (v10)
+  if (raw?.daily && typeof raw.daily.streak === 'number') p.daily = { lastDay: typeof raw.daily.lastDay === 'string' ? raw.daily.lastDay : null, streak: raw.daily.streak };
+  if (raw?.requests && typeof raw.requests.day === 'string' && Array.isArray(raw.requests.tasks)) {
+    p.requests = {
+      day: raw.requests.day,
+      bonusClaimed: !!raw.requests.bonusClaimed,
+      tasks: raw.requests.tasks.filter((t: { kind?: string; goal?: number }) => t && ['item', 'xp', 'kills', 'minigames'].includes(t.kind ?? '') && typeof t.goal === 'number')
+        .filter((t: { kind: string; target?: string }) => t.kind !== 'item' || !!ITEMS[t.target ?? '']),
+    };
+  }
   // Regions (v9)
   if (Array.isArray(raw?.regions)) p.regions = raw.regions.filter((r: unknown) => typeof r === 'string' && (REGIONS as readonly string[]).includes(r as string));
   if (!p.regions.includes('Pocketvale')) p.regions.unshift('Pocketvale');

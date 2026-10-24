@@ -23,6 +23,8 @@ import { PET_MAP } from '../data/pets';
 import { SkillScreen, SkillStrip } from './screens/SkillScreen';
 import { TownScreen } from './screens/TownScreen';
 import { fmtNum } from './format';
+import { cozyBadge } from '../core/cozy';
+import { Confetti } from './Cozy';
 
 type Tab = 'town' | 'skills' | 'combat' | 'bank' | 'gear' | 'profile' | 'market' | 'journal';
 
@@ -34,18 +36,18 @@ function StatusBar({ onIdle, onSettings, settingsOn, onTown, townOn }: {
   return (
     <header className="topbar">
       <div className="topbar-chips">
-      <span className="stat-chip gold-chip"><UiIcon name="trophy" size={16} /> LV {total}</span>
-      <span className="stat-chip coin-chip"><UiIcon name="coin" size={16} /> {fmtNum(player.coins)}</span>
+      <span className="stat-chip gold-chip" title="Total level"><UiIcon name="trophy" size={14} /> {total}</span>
+      <span className="stat-chip coin-chip" title="Coins"><UiIcon name="coin" size={14} /> {fmtNum(player.coins)}</span>
       {player.bonfire && player.bonfire.until > Date.now() && (
         <span className="stat-chip fire-chip" title="Bonfire: +5% XP to all skills">🔥 {Math.ceil((player.bonfire.until - Date.now()) / 60000)}m</span>
       )}
-      <button className={`stat-chip gold-chip ${townOn ? 'chip-on' : ''}`} onClick={onTown} aria-label={`Open ${player.location} town`}>
+      <button className={`stat-chip gold-chip ${townOn ? 'chip-on' : ''} ${cozyBadge(player) ? 'badge-dot' : ''}`} onClick={onTown} aria-label={`Open ${player.location} town`}>
         {player.travel
           ? <>🚶 → {player.travel.to} {Math.max(0, Math.ceil((player.travel.arriveAt - Date.now()) / 1000))}s</>
-          : <><UiIcon name="pin" size={16} /> {player.location}</>}
+          : <><UiIcon name="pin" size={14} /> {player.location}</>}
       </button>
-      <button className={`stat-chip blue-chip ${runningSlots(player).length ? 'live' : ''}`} onClick={onIdle}>
-        <UiIcon name="clock" size={16} /> IDLE ({runningSlots(player).length}/{player.unlockedSlots})
+      <button className={`stat-chip blue-chip ${runningSlots(player).length ? 'live' : ''}`} onClick={onIdle} aria-label="Idle slots">
+        <UiIcon name="clock" size={14} /> {runningSlots(player).length}/{player.unlockedSlots}
       </button>
       </div>
       <button className={`profile-btn ${settingsOn ? 'on' : ''}`} onClick={onSettings} aria-label="Profile (stats, gear, pets, settings)">
@@ -185,6 +187,7 @@ export function App() {
       </nav>
 
       {toasts_}
+      <Confetti />
       {bagOpen && <BagSheet onClose={closeBag} onItem={(id) => setItemView({ id, from: 'bag' })} />}
       {itemView && <ItemSheet id={itemView.id} from={itemView.from} onClose={closeItem} onReroll={(next) => setItemView({ id: next, from: 'bag' })} />}
       {idleOpen && <IdleSlots onClose={() => setIdleOpen(false)} />}

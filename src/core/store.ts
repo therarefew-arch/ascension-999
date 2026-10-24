@@ -15,6 +15,7 @@ import { PET_MAP } from '../data/pets';
 import { applyLoadout, applyPreset, resetTracker, saveLoadout, savePreset } from './qol';
 import { finishWildfire, lightBonfire } from './firemaking';
 import { checkArrival, fastTravel, startWalk } from './travel';
+import { claimGift, claimRequest, claimRequestBonus, ensureRequests, trackRequests } from './cozy';
 import type { Region } from '../data/tiers';
 import { levelForXp } from './xp';
 import { bagUpgradeCost, buy as marketBuy, buyDeal, sell as marketSell, SLOT_UNLOCKS } from '../market/market';
@@ -56,6 +57,8 @@ export interface GameSnapshot {
   away: AwayReport | null;
   toasts: Toast[];
   lastSavedAt: number;
+  /** Goes up by one each time there's something to celebrate (shows confetti). */
+  celebrate: number;
 }
 
 export interface MinigameResult {
@@ -96,10 +99,25 @@ function save() {
   if (saveGame(snap.slot, snap.player)) snap.lastSavedAt = Date.now();
 }
 
+/** A gentle buzz on phones that support it (Android). Can be turned off in Settings. */
+function buzz(pattern: number | number[]) {
+  if (!snap.settings.vibrate) return;
+  try { navigator.vibrate?.(pattern); } catch { /* not supported */ }
+}
+
+/** Confetti! (every 10th level, discovering a town, daily gift streaks) */
+function celebrate() {
+  snap.celebrate = (snap.celebrate ?? 0) + 1;
+  buzz([20, 40, 20]);
+}
+
 function announceLevels(report: ProgressReport) {
   for (const lv of report.levelUps) {
     play('levelup');
-    toast(`${SKILLS[lv.skill].name} level ${lv.to}!`, 'level');
+    buzz(30);
+    const milestone = Math.floor(lv.to / 10) > Math.floor(lv.from / 10);
+    toast(milestone && lv.to % 10 === 0 ? `🎉 ${SKILLS[lv.skill].name} level ${lv.to}!` : `${SKILLS[lv.skill].name} level ${lv.to}!`, 'level');
+    if (milestone) celebrate();
   }
 }
 
@@ -139,6 +157,7 @@ function tick(now = Date.now()) {
   if (arrival) {
     play(arrival.firstVisit ? 'levelup' : 'welcome');
     toast(arrival.firstVisit ? `🗺️ You discovered ${arrival.arrived}! Its resources are unlocked.` : `Welcome to ${arrival.arrived}`, arrival.firstVisit ? 'level' : 'good');
+    if (arrival.firstVisit) celebrate();
     save();
     emit();
   }
@@ -153,6 +172,7 @@ function tick(now = Date.now()) {
     }
     const hadIdle = runningSlots(p).length > 0;
     const report = advanceIdle(p, counted, now);
+    trackRequests(p, report);
     if (!p.fight) regenHp(p, counted);
     p.lastActiveAt = now;
     if (hadIdle) {
@@ -190,10 +210,9 @@ function tick(now = Date.now()) {
     if (newest && (newest !== lastLog || p.fight!.log.length !== fightLogBefore)) {
       play(newest.kind === 'you' ? 'hit' : newest.kind === 'them' ? 'hurt' : newest.kind === 'loot' ? 'deposit' : 'click');
     }
-    if (report.combat.kills > 0 && Object.keys(report.gained).length) {
-      toast(Object.entries(report.gained).map(([id, n]) => id === 'coins' ? `+${n} coins` : `+${n} ${getItem(id).name}`).join(' · '), 'good');
-    }
+    // (Drops show on the fight screen — no toast for every kill, to keep things calm.)
   }
+  trackRequests(p, report);
   announceLevels(report);
   announcePets(report);
   bagWarnings(p);
@@ -214,7 +233,7 @@ export function startGame() {
   started = true;
   validateLootTables();
   const settings = loadSettings();
-  snap = { slot: null, player: newPlayer(), settings, away: null, toasts: [], lastSavedAt: 0 };
+  snap = { slot: null, player: newPlayer(), settings, away: null, toasts: [], lastSavedAt: 0, celebrate: 0 };
   sound.setVolumes(settings);
   requestPersistentStorage();
 
@@ -330,6 +349,46 @@ export const game = {
     emit();
     return true;
   },
+  // ----- Cozy -----
+  claimGift() {
+    const r = claimGift(snap.player);
+    if (!r) return;
+    play('welcome');
+    toast(`🎁 Day ${r.streak} gift: ${r.gift.map((g) => (g.id === 'coins' ? `${g.qty} coins` : `${g.qty} ${getItem(g.id).name}`)).join(' · ')}`, 'level');
+    if (r.streak % 7 === 0) celebrate();
+    save();
+    emit();
+  },
+  claimRequest(i: number) {
+    const coins = claimRequest(snap.player, i);
+    if (coins === null) return;
+    play('deposit');
+    buzz(20);
+    toast(`📜 Request done! +${coins} coins`, 'good');
+    if (snap.player.requests.tasks.every((t) => t.claimed)) toast('All three done — claim your bonus!', 'level');
+    save();
+    emit();
+  },
+  claimRequestBonus() {
+    if (!claimRequestBonus(snap.player)) return;
+    play('levelup');
+    celebrate();
+    toast('🎉 Daily bonus claimed!', 'level');
+    save();
+    emit();
+  },
+  /** Pet your pet. Hearts, a happy sound — nothing else needed. */
+  petPet() {
+    play('match');
+    buzz([10, 30, 10]);
+    emit();
+  },
+  ensureRequests() {
+    const before = snap.player.requests.day;
+    ensureRequests(snap.player);
+    if (before !== snap.player.requests.day) { save(); emit(); }
+  },
+
   // ----- Travel -----
   walkTo(to: Region) {
     const why = startWalk(snap.player, to);
@@ -367,6 +426,7 @@ export const game = {
   },
   finishWildfire(hits: number, total: number) {
     const r = finishWildfire(snap.player, hits, total);
+    trackRequests(snap.player, r.report, 1);
     play(r.won ? 'levelup' : 'fail');
     announceLevels(r.report);
     save();
@@ -487,6 +547,8 @@ export const game = {
       chanceBonus: Math.min(0.15, Math.max(0, reward.chanceBonus ?? 0)),
     });
     play(succeeded ? action.sound : 'fail');
+    buzz(12);
+    trackRequests(snap.player, report, 1);
     announceLevels(report);
     announcePets(report);
     emit();
@@ -505,6 +567,7 @@ export const game = {
     if (!action || xp <= 0) return;
     const report = emptyReport(actionId);
     addXp(snap.player, action, report, Math.round(Math.min(xp, action.xp * 3)));
+    trackRequests(snap.player, report, 1);
     announceLevels(report);
     emit();
   },

@@ -14,7 +14,7 @@ class SoundSystem {
   private loading = new Map<string, Promise<AudioBuffer | null>>();
   private musicSource: AudioBufferSourceNode | null = null;
   private wantedMusic: MusicKey | null = null;
-  private volumes: Settings = { master: 0.8, effects: 0.7, music: 0.4 };
+  private volumes: Settings = { master: 0.8, effects: 0.7, music: 0.4, vibrate: true };
   private lastPlayed = new Map<SoundKey, number>();
 
   /** Browsers only allow sound after the player taps something, so this runs on the first tap. */
