@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // base './' makes the built game work from any web address,
-// including GitHub Pages (yourname.github.io/pocketvale/).
+// including GitHub Pages (therarefew-arch.github.io/ascension-999/).
 export default defineConfig({
   base: './',
   plugins: [react()],

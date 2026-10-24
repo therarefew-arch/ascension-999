@@ -57,4 +57,4 @@ Full game vision: `docs/design.md`. Build only the phase that is asked for.
 - Tech: React + TypeScript + Vite. Run with `npm run dev`; check with `npm run build`.
 - Layout must respect phone safe areas (`env(safe-area-inset-*)`) and work down to 320px wide.
 - Make a Git commit after each finished change, with a clear message.
-- Pushing to `main` on GitHub auto-deploys to GitHub Pages (`.github/workflows/deploy.yml`).
+- Pushing to `main` on GitHub auto-deploys to GitHub Pages (`.github/workflows/deploy.yml`). Repo: `therarefew-arch/ascension-999`; live game: https://therarefew-arch.github.io/ascension-999/ (renamed from `pocketvale` on 2026-10-24; saves live in the browser per site, so they carried over).
