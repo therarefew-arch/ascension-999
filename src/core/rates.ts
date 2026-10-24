@@ -3,7 +3,7 @@ import type { SkillId } from '../data/items';
 import { ACTIONS, actionsForSkill, type ActionDef } from '../data/skills';
 import { actionDuration, skillLevel } from './idle';
 import type { PlayerState } from './player';
-import { levelProgress } from './xp';
+import { levelProgress, MAX_LEVEL, XP_AT } from './xp';
 import { countInBag, countInBank } from './inventory';
 import { REGIONS, regionOpen } from '../data/tiers';
 
@@ -47,12 +47,22 @@ export function visibleActions(p: PlayerState, skill: SkillId): ActionDef[] {
 export function timeToNextLevel(p: PlayerState, skill: SkillId): NextLevelEstimate | null {
   const prog = levelProgress(p.skills[skill].xp);
   if (prog.maxed) return null;
+  return timeForXp(p, skill, prog.needed - prog.into);
+}
+
+/** How long until a skill reaches a target level (🎯 goals), at the current or best pace. */
+export function timeToLevel(p: PlayerState, skill: SkillId, target: number): NextLevelEstimate | null {
+  const remaining = XP_AT[Math.min(MAX_LEVEL, target)] - p.skills[skill].xp;
+  if (remaining <= 0) return null;
+  return timeForXp(p, skill, remaining);
+}
+
+function timeForXp(p: PlayerState, skill: SkillId, remainingXp: number): NextLevelEstimate | null {
   const slot = p.slots.find((s) => s && ACTIONS[s.actionId]?.skill === skill);
   const currentAction = slot ? ACTIONS[slot.actionId] : undefined;
   const current = !!currentAction;
   const action = currentAction ?? bestAction(p, skill);
   if (!action) return null;
-  const remainingXp = prog.needed - prog.into;
   const actionsNeeded = Math.ceil(remainingXp / action.xp);
   let ms = actionsNeeded * actionDuration(p, action);
   if (slot) ms -= slot.progressMs;

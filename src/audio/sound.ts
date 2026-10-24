@@ -3,7 +3,10 @@
 import { EFFECT_SOUNDS, MUSIC_TRACKS, SOUND_EXTENSIONS, type MusicKey, type SoundKey } from './soundList';
 import type { Settings } from '../core/settings';
 
-const SOUND_DIR = `${import.meta.env.BASE_URL}assets/sounds/`;
+/** How many copies of one sound may overlap. */
+const MAX_VOICES = 3;
+
+const SOUND_DIR =`${import.meta.env.BASE_URL}assets/sounds/`;
 
 class SoundSystem {
   private ctx: AudioContext | null = null;
@@ -16,6 +19,7 @@ class SoundSystem {
   private wantedMusic: MusicKey | null = null;
   private volumes: Settings = { master: 0.8, effects: 0.7, music: 0.4, vibrate: true };
   private lastPlayed = new Map<SoundKey, number>();
+  private voices = new Map<SoundKey, { src: AudioBufferSourceNode; gain: GainNode }[]>();
 
   /** Browsers only allow sound after the player taps something, so this runs on the first tap. */
   unlock(): void {
@@ -95,19 +99,33 @@ class SoundSystem {
     src.buffer = buf;
     const vary = opts.exact ? 1 : 1 + (Math.random() - 0.5) * 0.07;
     src.playbackRate.value = (opts.rate ?? 1) * vary;
-    if (opts.volume !== undefined && opts.volume !== 1) {
-      const g = this.ctx.createGain();
-      g.gain.value = opts.volume;
-      src.connect(g);
-      g.connect(this.effects);
-    } else {
-      src.connect(this.effects);
+    const g = this.ctx.createGain();
+    g.gain.value = opts.volume ?? 1;
+    src.connect(g);
+    g.connect(this.effects);
+    // At most a few copies of the same sound at once: fast tapping fades out the oldest
+    // instead of piling up into noise.
+    const voices = this.voices.get(key) ?? [];
+    while (voices.length >= MAX_VOICES) {
+      const old = voices.shift()!;
+      old.gain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.015);
+      try { old.src.stop(this.ctx.currentTime + 0.08); } catch { /* already stopped */ }
     }
+    const voice = { src, gain: g };
+    voices.push(voice);
+    this.voices.set(key, voices);
+    src.onended = () => {
+      const list = this.voices.get(key);
+      if (list) this.voices.set(key, list.filter((v) => v !== voice));
+    };
     src.start();
   }
 
-  /** Starts a looping effect (reel winding, fire ambience). Returns a function that stops it. */
-  loop(key: SoundKey, volume = 1): () => void {
+  /**
+   * Starts a looping effect (reel winding, fire ambience).
+   * Returns a function that stops it; `.setVolume(v)` changes its loudness smoothly.
+   */
+  loop(key: SoundKey, volume = 1): (() => void) & { setVolume: (v: number) => void } {
     let src: AudioBufferSourceNode | null = null;
     let gain: GainNode | null = null;
     let stopped = false;
@@ -127,7 +145,7 @@ class SoundSystem {
       const buf = this.buffers.get(key);
       if (buf) begin(buf); else void this.load(key).then(begin);
     }
-    return () => {
+    const stop = () => {
       stopped = true;
       if (src && gain && this.ctx) {
         gain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
@@ -136,6 +154,12 @@ class SoundSystem {
       }
       src = null;
     };
+    return Object.assign(stop, {
+      setVolume: (v: number) => {
+        volume = v;
+        if (gain && this.ctx) gain.gain.setTargetAtTime(v, this.ctx.currentTime, 0.08);
+      },
+    });
   }
 
   playMusic(key: MusicKey): void {

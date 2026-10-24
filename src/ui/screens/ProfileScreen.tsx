@@ -86,6 +86,9 @@ function Stats() {
         <div className="stat-tile"><b>{fmtNum(found)}</b><span>Items found</span></div>
         <div className="stat-tile"><b>{fmtDuration(Date.now() - player.createdAt)}</b><span>Adventuring</span></div>
         <div className="stat-tile"><b>{player.unlockedSlots}/3</b><span>Idle slots</span></div>
+        <div className="stat-tile"><b>{fmtNum(player.starsCaught)}</b><span>Lucky Stars</span></div>
+        <div className="stat-tile"><b>{player.daily.streak}</b><span>Day streak</span></div>
+        <div className="stat-tile"><b>{Object.keys(player.goals).length}</b><span>Goals set</span></div>
       </div>
       <h2 className="section-title">SKILLS</h2>
       <div className="stats-grid">{SKILL_ORDER.map((s) => <SkillRow key={s} skill={s} />)}</div>

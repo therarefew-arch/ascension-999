@@ -7,11 +7,11 @@ const RATE = 22050;
 const OUT = join(process.cwd(), 'public', 'assets', 'sounds');
 mkdirSync(OUT, { recursive: true });
 
-function wav(samples) {
+function wav(samples, rate = RATE) {
   const buf = Buffer.alloc(44 + samples.length * 2);
   buf.write('RIFF', 0); buf.writeUInt32LE(36 + samples.length * 2, 4); buf.write('WAVE', 8);
   buf.write('fmt ', 12); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22);
-  buf.writeUInt32LE(RATE, 24); buf.writeUInt32LE(RATE * 2, 28); buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34);
+  buf.writeUInt32LE(rate, 24); buf.writeUInt32LE(rate * 2, 28); buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34);
   buf.write('data', 36); buf.writeUInt32LE(samples.length * 2, 40);
   samples.forEach((s, i) => buf.writeInt16LE(Math.max(-1, Math.min(1, s)) * 32767, 44 + i * 2));
   return buf;
@@ -149,11 +149,11 @@ const sounds = {
     ['', lowpass(noise(0.3, 0.8, 12), 700), 0.5],
   ), 0.3),
   // Snapping a twig of kindling.
+  // One crisp, short twig snap (short so fast tapping stays clean).
   kindle: norm(mix(
-    ['', bandpass(noise(0.02, 1, 200), 1200, 6000)],
-    ['', bandpass(noise(0.015, 0.7, 260), 1500, 6000), 0.025],
-    ['', pops(0.25, 4, 0.5, 7), 0.02],
-  ), 0.22),
+    ['', bandpass(noise(0.018, 1, 260), 1400, 6500)],
+    ['', strike(1250, [1, 2.2], [120, 180], [1, 0.4], 0.05, 0.6)],
+  ), 0.16),
   // Fire catching: soft "whoomp" then crackles.
   ignite: norm(mix(
     ['', shape(lowpass(noise(0.6, 1, 0), 500), (t) => Math.min(1, t / 0.12) * Math.exp(-5 * t))],
@@ -240,21 +240,73 @@ for (const [name, s] of Object.entries(sounds)) writeFileSync(join(OUT, `${name}
   writeFileSync(join(OUT, 'fire_loop.wav'), wav(Array.from(loopFade(out, 0.15))));
 }
 
-// A slow, quiet 16-second loop of soft chords (Am – F – C – G).
-const chords = [[220, 261.6, 329.6], [174.6, 220, 261.6], [130.8, 196, 261.6], [196, 246.9, 293.7]];
-const loopLen = 16 * RATE;
-const music = new Float32Array(loopLen);
-chords.forEach((chord, ci) => {
-  const start = ci * 4 * RATE;
-  for (let i = 0; i < 4 * RATE; i++) {
-    const t = i / RATE;
-    const env = Math.sin(Math.PI * (i / (4 * RATE))) ** 1.5; // fades in and out, so the loop is seamless
-    let v = 0;
-    for (const f of chord) v += Math.sin(2 * Math.PI * f * t) + 0.3 * Math.sin(4 * Math.PI * f * t);
-    music[start + i] += (v / chord.length) * env * 0.06;
-  }
-});
-writeFileSync(join(OUT, 'music_town.wav'), wav(Array.from(music)));
+// Town music: the same soft swelling chords the owner likes, grown into a ~2-minute song
+// so the loop doesn't repeat every 16 seconds. 8 sections × 4 chords × 4 s = 128 s.
+// Saved at 11,025 Hz (plenty for soft, mellow tones) to keep the file small for phones.
+{
+  const MR = 11025;
+  const CH = 4; // seconds per chord
+  const N = {
+    Am: [220, 261.6, 329.6], F: [174.6, 220, 261.6], C: [130.8, 196, 261.6], G: [196, 246.9, 293.7],
+    Em: [164.8, 196, 246.9], Dm: [146.8, 174.6, 220], Fmaj7: [174.6, 220, 261.6, 329.6], Am7: [220, 261.6, 329.6, 392],
+  };
+  // Each section: 4 chords + which layers play (melody, bass, arpeggio).
+  const sections = [
+    { chords: ['Am', 'F', 'C', 'G'], mel: false, bass: false, arp: false }, // the original loop
+    { chords: ['Am', 'F', 'C', 'G'], mel: true, bass: false, arp: false },
+    { chords: ['F', 'G', 'Em', 'Am'], mel: false, bass: true, arp: false },
+    { chords: ['F', 'G', 'C', 'Am7'], mel: true, bass: true, arp: false },
+    { chords: ['Dm', 'Am', 'Fmaj7', 'G'], mel: false, bass: true, arp: true },
+    { chords: ['Dm', 'Am', 'F', 'G'], mel: true, bass: true, arp: true },
+    { chords: ['F', 'G', 'Em', 'Am'], mel: true, bass: false, arp: false },
+    { chords: ['Am', 'F', 'C', 'G'], mel: false, bass: false, arp: false }, // calm return to the start
+  ];
+  // A minor pentatonic for the little bell melody.
+  const SCALE = [440, 523.3, 587.3, 659.3, 784, 880];
+  let seed = 42;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+
+  const total = sections.length * 4 * CH * MR;
+  const out = new Float32Array(total);
+  const add = (start, len, fn) => { for (let i = 0; i < len && start + i < total; i++) out[start + i] += fn(i / MR); };
+
+  sections.forEach((sec, si) => {
+    sec.chords.forEach((name, ci) => {
+      const chord = N[name];
+      const start = (si * 4 + ci) * CH * MR;
+      const len = CH * MR;
+      // The swelling pad (same sound as before: sine + soft octave, fading in and out each chord).
+      add(start, len, (t) => {
+        const env = Math.sin(Math.PI * (t / CH)) ** 1.5;
+        let v = 0;
+        for (const f of chord) v += Math.sin(2 * Math.PI * f * t) + 0.3 * Math.sin(4 * Math.PI * f * t);
+        return (v / chord.length) * env * 0.06;
+      });
+      // Soft bass: the chord's root an octave down, gently swelling.
+      if (sec.bass) add(start, len, (t) => Math.sin(2 * Math.PI * (chord[0] / 2) * t) * Math.sin(Math.PI * (t / CH)) ** 2 * 0.035);
+      // Arpeggio: chord notes an octave up, one every half second, like a music box.
+      if (sec.arp) {
+        for (let k = 0; k < 7; k++) {
+          const f = chord[k % chord.length] * 2;
+          add(start + Math.floor((0.25 + k * 0.5) * MR), Math.floor(1.2 * MR), (t) =>
+            Math.sin(2 * Math.PI * f * t) * Math.exp(-3.2 * t) * Math.min(1, t / 0.01) * 0.016);
+        }
+      }
+      // Melody: two or three soft bell notes per chord, picked to fit the chord.
+      if (sec.mel) {
+        const times = rnd() < 0.5 ? [0.4, 1.9] : [0.4, 1.4, 2.6];
+        for (const at of times) {
+          const near = SCALE.filter((f) => chord.some((c) => Math.abs(Math.log2(f / (c * 2))) % 1 < 0.02 || Math.abs(Math.log2(f / c) % 1) < 0.02));
+          const pool = near.length && rnd() < 0.7 ? near : SCALE;
+          const f = pool[Math.floor(rnd() * pool.length)];
+          add(start + Math.floor(at * MR), Math.floor(1.4 * MR), (t) =>
+            (Math.sin(2 * Math.PI * f * t) + 0.25 * Math.sin(4 * Math.PI * f * t)) * Math.exp(-2.6 * t) * Math.min(1, t / 0.015) * 0.022);
+        }
+      }
+    });
+  });
+  writeFileSync(join(OUT, 'music_town.wav'), wav(Array.from(out), MR));
+}
 
 // Calm lofi loop for the Mahjong tile game: 72 bpm, jazzy 7th chords, soft kick + brush, vinyl crackle. 4 bars × 2 = ~26.7s.
 {

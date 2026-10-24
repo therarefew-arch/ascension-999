@@ -24,7 +24,7 @@ import { SkillScreen, SkillStrip } from './screens/SkillScreen';
 import { TownScreen } from './screens/TownScreen';
 import { fmtNum } from './format';
 import { cozyBadge } from '../core/cozy';
-import { Confetti } from './Cozy';
+import { Confetti, LuckyStar } from './Cozy';
 
 type Tab = 'town' | 'skills' | 'combat' | 'bank' | 'gear' | 'profile' | 'market' | 'journal';
 
@@ -194,6 +194,7 @@ export function App() {
 
       {toasts_}
       <Confetti />
+      <LuckyStar />
       {bagOpen && <BagSheet onClose={closeBag} onItem={(id) => setItemView({ id, from: 'bag' })} />}
       {itemView && <ItemSheet id={itemView.id} from={itemView.from} onClose={closeItem} onReroll={(next) => setItemView({ id: next, from: 'bag' })} />}
       {idleOpen && <IdleSlots onClose={() => setIdleOpen(false)} />}

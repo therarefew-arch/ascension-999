@@ -15,8 +15,9 @@ import { PET_MAP } from '../data/pets';
 import { applyLoadout, applyPreset, resetTracker, saveLoadout, savePreset } from './qol';
 import { finishWildfire, lightBonfire } from './firemaking';
 import { checkArrival, fastTravel, startWalk } from './travel';
-import { claimGift, claimRequest, claimRequestBonus, ensureRequests, trackRequests } from './cozy';
+import { catchStar, claimGift, claimRequest, claimRequestBonus, ensureRequests, nextStarDelay, STAR, trackRequests } from './cozy';
 import type { Region } from '../data/tiers';
+import type { SkillId } from '../data/items';
 import { levelForXp } from './xp';
 import { bagUpgradeCost, buy as marketBuy, buyDeal, sell as marketSell, SLOT_UNLOCKS } from '../market/market';
 import { deposit, depositAll, withdraw } from './inventory';
@@ -59,6 +60,8 @@ export interface GameSnapshot {
   lastSavedAt: number;
   /** Goes up by one each time there's something to celebrate (shows confetti). */
   celebrate: number;
+  /** A Lucky Star drifting across the screen right now (not saved). */
+  star: { id: number; until: number } | null;
 }
 
 export interface MinigameResult {
@@ -179,12 +182,22 @@ function tick(now = Date.now()) {
       snap.away = { awayMs: gap, countedMs: counted, report };
       play('welcome');
     }
+    checkGoals();
     save();
     emit();
     return;
   }
 
   p.lastActiveAt = now;
+  // Lucky Stars: appear every few minutes while you're playing, and drift away if not caught.
+  if (snap.star && now > snap.star.until) { snap.star = null; emit(); }
+  if (!nextStarAt) nextStarAt = now + nextStarDelay();
+  if (!snap.star && now >= nextStarAt) {
+    snap.star = { id: now, until: now + STAR.visibleMs };
+    nextStarAt = now + STAR.visibleMs + nextStarDelay();
+    play('rune');
+    emit();
+  }
   // The cooking fire burns down while you're at the Kitchen (idle cooking burns it per dish instead).
   const running = runningSlots(p);
   const idleCooking = running.some((r) => ACTIONS[r.slot.actionId]?.skill === 'cooking');
@@ -214,6 +227,7 @@ function tick(now = Date.now()) {
   }
   trackRequests(p, report);
   announceLevels(report);
+  if (report.levelUps.length) checkGoals();
   announcePets(report);
   bagWarnings(p);
   for (const s of report.stops) {
@@ -226,6 +240,20 @@ function tick(now = Date.now()) {
 
 let started = false;
 let cookingOpen = false;
+let nextStarAt = 0;
+
+/** 🎯 Any skill goals reached? Celebrate and clear them. */
+function checkGoals() {
+  const p = snap.player;
+  for (const [skill, goal] of Object.entries(p.goals) as [SkillId, number][]) {
+    if (levelForXp(p.skills[skill].xp) >= goal) {
+      delete p.goals[skill];
+      play('levelup');
+      toast(`🎯 Goal reached: ${SKILLS[skill].name} ${goal}!`, 'level');
+      celebrate();
+    }
+  }
+}
 
 /** Starts the app on the title screen, with the clock and auto-save ready. */
 export function startGame() {
@@ -233,7 +261,7 @@ export function startGame() {
   started = true;
   validateLootTables();
   const settings = loadSettings();
-  snap = { slot: null, player: newPlayer(), settings, away: null, toasts: [], lastSavedAt: 0, celebrate: 0 };
+  snap = { slot: null, player: newPlayer(), settings, away: null, toasts: [], lastSavedAt: 0, celebrate: 0, star: null };
   sound.setVolumes(settings);
   requestPersistentStorage();
 
@@ -253,6 +281,8 @@ export function startGame() {
       skipTime(hours: number) { snap.player.lastActiveAt -= hours * 3_600_000; tick(); },
       player: () => snap.player,
       game: () => game,
+      /** Make a Lucky Star appear right away (testing only). */
+      star: () => { nextStarAt = Date.now() - 1; },
     };
   }
 }
@@ -374,6 +404,25 @@ export const game = {
     play('levelup');
     celebrate();
     toast('🎉 Daily bonus claimed!', 'level');
+    save();
+    emit();
+  },
+  /** Tap a Lucky Star before it drifts away. */
+  catchStar() {
+    if (!snap.star || Date.now() > snap.star.until) return;
+    snap.star = null;
+    const loot = catchStar(snap.player);
+    play('match');
+    play('coin');
+    buzz([15, 30, 15]);
+    toast(`🌟 Lucky Star! ${loot.map((g) => (g.id === 'coins' ? `+${g.qty} coins` : `+${g.qty} ${getItem(g.id).name}`)).join(' · ')}`, 'level');
+    save();
+    emit();
+  },
+  /** 🎯 Set (or clear, with null) a target level for a skill. */
+  setGoal(skill: SkillId, level: number | null) {
+    if (level === null) delete snap.player.goals[skill];
+    else snap.player.goals[skill] = level;
     save();
     emit();
   },

@@ -7,7 +7,8 @@ import { LOCAL_SKILLS, regionOpen } from '../../data/tiers';
 import { skillLevel, slotOf, whyCantDo } from '../../core/idle';
 import { countInBag } from '../../core/inventory';
 import type { PlayerState } from '../../core/player';
-import { bestAction, timeToNextLevel, visibleActions } from '../../core/rates';
+import { bestAction, timeToLevel, timeToNextLevel, visibleActions } from '../../core/rates';
+import { goalChoices } from '../../core/cozy';
 import { game, useGame } from '../../core/store';
 import { levelProgress, MAX_LEVEL } from '../../core/xp';
 import { ProgressBar } from '../components';
@@ -27,6 +28,35 @@ export function shortTime(ms: number) {
   if (m < 60) return `${m}m`;
   const h = Math.round(m / 60);
   return h < 48 ? `${h}h` : `${Math.round(h / 24)}d`;
+}
+
+/** 🎯 Pick a target level; shows how long it'll take at your current (or best) pace. */
+function GoalRow({ skill, place }: { skill: SkillId; place: string }) {
+  const { player } = useGame();
+  const [picking, setPicking] = useState(false);
+  const lvl = skillLevel(player, skill);
+  const goal = player.goals[skill];
+  const eta = goal ? timeToLevel(player, skill, goal) : null;
+  if (picking) {
+    return (
+      <div className="goal-row">
+        <span className="small muted">🎯 Goal:</span>
+        {goalChoices(lvl).map((g) => (
+          <button key={g} className={`goal-chip ${g === goal ? 'on' : ''}`} onClick={() => { game.setGoal(skill, g); setPicking(false); }}>Lv {g}</button>
+        ))}
+        {goal && <button className="goal-chip ghost" onClick={() => { game.setGoal(skill, null); setPicking(false); }}>Clear</button>}
+        <button className="goal-chip ghost" onClick={() => setPicking(false)}>✕</button>
+      </div>
+    );
+  }
+  return (
+    <div className="goal-row">
+      <span className="small dim grow">{place}</span>
+      {lvl < MAX_LEVEL && (goal
+        ? <button className="goal-chip" onClick={() => setPicking(true)} title="Change goal">🎯 {goal}{eta ? ` · ${fmtDuration(eta.ms)}` : ''}</button>
+        : <button className="goal-chip ghost" onClick={() => setPicking(true)}>🎯 Set goal</button>)}
+    </div>
+  );
 }
 
 /** Horizontal strip of skill tiles (like a hotbar). */
@@ -205,7 +235,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
           <span className="muted">{prog.maxed ? 'MAX' : `${fmtNum(prog.into)} / ${fmtNum(prog.needed)} XP`}</span>
           {eta && <span className="gold"><UiIcon name="clock" size={13} /> next lv {fmtDuration(eta.ms)}</span>}
         </div>
-        <div className="small dim">📍 {placeName(player.location, skill)}, {player.location}</div>
+        <GoalRow skill={skill} place={`📍 ${placeName(player.location, skill)}, ${player.location}`} />
       </div>
 
       {tabRow}

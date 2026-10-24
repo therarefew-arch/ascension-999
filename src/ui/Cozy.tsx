@@ -99,6 +99,23 @@ export function TodayCard({ onGo }: { onGo: (r: TownRequest) => void }) {
   );
 }
 
+/** 🌟 A Lucky Star drifting across the screen. Tap it before it floats away! */
+export function LuckyStar() {
+  const { star } = useGame();
+  if (!star) return null;
+  return <StarSprite key={star.id} born={star.id} />;
+}
+
+function StarSprite({ born }: { born: number }) {
+  // Worked out once, so later re-renders don't restart the drift.
+  const [style] = useState(() => ({ animationDelay: `${-(Date.now() - born)}ms`, top: `${18 + (born % 5) * 5}%` }));
+  return (
+    <button className="lucky-star" data-silent aria-label="Catch the Lucky Star" style={style} onClick={() => game.catchStar()}>
+      <span className="lucky-star-inner">🌟</span>
+    </button>
+  );
+}
+
 /** Tap your pet for hearts. */
 export function PettablePet({ emoji, name }: { emoji: string; name: string }) {
   const [hearts, setHearts] = useState<{ id: number; x: number }[]>([]);

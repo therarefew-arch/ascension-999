@@ -285,6 +285,13 @@ Based on the owner's reference screenshots:
 - Every sound plays with a tiny random pitch change so repeated taps sound natural. Buttons have a woody "tock" (deeper for the bottom bar, brighter for main actions) and a little squish when pressed.
 - All sounds are synthesised by `scripts/make-placeholder-sounds.mjs` (`npm run sounds`); a real recording with the same name replaces any of them.
 
+### Phase 5.4 — built (Lucky Stars, goals, longer music)
+- **Kindling sounds clean when spammed**: one short twig snap per tap, and a single fire crackle that grows louder as the fire builds (instead of a new crackle on every tap). Any sound now has at most 3 copies playing at once.
+- **Town music** grew from a 16-second loop into a 2-minute song with the same soft swelling chords: 8 sections with new chord turns, a gentle bell melody, a soft bass and a music-box arpeggio, ending back where it started so the loop is smooth.
+- **🌟 Lucky Stars**: every 6–12 minutes while you play, a star drifts across the screen for 14 seconds. Tap it for coins (grow with total level) and often a handful of your best gatherable resource (through the loot system; never gems). Count shown in Profile → Stats.
+- **🎯 Skill goals**: on any skill screen, set a target (next 10, next tier, next 100, or 999). The chip shows the time left at your current pace (or best option); reaching it celebrates with confetti and clears the goal. Profile → Stats also shows day streak and goals set.
+- Save version 11 (goals, stars caught).
+
 ### Phase 4 — ideas for next
 Ironmoor region, weekly boss with "Defeated" screen, NPC Trading Post and shops (coin sinks), more idle slots, Loot Belt (Enhancing 60).
 

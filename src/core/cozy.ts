@@ -147,4 +147,54 @@ export function cozyBadge(p: PlayerState, now = Date.now()): boolean {
   return p.requests.tasks.some((r) => !r.claimed && r.progress >= r.goal) || (!p.requests.bonusClaimed && p.requests.tasks.every((r) => r.claimed));
 }
 
+// ---------------------------------------------------------------------------
+// Lucky Stars: every so often a star drifts across the screen — tap it for a small surprise.
+// ---------------------------------------------------------------------------
+
+/** Minutes between stars (random in this range) and how long one stays on screen. */
+export const STAR = { minGapMs: 6 * 60_000, maxGapMs: 12 * 60_000, visibleMs: 14_000 };
+
+export function nextStarDelay(rng: () => number = Math.random) {
+  return STAR.minGapMs + rng() * (STAR.maxGapMs - STAR.minGapMs);
+}
+
+/** The surprise: coins that grow with your total level, and often a handful of your best gatherable resource. */
+export function luckyStarLoot(p: PlayerState, rng: () => number = Math.random): ItemStack[] {
+  const total = Object.values(p.skills).reduce((s, sk) => s + levelForXp(sk.xp), 0);
+  const loot: ItemStack[] = [{ id: 'coins', qty: Math.round(40 + total * 0.5 + rng() * 60) }];
+  if (rng() < 0.6) {
+    const gather = ACTION_LIST.filter((a) => a.output && !a.kind && !a.inputs.length
+      && (a.skill === 'mining' || a.skill === 'woodcutting' || a.skill === 'fishing')
+      && (!a.region || (regionOpen(a.region) && p.regions.includes(a.region)))
+      && levelForXp(p.skills[a.skill].xp) >= a.level);
+    if (gather.length) {
+      const best = [...gather].sort((a, b) => b.level - a.level).slice(0, 3);
+      const a = pick(best, rng);
+      loot.push({ id: a.output!.item, qty: 5 + Math.floor(rng() * 8) });
+    }
+  }
+  return loot;
+}
+
+export function catchStar(p: PlayerState): ItemStack[] {
+  const loot = luckyStarLoot(p);
+  giveLoot(p, loot);
+  p.starsCaught += 1;
+  return loot;
+}
+
+// ---------------------------------------------------------------------------
+// Skill goals (🎯)
+// ---------------------------------------------------------------------------
+
+/** Handy targets to pick from: next 10, next tier (every 90), next 100, and 999. */
+export function goalChoices(level: number): number[] {
+  const opts = new Set<number>();
+  if (level < 999) opts.add(Math.min(999, Math.floor(level / 10) * 10 + 10));
+  if (level < 900) opts.add(Math.floor(level / 90) * 90 + 90);
+  if (level < 900) opts.add(Math.floor(level / 100) * 100 + 100);
+  if (level < 999) opts.add(999);
+  return [...opts].sort((a, b) => a - b);
+}
+
 export { tierRegion };

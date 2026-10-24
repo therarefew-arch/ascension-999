@@ -6,7 +6,7 @@ import { INVENTORY_SLOTS, MAX_BAG_SLOTS, MAX_IDLE_SLOTS, SAVE_VERSION, newPlayer
 import { PET_MAP } from '../data/pets';
 import { OPEN_REGIONS, REGIONS } from '../data/tiers';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
-import { levelForXp } from './xp';
+import { levelForXp, MAX_LEVEL } from './xp';
 import { MONSTER_MAP } from '../data/monsters';
 import { isFightId, maxHp } from './combat';
 
@@ -252,6 +252,13 @@ function repair(raw: any): PlayerState {
         .filter((t: { kind: string; target?: string }) => t.kind !== 'item' || !!ITEMS[t.target ?? '']),
     };
   }
+  // Goals + Lucky Stars (v11)
+  if (raw?.goals && typeof raw.goals === 'object') {
+    for (const [s, lv] of Object.entries(raw.goals)) {
+      if (s in p.skills && typeof lv === 'number' && lv > 1 && lv <= MAX_LEVEL) p.goals[s as SkillId] = Math.floor(lv);
+    }
+  }
+  p.starsCaught = Math.max(0, Number(raw?.starsCaught) || 0);
   // Regions (v9)
   if (Array.isArray(raw?.regions)) p.regions = raw.regions.filter((r: unknown) => typeof r === 'string' && (REGIONS as readonly string[]).includes(r as string));
   if (!p.regions.includes('Pocketvale')) p.regions.unshift('Pocketvale');

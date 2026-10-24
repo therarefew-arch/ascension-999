@@ -271,6 +271,7 @@ export function Kindle({ action }: { action: ActionDef }) {
   const blocked = whyCantDo(player, action, { manual: true });
   const [, setFrame] = useState(0);
   const s = useRef({ meter: 0, startedAt: 0, last: performance.now(), litUntil: 0 });
+  const fireSound = useRef<ReturnType<typeof sound.loop> | null>(null);
   const logItem = action.inputs[0]?.item ?? action.iconItem;
   const flame = FLAME_COLORS[logItem] ?? '#f97316';
 
@@ -283,11 +284,16 @@ export function Kindle({ action }: { action: ActionDef }) {
       st.last = now;
       st.meter = Math.max(0, st.meter - KINDLE.coolPerSecond * dt);
       if (st.meter === 0) st.startedAt = 0;
+      // One smooth crackling fire whose loudness follows the kindling meter (and the lit flare).
+      const want = now < st.litUntil ? 0.9 : Math.min(1, st.meter) * 0.75;
+      if (want > 0.02 && !fireSound.current) fireSound.current = sound.loop('fire_loop', 0);
+      fireSound.current?.setVolume(want);
+      if (want <= 0.02 && fireSound.current && now > st.litUntil + 400) { fireSound.current(); fireSound.current = null; }
       setFrame((f) => (f + 1) % 1_000_000);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+    return () => { cancelAnimationFrame(raf); fireSound.current?.(); fireSound.current = null; };
   }, []);
 
   const tap = () => {
@@ -296,9 +302,8 @@ export function Kindle({ action }: { action: ActionDef }) {
     const now = performance.now();
     if (st.meter === 0) st.startedAt = now;
     st.meter += KINDLE.perTap;
-    // Snap a twig each tap; it crackles more as the fire builds, then WHOOMP when it catches.
-    sound.play('kindle', { rate: 0.9 + Math.min(1, st.meter) * 0.3 });
-    if (st.meter > 0.4) sound.play('crackle', { volume: Math.min(1, st.meter) * 0.8 });
+    // A crisp twig snap each tap (the crackle underneath grows with the fire), then WHOOMP when it catches.
+    sound.play('kindle', { rate: 0.92 + Math.random() * 0.2, volume: 0.8 });
     if (st.meter >= 1) {
       sound.play('ignite');
       const quick = (now - st.startedAt) / 1000 <= KINDLE.quickSeconds;

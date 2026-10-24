@@ -15,8 +15,9 @@ import type { TownRequest } from './cozy';
  * v8: weekly boss, Wildfire, bonfires.
  * v9: regions — where you are, which regions you've discovered, travelling.
  * v10: cozy — daily gift streak, Town Requests.
+ * v11: skill goals, Lucky Stars caught.
  */
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 11;
 /** Starting bag size. Can be upgraded with coins up to MAX_BAG_SLOTS. */
 export const INVENTORY_SLOTS = 30;
 export const MAX_BAG_SLOTS = 50;
@@ -87,6 +88,10 @@ export interface PlayerState {
   daily: { lastDay: string | null; streak: number };
   /** Today's three Town Requests. */
   requests: { day: string; tasks: TownRequest[]; bonusClaimed: boolean };
+  /** Target level the player picked for each skill (🎯). */
+  goals: Partial<Record<SkillId, number>>;
+  /** Lucky Stars caught (just for fun / the Journal). */
+  starsCaught: number;
 }
 
 export interface Loadout {
@@ -139,6 +144,8 @@ export function newPlayer(now = Date.now()): PlayerState {
     travel: null,
     daily: { lastDay: null, streak: 0 },
     requests: { day: '', tasks: [], bonusClaimed: false },
+    goals: {},
+    starsCaught: 0,
   };
 }
 
