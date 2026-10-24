@@ -1,6 +1,6 @@
-# Pocketvale — rules for every session
+# Ascension 999 — rules for every session
 
-Pocketvale is a cozy medieval idle skilling RPG, built as a mobile-first (portrait) web game.
+Ascension 999 (formerly "Pocketvale"; Pocketvale is now just the starting town) is a cozy medieval idle skilling RPG, built as a mobile-first (portrait) web game. Save keys in localStorage still start with `pocketvale.` — never rename them (it would lose saves).
 The owner has no coding experience: explain things simply and ask when something is unclear.
 Full game vision: `docs/design.md`. Build only the phase that is asked for.
 
@@ -35,7 +35,8 @@ Full game vision: `docs/design.md`. Build only the phase that is asked for.
 - Regions: built regions are in `OPEN_REGIONS` + `REGION_INFO` (tiers.ts). A player must **discover** (walk to) a region to use its tier; gathering (`LOCAL_SKILLS`) and fights must be started in that region; idle slots keep running after travelling. Monsters have a `region`. To add a region: add it to OPEN_REGIONS/REGION_INFO, give it monsters + a mini boss, a scene, local place names and a Trading Post buy list.
 - The top-right button is **Profile** (Character with avatar + gear, Stats, Pets, Settings).
 - Mahjong (Tile Match) plays its own calm lofi track (`music_mahjong`), a `tile` thud on taps and a `match` sound.
-- Town is opened from the "Pocketvale" chip in the top bar (bottom nav: Skills, Combat, Bag, Bank, Gear).
+- Town is opened from the location chip in the top bar (bottom nav: Skills, Combat, Bag, Bank, Gear).
+- **Efficiency: no duplicate buttons.** Every screen should only show things you can't already reach in one tap. Town = daily gift + requests (tap a request to go there), Trading Post, Journal, Travel. Skills live only in the Skills tab; local place names show on each skill screen (`src/data/places.ts`).
 - Cozy daily features live in `src/core/cozy.ts`: daily gift (streak, 7-day cycle) and 3 Town Requests a day + bonus; rewards go through `giveLoot`. Outdoor scenes follow the phone's real clock (dawn/day/dusk/night). Confetti on every 10th level, new towns and bonus claims. Vibration can be switched off in Settings. Loot is not toasted per kill (keep toasts few).
 - When testing in the browser pane, only run scripts on `localhost` — never on the live site (it holds real saves).
 - Combat skills (Melee, Ranged, Magic, Defense, Health) are the next update.

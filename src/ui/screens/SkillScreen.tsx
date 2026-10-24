@@ -18,6 +18,7 @@ import { Chop, HeatPrecision, RuneAlign, RuneTrace, SteadyHands } from '../Minig
 import { FiremakingGames } from '../Wildfire';
 import { FishingGames } from '../TileMatch';
 import { PixelScene, type SceneName } from '../PixelScene';
+import { placeName } from '../../data/places';
 
 export function shortTime(ms: number) {
   const s = Math.round(ms / 1000);
@@ -204,6 +205,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
           <span className="muted">{prog.maxed ? 'MAX' : `${fmtNum(prog.into)} / ${fmtNum(prog.needed)} XP`}</span>
           {eta && <span className="gold"><UiIcon name="clock" size={13} /> next lv {fmtDuration(eta.ms)}</span>}
         </div>
+        <div className="small dim">📍 {placeName(player.location, skill)}, {player.location}</div>
       </div>
 
       {tabRow}

@@ -1,4 +1,6 @@
-# Pocketvale — Game Design
+# Ascension 999 — Game Design
+
+(The game was first called "Pocketvale"; Pocketvale is now the name of the starting town.)
 
 > This is the full vision. Most of it is **not built yet**. See "Build phases" at the bottom for what exists.
 
@@ -270,6 +272,12 @@ Based on the owner's reference screenshots:
 - **Confetti** on every 10th level, discovering a town, finishing all requests and 7-day streaks. **Gentle vibration** on phones that support it (toggle in Settings).
 - **Tidier UI**: slimmer top bar (total level, coins, location, idle n/m) with a red dot when something is waiting in Town; thinner idle line; smaller toasts and no toast for every loot drop; Town has a compact hero, TODAY card, a shortcut row (Journal, Trading, Training, Bank, Armoury), a 3-column places grid and a fold-away travel map.
 - Save version 10 (daily gift, requests).
+
+### Phase 5.2 — built (Ascension 999, no duplicates)
+- Game renamed **Ascension 999** (title screen, browser tab, home-screen name). Saves are untouched.
+- **Town trimmed to what only Town has**: daily gift + Town Requests, Trading Post, Journal, Travel. The skills grid, Bank/Armoury/Combat shortcuts and the idle button were removed (they're all on the bottom bar or top bar).
+- **Tap a Town Request to go there**: XP and collect requests open the right skill, monster requests open Combat.
+- Each skill screen shows its local place name (e.g. "📍 The Deep Mine, Ironmoor"); Combat shows where you fight. Combat's extra Gear button was removed (Gear is on the bottom bar).
 
 ### Phase 4 — ideas for next
 Ironmoor region, weekly boss with "Defeated" screen, NPC Trading Post and shops (coin sinks), more idle slots, Loot Belt (Enhancing 60).

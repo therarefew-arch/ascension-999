@@ -1,6 +1,6 @@
-# Pocketvale
+# Ascension 999
 
-A cozy medieval idle skilling RPG for phones. See `docs/design.md` for the full vision and `CLAUDE.md` for the project rules.
+A cozy medieval idle skilling RPG for phones (your journey starts in the town of Pocketvale). See `docs/design.md` for the full vision and `CLAUDE.md` for the project rules.
 
 ## Play on this computer
 ```

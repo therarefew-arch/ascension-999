@@ -289,7 +289,7 @@ export const game = {
     snap.player = newPlayer();
     snap.away = null;
     save();
-    toast('Welcome to Pocketvale!', 'good');
+    toast('Welcome to Ascension 999! Your journey starts in Pocketvale.', 'good');
     emit();
   },
   deleteSlot(slot: SlotId) {

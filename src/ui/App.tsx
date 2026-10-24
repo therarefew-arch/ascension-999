@@ -158,11 +158,11 @@ export function App() {
       <IdleLine onOpen={() => setIdleOpen(true)} onFight={() => go('combat')} />
 
       <main className={`content ${tab === 'skills' ? 'content-skill' : ''}`}>
-        {tab === 'town' && <TownScreen onSkill={openSkill} onBank={() => go('bank')} onGear={() => go('gear')} onIdle={() => setIdleOpen(true)} onCombat={() => go('combat')} onMarket={() => go('market')} onJournal={() => go('journal')} />}
+        {tab === 'town' && <TownScreen onSkill={openSkill} onSkills={() => go('skills')} onCombat={() => go('combat')} onMarket={() => go('market')} onJournal={() => go('journal')} />}
         {tab === 'market' && <TradingPostScreen />}
         {tab === 'journal' && <JournalScreen />}
         {tab === 'skills' && <SkillScreen skill={skill} />}
-        {tab === 'combat' && <CombatScreen onGear={() => go('gear')} onItem={(id) => setItemView({ id, from: 'bag' })} />}
+        {tab === 'combat' && <CombatScreen onItem={(id) => setItemView({ id, from: 'bag' })} />}
         {tab === 'bank' && <BankScreen onItem={(id) => setItemView({ id, from: 'bank' })} />}
         {tab === 'gear' && <GearScreen />}
         {tab === 'profile' && <ProfileScreen onGear={() => go('gear')} />}

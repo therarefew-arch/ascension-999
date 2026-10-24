@@ -1,7 +1,7 @@
 // Cozy bits of the interface: confetti, the "Today" card (gift + Town Requests) and pet hearts.
 import { useEffect, useRef, useState } from 'react';
 import { getItem } from '../data/items';
-import { giftFor, giftReady, REQUEST_BONUS, requestLabel } from '../core/cozy';
+import { giftFor, giftReady, REQUEST_BONUS, requestLabel, type TownRequest } from '../core/cozy';
 import { game, useGame } from '../core/store';
 import type { ItemStack } from '../core/player';
 import { fmtNum } from './format';
@@ -40,7 +40,7 @@ function stackText(g: ItemStack) {
 }
 
 /** Daily gift + three Town Requests. */
-export function TodayCard() {
+export function TodayCard({ onGo }: { onGo: (r: TownRequest) => void }) {
   const { player } = useGame();
   useEffect(() => { game.ensureRequests(); }, []);
   const ready = giftReady(player);
@@ -69,13 +69,15 @@ export function TodayCard() {
       )}
 
       <div className="requests">
-        <div className="small muted">📜 Town Requests · {doneCount}/{tasks.length} done · new ones every day</div>
+        <div className="small muted">📜 Town Requests · {doneCount}/{tasks.length} done · tap one to go there</div>
         {tasks.map((r, i) => {
           const done = r.progress >= r.goal;
           return (
             <div key={i} className={`request ${r.claimed ? 'claimed' : ''}`}>
-              <div className="grow">
-                <div className="request-label">{r.claimed ? '✅ ' : ''}{requestLabel(r)}</div>
+              <div className="grow request-go" role={r.claimed || done ? undefined : 'button'} tabIndex={r.claimed || done ? -1 : 0}
+                onClick={() => { if (!r.claimed && !done) onGo(r); }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !r.claimed && !done) onGo(r); }}>
+                <div className="request-label">{r.claimed ? '✅ ' : ''}{requestLabel(r)}{!r.claimed && !done && <span className="gold"> ›</span>}</div>
                 {!r.claimed && (
                   <div className="bar bar-thin"><div className="bar-fill tone-gold" style={{ width: `${(r.progress / r.goal) * 100}%` }} /></div>
                 )}

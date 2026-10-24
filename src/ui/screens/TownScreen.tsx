@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { SkillId } from '../../data/items';
-import { SKILL_ORDER, SKILLS } from '../../data/skills';
-import { OPEN_REGIONS, REGION_INFO, REGIONS, type Region } from '../../data/tiers';
-import { skillLevel } from '../../core/idle';
+import { ACTION_LIST } from '../../data/skills';
+import { OPEN_REGIONS, REGION_INFO, REGIONS } from '../../data/tiers';
+import type { TownRequest } from '../../core/cozy';
 import { highestSkill, whyCantTravel } from '../../core/travel';
 import { game, useGame } from '../../core/store';
 import { UiIcon } from '../icons';
@@ -16,14 +16,6 @@ function greeting() {
   return { dawn: 'Good morning', day: 'Good day', dusk: 'Good evening', night: 'A quiet night' }[dayPhase()];
 }
 
-/** Some places have a local name in each town. */
-const PLACE_NAMES: Partial<Record<Region, Partial<Record<SkillId, string>>>> = {
-  Ironmoor: {
-    mining: 'The Deep Mine', smithing: 'Ironworks Forge', woodcutting: 'Oakwood Grove', fishing: 'Rushwater Falls',
-    cooking: 'Miners’ Canteen', firemaking: 'The Ember Pit', crafting: 'Tinker’s Bench', runecrafting: 'Stone Circle', enhancing: 'Rune Anvil',
-  },
-};
-const TRAINING: Partial<Record<Region, string>> = { Pocketvale: 'Training Grounds', Ironmoor: 'Mine Tunnels' };
 
 /** Map of the realm: walk (free) or fast travel (coins) between towns. */
 function TravelMap() {
@@ -89,11 +81,22 @@ function TravelMap() {
   );
 }
 
-export function TownScreen({ onSkill, onBank, onGear, onIdle, onCombat, onMarket, onJournal }: { onSkill: (s: SkillId) => void; onBank: () => void; onGear: () => void; onIdle: () => void; onCombat: () => void; onMarket: () => void; onJournal: () => void }) {
+/** Which skill makes an item (for "Collect X" requests). */
+function skillForItem(id: string): SkillId | null {
+  return ACTION_LIST.find((a) => a.output?.item === id && !a.kind)?.skill ?? null;
+}
+
+// Town only shows what you can't reach from the bottom bar:
+// the daily gift + requests, the Journal, the Trading Post and travel.
+export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal }: { onSkill: (s: SkillId) => void; onSkills: () => void; onCombat: () => void; onMarket: () => void; onJournal: () => void }) {
   const { player } = useGame();
   const here = player.location;
   const info = REGION_INFO[here];
-  const names = PLACE_NAMES[here] ?? {};
+  const goTo = (r: TownRequest) => {
+    if (r.kind === 'kills') return onCombat();
+    const s = r.kind === 'xp' ? (r.target as SkillId) : r.kind === 'item' ? skillForItem(r.target!) : null;
+    if (s) onSkill(s); else onSkills();
+  };
   return (
     <div className="screen">
       <div className="town-hero compact">
@@ -107,27 +110,19 @@ export function TownScreen({ onSkill, onBank, onGear, onIdle, onCombat, onMarket
         )}
       </div>
 
-      <TodayCard />
+      <TodayCard onGo={goTo} />
 
       <div className="services">
-        <button className="service" onClick={onJournal}><span className="tile-icon skill-journal"><UiIcon name="bolt" size={20} /></span>Journal</button>
-        <button className="service" onClick={onMarket}><span className="tile-icon skill-market"><UiIcon name="coin" size={20} /></span>Trading</button>
-        <button className="service" onClick={onCombat} title={TRAINING[here] ?? 'Training Grounds'}><span className="tile-icon skill-combat"><UiIcon name="combat" size={20} /></span>{here === 'Ironmoor' ? 'Tunnels' : 'Training'}</button>
-        <button className="service" onClick={onBank}><span className="tile-icon skill-bank"><UiIcon name="bank" size={20} /></span>Bank</button>
-        <button className="service" onClick={onGear}><span className="tile-icon skill-gear"><UiIcon name="gear" size={20} /></span>Armoury</button>
+        <button className="service" onClick={onMarket}>
+          <span className="tile-icon skill-market"><UiIcon name="coin" size={20} /></span>
+          <span><b>Trading Post</b><span className="small muted">Sell, buy, deals</span></span>
+        </button>
+        <button className="service" onClick={onJournal}>
+          <span className="tile-icon skill-journal"><UiIcon name="bolt" size={20} /></span>
+          <span><b>Journal</b><span className="small muted">XP, log, pets</span></span>
+        </button>
       </div>
 
-      <h2 className="section-title">PLACES IN TOWN</h2>
-      <div className="places-grid">
-        {SKILL_ORDER.map((s) => (
-          <button key={s} className="place-mini" onClick={() => onSkill(s)} title={`${names[s] ?? SKILLS[s].place} — ${SKILLS[s].name}`}>
-            <span className={`tile-icon skill-${s}`}><UiIcon name={s} size={22} /></span>
-            <span className="place-name">{names[s] ?? SKILLS[s].place}</span>
-            <span className="mono muted">{SKILLS[s].name} {skillLevel(player, s)}</span>
-          </button>
-        ))}
-      </div>
-      <button className="btn btn-idle btn-wide" onClick={onIdle}><UiIcon name="clock" size={18} /> Idle skill slots</button>
       <TravelMap />
     </div>
   );

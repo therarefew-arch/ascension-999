@@ -38,7 +38,7 @@ export function SettingsScreen() {
       <div className="card">
         <h3>Saving</h3>
         <p className="small">Your game saves automatically on this device.{lastSavedAt > 0 && <> Last saved <b>{fmtDuration(Date.now() - lastSavedAt)}</b> ago.</>}</p>
-        <p className="small muted">Tip: add Pocketvale to your home screen so your phone keeps the save safe.</p>
+        <p className="small muted">Tip: add Ascension 999 to your home screen so your phone keeps the save safe.</p>
       </div>
 
       <div className="card">
@@ -46,7 +46,7 @@ export function SettingsScreen() {
         <p className="small muted">You're playing save slot {slot}. Switch slots, start over or delete a save from the title screen.</p>
         <button className="btn btn-wide" onClick={() => game.backToTitle()}><UiIcon name="door" size={18} /> Save &amp; back to title screen</button>
       </div>
-      <p className="small muted center">Pocketvale · Phase 1</p>
+      <p className="small muted center">Ascension 999</p>
     </div>
   );
 }

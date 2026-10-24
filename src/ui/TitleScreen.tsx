@@ -14,7 +14,7 @@ export function TitleScreen() {
     <div className="title-screen">
       <PixelScene scene="forest" dim={0.35} className="screen-bg" />
       <div className="title-inner">
-        <h1 className="game-title">POCKETVALE</h1>
+        <h1 className="game-title">ASCENSION <span className="title-999">999</span></h1>
         <div className="game-sub">✦ CHOOSE YOUR SAGA ✦</div>
 
         {SAVE_SLOTS.map((slot) => {

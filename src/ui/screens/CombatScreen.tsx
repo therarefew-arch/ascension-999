@@ -13,6 +13,7 @@ import { fmtNum } from '../format';
 import { MonsterArt } from '../MonsterArt';
 import { useAnimationTime, useFeedback, FeedbackLayer } from '../Minigames';
 import { PixelScene } from '../PixelScene';
+import { TRAINING } from '../../data/places';
 
 const STYLE_ICON = { melee: 'melee', ranged: 'ranged', magic: 'magic' } as const;
 const STYLE_NAME: Record<CombatStyle, string> = { melee: 'Melee', ranged: 'Ranged', magic: 'Magic' };
@@ -232,7 +233,7 @@ function Fight({ onItem }: { onItem: (id: string) => void }) {
   );
 }
 
-export function CombatScreen({ onGear, onItem }: { onGear: () => void; onItem: (id: string) => void }) {
+export function CombatScreen({ onItem }: { onItem: (id: string) => void }) {
   const { player } = useGame();
   const fighting = !!player.fight && fightSlot(player) >= 0;
   const style = weaponStyle(player);
@@ -243,7 +244,7 @@ export function CombatScreen({ onGear, onItem }: { onGear: () => void; onItem: (
       <div className="screen">
         <div className="row-between">
           <h1 className="screen-title">COMBAT</h1>
-          <button className="btn btn-outline" onClick={onGear}><UiIcon name="gear" size={16} /> Gear</button>
+          <span className="small dim">📍 {TRAINING[player.location] ?? 'Training Grounds'}, {player.location}</span>
         </div>
         <CombatSkills />
         {fighting ? <Fight onItem={onItem} /> : (
