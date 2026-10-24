@@ -4,6 +4,7 @@ import { ITEMS, type SkillId } from '../data/items';
 import { ACTIONS } from '../data/skills';
 import { INVENTORY_SLOTS, MAX_BAG_SLOTS, MAX_IDLE_SLOTS, SAVE_VERSION, newPlayer, type ItemStack, type Loadout, type PlayerState } from './player';
 import { PET_MAP } from '../data/pets';
+import { OPEN_REGIONS, REGIONS } from '../data/tiers';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
 import { levelForXp } from './xp';
 import { MONSTER_MAP } from '../data/monsters';
@@ -241,6 +242,13 @@ function repair(raw: any): PlayerState {
   p.hp = typeof raw?.hp === 'number' && raw.hp > 0 ? raw.hp : maxHp(p);
   p.hp = Math.min(p.hp, maxHp(p));
   p.regenMs = Number(raw?.regenMs) || 0;
+  // Regions (v9)
+  if (Array.isArray(raw?.regions)) p.regions = raw.regions.filter((r: unknown) => typeof r === 'string' && (REGIONS as readonly string[]).includes(r as string));
+  if (!p.regions.includes('Pocketvale')) p.regions.unshift('Pocketvale');
+  if (typeof raw?.location === 'string' && p.regions.includes(raw.location)) p.location = raw.location;
+  if (raw?.travel && typeof raw.travel.arriveAt === 'number' && OPEN_REGIONS.includes(raw.travel.to)) {
+    p.travel = { to: raw.travel.to, arriveAt: raw.travel.arriveAt, startedAt: Number(raw.travel.startedAt) || Date.now() };
+  }
   if (raw?.bonfire && typeof raw.bonfire.until === 'number' && ITEMS[raw.bonfire.log]) p.bonfire = { until: raw.bonfire.until, log: raw.bonfire.log };
   if (typeof raw?.bossReadyAt?.wildfire === 'number') p.bossReadyAt.wildfire = raw.bossReadyAt.wildfire;
   // Quality of life (v7)

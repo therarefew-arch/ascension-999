@@ -7,8 +7,26 @@ export const REGIONS = [
 ] as const;
 export type Region = (typeof REGIONS)[number];
 
-/** Regions you can use right now. Add a region here when it's built. */
-export const OPEN_REGIONS: Region[] = ['Pocketvale'];
+/** Regions that are built. Add a region here when it's built (players still have to travel there to unlock it). */
+export const OPEN_REGIONS: Region[] = ['Pocketvale', 'Ironmoor'];
+
+/** How to reach each built region. */
+export const REGION_INFO: Partial<Record<Region, {
+  /** Any skill at this level opens the road there. */
+  unlockLevel: number;
+  /** Walking time from any other town (free). */
+  walkMs: number;
+  /** Fast travel cost (instant, only to places you've visited). */
+  fastTravelCoins: number;
+  blurb: string;
+  scene: 'town' | 'ironmoor';
+}>> = {
+  Pocketvale: { unlockLevel: 1, walkMs: 90_000, fastTravelCoins: 200, blurb: 'A quiet town at the edge of the hills', scene: 'town' },
+  Ironmoor: { unlockLevel: 90, walkMs: 90_000, fastTravelCoins: 200, blurb: 'A smoky mountain town built around the deep iron mines', scene: 'ironmoor' },
+};
+
+/** Skills whose resources must be gathered on location (you start them in that region). */
+export const LOCAL_SKILLS = ['mining', 'woodcutting', 'fishing'] as const;
 
 export const TIER_COUNT = 11;
 /** Level a tier unlocks at: 1, 90, 180, 270 … 900. */

@@ -26,6 +26,7 @@ export function lightBonfire(p: PlayerState, log: string, report: ProgressReport
   const b = BONFIRES[log];
   if (!b) return "That can't fuel a bonfire";
   if (!regionOpen(b.region)) return `Found in ${b.region} — coming in a future update`;
+  if (!p.regions.includes(b.region)) return `Travel to ${b.region} to unlock this`;
   if (skillLevel(p, 'firemaking') < b.level) return `Needs Firemaking level ${b.level}`;
   if (countInBag(p.inventory, log) < BONFIRE_LOGS) return `Needs ${BONFIRE_LOGS} ${getItem(log).name} in your bag`;
   removeFromBag(p.inventory, log, BONFIRE_LOGS);

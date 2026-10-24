@@ -10,7 +10,7 @@ import { enhanceChance, FAIL_XP_SHARE } from './enhancing';
 import { countInBag, countInBank, removeFromBag, canFitAll } from './inventory';
 import { giveLoot, maxLoot, recordCollection, rollLoot, rollPet } from './loot';
 import { PET_XP_BONUS, petBoosts } from '../data/pets';
-import { regionOpen, WOODS } from '../data/tiers';
+import { LOCAL_SKILLS, regionOpen, WOODS } from '../data/tiers';
 import type { IdleSlot, PlayerState } from './player';
 import { MAX_XP, levelForXp } from './xp';
 import { equipmentStats } from './equipment';
@@ -125,8 +125,13 @@ export function drainFire(p: PlayerState, ms: number) {
  * `manual` = played by hand (minigame): the cooking fire must already be lit.
  * While idling, the fire is fed automatically from logs in the bag.
  */
-export function whyCantDo(p: PlayerState, action: ActionDef, opts: { manual?: boolean } = {}): string | null {
+export function whyCantDo(p: PlayerState, action: ActionDef, opts: { manual?: boolean; start?: boolean } = {}): string | null {
   if (!regionOpen(action.region)) return `Found in ${action.region} — coming in a future update`;
+  if (action.region && !p.regions.includes(action.region)) return `Travel to ${action.region} to unlock this`;
+  // Gathering happens on location: start it in its region (idle slots keep going if you travel away).
+  if ((opts.manual || opts.start) && action.region && (LOCAL_SKILLS as readonly string[]).includes(action.skill) && p.location !== action.region) {
+    return `Gather this in ${action.region} (you're in ${p.location})`;
+  }
   if (skillLevel(p, action.skill) < action.level) return `Needs level ${action.level}`;
   if (action.needsTool !== undefined && equippedToolTier(p, action.skill) < action.needsTool) {
     return toolNeededText(action.skill, action.needsTool);
@@ -196,7 +201,7 @@ export function chooseSlot(p: PlayerState, actionId: string): number {
 export function startIdle(p: PlayerState, actionId: string, slot?: number): string | null {
   const action = ACTIONS[actionId];
   if (!action) return 'Unknown activity';
-  const why = whyCantDo(p, action);
+  const why = whyCantDo(p, action, { start: true });
   if (why) return why;
   if (slotOf(p, actionId) >= 0) return null; // already running
   const i = slot ?? chooseSlot(p, actionId);

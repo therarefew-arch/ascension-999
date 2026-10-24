@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import type { SkillId } from '../../data/items';
 import { ACTIONS, actionsForSkill, SKILL_ORDER, SKILLS, tabsForSkill, type ActionDef } from '../../data/skills';
 import { getItem } from '../../data/items';
-import { regionOpen } from '../../data/tiers';
+import { LOCAL_SKILLS, regionOpen } from '../../data/tiers';
 import { skillLevel, slotOf, whyCantDo } from '../../core/idle';
 import { countInBag } from '../../core/inventory';
 import type { PlayerState } from '../../core/player';
@@ -53,6 +53,15 @@ export function SkillStrip({ selected, onSelect }: { selected: SkillId; onSelect
   );
 }
 
+/** Where an action happens: 🔒 not built yet, 🧭 not discovered yet, 📍 gather it on location. */
+function regionTag(player: PlayerState, a: ActionDef): string | null {
+  if (!a.region) return null;
+  if (!regionOpen(a.region)) return `🔒 ${a.region}`;
+  if (!player.regions.includes(a.region)) return `🧭 ${a.region}`;
+  if ((LOCAL_SKILLS as readonly string[]).includes(a.skill) && player.location !== a.region) return `📍 ${a.region}`;
+  return null;
+}
+
 const SCENES: Partial<Record<SkillId, SceneName>> = {
   mining: 'mine', smithing: 'forge', woodcutting: 'forest', firemaking: 'camp',
   fishing: 'river', cooking: 'kitchen', crafting: 'workshop', enhancing: 'tower', runecrafting: 'altar',
@@ -76,7 +85,8 @@ function RecipeList({ player, actions, selected, onSelect }: {
   return (
     <div className="recipe-list">
       {actions.map((a) => {
-        const regionLocked = !regionOpen(a.region);
+        const tag = regionTag(player, a);
+        const regionLocked = !!tag && !tag.startsWith('📍');
         const locked = lvl < a.level || regionLocked;
         // The input that limits how many you can make.
         const needs = a.inputs.filter((i) => i.item !== a.upgrades);
@@ -96,7 +106,8 @@ function RecipeList({ player, actions, selected, onSelect }: {
             </div>
             <div className="recipe-right mono">
               {limiting && <span className={enough ? 'green' : 'red'}>{fmtNum(limiting.have)}/{limiting.qty}</span>}
-              {locked && <span className="dim small">{regionLocked ? `🔒 ${a.region}` : `Lv ${a.level}`}</span>}
+              {tag && <span className="dim small">{tag}</span>}
+              {lvl < a.level && <span className="dim small">Lv {a.level}</span>}
               {!locked && toolProblem && <span className="red small">needs tool</span>}
             </div>
           </button>
@@ -174,7 +185,8 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
     );
   }
 
-  const regionLocked = !regionOpen(action.region);
+  const tag = regionTag(player, action);
+  const regionLocked = !regionOpen(action.region) || (!!action.region && !player.regions.includes(action.region));
   const unlocked = lvl >= action.level && !regionLocked;
   const idlingThis = slotOf(player, action.id) >= 0;
   const Minigame = MINIGAMES[skill] ?? AnvilRhythm;
@@ -200,14 +212,16 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
       ) : (
       <div className="chip-row" role="tablist" aria-label="Resources">
         {actions.map((a: ActionDef) => {
-          const locked = lvl < a.level || !regionOpen(a.region);
+          const chipTag = regionTag(player, a);
+          const locked = lvl < a.level || (!!chipTag && !chipTag.startsWith('📍'));
           return (
             <button key={a.id} role="tab" aria-selected={a.id === action.id}
               className={`res-chip ${a.id === action.id ? 'on' : ''} ${locked ? 'locked' : ''}`}
               onClick={() => setSelectedId(a.id)}>
               <ItemIcon id={a.iconItem} size={22} />
               <span>{a.name}</span>
-              {locked && <span className="chip-lv">{regionOpen(a.region) ? `Lv${a.level}` : `🔒Lv${a.level}`}</span>}
+              {chipTag && <span className="chip-lv">{chipTag.split(' ')[0]}</span>}
+              {lvl < a.level && <span className="chip-lv">Lv{a.level}</span>}
               {slotOf(player, a.id) >= 0 && <span className="chip-idle"><UiIcon name="clock" size={12} /></span>}
             </button>
           );
@@ -222,9 +236,12 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
           <div className="mg-stage">
             <div className="mg-rock locked-art"><ItemIcon id={action.iconItem} size={72} /></div>
             <div className="mg-stage-name">{action.name}</div>
-            <div className="mg-stage-xp"><UiIcon name="lock" size={14} /> {regionLocked
+            <div className="mg-stage-xp"><UiIcon name="lock" size={14} /> {!regionOpen(action.region)
               ? `Found in ${action.region} (level ${action.level}) — coming in a future update`
-              : `Unlocks at ${SKILLS[skill].name} level ${action.level}`}</div>
+              : regionLocked
+                ? `Travel to ${action.region} to unlock this (level ${action.level})`
+                : `Unlocks at ${SKILLS[skill].name} level ${action.level}`}</div>
+            {tag && <div className="small muted">{tag}</div>}
           </div>
         </div>
       )}

@@ -2,7 +2,7 @@
 // Our own art — no image files needed. Each scene is the same every time (seeded).
 import { useEffect, useRef } from 'react';
 
-export type SceneName = 'forest' | 'town' | 'mine' | 'forge' | 'river' | 'camp' | 'kitchen' | 'workshop' | 'tower' | 'altar';
+export type SceneName = 'forest' | 'town' | 'mine' | 'forge' | 'river' | 'camp' | 'kitchen' | 'workshop' | 'tower' | 'altar' | 'ironmoor';
 
 const W = 72;
 const H = 128;
@@ -210,9 +210,40 @@ function drawAltar(px: Px, r: () => number) {
   px(30, 86, 12, 8, 'rgba(199,210,254,0.35)');
 }
 
+function drawIronmoor(px: Px, r: () => number) {
+  // dusky sky
+  const sky = ['#6b6f80', '#7d7f8c', '#958f8f', '#b39a86'];
+  for (let y = 0; y < 60; y++) px(0, y, W, 1, sky[Math.min(3, Math.floor(y / 15))]);
+  // mountains
+  for (let x = 0; x < W; x++) {
+    const h = 26 + Math.round(Math.abs(Math.sin(x / 11)) * 18 + Math.sin(x / 4) * 2);
+    px(x, h, 1, H - h, '#4b4a52');
+    const h2 = 44 + Math.round(Math.abs(Math.sin(x / 7 + 1)) * 10);
+    px(x, h2, 1, H - h2, '#3b3a40');
+  }
+  for (let x = 0; x < W; x++) { const h = 26 + Math.round(Math.abs(Math.sin(x / 11)) * 18); if (h < 32) px(x, h, 1, 2, '#e5e7eb'); }
+  // mine entrance with beams
+  px(48, 58, 16, 14, '#1c1b1f'); px(46, 56, 20, 3, '#5e4329'); px(46, 56, 3, 16, '#5e4329'); px(63, 56, 3, 16, '#5e4329');
+  // stone houses with smoking chimneys
+  const house = (x: number, y: number, w: number) => {
+    px(x, y, w, 10, '#6b6458'); px(x, y, w, 1, '#3f3a33');
+    for (let i = 0; i < Math.ceil(w / 2) + 1; i++) px(x - 1 + i, y - 1 - i, w + 2 - i * 2, 1, '#57534e');
+    px(x + 2, y + 3, 2, 2, '#fbbf24'); px(x + w - 4, y + 3, 2, 2, '#fbbf24');
+    px(x + w - 3, y - 7, 2, 5, '#3f3a33');
+    for (let k = 0; k < 4; k++) px(x + w - 3 + k, y - 9 - k * 3, 2, 2, `rgba(220,220,220,${0.5 - k * 0.1})`);
+  };
+  house(6, 72, 12); house(24, 76, 10);
+  px(0, 86, W, H - 86, '#3a3530');
+  // cart rails & ore cart
+  for (let x = 0; x < W; x += 4) px(x, 100, 2, 1, '#5e4329');
+  px(0, 98, W, 1, '#8b949c'); px(0, 102, W, 1, '#8b949c');
+  px(40, 92, 12, 6, '#4b5563'); px(41, 90, 10, 2, '#8b949c'); px(42, 98, 2, 2, '#1f2937'); px(48, 98, 2, 2, '#1f2937');
+  for (let i = 0; i < 30; i++) px(Math.floor(r() * W), 104 + Math.floor(r() * 24), 2, 1, ['#4a443d', '#2e2a26'][Math.floor(r() * 2)]);
+}
+
 const DRAW: Record<SceneName, (px: Px, r: () => number) => void> = {
   forest: drawForest, town: drawTown, mine: drawMine, forge: drawForge,
-  river: drawRiver, camp: drawCamp, kitchen: drawKitchen, workshop: drawWorkshop, tower: drawTower, altar: drawAltar,
+  river: drawRiver, camp: drawCamp, kitchen: drawKitchen, workshop: drawWorkshop, tower: drawTower, altar: drawAltar, ironmoor: drawIronmoor,
 };
 
 export function PixelScene({ scene, dim = 0.55, className = '' }: { scene: SceneName; dim?: number; className?: string }) {

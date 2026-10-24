@@ -255,9 +255,10 @@ export function CombatScreen({ onGear, onItem }: { onGear: () => void; onItem: (
               <HpBar hp={player.hp} max={max} tone="green" />
               <p className="small muted">Triangle: Melee beats Ranged · Ranged beats Magic · Magic beats Melee. Your weapon sets your style. You heal slowly out of combat, and eat food automatically when low.</p>
             </div>
-            <WeeklyBoss />
-            <h2 className="section-title">POCKETVALE</h2>
-            {MONSTERS.map((m) => <MonsterCard key={m.id} m={m} />)}
+            {player.location === WEEKLY_BOSS.region && <WeeklyBoss />}
+            <h2 className="section-title">{player.location.toUpperCase()}</h2>
+            {MONSTERS.filter((m) => m.region === player.location).map((m) => <MonsterCard key={m.id} m={m} />)}
+            <p className="small dim center">Other towns have their own monsters — travel from the Town screen.</p>
             <p className="small dim center">Knocked out? You wake up safe in town — you never lose items.</p>
           </>
         )}

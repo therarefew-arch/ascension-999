@@ -106,6 +106,7 @@ export function combatStats(p: PlayerState, monster?: MonsterDef) {
 /** Why you can't fight this monster right now (null = you can). */
 export function whyCantFight(p: PlayerState, monster: MonsterDef, now = Date.now()): string | null {
   const ready = p.bossReadyAt[monster.id] ?? 0;
+  if (monster.region !== p.location) return `Travel to ${monster.region} to fight this`;
   if (monster.weekly && ready > now) return `Defeated this week — returns Monday`;
   if (monster.miniboss && ready > now) return `${monster.name} is resting — back in ${Math.ceil((ready - now) / 1000)}s`;
   const style = weaponStyle(p);
@@ -238,7 +239,8 @@ export function advanceFight(
         log(f, now, `${monster.name} defeated!`, 'loot');
         if (monster.miniboss) {
           p.bossReadyAt[monster.id] = monster.weekly ? nextWeeklyReset(now) : now + monster.miniboss.respawnMs;
-          const pet = rollPet(p, 'combat', rng, monster.weekly ? 'pet_sprout' : 'pet_bramble');
+          const petId = monster.weekly ? 'pet_sprout' : monster.id === 'old_thornhide' ? 'pet_bramble' : null;
+          const pet = petId ? rollPet(p, 'combat', rng, petId) : null;
           if (pet) report.pets.push(pet);
           return { stop: `${monster.name} defeated!`, usedMs: t };
         }

@@ -254,6 +254,14 @@ Based on the owner's reference screenshots:
 - **Profile** (top-right button, shows your pet): Character (avatar drawn wearing your gear + pet), Stats (all skills, totals), Pets (equip a pet), Settings.
 - **Tile Match** has calm lofi music, a wooden tile thud and a match chime.
 
+### Phase 5 — built (Ironmoor)
+- **Ironmoor** (region 2, tier 1 at level 90) is built: Iron / Oak / River trout and everything made from them (iron gear, bronze tools, oak bows/staffs, iron arrows) unlock once you **discover** Ironmoor.
+- **Travel** (Town → TRAVEL map): the road opens when any skill reaches 90. Walking is free (90s) and idle slots keep working on the road; **fast travel** costs 200 coins and only goes to towns you've visited. The top-bar chip shows where you are (or 🚶 and a countdown while walking).
+- **Location rules**: gathering (Mining, Woodcutting, Fishing) and combat must be *started* in their region; processing skills work anywhere once the region is discovered. Idle slots keep running after you travel away. Skill screens tag resources 🔒 (not built), 🧭 (not discovered) or 📍 (gather on location).
+- **Ironmoor town**: own pixel-art scene and local place names (The Deep Mine, Ironworks Forge, Oakwood Grove, Rushwater Falls, Miners' Canteen, The Ember Pit, Tinker's Bench, Stone Circle, Rune Anvil, Mine Tunnels). Its Trading Post sells iron-tier goods.
+- **Ironmoor monsters**: Ore Mole (95), Rust Sprite (110, Magic), Ironmoor Raider (125, Ranged), Ironhide Boar (145); **mini boss Forgefather Brask** (170, gems 80% with slightly better rarities, 5-min respawn).
+- Save version 9 (location, discovered regions, travel).
+
 ### Phase 4 — ideas for next
 Ironmoor region, weekly boss with "Defeated" screen, NPC Trading Post and shops (coin sinks), more idle slots, Loot Belt (Enhancing 60).
 

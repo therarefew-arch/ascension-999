@@ -52,6 +52,19 @@ tables.push(
   { id: 'mon_mossback_boar', source: 'monster', entries: [e('coins', 14, 30, 1), e('raw_trout', 1, 3, 0.3), e('iron_ore', 1, 3, 0.25), e('oak_logs', 1, 3, 0.2)] },
 );
 
+// ----- Monsters (Ironmoor) -----
+tables.push(
+  { id: 'mon_ore_mole', source: 'monster', entries: [e('coins', 40, 90, 1), e('iron_ore', 2, 6, 0.5), e('stone', 4, 10, 0.3), e('rune_essence', 3, 8, 0.3)] },
+  { id: 'mon_rust_sprite', source: 'monster', entries: [e('coins', 50, 110, 1), e('water_rune', 10, 25, 0.4), e('earth_rune', 8, 20, 0.35), e('iron_bar', 1, 3, 0.2)] },
+  { id: 'mon_ironmoor_raider', source: 'monster', entries: [e('coins', 70, 140, 1), e('iron_arrows', 10, 25, 0.45), e('iron_bar', 1, 3, 0.25), e('cooked_trout', 1, 3, 0.3)] },
+  { id: 'mon_ironhide_boar', source: 'monster', entries: [e('coins', 90, 180, 1), e('raw_trout', 2, 5, 0.35), e('oak_logs', 3, 8, 0.35), e('iron_ore', 3, 8, 0.3)] },
+  {
+    id: 'boss_forgefather_brask', source: 'miniboss',
+    entries: [e('coins', 400, 800, 1), e('iron_bar', 6, 14, 0.6), e('great_trout', 3, 8, 0.5), e('iron_arrows', 30, 60, 0.4), e('fire_rune', 20, 40, 0.4)],
+    groups: [{ chance: 0, items: [] }], // replaced below with the gem group
+  },
+);
+
 // ----- Mini boss: the ONLY place gems drop (in Pocketvale) -----
 /** Chance weights per rarity: common is common, mythic is very rare. */
 export const GEM_RARITY_WEIGHTS: Record<GemRarity, number> = { common: 45, uncommon: 28, rare: 15, epic: 8, legendary: 3, mythic: 1 };
@@ -73,6 +86,9 @@ tables.push({
   entries: [e('coins', 80, 160, 1), e('iron_bar', 2, 5, 0.5), e('great_trout', 1, 3, 0.4), e('iron_arrows', 10, 25, 0.35), e('earth_rune', 8, 20, 0.25), e('fire_rune', 6, 15, 0.2), e('rune_essence', 10, 25, 0.4)],
   groups: [gemGroup(0.7)],
 });
+
+// Forgefather Brask: a gem 80% of the time, slightly better odds than Old Thornhide.
+tables.find((t) => t.id === 'boss_forgefather_brask')!.groups = [gemGroup(0.8, { common: 35, uncommon: 30, rare: 20, epic: 10, legendary: 4, mythic: 1 })];
 
 // ----- Weekly boss: 2 guaranteed gems with better rarity odds -----
 const WEEKLY_GEM_WEIGHTS: Record<GemRarity, number> = { common: 20, uncommon: 30, rare: 25, epic: 15, legendary: 7, mythic: 3 };

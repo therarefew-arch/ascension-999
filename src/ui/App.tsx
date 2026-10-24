@@ -39,7 +39,11 @@ function StatusBar({ onIdle, onSettings, settingsOn, onTown, townOn }: {
       {player.bonfire && player.bonfire.until > Date.now() && (
         <span className="stat-chip fire-chip" title="Bonfire: +5% XP to all skills">🔥 {Math.ceil((player.bonfire.until - Date.now()) / 60000)}m</span>
       )}
-      <button className={`stat-chip gold-chip ${townOn ? 'chip-on' : ''}`} onClick={onTown} aria-label="Open Pocketvale town"><UiIcon name="pin" size={16} /> Pocketvale</button>
+      <button className={`stat-chip gold-chip ${townOn ? 'chip-on' : ''}`} onClick={onTown} aria-label={`Open ${player.location} town`}>
+        {player.travel
+          ? <>🚶 → {player.travel.to} {Math.max(0, Math.ceil((player.travel.arriveAt - Date.now()) / 1000))}s</>
+          : <><UiIcon name="pin" size={16} /> {player.location}</>}
+      </button>
       <button className={`stat-chip blue-chip ${runningSlots(player).length ? 'live' : ''}`} onClick={onIdle}>
         <UiIcon name="clock" size={16} /> IDLE ({runningSlots(player).length}/{player.unlockedSlots})
       </button>

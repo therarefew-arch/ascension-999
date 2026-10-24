@@ -2,6 +2,7 @@
 // the market and the loot rules so it can later live on a server for multiplayer.
 import type { EquipSlot, SkillId } from '../data/items';
 import type { FightState } from './combat';
+import type { Region } from '../data/tiers';
 
 /**
  * v2: added 6 skills; the old "tool" gear slot became "pickaxe".
@@ -11,8 +12,9 @@ import type { FightState } from './combat';
  * v6: economy — up to 3 idle slots, bigger bags, rotating-shop purchases.
  * v7: quality of life — XP tracker, collection log, pets, gear loadouts, idle presets.
  * v8: weekly boss, Wildfire, bonfires.
+ * v9: regions — where you are, which regions you've discovered, travelling.
  */
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 /** Starting bag size. Can be upgraded with coins up to MAX_BAG_SLOTS. */
 export const INVENTORY_SLOTS = 30;
 export const MAX_BAG_SLOTS = 50;
@@ -73,6 +75,12 @@ export interface PlayerState {
   presets: (IdlePreset | null)[];
   /** A lit bonfire: +5% XP to all skills until `until`. */
   bonfire: { until: number; log: string } | null;
+  /** The town you're in. */
+  location: Region;
+  /** Regions you've visited (their tier is unlocked for you). */
+  regions: Region[];
+  /** Walking to another town. */
+  travel: { to: Region; arriveAt: number; startedAt: number } | null;
 }
 
 export interface Loadout {
@@ -120,6 +128,9 @@ export function newPlayer(now = Date.now()): PlayerState {
     loadouts: [null, null, null],
     presets: [null, null, null],
     bonfire: null,
+    location: 'Pocketvale',
+    regions: ['Pocketvale'],
+    travel: null,
   };
 }
 

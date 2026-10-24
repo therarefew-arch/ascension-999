@@ -32,6 +32,7 @@ Full game vision: `docs/design.md`. Build only the phase that is asked for.
 - Idle: `player.slots` (3 entries, `unlockedSlots` usable). Use `runningSlots`/`slotOf`/`chooseSlot` from core/idle — never assume a single idle. Only one fight slot at a time.
 - Economy lives in `src/market/` (Trading Post, rotating shop, unlock costs). Gems are never sold by NPCs. Coins are in-game only — no real-money purchases ever.
 - Tiered items/recipes are generated from `src/data/tiers.ts` (METALS, WOODS, FISH). Keep tier-0/1 ids and numbers stable. When a region is built, add it to `OPEN_REGIONS`.
+- Regions: built regions are in `OPEN_REGIONS` + `REGION_INFO` (tiers.ts). A player must **discover** (walk to) a region to use its tier; gathering (`LOCAL_SKILLS`) and fights must be started in that region; idle slots keep running after travelling. Monsters have a `region`. To add a region: add it to OPEN_REGIONS/REGION_INFO, give it monsters + a mini boss, a scene, local place names and a Trading Post buy list.
 - The top-right button is **Profile** (Character with avatar + gear, Stats, Pets, Settings).
 - Mahjong (Tile Match) plays its own calm lofi track (`music_mahjong`), a `tile` thud on taps and a `match` sound.
 - Town is opened from the "Pocketvale" chip in the top bar (bottom nav: Skills, Combat, Bag, Bank, Gear).

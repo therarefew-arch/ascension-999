@@ -14,6 +14,8 @@ import { ALL_SKILLS } from '../data/skills';
 import { PET_MAP } from '../data/pets';
 import { applyLoadout, applyPreset, resetTracker, saveLoadout, savePreset } from './qol';
 import { finishWildfire, lightBonfire } from './firemaking';
+import { checkArrival, fastTravel, startWalk } from './travel';
+import type { Region } from '../data/tiers';
 import { levelForXp } from './xp';
 import { bagUpgradeCost, buy as marketBuy, buyDeal, sell as marketSell, SLOT_UNLOCKS } from '../market/market';
 import { deposit, depositAll, withdraw } from './inventory';
@@ -131,6 +133,15 @@ function tick(now = Date.now()) {
   const p = snap.player;
   const gap = now - p.lastActiveAt;
   if (gap <= 0) return;
+
+  // Finished walking to another town?
+  const arrival = checkArrival(p, now);
+  if (arrival) {
+    play(arrival.firstVisit ? 'levelup' : 'welcome');
+    toast(arrival.firstVisit ? `🗺️ You discovered ${arrival.arrived}! Its resources are unlocked.` : `Welcome to ${arrival.arrived}`, arrival.firstVisit ? 'level' : 'good');
+    save();
+    emit();
+  }
 
   if (gap > AWAY_THRESHOLD_MS) {
     const counted = Math.min(gap, OFFLINE_CAP_MS);
@@ -319,6 +330,29 @@ export const game = {
     emit();
     return true;
   },
+  // ----- Travel -----
+  walkTo(to: Region) {
+    const why = startWalk(snap.player, to);
+    if (why) return fail(why);
+    play('click');
+    toast(`On the road to ${to}… your idle slots keep working`, 'info');
+    save();
+    emit();
+  },
+  fastTravel(to: Region) {
+    const why = fastTravel(snap.player, to);
+    if (why) return fail(why);
+    play('enchant');
+    toast(`✨ Fast travelled to ${to}`, 'good');
+    save();
+    emit();
+  },
+  cancelTravel() {
+    snap.player.travel = null;
+    save();
+    emit();
+  },
+
   // ----- Firemaking extras -----
   lightBonfire(log: string) {
     tick();

@@ -7,7 +7,7 @@ import { countInBag } from '../../core/inventory';
 import { MAX_BAG_SLOTS, MAX_IDLE_SLOTS } from '../../core/player';
 import { game, useGame } from '../../core/store';
 import {
-  bagUpgradeCost, BUY_LIST, buyPrice, msUntilNextPrices, priceTrend, sellable, sellPrice, shopDeals, shopRotation,
+  bagUpgradeCost, buyListFor, buyPrice, msUntilNextPrices, priceTrend, sellable, sellPrice, shopDeals, shopRotation,
   SHOP_ROTATION_MS, SLOT_UNLOCKS,
 } from '../../market/market';
 import { ItemIcon, UiIcon } from '../icons';
@@ -59,9 +59,9 @@ function BuyTab() {
   const { player } = useGame();
   return (
     <>
-      <p className="small muted">Basic materials and food. Gems can never be bought — they only drop from bosses.</p>
+      <p className="small muted">Local goods from {player.location}. Each town sells different things. Gems can never be bought — they only drop from bosses.</p>
       <div className="list">
-        {BUY_LIST.map((id) => {
+        {buyListFor(player.location).map((id) => {
           const price = buyPrice(id);
           return (
             <div key={id} className="market-row">

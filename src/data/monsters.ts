@@ -60,6 +60,41 @@ export const MONSTERS: MonsterDef[] = [
   },
 ];
 
+// ----- Ironmoor (tier 1, levels 90+) -----
+MONSTERS.push(
+  {
+    id: 'ore_mole', name: 'Ore Mole', region: 'Ironmoor', level: 95, style: 'melee',
+    hp: 150, attack: 95, defense: 80, maxHit: 12, speedMs: 1900, lootTable: 'mon_ore_mole',
+    colors: { body: '#6b5b4e', dark: '#2f2620', accent: '#fca5a5' }, art: 'rat',
+    blurb: 'Tunnels through the mines, nibbling on iron. Its teeth are very shiny.',
+  },
+  {
+    id: 'rust_sprite', name: 'Rust Sprite', region: 'Ironmoor', level: 110, style: 'magic',
+    hp: 180, attack: 110, defense: 90, maxHit: 15, speedMs: 2000, lootTable: 'mon_rust_sprite',
+    colors: { body: '#c2410c', dark: '#7c2d12', accent: '#fde68a' }, art: 'sprite',
+    blurb: 'A crackly little spirit born from old rusty pipes.',
+  },
+  {
+    id: 'ironmoor_raider', name: 'Ironmoor Raider', region: 'Ironmoor', level: 125, style: 'ranged',
+    hp: 220, attack: 125, defense: 105, maxHit: 18, speedMs: 1900, lootTable: 'mon_ironmoor_raider',
+    colors: { body: '#4b5563', dark: '#1f2937', accent: '#f59e0b' }, art: 'bandit',
+    blurb: 'Raids ore carts on the mountain road with a heavy crossbow.',
+  },
+  {
+    id: 'ironhide_boar', name: 'Ironhide Boar', region: 'Ironmoor', level: 145, style: 'melee',
+    hp: 280, attack: 145, defense: 125, maxHit: 22, speedMs: 2000, lootTable: 'mon_ironhide_boar',
+    colors: { body: '#6b7280', dark: '#374151', accent: '#a8a29e' }, art: 'boar',
+    blurb: 'Rolled in iron dust so often its bristles turned to metal.',
+  },
+  {
+    id: 'forgefather_brask', name: 'Forgefather Brask', region: 'Ironmoor', level: 170, style: 'melee',
+    hp: 900, attack: 170, defense: 150, maxHit: 32, speedMs: 2200, lootTable: 'boss_forgefather_brask',
+    miniboss: { respawnMs: 5 * 60 * 1000 },
+    colors: { body: '#57534e', dark: '#1c1917', accent: '#f97316' }, art: 'bear',
+    blurb: 'Mini boss. A huge old forge-bear who guards the deepest mine. Drops gems.',
+  },
+);
+
 /** The weekly boss sits apart from the regular list on the Combat screen. */
 export const WEEKLY_BOSS: MonsterDef = {
   id: 'grumbleroot', name: 'Grumbleroot, the Moss King', region: 'Pocketvale', level: 80, style: 'melee',
