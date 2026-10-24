@@ -241,6 +241,8 @@ function repair(raw: any): PlayerState {
   p.hp = typeof raw?.hp === 'number' && raw.hp > 0 ? raw.hp : maxHp(p);
   p.hp = Math.min(p.hp, maxHp(p));
   p.regenMs = Number(raw?.regenMs) || 0;
+  if (raw?.bonfire && typeof raw.bonfire.until === 'number' && ITEMS[raw.bonfire.log]) p.bonfire = { until: raw.bonfire.until, log: raw.bonfire.log };
+  if (typeof raw?.bossReadyAt?.wildfire === 'number') p.bossReadyAt.wildfire = raw.bossReadyAt.wildfire;
   // Quality of life (v7)
   if (raw?.tracker && typeof raw.tracker.since === 'number') {
     p.tracker = { since: raw.tracker.since, xp: {} };

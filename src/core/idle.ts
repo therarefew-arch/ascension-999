@@ -274,6 +274,8 @@ export function addXp(p: PlayerState, action: { skill: SkillId }, report: Progre
   // Your active pet gives +2% XP in its skill.
   // (Not rounded, so even small actions get the bonus over time.)
   if (petBoosts(p.activePet, action.skill)) xp = xp * (1 + PET_XP_BONUS);
+  // A lit bonfire warms everyone up: +5% XP to all skills.
+  if (p.bonfire && p.bonfire.until > Date.now()) xp = xp * 1.05;
   const skill = p.skills[action.skill];
   const before = levelForXp(skill.xp);
   skill.xp = Math.min(MAX_XP, skill.xp + xp);

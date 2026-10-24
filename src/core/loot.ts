@@ -88,8 +88,8 @@ export function recordCollection(p: PlayerState, id: string, qty: number) {
 }
 
 /** Rare pet roll after a finished action (or mini boss kill). Returns the new pet's id, if any. */
-export function rollPet(p: PlayerState, source: SkillId | 'combat', rng: () => number = Math.random): string | null {
-  const pet = PETS.find((x) => x.skill === source);
+export function rollPet(p: PlayerState, source: SkillId | 'combat', rng: () => number = Math.random, petId?: string): string | null {
+  const pet = petId ? PETS.find((x) => x.id === petId) : PETS.find((x) => x.skill === source);
   if (!pet || p.pets.includes(pet.id)) return null;
   if (rng() >= 1 / pet.odds) return null;
   p.pets.push(pet.id);

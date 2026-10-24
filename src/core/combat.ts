@@ -2,7 +2,7 @@
 // Triangle: Melee beats Ranged, Ranged beats Magic, Magic beats Melee.
 // Cozy rule: being knocked out never costs items — you just wake up in town with full health.
 import { getItem, ITEMS, WEAPON_SPEED, type CombatStyle, type SkillId } from '../data/items';
-import { MONSTER_MAP, type MonsterDef } from '../data/monsters';
+import { MONSTER_MAP, monsterStyle, nextWeeklyReset, type MonsterDef } from '../data/monsters';
 import { equipmentStats } from './equipment';
 import { addXp, chooseSlot, type ProgressReport } from './idle';
 import { countInBag, removeFromBag } from './inventory';
@@ -86,7 +86,8 @@ export function combatStats(p: PlayerState, monster?: MonsterDef) {
   const ammo = currentAmmo(p);
   const ammoPower = ammo ? ITEMS[ammo].ammo!.power : 0;
   const weapon = p.equipment.weapon ? getItem(p.equipment.weapon) : null;
-  const advantage = monster ? (BEATS[style] === monster.style ? 1 : BEATS[monster.style] === style ? -1 : 0) : 0;
+  const mStyle = monster ? monsterStyle(monster) : 'melee';
+  const advantage = monster ? (BEATS[style] === mStyle ? 1 : BEATS[mStyle] === style ? -1 : 0) : 0;
   const attack = stats.attack ?? 0;
   const defense = stats.defense ?? 0;
   const accuracy = monster
@@ -105,6 +106,7 @@ export function combatStats(p: PlayerState, monster?: MonsterDef) {
 /** Why you can't fight this monster right now (null = you can). */
 export function whyCantFight(p: PlayerState, monster: MonsterDef, now = Date.now()): string | null {
   const ready = p.bossReadyAt[monster.id] ?? 0;
+  if (monster.weekly && ready > now) return `Defeated this week — returns Monday`;
   if (monster.miniboss && ready > now) return `${monster.name} is resting — back in ${Math.ceil((ready - now) / 1000)}s`;
   const style = weaponStyle(p);
   if (style !== 'melee' && !currentAmmo(p)) {
@@ -235,8 +237,8 @@ export function advanceFight(
         for (const st of loot) report.gained[st.id] = (report.gained[st.id] ?? 0) + st.qty;
         log(f, now, `${monster.name} defeated!`, 'loot');
         if (monster.miniboss) {
-          p.bossReadyAt[monster.id] = now + monster.miniboss.respawnMs;
-          const pet = rollPet(p, 'combat', rng);
+          p.bossReadyAt[monster.id] = monster.weekly ? nextWeeklyReset(now) : now + monster.miniboss.respawnMs;
+          const pet = rollPet(p, 'combat', rng, monster.weekly ? 'pet_sprout' : 'pet_bramble');
           if (pet) report.pets.push(pet);
           return { stop: `${monster.name} defeated!`, usedMs: t };
         }

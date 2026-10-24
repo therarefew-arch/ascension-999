@@ -34,6 +34,9 @@ function StatusBar({ onIdle, onSettings, settingsOn, onTown, townOn }: {
     <header className="topbar">
       <span className="stat-chip gold-chip"><UiIcon name="trophy" size={16} /> LV {total}</span>
       <span className="stat-chip coin-chip"><UiIcon name="coin" size={16} /> {fmtNum(player.coins)}</span>
+      {player.bonfire && player.bonfire.until > Date.now() && (
+        <span className="stat-chip fire-chip" title="Bonfire: +5% XP to all skills">🔥 {Math.ceil((player.bonfire.until - Date.now()) / 60000)}m</span>
+      )}
       <button className={`stat-chip gold-chip ${townOn ? 'chip-on' : ''}`} onClick={onTown} aria-label="Open Pocketvale town"><UiIcon name="pin" size={16} /> Pocketvale</button>
       <button className={`stat-chip blue-chip ${runningSlots(player).length ? 'live' : ''}`} onClick={onIdle}>
         <UiIcon name="clock" size={16} /> IDLE ({runningSlots(player).length}/{player.unlockedSlots})

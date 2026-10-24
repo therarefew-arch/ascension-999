@@ -23,6 +23,7 @@ export const PETS: PetDef[] = [
   { id: 'pet_glyph', name: 'Glyph', emoji: '🦉', skill: 'runecrafting', odds: 3000, blurb: 'A wise owl who can read every rune.' },
   { id: 'pet_twinkle', name: 'Twinkle', emoji: '🐱', skill: 'enhancing', odds: 3000, blurb: 'A cat who thinks every shiny thing is hers.' },
   { id: 'pet_bramble', name: 'Bramble', emoji: '🐻', skill: 'combat', odds: 50, blurb: "Old Thornhide's cub. Fierce, fluffy and loyal." },
+  { id: 'pet_sprout', name: 'Sprout', emoji: '🌱', skill: 'combat', odds: 20, blurb: "A seedling from Grumbleroot's crown. Grows a little every week." },
 ];
 
 export const PET_MAP: Record<string, PetDef> = Object.fromEntries(PETS.map((p) => [p.id, p]));

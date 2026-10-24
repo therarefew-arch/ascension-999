@@ -10,8 +10,9 @@ import type { FightState } from './combat';
  * v5: Runecrafting — minor/major runes → air/earth runes, old staffs → air staffs (blank staffs are new).
  * v6: economy — up to 3 idle slots, bigger bags, rotating-shop purchases.
  * v7: quality of life — XP tracker, collection log, pets, gear loadouts, idle presets.
+ * v8: weekly boss, Wildfire, bonfires.
  */
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 /** Starting bag size. Can be upgraded with coins up to MAX_BAG_SLOTS. */
 export const INVENTORY_SLOTS = 30;
 export const MAX_BAG_SLOTS = 50;
@@ -70,6 +71,8 @@ export interface PlayerState {
   loadouts: (Loadout | null)[];
   /** Saved idle-slot setups (3). */
   presets: (IdlePreset | null)[];
+  /** A lit bonfire: +5% XP to all skills until `until`. */
+  bonfire: { until: number; log: string } | null;
 }
 
 export interface Loadout {
@@ -116,6 +119,7 @@ export function newPlayer(now = Date.now()): PlayerState {
     activePet: null,
     loadouts: [null, null, null],
     presets: [null, null, null],
+    bonfire: null,
   };
 }
 

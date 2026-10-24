@@ -1,7 +1,7 @@
 // Combat: pick a monster, fight (it runs on its own), and play the optional strike/block minigame.
 import { useEffect, useRef, useState } from 'react';
 import { getItem, ITEMS, type CombatStyle } from '../../data/items';
-import { MONSTERS, type MonsterDef } from '../../data/monsters';
+import { MONSTERS, MONSTER_MAP, WEEKLY_BOSS, monsterStyle, type MonsterDef } from '../../data/monsters';
 import { COMBAT_SKILLS, SKILLS } from '../../data/skills';
 import { BLOCK_WINDOW_MS, STRIKE_SWEEP_SECONDS, fightSlot, combatStats, currentAmmo, maxHp, weaponStyle, whyCantFight } from '../../core/combat';
 import { countInBag } from '../../core/inventory';
@@ -51,6 +51,7 @@ function MonsterCard({ m }: { m: MonsterDef }) {
   const why = whyCantFight(player, m);
   const style = weaponStyle(player);
   const s = combatStats(player, m);
+  const mStyle = monsterStyle(m);
   const [, force] = useState(0);
   useEffect(() => {
     if (!m.miniboss) return;
@@ -64,9 +65,9 @@ function MonsterCard({ m }: { m: MonsterDef }) {
         <div className="monster-name">{m.name} <span className="mono small muted">Lv {m.level}</span></div>
         {m.miniboss && <div className="boss-tag">MINI BOSS · drops gems</div>}
         <div className="small monster-meta">
-          <span><UiIcon name={STYLE_ICON[m.style]} size={13} /> {STYLE_NAME[m.style]}</span>
+          <span><UiIcon name={STYLE_ICON[mStyle]} size={13} /> {STYLE_NAME[mStyle]}</span>
           <span><UiIcon name="heart" size={13} /> {m.hp}</span>
-          <span className={style === WEAK_TO[m.style] ? 'green' : ''}>Weak to {STYLE_NAME[WEAK_TO[m.style]]}</span>
+          <span className={style === WEAK_TO[mStyle] ? 'green' : ''}>Weak to {STYLE_NAME[WEAK_TO[mStyle]]}</span>
         </div>
         <div className="small mono muted">Your hit chance {Math.round(s.accuracy * 100)}% · max hit {s.maxHit}</div>
       </div>
@@ -78,11 +79,66 @@ function MonsterCard({ m }: { m: MonsterDef }) {
   );
 }
 
+/** The weekly boss: a big card, or a DEFEATED screen with a countdown to Monday. */
+function WeeklyBoss() {
+  const { player } = useGame();
+  const [, force] = useState(0);
+  useEffect(() => { const t = setInterval(() => force((n) => n + 1), 1000); return () => clearInterval(t); }, []);
+  const m = WEEKLY_BOSS;
+  const readyAt = player.bossReadyAt[m.id] ?? 0;
+  const style = monsterStyle(m);
+  if (readyAt > Date.now()) {
+    const left = readyAt - Date.now();
+    const d = Math.floor(left / 86_400_000);
+    const h = Math.floor((left % 86_400_000) / 3_600_000);
+    const min = Math.floor((left % 3_600_000) / 60_000);
+    const sec = Math.floor((left % 60_000) / 1000);
+    return (
+      <div className="weekly defeated">
+        <div className="weekly-art"><MonsterArt monster={m} size={90} /></div>
+        <div className="defeated-stamp">DEFEATED</div>
+        <div className="weekly-name">{m.name}</div>
+        <p className="small muted">You've beaten this week's boss. It wakes again on Monday.</p>
+        <div className="countdown mono">
+          <div><b>{d}</b><span>days</span></div><div><b>{h}</b><span>hrs</span></div><div><b>{min}</b><span>min</span></div><div><b>{sec}</b><span>sec</span></div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="weekly">
+      <div className="boss-tag">WEEKLY BOSS · 2 gems guaranteed</div>
+      <div className="row">
+        <div className="weekly-art"><MonsterArt monster={m} size={90} /></div>
+        <div className="grow">
+          <div className="weekly-name">{m.name} <span className="mono small muted">Lv {m.level}</span></div>
+          <div className="small">This week it fights with <b className="gold">{STYLE_NAME[style]}</b> — weak to <b className="green">{STYLE_NAME[WEAK_TO[style]]}</b>.</div>
+          <div className="small muted"><UiIcon name="heart" size={12} /> {fmtNum(m.hp)} HP · hits up to {m.maxHit}. Bring food!</div>
+        </div>
+      </div>
+      <MonsterCardFightButton m={m} />
+    </div>
+  );
+}
+
+function MonsterCardFightButton({ m }: { m: MonsterDef }) {
+  const { player } = useGame();
+  const why = whyCantFight(player, m);
+  return (
+    <>
+      <button className="btn btn-hero btn-lg btn-wide" disabled={!!why} onClick={() => game.startFight(m.id)}>
+        <UiIcon name="combat" size={20} /> CHALLENGE THE MOSS KING
+      </button>
+      {why && <div className="small red">{why}</div>}
+    </>
+  );
+}
+
 /** The fight itself, with the strike/block minigame. */
 function Fight({ onItem }: { onItem: (id: string) => void }) {
   const { player } = useGame();
   const f = player.fight!;
-  const m = MONSTERS.find((x) => x.id === f.monsterId)!;
+  const m = MONSTER_MAP[f.monsterId];
   const s = combatStats(player, m);
   const max = maxHp(player);
   const clock = useAnimationTime();
@@ -199,6 +255,7 @@ export function CombatScreen({ onGear, onItem }: { onGear: () => void; onItem: (
               <HpBar hp={player.hp} max={max} tone="green" />
               <p className="small muted">Triangle: Melee beats Ranged · Ranged beats Magic · Magic beats Melee. Your weapon sets your style. You heal slowly out of combat, and eat food automatically when low.</p>
             </div>
+            <WeeklyBoss />
             <h2 className="section-title">POCKETVALE</h2>
             {MONSTERS.map((m) => <MonsterCard key={m.id} m={m} />)}
             <p className="small dim center">Knocked out? You wake up safe in town — you never lose items.</p>

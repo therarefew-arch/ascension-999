@@ -55,14 +55,14 @@ tables.push(
 // ----- Mini boss: the ONLY place gems drop (in Pocketvale) -----
 /** Chance weights per rarity: common is common, mythic is very rare. */
 export const GEM_RARITY_WEIGHTS: Record<GemRarity, number> = { common: 45, uncommon: 28, rare: 15, epic: 8, legendary: 3, mythic: 1 };
-function gemGroup(chance: number): LootGroup {
+function gemGroup(chance: number, weights: Record<GemRarity, number> = GEM_RARITY_WEIGHTS): LootGroup {
   const groupItems: { item: string; weight: number }[] = [];
   for (const rarity of RARITIES) {
     const [lo, hi] = GEM_RANGES[rarity];
     const rolls = hi - lo + 1;
     for (const g of GEM_TYPES) {
       for (let v = lo; v <= hi; v++) {
-        groupItems.push({ item: gemId(g.type, rarity, v * g.mult), weight: GEM_RARITY_WEIGHTS[rarity] / rolls / GEM_TYPES.length });
+        groupItems.push({ item: gemId(g.type, rarity, v * g.mult), weight: weights[rarity] / rolls / GEM_TYPES.length });
       }
     }
   }
@@ -72,6 +72,21 @@ tables.push({
   id: 'boss_old_thornhide', source: 'miniboss',
   entries: [e('coins', 80, 160, 1), e('iron_bar', 2, 5, 0.5), e('great_trout', 1, 3, 0.4), e('iron_arrows', 10, 25, 0.35), e('earth_rune', 8, 20, 0.25), e('fire_rune', 6, 15, 0.2), e('rune_essence', 10, 25, 0.4)],
   groups: [gemGroup(0.7)],
+});
+
+// ----- Weekly boss: 2 guaranteed gems with better rarity odds -----
+const WEEKLY_GEM_WEIGHTS: Record<GemRarity, number> = { common: 20, uncommon: 30, rare: 25, epic: 15, legendary: 7, mythic: 3 };
+tables.push({
+  id: 'boss_grumbleroot', source: 'boss',
+  entries: [e('coins', 800, 1500, 1), e('great_trout', 5, 10, 1), e('iron_bar', 10, 20, 0.8), e('fire_rune', 30, 60, 0.6), e('oak_logs', 30, 60, 0.6), e('rune_essence', 40, 80, 0.5)],
+  groups: [gemGroup(1, WEEKLY_GEM_WEIGHTS), gemGroup(1, WEEKLY_GEM_WEIGHTS)],
+});
+
+// ----- Wildfire (Firemaking mini boss) -----
+tables.push({
+  id: 'boss_wildfire', source: 'miniboss',
+  entries: [e('coins', 100, 250, 1), e('oak_logs', 10, 20, 0.5), e('fire_rune', 10, 25, 0.6), e('pine_logs', 20, 40, 0.5)],
+  groups: [gemGroup(0.35)],
 });
 
 /** Gem rerolls: a fresh roll within the same type and rarity (used by the loot system). */

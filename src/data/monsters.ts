@@ -16,11 +16,13 @@ export interface MonsterDef {
   /** Milliseconds between its attacks. */
   speedMs: number;
   lootTable: string;
-  /** Mini bosses: fought by hand only, respawn after this long. */
+  /** Mini bosses (and the weekly boss): fought by hand only, respawn after this long. */
   miniboss?: { respawnMs: number };
+  /** Weekly boss: returns every Monday, and its combat style changes each week. */
+  weekly?: boolean;
   /** Colours for its portrait. */
   colors: { body: string; dark: string; accent: string };
-  art: 'rat' | 'sprite' | 'bandit' | 'boar' | 'bear';
+  art: 'rat' | 'sprite' | 'bandit' | 'boar' | 'bear' | 'treant';
   blurb: string;
 }
 
@@ -58,4 +60,32 @@ export const MONSTERS: MonsterDef[] = [
   },
 ];
 
-export const MONSTER_MAP: Record<string, MonsterDef> = Object.fromEntries(MONSTERS.map((m) => [m.id, m]));
+/** The weekly boss sits apart from the regular list on the Combat screen. */
+export const WEEKLY_BOSS: MonsterDef = {
+  id: 'grumbleroot', name: 'Grumbleroot, the Moss King', region: 'Pocketvale', level: 80, style: 'melee',
+  hp: 1200, attack: 75, defense: 60, maxHit: 16, speedMs: 2400, lootTable: 'boss_grumbleroot',
+  miniboss: { respawnMs: 0 }, weekly: true,
+  colors: { body: '#4d5e37', dark: '#22301a', accent: '#a3e635' }, art: 'treant',
+  blurb: 'Weekly boss. An ancient walking tree who wakes once a week. Its fighting style changes every week.',
+};
+
+export const MONSTER_MAP: Record<string, MonsterDef> = Object.fromEntries([...MONSTERS, WEEKLY_BOSS].map((m) => [m.id, m]));
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+/** Monday 00:00 (local time) of the current week. */
+export function weekStart(now = Date.now()): number {
+  const d = new Date(now);
+  d.setHours(0, 0, 0, 0);
+  const day = (d.getDay() + 6) % 7; // Monday = 0
+  return d.getTime() - day * 24 * 60 * 60 * 1000;
+}
+export function nextWeeklyReset(now = Date.now()): number {
+  return weekStart(now) + WEEK_MS;
+}
+
+/** A monster's style right now (the weekly boss rotates Melee → Ranged → Magic each week). */
+export function monsterStyle(m: MonsterDef, now = Date.now()): CombatStyle {
+  if (!m.weekly) return m.style;
+  const week = Math.floor(weekStart(now) / WEEK_MS);
+  return (['melee', 'ranged', 'magic'] as CombatStyle[])[((week % 3) + 3) % 3];
+}

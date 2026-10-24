@@ -62,6 +62,29 @@ export function MonsterArt({ monster, size = 96, hurt = false }: { monster: Mons
         </g>
       );
       break;
+    case 'treant':
+      art = (
+        <g>
+          {/* mossy crown */}
+          <circle cx="30" cy="20" r="14" fill={accent} opacity="0.85" />
+          <circle cx="50" cy="12" r="15" fill={accent} />
+          <circle cx="68" cy="22" r="13" fill={accent} opacity="0.85" />
+          <circle cx="44" cy="8" r="3" fill="#f9a8d4" /><circle cx="62" cy="14" r="2.5" fill="#fde68a" /><circle cx="28" cy="16" r="2.5" fill="#fde68a" />
+          {/* trunk body */}
+          <path d="M26 92 Q22 50 34 30 L62 30 Q74 50 70 92 Z" fill={body} stroke={dark} strokeWidth="3" />
+          <path d="M40 40 Q38 60 42 88 M56 40 Q58 62 54 88" stroke={dark} strokeWidth="2" fill="none" opacity="0.6" />
+          {/* face */}
+          <ellipse cx="40" cy="48" rx="5" ry="4" fill="#1a1410" /><circle cx="39" cy="47" r="1.3" fill="#d9f99d" />
+          <ellipse cx="56" cy="48" rx="5" ry="4" fill="#1a1410" /><circle cx="55" cy="47" r="1.3" fill="#d9f99d" />
+          <path d="M34 42 L45 45 M62 42 L51 45" stroke={dark} strokeWidth="3" strokeLinecap="round" />
+          <path d="M42 62 Q48 58 54 62" stroke="#1a1410" strokeWidth="3" fill="none" strokeLinecap="round" />
+          {/* branch arms */}
+          <path d="M28 54 Q12 50 8 36 M68 54 Q84 50 88 36" stroke={body} strokeWidth="7" fill="none" strokeLinecap="round" />
+          <path d="M28 54 Q12 50 8 36 M68 54 Q84 50 88 36" stroke={dark} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.6" />
+          <circle cx="8" cy="34" r="5" fill={accent} /><circle cx="88" cy="34" r="5" fill={accent} />
+        </g>
+      );
+      break;
     case 'bear':
       art = (
         <g>

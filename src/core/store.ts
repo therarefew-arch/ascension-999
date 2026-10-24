@@ -13,6 +13,7 @@ import {
 import { ALL_SKILLS } from '../data/skills';
 import { PET_MAP } from '../data/pets';
 import { applyLoadout, applyPreset, resetTracker, saveLoadout, savePreset } from './qol';
+import { finishWildfire, lightBonfire } from './firemaking';
 import { levelForXp } from './xp';
 import { bagUpgradeCost, buy as marketBuy, buyDeal, sell as marketSell, SLOT_UNLOCKS } from '../market/market';
 import { deposit, depositAll, withdraw } from './inventory';
@@ -318,6 +319,27 @@ export const game = {
     emit();
     return true;
   },
+  // ----- Firemaking extras -----
+  lightBonfire(log: string) {
+    tick();
+    const report = emptyReport(null);
+    const why = lightBonfire(snap.player, log, report);
+    if (why) return fail(why);
+    play('crackle');
+    toast('🔥 Bonfire lit! +5% XP to all skills', 'level');
+    announceLevels(report);
+    save();
+    emit();
+  },
+  finishWildfire(hits: number, total: number) {
+    const r = finishWildfire(snap.player, hits, total);
+    play(r.won ? 'levelup' : 'fail');
+    announceLevels(r.report);
+    save();
+    emit();
+    return r;
+  },
+
   // ----- Quality of life -----
   resetTracker() {
     resetTracker(snap.player);

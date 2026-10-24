@@ -235,6 +235,15 @@ Based on the owner's reference screenshots:
 - **Bag-full warnings**: toast when 3 slots from full and when full; the Bag button glows red.
 - Save version 7.
 
+### Phase 4c — built (weekly boss, Wildfire, bonfires)
+- **Weekly boss — Grumbleroot, the Moss King** (Lv 80, 1,200 HP). Fought by hand. Style rotates every week (Melee → Ranged → Magic).
+  Drops 2 guaranteed gems with better rarity odds, 800–1,500 coins and supplies; pet Sprout (1 in 20).
+  After defeat: **DEFEATED** card with a live countdown (days/hrs/min/sec) to Monday 00:00 local time.
+- **Wildfire** (Firemaking mini boss, Firemaking 20+, Campfire → WILDFIRE): Piano Tiles–style rhythm game, 4 lanes, ~40s.
+  Douse ≥60% to tame it: big Firemaking XP + loot (coins, logs, fire runes, 35% gem chance). Respawns 15 min after a win; losing just lets you retry.
+- **Bonfires** (Campfire → BONFIRE): burn 20 logs for 1.2× their Firemaking XP and +5% XP to all skills (pine 10 min, oak 20 min; relighting stacks time). Flame colour follows the log. 🔥 timer chip in the top bar.
+- Save version 8.
+
 ### Phase 4 — ideas for next
 Ironmoor region, weekly boss with "Defeated" screen, NPC Trading Post and shops (coin sinks), more idle slots, Loot Belt (Enhancing 60).
 
