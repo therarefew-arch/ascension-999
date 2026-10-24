@@ -244,6 +244,16 @@ Based on the owner's reference screenshots:
 - **Bonfires** (Campfire → BONFIRE): burn 20 logs for 1.2× their Firemaking XP and +5% XP to all skills (pine 10 min, oak 20 min; relighting stacks time). Flame colour follows the log. 🔥 timer chip in the top bar.
 - Save version 8.
 
+### Phase 4d — built (999 cap, tiers, profile)
+- **Level cap 999.** Same XP formula as before (no one's level drops). ~6h to 50, ~33h to 90, ~1,350h to 450, ~3,150h to 999 per skill.
+- **11 tiers every 90 levels, one per region**: 1 Pocketvale (Bronze/Pine/Shrimp), 90 Ironmoor (Iron/Oak/Trout), 180 Coalhaven (Steel = iron + coal / Willow / Salmon), 270 Bluecliff (Cobalt/Maple/Lobster), 360 Lunaria (Moonsilver/Moonwood/Moonfin), 450 Cinderpeak (Emberite/Emberbark/Emberfin), 540 Frosthold (Frostcore/Frostpine/Frostcod), 630 Voidreach (Voidstone/Voidwood/Void eel), 720 Starfall Crater (Starmetal/Starbloom/Star ray), 810 Celestine Spires (Celestium/Celestwood/Sky carp), 900 Primordial Rift (Primordial/Worldtree/Leviathan).
+  Every tier has ores, bars, logs, fish/food, weapons, armour, bows, staffs, arrows, tools (+1..+10) and enhancing. Elements: Air 1, Water 10, Earth 20, Fire 30, Nature 270, Frost 540, Shadow 630, Light 810.
+- **Locked until each region is built** (owner's choice — even Iron/Oak/Trout now wait for Ironmoor). Skill screens show the next region's tier with a 🔒 so you can see what's coming. Owned gear from locked tiers still works.
+- Gear needs combat level = tier level − 20 (Iron 70, Steel 160 …).
+- **Idle slots** now unlock at total level 500 (or 50,000 coins) and 1,500 (or 250,000 coins). Already-unlocked slots stay unlocked.
+- **Profile** (top-right button, shows your pet): Character (avatar drawn wearing your gear + pet), Stats (all skills, totals), Pets (equip a pet), Settings.
+- **Tile Match** has calm lofi music, a wooden tile thud and a match chime.
+
 ### Phase 4 — ideas for next
 Ironmoor region, weekly boss with "Defeated" screen, NPC Trading Post and shops (coin sinks), more idle slots, Loot Belt (Enhancing 60).
 

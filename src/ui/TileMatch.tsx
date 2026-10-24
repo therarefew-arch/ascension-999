@@ -1,5 +1,6 @@
 // Fishing: Reel It In, or the relaxing tile-matching game (mahjong solitaire). Both give Fishing XP.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { sound } from '../audio/sound';
 import type { ActionDef } from '../data/skills';
 import { whyCantDo } from '../core/idle';
 import { hasMove, isFree, newBoard, shuffle, type Tile } from '../core/mahjong';
@@ -24,11 +25,19 @@ export function TileMatch({ action }: { action: ActionDef }) {
   const why = whyCantDo(player, action, { manual: true });
   const blocked = why && why !== 'Your bag is full' ? why : null;
 
+  // Calm lofi music while you play; the town music comes back when you leave.
+  useEffect(() => {
+    sound.playMusic('music_mahjong');
+    return () => sound.playMusic('music_town');
+  }, []);
+
   const tap = (t: Tile) => {
     if (blocked || !isFree(t, tiles)) return;
+    sound.play('tile');
     if (picked === null || picked === t.id) { setPicked(picked === t.id ? null : t.id); return; }
     const other = tiles.find((o) => o.id === picked);
     if (!other || other.face !== t.face) { setPicked(t.id); return; }
+    sound.play('match');
     const left = tiles.filter((o) => o.id !== t.id && o.id !== other.id);
     setTiles(left);
     setPicked(null);

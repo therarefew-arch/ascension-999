@@ -22,4 +22,7 @@ as `.mp3`, `.ogg` or `.m4a` (for example `mine.mp3`). The game uses it instead o
 | fail | An enhance that didn't take |
 | hit | You attack in combat |
 | hurt | A monster attacks you |
+| tile | Tapping a Mahjong tile (soft wooden thud) |
+| match | Finding a Mahjong match |
+| music_mahjong | Calm lofi music while playing Tile Match (loops) |
 | music_town | Background music in Pocketvale (loops) |

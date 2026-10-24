@@ -18,12 +18,13 @@ import { ItemSheet, type ItemPlace } from './ItemSheet';
 import { TitleScreen } from './TitleScreen';
 import { BankScreen } from './screens/BankScreen';
 import { GearScreen } from './screens/GearScreen';
-import { SettingsScreen } from './screens/SettingsScreen';
+import { ProfileScreen } from './screens/ProfileScreen';
+import { PET_MAP } from '../data/pets';
 import { SkillScreen, SkillStrip } from './screens/SkillScreen';
 import { TownScreen } from './screens/TownScreen';
 import { fmtNum } from './format';
 
-type Tab = 'town' | 'skills' | 'combat' | 'bank' | 'gear' | 'settings' | 'market' | 'journal';
+type Tab = 'town' | 'skills' | 'combat' | 'bank' | 'gear' | 'profile' | 'market' | 'journal';
 
 function StatusBar({ onIdle, onSettings, settingsOn, onTown, townOn }: {
   onIdle: () => void; onSettings: () => void; settingsOn: boolean; onTown: () => void; townOn: boolean;
@@ -32,6 +33,7 @@ function StatusBar({ onIdle, onSettings, settingsOn, onTown, townOn }: {
   const total = ALL_SKILLS.reduce((sum, s) => sum + skillLevel(player, s), 0);
   return (
     <header className="topbar">
+      <div className="topbar-chips">
       <span className="stat-chip gold-chip"><UiIcon name="trophy" size={16} /> LV {total}</span>
       <span className="stat-chip coin-chip"><UiIcon name="coin" size={16} /> {fmtNum(player.coins)}</span>
       {player.bonfire && player.bonfire.until > Date.now() && (
@@ -41,7 +43,10 @@ function StatusBar({ onIdle, onSettings, settingsOn, onTown, townOn }: {
       <button className={`stat-chip blue-chip ${runningSlots(player).length ? 'live' : ''}`} onClick={onIdle}>
         <UiIcon name="clock" size={16} /> IDLE ({runningSlots(player).length}/{player.unlockedSlots})
       </button>
-      <button className={`icon-btn ${settingsOn ? 'on' : ''}`} onClick={onSettings} aria-label="Settings"><UiIcon name="settings" /></button>
+      </div>
+      <button className={`profile-btn ${settingsOn ? 'on' : ''}`} onClick={onSettings} aria-label="Profile (stats, gear, pets, settings)">
+        {player.activePet && PET_MAP[player.activePet] ? <span className="profile-pet">{PET_MAP[player.activePet].emoji}</span> : <UiIcon name="profile" size={22} />}
+      </button>
     </header>
   );
 }
@@ -142,7 +147,7 @@ export function App() {
 
   return (
     <div className="app">
-      <StatusBar onIdle={() => setIdleOpen(true)} onSettings={() => go(tab === 'settings' ? 'town' : 'settings')} settingsOn={tab === 'settings'}
+      <StatusBar onIdle={() => setIdleOpen(true)} onSettings={() => go(tab === 'profile' ? 'town' : 'profile')} settingsOn={tab === 'profile'}
         onTown={() => go('town')} townOn={tab === 'town'} />
       <IdleLine onOpen={() => setIdleOpen(true)} onFight={() => go('combat')} />
 
@@ -154,7 +159,7 @@ export function App() {
         {tab === 'combat' && <CombatScreen onGear={() => go('gear')} onItem={(id) => setItemView({ id, from: 'bag' })} />}
         {tab === 'bank' && <BankScreen onItem={(id) => setItemView({ id, from: 'bank' })} />}
         {tab === 'gear' && <GearScreen />}
-        {tab === 'settings' && <SettingsScreen />}
+        {tab === 'profile' && <ProfileScreen onGear={() => go('gear')} />}
       </main>
       {tab === 'skills' && <SkillStrip selected={skill} onSelect={setSkill} />}
 

@@ -7,6 +7,7 @@ import { FIRE_LOGS, skillLevel } from '../core/idle';
 import { countInBag } from '../core/inventory';
 import { game, useGame } from '../core/store';
 import { sound } from '../audio/sound';
+import { regionOpen } from '../data/tiers';
 import { ItemIcon, UiIcon } from './icons';
 import { fmtDuration, fmtNum } from './format';
 import { Kindle } from './Minigames2';
@@ -32,7 +33,7 @@ function Bonfire() {
       </div>
       <div className="mg-panel">
         <div className="mg-row"><span className="mg-label">Light a bonfire</span><span className="mg-hint">Lighting again adds more time</span></div>
-        {Object.entries(BONFIRES).map(([log, b]) => {
+        {Object.entries(BONFIRES).filter(([, b]) => regionOpen(b.region)).map(([log, b]) => {
           const have = countInBag(player.inventory, log);
           const lvlOk = skillLevel(player, 'firemaking') >= b.level;
           return (

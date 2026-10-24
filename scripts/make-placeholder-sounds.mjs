@@ -68,6 +68,8 @@ const sounds = {
   fail: mix(['', tone([392], 0.25, 0.06, 8)], ['', tone([330], 0.35, 0.06, 6), 0.12]),
   hit: mix(['', noise(0.04, 0.07, 70)], ['', tone([300, 450], 0.12, 0.09, 28)]),
   hurt: mix(['', tone([180, 160], 0.18, 0.09, 16)], ['', noise(0.05, 0.04, 50)]),
+  tile: mix(['', tone([140, 95], 0.12, 0.16, 30)], ['', noise(0.025, 0.08, 120)]),
+  match: mix(['', tone([1046, 1568], 0.35, 0.07, 9)], ['', tone([1318, 1976], 0.45, 0.06, 7), 0.09]),
   welcome: mix(['', tone([392], 0.5, 0.08, 4)], ['', tone([523], 0.5, 0.08, 4), 0.15], ['', tone([659], 0.8, 0.08, 3), 0.3]),
 };
 
@@ -88,5 +90,51 @@ chords.forEach((chord, ci) => {
   }
 });
 writeFileSync(join(OUT, 'music_town.wav'), wav(Array.from(music)));
+
+// Calm lofi loop for the Mahjong tile game: 72 bpm, jazzy 7th chords, soft kick + brush, vinyl crackle. 4 bars × 2 = ~26.7s.
+{
+  const bpm = 72;
+  const beat = 60 / bpm;
+  const bars = 8;
+  const len = Math.floor(bars * 4 * beat * RATE);
+  const out = new Float32Array(len);
+  const chordsL = [[146.8, 174.6, 220, 261.6], [98, 123.5, 174.6, 220], [130.8, 164.8, 196, 246.9], [110, 130.8, 164.8, 196]]; // Dm7 G7 Cmaj7 Am7
+  for (let b = 0; b < bars; b++) {
+    const chord = chordsL[b % 4];
+    const start = Math.floor(b * 4 * beat * RATE);
+    const n = Math.floor(4 * beat * RATE);
+    for (let i = 0; i < n && start + i < len; i++) {
+      const t = i / RATE;
+      const env = Math.min(1, t / 0.08) * Math.exp(-0.35 * t);
+      const trem = 0.85 + 0.15 * Math.sin(2 * Math.PI * 4.2 * t);
+      let v = 0;
+      for (const f of chord) v += Math.sin(2 * Math.PI * f * t) + 0.25 * Math.sin(4 * Math.PI * f * t + 0.3);
+      out[start + i] += (v / chord.length) * env * trem * 0.07;
+    }
+    // soft bass note on beat 1 and 3
+    for (const bt of [0, 2]) {
+      const s = start + Math.floor(bt * beat * RATE);
+      for (let i = 0; i < beat * RATE * 1.5 && s + i < len; i++) {
+        const t = i / RATE;
+        out[s + i] += Math.sin(2 * Math.PI * (chord[0] / 2) * t) * Math.exp(-2.5 * t) * 0.09;
+      }
+    }
+    // gentle kick on 1 and 3, brushy snare on 2 and 4
+    for (let bt = 0; bt < 4; bt++) {
+      const s = start + Math.floor(bt * beat * RATE);
+      if (bt % 2 === 0) for (let i = 0; i < 0.18 * RATE && s + i < len; i++) { const t = i / RATE; out[s + i] += Math.sin(2 * Math.PI * (70 - 40 * t) * t) * Math.exp(-18 * t) * 0.16; }
+      else for (let i = 0; i < 0.15 * RATE && s + i < len; i++) { const t = i / RATE; out[s + i] += (Math.random() * 2 - 1) * Math.exp(-22 * t) * 0.035; }
+    }
+  }
+  // vinyl crackle + hiss
+  for (let i = 0; i < len; i++) {
+    out[i] += (Math.random() * 2 - 1) * 0.004;
+    if (Math.random() < 0.0006) out[i] += (Math.random() * 2 - 1) * 0.06;
+  }
+  // fade the loop ends a touch so it repeats smoothly
+  const fade = Math.floor(0.05 * RATE);
+  for (let i = 0; i < fade; i++) { out[i] *= i / fade; out[len - 1 - i] *= i / fade; }
+  writeFileSync(join(OUT, 'music_mahjong.wav'), wav(Array.from(out)));
+}
 
 console.log('Placeholder sounds written to', OUT);

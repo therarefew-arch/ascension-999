@@ -9,7 +9,7 @@ Full game vision: `docs/design.md`. Build only the phase that is asked for.
 - Single-player for now, but keep **player data**, **market**, and **loot** logic separate so multiplayer can be added later.
 - **All loot goes through one central loot system** (`src/core/loot.ts`). Never add items to a player any other way.
 - **Gems can ONLY drop from bosses and mini bosses.** The loot system enforces this; never weaken that check.
-- **All skills cap at level 500**, with **resource tiers every 50 levels**.
+- **All skills cap at level 999**, with **resource and region tiers every 90 levels** (1, 90, 180, 270, 360, 450, 540, 630, 720, 810, 900) — one tier per region (`src/data/tiers.ts`). Tiers of regions that aren't built yet are locked (`OPEN_REGIONS`).
 - **No energy limits and no paying to skip the grind.**
 - **Cozy medieval fantasy style; clean, uncluttered UI.**
 - **Never remove or change existing features unless the owner asks.**
@@ -31,6 +31,9 @@ Full game vision: `docs/design.md`. Build only the phase that is asked for.
 - Runes belong to **Runecrafting** (not Crafting): rune essence (Mining) + an element talisman in the bag (never used up). Crafting makes blank staffs; Runecrafting makes elemental staffs from a blank staff + runes. Staffs cast only with their own element's runes.
 - Idle: `player.slots` (3 entries, `unlockedSlots` usable). Use `runningSlots`/`slotOf`/`chooseSlot` from core/idle — never assume a single idle. Only one fight slot at a time.
 - Economy lives in `src/market/` (Trading Post, rotating shop, unlock costs). Gems are never sold by NPCs. Coins are in-game only — no real-money purchases ever.
+- Tiered items/recipes are generated from `src/data/tiers.ts` (METALS, WOODS, FISH). Keep tier-0/1 ids and numbers stable. When a region is built, add it to `OPEN_REGIONS`.
+- The top-right button is **Profile** (Character with avatar + gear, Stats, Pets, Settings).
+- Mahjong (Tile Match) plays its own calm lofi track (`music_mahjong`), a `tile` thud on taps and a `match` sound.
 - Town is opened from the "Pocketvale" chip in the top bar (bottom nav: Skills, Combat, Bag, Bank, Gear).
 - When testing in the browser pane, only run scripts on `localhost` — never on the live site (it holds real saves).
 - Combat skills (Melee, Ranged, Magic, Defense, Health) are the next update.

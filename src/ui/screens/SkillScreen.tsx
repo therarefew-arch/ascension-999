@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import type { SkillId } from '../../data/items';
 import { ACTIONS, actionsForSkill, SKILL_ORDER, SKILLS, tabsForSkill, type ActionDef } from '../../data/skills';
 import { getItem } from '../../data/items';
+import { regionOpen } from '../../data/tiers';
 import { skillLevel, slotOf, whyCantDo } from '../../core/idle';
 import { countInBag } from '../../core/inventory';
 import type { PlayerState } from '../../core/player';
@@ -75,7 +76,8 @@ function RecipeList({ player, actions, selected, onSelect }: {
   return (
     <div className="recipe-list">
       {actions.map((a) => {
-        const locked = lvl < a.level;
+        const regionLocked = !regionOpen(a.region);
+        const locked = lvl < a.level || regionLocked;
         // The input that limits how many you can make.
         const needs = a.inputs.filter((i) => i.item !== a.upgrades);
         const limiting = needs.reduce<{ have: number; qty: number; n: number } | null>((best, i) => {
@@ -94,7 +96,7 @@ function RecipeList({ player, actions, selected, onSelect }: {
             </div>
             <div className="recipe-right mono">
               {limiting && <span className={enough ? 'green' : 'red'}>{fmtNum(limiting.have)}/{limiting.qty}</span>}
-              {locked && <span className="dim small">Lv {a.level}</span>}
+              {locked && <span className="dim small">{regionLocked ? `🔒 ${a.region}` : `Lv ${a.level}`}</span>}
               {!locked && toolProblem && <span className="red small">needs tool</span>}
             </div>
           </button>
@@ -172,7 +174,8 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
     );
   }
 
-  const unlocked = lvl >= action.level;
+  const regionLocked = !regionOpen(action.region);
+  const unlocked = lvl >= action.level && !regionLocked;
   const idlingThis = slotOf(player, action.id) >= 0;
   const Minigame = MINIGAMES[skill] ?? AnvilRhythm;
 
@@ -197,14 +200,14 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
       ) : (
       <div className="chip-row" role="tablist" aria-label="Resources">
         {actions.map((a: ActionDef) => {
-          const locked = lvl < a.level;
+          const locked = lvl < a.level || !regionOpen(a.region);
           return (
             <button key={a.id} role="tab" aria-selected={a.id === action.id}
               className={`res-chip ${a.id === action.id ? 'on' : ''} ${locked ? 'locked' : ''}`}
               onClick={() => setSelectedId(a.id)}>
               <ItemIcon id={a.iconItem} size={22} />
               <span>{a.name}</span>
-              {locked && <span className="chip-lv">Lv{a.level}</span>}
+              {locked && <span className="chip-lv">{regionOpen(a.region) ? `Lv${a.level}` : `🔒Lv${a.level}`}</span>}
               {slotOf(player, a.id) >= 0 && <span className="chip-idle"><UiIcon name="clock" size={12} /></span>}
             </button>
           );
@@ -219,7 +222,9 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
           <div className="mg-stage">
             <div className="mg-rock locked-art"><ItemIcon id={action.iconItem} size={72} /></div>
             <div className="mg-stage-name">{action.name}</div>
-            <div className="mg-stage-xp"><UiIcon name="lock" size={14} /> Unlocks at {SKILLS[skill].name} level {action.level}</div>
+            <div className="mg-stage-xp"><UiIcon name="lock" size={14} /> {regionLocked
+              ? `Found in ${action.region} (level ${action.level}) — coming in a future update`
+              : `Unlocks at ${SKILLS[skill].name} level ${action.level}`}</div>
           </div>
         </div>
       )}

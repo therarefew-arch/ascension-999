@@ -12,8 +12,8 @@ import type { PlayerState } from '../core/player';
 
 /** SLOT_UNLOCKS[n] = how to unlock slot n+1 when you have n slots. Total level unlocks it for free. */
 export const SLOT_UNLOCKS: Record<number, { level: number; coins: number }> = {
-  1: { level: 50, coins: 5_000 },
-  2: { level: 150, coins: 25_000 },
+  1: { level: 500, coins: 50_000 },
+  2: { level: 1_500, coins: 250_000 },
 };
 
 /** Cost of the next +5 bag slots (null = already at the maximum of 50). */
@@ -41,11 +41,16 @@ const GEM_VALUE: Record<string, number> = { common: 60, uncommon: 150, rare: 400
 /** A fair base value for every item. */
 export function baseValue(item: ItemDef): number {
   if (BASE[item.id] !== undefined) return BASE[item.id];
+  // Higher tiers are worth more (about ×1.35 per tier, like their XP).
+  if (item.tierNum !== undefined && item.tierNum >= 2 && ['ore', 'bar', 'log', 'fish', 'food', 'ammo'].includes(item.category)) {
+    const base = { ore: 3, bar: 9, log: 3, fish: 4, food: 7, ammo: 1 }[item.category as 'ore'] ?? 5;
+    return Math.round(base * Math.pow(1.35, item.tierNum) * (item.id.startsWith('great_') ? 1.6 : 1));
+  }
   if (item.gem) return GEM_VALUE[item.gem.rarity] + item.gem.value * 10;
   if (item.id.endsWith('_talisman')) return 40;
   const plus = item.upgrade?.level ?? 0;
   if (item.category === 'weapon' || item.category === 'armour' || item.category === 'tool') {
-    const tierMult = ['iron', 'oak', 'bronze'].includes(item.tier) && item.equip?.req ? 3 : 1;
+    const tierMult = item.tierNum !== undefined ? Math.pow(1.35, item.tierNum) * (item.tierNum >= 1 ? 2.2 : 1) : 1;
     return Math.round(30 * tierMult * (1 + 0.35 * plus));
   }
   if (item.category === 'material') return 20;

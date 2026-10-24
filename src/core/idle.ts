@@ -10,6 +10,7 @@ import { enhanceChance, FAIL_XP_SHARE } from './enhancing';
 import { countInBag, countInBank, removeFromBag, canFitAll } from './inventory';
 import { giveLoot, maxLoot, recordCollection, rollLoot, rollPet } from './loot';
 import { PET_XP_BONUS, petBoosts } from '../data/pets';
+import { regionOpen, WOODS } from '../data/tiers';
 import type { IdleSlot, PlayerState } from './player';
 import { MAX_XP, levelForXp } from './xp';
 import { equipmentStats } from './equipment';
@@ -77,11 +78,15 @@ function upgradeSource(p: PlayerState, action: ActionDef): 'bag' | EquipSlot | n
 // The cooking fire
 // ---------------------------------------------------------------------------
 
-/** How long one log keeps the cooking fire going, and the colour of its flame. */
-export const FIRE_LOGS: Record<string, { heatMs: number; color: string; burnAction: string }> = {
-  pine_logs: { heatMs: 20_000, color: '#f97316', burnAction: 'burn_pine' },
-  oak_logs: { heatMs: 40_000, color: '#fbbf24', burnAction: 'burn_oak' },
-};
+/** How long one log keeps the cooking fire going, and the colour of its flame (every wood tier burns a different colour). */
+const FLAME_HUES = [25, 45, 85, 10, 55, 330, 220, 5, 190, 280, 50, 170, 120, 0, 40, 300, 245, 30, 150, 60];
+export const FIRE_LOGS: Record<string, { heatMs: number; color: string; burnAction: string }> = Object.fromEntries(
+  WOODS.map((w, t) => [`${w.key}_logs`, {
+    heatMs: 20_000 * (t + 1),
+    color: t === 0 ? '#f97316' : t === 1 ? '#fbbf24' : `hsl(${FLAME_HUES[t]} 90% 58%)`,
+    burnAction: `burn_${w.key}`,
+  }]),
+);
 export const MAX_FIRE_MS = 120_000;
 
 /** Logs in the bag this player is able to burn (Firemaking level and tinderbox allowing). */
@@ -121,6 +126,7 @@ export function drainFire(p: PlayerState, ms: number) {
  * While idling, the fire is fed automatically from logs in the bag.
  */
 export function whyCantDo(p: PlayerState, action: ActionDef, opts: { manual?: boolean } = {}): string | null {
+  if (!regionOpen(action.region)) return `Found in ${action.region} — coming in a future update`;
   if (skillLevel(p, action.skill) < action.level) return `Needs level ${action.level}`;
   if (action.needsTool !== undefined && equippedToolTier(p, action.skill) < action.needsTool) {
     return toolNeededText(action.skill, action.needsTool);

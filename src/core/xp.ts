@@ -1,7 +1,8 @@
-// XP curve. Cap is 500. Tuned so one skill takes roughly 876 hours to max
-// once all 11 tiers exist (about 6h to level 50, 35h to 100). See docs/design.md.
+// XP curve. Cap is 999 with a new tier every 50 levels (20 tiers).
+// Same formula as before, so levels never drop: ~6h to 50, ~38h to 100, ~1,500h to 500, ~3,100h to 999
+// (higher tiers give more XP per action — see tierXp in data/tiers.ts and docs/design.md).
 
-export const MAX_LEVEL = 500;
+export const MAX_LEVEL = 999;
 export const TIER_EVERY = 50;
 
 /** XP needed to go from `level` to `level + 1`. */

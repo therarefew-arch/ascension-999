@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { ITEM_LIST, type ItemCategory } from '../../data/items';
 import { PETS, PET_XP_BONUS } from '../../data/pets';
+import { regionOpen } from '../../data/tiers';
 import { SKILLS } from '../../data/skills';
 import { trackerGains } from '../../core/qol';
 import { game, useGame } from '../../core/store';
@@ -52,7 +53,8 @@ const COLLECTION_GROUPS: { name: string; cats: ItemCategory[] }[] = [
 function Collection() {
   const { player } = useGame();
   // Only +0 versions of upgradable items, so the log isn't 11× too long.
-  const all = ITEM_LIST.filter((it) => it.category !== 'currency' && (!it.upgrade || it.upgrade.level === 0));
+  // Items from regions that aren't built yet are left out until those regions open.
+  const all = ITEM_LIST.filter((it) => it.category !== 'currency' && (!it.upgrade || it.upgrade.level === 0) && regionOpen(it.region));
   const found = all.filter((it) => (player.collection[it.id] ?? 0) > 0 || Object.keys(player.collection).some((id) => id.startsWith(it.id + '_p')));
   return (
     <>

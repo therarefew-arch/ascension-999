@@ -1,4 +1,6 @@
 // Static item definitions. No player data lives here.
+// Tiered items (ores, bars, logs, fish, gear, tools, ammo) are generated for all 20 tiers from data/tiers.ts.
+import { FISH, METALS, TIER_COUNT, WOODS, tierLevel, tierPalette, tierRegion, tierXp, type Region } from './tiers';
 
 export type ItemCategory = 'ore' | 'bar' | 'log' | 'material' | 'fish' | 'food' | 'weapon' | 'armour' | 'tool' | 'gem' | 'ammo' | 'currency';
 export type CombatStyle = 'melee' | 'ranged' | 'magic';
@@ -23,6 +25,7 @@ export const TIER_COLORS: Record<string, { main: string; light: string; dark: st
   tin: { main: '#aab6bd', light: '#dbe3e7', dark: '#5f6a70' },
   bronze: { main: '#c99248', light: '#ecc27d', dark: '#7a5320' },
   iron: { main: '#8b949c', light: '#c4cbd1', dark: '#4a5157' },
+  coal: { main: '#3f3f46', light: '#71717a', dark: '#18181b' },
   stone: { main: '#8a8278', light: '#b3aa9e', dark: '#4f4942' },
   pine: { main: '#a8743f', light: '#d6a66b', dark: '#5f3d1d' },
   oak: { main: '#7d5a36', light: '#b58b5c', dark: '#45301a' },
@@ -34,10 +37,18 @@ export const TIER_COLORS: Record<string, { main: string; light: string; dark: st
   water: { main: '#3b82f6', light: '#bfdbfe', dark: '#1e3a8a' },
   earth: { main: '#84cc16', light: '#d9f99d', dark: '#3f6212' },
   fire: { main: '#f97316', light: '#fed7aa', dark: '#9a3412' },
+  nature: { main: '#22c55e', light: '#bbf7d0', dark: '#166534' },
+  frost: { main: '#67e8f9', light: '#ecfeff', dark: '#0e7490' },
+  shadow: { main: '#6d28d9', light: '#c4b5fd', dark: '#2e1065' },
+  light: { main: '#fde047', light: '#fefce8', dark: '#a16207' },
   ruby: { main: '#ef4444', light: '#fecaca', dark: '#7f1d1d' },
   sapphire: { main: '#3b82f6', light: '#bfdbfe', dark: '#1e3a8a' },
   emerald: { main: '#22c55e', light: '#bbf7d0', dark: '#14532d' },
 };
+// Generated colours for the new tiers (existing hand-picked ones are kept).
+for (const m of METALS) TIER_COLORS[m.key] ??= tierPalette(m.hue, m.sat, m.light);
+for (const w of WOODS) TIER_COLORS[w.key] ??= tierPalette(w.hue, 40, w.light);
+for (const f of FISH) TIER_COLORS[f.key] ??= tierPalette(f.hue, 60, 60);
 
 export const RARITIES: GemRarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
 export const RARITY_COLORS: Record<GemRarity, string> = {
@@ -72,10 +83,12 @@ export const STAT_LABELS: Record<keyof ItemStats, string> = {
   craftingSpeed: 'Crafting speed %',
 };
 
+export type Element = 'air' | 'water' | 'earth' | 'fire' | 'nature' | 'frost' | 'shadow' | 'light';
+
 export interface EquipInfo {
   slot: EquipSlot;
   stats: ItemStats;
-  /** Skill level needed to equip (tools only for now). */
+  /** Skill level needed to equip. */
   req?: { skill: SkillId; level: number };
   /** Tools: which resource tier this tool unlocks (0 = Stone, 1 = Bronze, ...). */
   toolTier?: number;
@@ -112,51 +125,94 @@ export interface ItemDef {
   ammo?: { style: 'ranged' | 'magic'; power: number; element?: Element };
   /** Gems: socket into a gear slot. Higher rarity = better stat rolls. */
   gem?: { type: GemType; rarity: GemRarity; value: number };
+  /** Region this item comes from (locked regions aren't built yet). */
+  region?: Region;
+  /** Resource tier 0–19. */
+  tierNum?: number;
 }
 
 export const MAX_UPGRADE = 10;
 export const upgradeId = (base: string, level: number) => (level === 0 ? base : `${base}_p${level}`);
 
 const items: ItemDef[] = [
-  // Ores & stone
-  { id: 'copper_ore', name: 'Copper ore', category: 'ore', tier: 'copper', icon: 'ore', stackable: true, description: 'A warm orange ore. Smelt with tin to make bronze.' },
-  { id: 'tin_ore', name: 'Tin ore', category: 'ore', tier: 'tin', icon: 'ore', stackable: true, description: 'A soft grey ore. Smelt with copper to make bronze.' },
-  { id: 'iron_ore', name: 'Iron ore', category: 'ore', tier: 'iron', icon: 'ore', stackable: true, description: 'Heavy and dependable. Smelts into iron bars.' },
+  { id: 'copper_ore', name: 'Copper ore', category: 'ore', tier: 'copper', icon: 'ore', stackable: true, tierNum: 0, region: 'Pocketvale', description: 'A warm orange ore. Smelt with tin to make bronze.' },
+  { id: 'tin_ore', name: 'Tin ore', category: 'ore', tier: 'tin', icon: 'ore', stackable: true, tierNum: 0, region: 'Pocketvale', description: 'A soft grey ore. Smelt with copper to make bronze.' },
+  { id: 'iron_ore', name: 'Iron ore', category: 'ore', tier: 'iron', icon: 'ore', stackable: true, tierNum: 1, region: tierRegion(1), description: 'Heavy and dependable. Smelts into iron bars.' },
+  { id: 'coal', name: 'Coal', category: 'ore', tier: 'coal', icon: 'ore', stackable: true, tierNum: 2, region: tierRegion(2), description: 'Black and dusty. Needed with iron ore to make steel.' },
   { id: 'stone', name: 'Stone', category: 'material', tier: 'stone', icon: 'rock', stackable: true, description: 'A sturdy chunk of stone. Used for crafting tools.' },
-  // Bars
-  { id: 'bronze_bar', name: 'Bronze bar', category: 'bar', tier: 'bronze', icon: 'bar', stackable: true, description: 'A bar of bronze, ready for the anvil.' },
-  { id: 'iron_bar', name: 'Iron bar', category: 'bar', tier: 'iron', icon: 'bar', stackable: true, description: 'A bar of iron, ready for the anvil.' },
-  // Logs
-  { id: 'pine_logs', name: 'Pine logs', category: 'log', tier: 'pine', icon: 'log', stackable: true, description: 'Light, sappy logs. Burn with a bright orange flame.' },
-  { id: 'oak_logs', name: 'Oak logs', category: 'log', tier: 'oak', icon: 'log', stackable: true, description: 'Strong oak. Burns long with a golden flame.' },
-  // Fish & food
-  { id: 'raw_shrimp', name: 'Raw shrimp', category: 'fish', tier: 'shrimp', icon: 'shrimp', stackable: true, description: 'Fresh from the river. Cook it before eating.' },
-  { id: 'raw_trout', name: 'Raw river trout', category: 'fish', tier: 'trout', icon: 'fish', stackable: true, description: 'A lively trout. Cook it before eating.' },
-  { id: 'cooked_shrimp', name: 'Cooked shrimp', category: 'food', tier: 'shrimp', icon: 'cooked_shrimp', stackable: true, heals: 6, description: 'Tasty! Eat it in combat to heal.' },
-  { id: 'great_shrimp', name: 'Great shrimp', category: 'food', tier: 'shrimp', icon: 'cooked_shrimp', stackable: true, heals: 9, description: 'Perfectly seared. Heals more in combat.' },
-  { id: 'cooked_trout', name: 'Cooked trout', category: 'food', tier: 'trout', icon: 'cooked', stackable: true, heals: 14, description: 'A hearty meal. Eat it in combat to heal.' },
-  { id: 'great_trout', name: 'Great trout', category: 'food', tier: 'trout', icon: 'cooked', stackable: true, heals: 20, description: 'Perfectly seared. Heals more in combat.' },
-  // Coins (go straight to your purse, not your bag)
-  { id: 'coins', name: 'Coins', category: 'currency', tier: 'gold', icon: 'coins', stackable: true, description: 'Shiny coins. Spend them on gem rerolls now — shops and the market are coming.' },
-  // Ammo
-  { id: 'bronze_arrows', name: 'Bronze arrows', category: 'ammo', tier: 'bronze', icon: 'arrows', stackable: true, ammo: { style: 'ranged', power: 2 }, description: 'Fired by bows. Each shot uses one (sometimes you get it back).' },
-  { id: 'iron_arrows', name: 'Iron arrows', category: 'ammo', tier: 'iron', icon: 'arrows', stackable: true, ammo: { style: 'ranged', power: 4 }, description: 'Sharper arrows that hit harder.' },
   { id: 'rune_essence', name: 'Rune essence', category: 'material', tier: 'essence', icon: 'rock', stackable: true, description: 'Glittering stone humming with magic. Runecrafting turns it into runes and talismans.' },
+  // Coins (go straight to your purse, not your bag)
+  { id: 'coins', name: 'Coins', category: 'currency', tier: 'gold', icon: 'coins', stackable: true, description: 'Shiny coins. Spend them at the Trading Post and on upgrades.' },
 ];
 
+// ----- Ores (tier 3+ have their own ore; tier 0 = copper+tin, 1 = iron, 2 = iron+coal) -----
+/** What each metal's bar is smelted from. */
+export const METAL_ORES: { item: string; qty: number }[][] = METALS.map((m, t) => {
+  if (t === 0) return [{ item: 'copper_ore', qty: 1 }, { item: 'tin_ore', qty: 1 }];
+  if (t === 1) return [{ item: 'iron_ore', qty: 1 }];
+  if (t === 2) return [{ item: 'iron_ore', qty: 1 }, { item: 'coal', qty: 2 }];
+  return [{ item: `${m.key}_ore`, qty: 1 }];
+});
+for (let t = 3; t < TIER_COUNT; t++) {
+  const m = METALS[t];
+  items.push({ id: `${m.key}_ore`, name: `${m.name} ore`, category: 'ore', tier: m.key, icon: 'ore', stackable: true, tierNum: t, region: tierRegion(t), description: `Rare ore from ${tierRegion(t)}. Smelts into ${m.name.toLowerCase()} bars.` });
+}
+
+// ----- Bars -----
+for (let t = 0; t < TIER_COUNT; t++) {
+  const m = METALS[t];
+  items.push({ id: `${m.key}_bar`, name: `${m.name} bar`, category: 'bar', tier: m.key, icon: 'bar', stackable: true, tierNum: t, region: tierRegion(t), description: `A bar of ${m.name.toLowerCase()}, ready for the anvil.` });
+}
+
+// ----- Logs -----
+for (let t = 0; t < TIER_COUNT; t++) {
+  const w = WOODS[t];
+  const desc = t === 0 ? 'Light, sappy logs. Burn with a bright orange flame.' : t === 1 ? 'Strong oak. Burns long with a golden flame.' : `${w.name} logs from ${tierRegion(t)}. Burn long with a coloured flame.`;
+  items.push({ id: `${w.key}_logs`, name: `${w.name} logs`, category: 'log', tier: w.key, icon: 'log', stackable: true, tierNum: t, region: tierRegion(t), description: desc });
+}
+
+// ----- Fish & food -----
+/** Hit points restored by normal / Great food per fish tier. */
+export const foodHeals = (t: number) => (t === 0 ? [6, 9] : t === 1 ? [14, 20] : [Math.round(6 * Math.pow(1.45, t)), Math.round(6 * Math.pow(1.45, t) * 1.4)]);
+for (let t = 0; t < TIER_COUNT; t++) {
+  const f = FISH[t];
+  const [heal, great] = foodHeals(t);
+  const short = t === 1 ? 'trout' : f.name.toLowerCase();
+  items.push(
+    { id: `raw_${f.key}`, name: `Raw ${f.name.toLowerCase()}`, category: 'fish', tier: f.key, icon: f.shrimp ? 'shrimp' : 'fish', stackable: true, tierNum: t, region: tierRegion(t), description: t === 0 ? 'Fresh from the river. Cook it before eating.' : `Cook it before eating.` },
+    { id: `cooked_${f.key}`, name: `Cooked ${short}`, category: 'food', tier: f.key, icon: f.shrimp ? 'cooked_shrimp' : 'cooked', stackable: true, heals: heal, tierNum: t, region: tierRegion(t), description: 'Tasty! Eat it in combat to heal.' },
+    { id: `great_${f.key}`, name: `Great ${short}`, category: 'food', tier: f.key, icon: f.shrimp ? 'cooked_shrimp' : 'cooked', stackable: true, heals: great, tierNum: t, region: tierRegion(t), description: 'Perfectly seared. Heals more in combat.' },
+  );
+}
+
+// ----- Arrows (one per metal) -----
+for (let t = 0; t < TIER_COUNT; t++) {
+  const m = METALS[t];
+  items.push({
+    id: `${m.key}_arrows`, name: `${m.name} arrows`, category: 'ammo', tier: m.key, icon: 'arrows', stackable: true, tierNum: t, region: tierRegion(t),
+    ammo: { style: 'ranged', power: 2 * (t + 1) },
+    description: t === 0 ? 'Fired by bows. Each shot uses one (sometimes you get it back).' : 'Sharper arrows that hit harder.',
+  });
+}
+
 // ----- Runecrafting: elements, talismans, runes -----
-export type Element = 'air' | 'water' | 'earth' | 'fire';
 export const ELEMENTS: { element: Element; name: string; level: number; power: number }[] = [
   { element: 'air', name: 'Air', level: 1, power: 2 },
   { element: 'water', name: 'Water', level: 10, power: 3 },
   { element: 'earth', name: 'Earth', level: 20, power: 4 },
   { element: 'fire', name: 'Fire', level: 30, power: 5 },
+  { element: 'nature', name: 'Nature', level: 270, power: 9 },
+  { element: 'frost', name: 'Frost', level: 540, power: 14 },
+  { element: 'shadow', name: 'Shadow', level: 630, power: 20 },
+  { element: 'light', name: 'Light', level: 810, power: 27 },
 ];
+export const elementRegion = (level: number) => tierRegion(Math.floor(level / 90));
 for (const el of ELEMENTS) {
+  const region = elementRegion(el.level);
   items.push(
-    { id: `${el.element}_talisman`, name: `${el.name} talisman`, category: 'material', tier: el.element, icon: 'talisman', stackable: false,
+    { id: `${el.element}_talisman`, name: `${el.name} talisman`, category: 'material', tier: el.element, icon: 'talisman', stackable: false, region,
       description: `Keep it in your bag to craft ${el.name} runes. It's never used up.` },
-    { id: `${el.element}_rune`, name: `${el.name} rune`, category: 'ammo', tier: el.element, icon: 'rune', stackable: true,
+    { id: `${el.element}_rune`, name: `${el.name} rune`, category: 'ammo', tier: el.element, icon: 'rune', stackable: true, region,
       ammo: { style: 'magic', power: el.power, element: el.element },
       description: `Powers ${el.name} staffs. Each cast uses one (sometimes you keep it). Also used to make ${el.name} staffs.` },
   );
@@ -218,6 +274,9 @@ function addUpgradable(base: Omit<ItemDef, 'upgrade'> & { equip: EquipInfo }, by
   }
 }
 
+/** Combat level needed to equip tier-t gear: none at tier 0, then the tier level minus 20 (70, 160, 250 …). */
+export const gearReq = (t: number) => (t === 0 ? 0 : tierLevel(t) - 20);
+
 /** Gear pieces made at the anvil, per metal tier. */
 export const GEAR_PIECES = [
   { key: 'sword', name: 'sword', icon: 'sword', slot: 'weapon', category: 'weapon', bars: 2, levelOffset: 5, tab: 'Weapons' },
@@ -230,10 +289,10 @@ export const GEAR_PIECES = [
 /** Milliseconds between your attacks for each style (lower = faster, snappier fights). */
 export const WEAPON_SPEED = { melee: 1600, ranged: 1700, magic: 1900 } as const;
 
-export const METAL_TIERS = [
-  { tier: 'bronze', name: 'Bronze', bar: 'bronze_bar', level: 1, power: 1, barXp: 8 },
-  { tier: 'iron', name: 'Iron', bar: 'iron_bar', level: 50, power: 2, barXp: 12 },
-] as const;
+export const METAL_TIERS = METALS.map((m, t) => ({
+  t, tier: m.key, name: m.name, bar: `${m.key}_bar`, level: tierLevel(t), power: t + 1,
+  barXp: t === 0 ? 8 : t === 1 ? 12 : tierXp(t), region: tierRegion(t),
+}));
 
 function gearStats(piece: (typeof GEAR_PIECES)[number]['key'], power: number): ItemStats {
   switch (piece) {
@@ -247,6 +306,7 @@ function gearStats(piece: (typeof GEAR_PIECES)[number]['key'], power: number): I
 
 for (const metal of METAL_TIERS) {
   for (const piece of GEAR_PIECES) {
+    const req = gearReq(metal.t);
     addUpgradable({
       id: `${metal.tier}_${piece.key}`,
       name: `${metal.name} ${piece.name}`,
@@ -254,45 +314,50 @@ for (const metal of METAL_TIERS) {
       tier: metal.tier,
       icon: piece.icon,
       stackable: false,
+      tierNum: metal.t,
+      region: metal.region,
       description: piece.key === 'sword'
         ? `A ${metal.name.toLowerCase()} sword for Melee combat. Improve it with Enhancing.`
         : `Sturdy ${metal.name.toLowerCase()} armour. Improve it with Enhancing.`,
       equip: {
         slot: piece.slot,
         stats: gearStats(piece.key, metal.power),
-        req: metal.level >= 50 ? { skill: piece.key === 'sword' ? 'melee' : 'defense', level: 30 } : undefined,
+        req: req ? { skill: piece.key === 'sword' ? 'melee' : 'defense', level: req } : undefined,
         ...(piece.key === 'sword' ? { style: 'melee' as const, speedMs: WEAPON_SPEED.melee } : {}),
       },
     }, 'enhancing');
   }
 }
 
-/** Bows (Ranged), made at the Workshop. Improve them with Enhancing (uses bars). */
-export const BOWS = [
-  { id: 'pine_shortbow', name: 'Pine shortbow', tier: 'pine', attack: 5, req: 1, bar: 'bronze_bar' },
-  { id: 'oak_longbow', name: 'Oak longbow', tier: 'oak', attack: 10, req: 30, bar: 'iron_bar' },
-] as const;
+/** Bows (Ranged), one per wood tier, made at the Workshop. Improve them with Enhancing (uses bars). */
+export const BOWS = WOODS.map((w, t) => ({
+  t, id: t === 0 ? 'pine_shortbow' : t === 1 ? 'oak_longbow' : `${w.key}_bow`,
+  name: t === 0 ? 'Pine shortbow' : t === 1 ? 'Oak longbow' : `${w.name} bow`,
+  tier: w.key, attack: 5 * (t + 1), req: gearReq(t) || 1, bar: METALS[t].key + '_bar', region: tierRegion(t),
+}));
 for (const w of BOWS) {
   addUpgradable({
-    id: w.id, name: w.name, category: 'weapon', tier: w.tier, icon: 'bow', stackable: false,
+    id: w.id, name: w.name, category: 'weapon', tier: w.tier, icon: 'bow', stackable: false, tierNum: w.t, region: w.region,
     description: 'A bow for Ranged combat. Needs arrows in your bag.',
     equip: { slot: 'weapon', stats: { attack: w.attack }, style: 'ranged', speedMs: WEAPON_SPEED.ranged, req: w.req > 1 ? { skill: 'ranged', level: w.req } : undefined },
   }, 'enhancing');
 }
 
-/** Blank staffs come from the Workshop; Runecrafting turns them into elemental staffs with runes. */
-export const STAFF_WOODS = [
-  { wood: 'pine', name: 'Pine', attack: 5, req: 1, bar: 'bronze_bar', runes: 50, imbueLevel: 2 },
-  { wood: 'oak', name: 'Oak', attack: 10, req: 30, bar: 'iron_bar', runes: 100, imbueLevel: 50 },
-] as const;
+/** Blank staffs come from the Workshop (one per wood tier); Runecrafting turns them into elemental staffs with runes. */
+export const STAFF_WOODS = WOODS.map((w, t) => ({
+  t, wood: w.key, name: w.name, attack: 5 * (t + 1), req: gearReq(t) || 1, bar: METALS[t].key + '_bar',
+  runes: Math.min(500, 50 * (t + 1)), imbueLevel: t === 0 ? 2 : tierLevel(t), region: tierRegion(t),
+}));
 for (const s of STAFF_WOODS) {
   items.push({
-    id: `${s.wood}_staff`, name: `Blank ${s.name.toLowerCase()} staff`, category: 'material', tier: s.wood, icon: 'staff', stackable: false,
+    id: `${s.wood}_staff`, name: `Blank ${s.name.toLowerCase()} staff`, category: 'material', tier: s.wood, icon: 'staff', stackable: false, tierNum: s.t, region: s.region,
     description: 'A plain staff with no magic yet. At Runecrafting, add runes to make it an elemental staff.',
   });
   for (const el of ELEMENTS) {
+    const later = elementRegion(el.level);
+    const region = REGION_ORDER(later) > REGION_ORDER(s.region) ? later : s.region;
     addUpgradable({
-      id: `${s.wood}_${el.element}_staff`, name: `${s.name} ${el.name.toLowerCase()} staff`, category: 'weapon', tier: el.element, icon: 'staff', stackable: false,
+      id: `${s.wood}_${el.element}_staff`, name: `${s.name} ${el.name.toLowerCase()} staff`, category: 'weapon', tier: el.element, icon: 'staff', stackable: false, tierNum: s.t, region,
       description: `A Magic staff that casts ${el.name} spells using ${el.name} runes from your bag.`,
       equip: {
         slot: 'weapon', stats: { attack: s.attack }, style: 'magic', element: el.element, speedMs: WEAPON_SPEED.magic,
@@ -301,11 +366,14 @@ for (const s of STAFF_WOODS) {
     }, 'enhancing');
   }
 }
+function REGION_ORDER(r: Region): number {
+  return ['Pocketvale', 'Ironmoor', 'Coalhaven', 'Bluecliff', 'Lunaria', 'Cinderpeak', 'Frosthold', 'Voidreach', 'Starfall Crater', 'Celestine Spires', 'Primordial Rift'].indexOf(r);
+}
 
 /**
  * Skilling tools made at the Crafting bench. Every skill that gathers or makes things has one.
  * A tool of tier N is needed to gather/make that skill's tier-N resources (tier 0 needs no tool).
- * `logs` + `hard` = materials (hard = stone for Stone tools, bronze bars for Bronze tools).
+ * `logs` + `hard` = materials (stone for Stone tools; the previous tier's bars and logs after that).
  */
 export const CRAFTED_TOOLS = [
   { key: 'pickaxe', name: 'pickaxe', icon: 'pickaxe', slot: 'pickaxe', skill: 'mining', stat: 'miningSpeed', logs: 2, hard: 2, levelOffset: 0 },
@@ -317,10 +385,15 @@ export const CRAFTED_TOOLS = [
   { key: 'skillet', name: 'skillet', icon: 'skillet', slot: 'skillet', skill: 'cooking', stat: 'cookingSpeed', logs: 1, hard: 3, levelOffset: 15 },
 ] as const;
 
-export const TOOL_TIERS = [
-  { tier: 'stone', name: 'Stone', rodName: 'Pine fishing rod', logs: 'pine_logs', hard: 'stone', level: 1, power: 1, toolTier: 0, xpBase: 8 },
-  { tier: 'bronze', name: 'Bronze', rodName: 'Bronze fishing rod', logs: 'pine_logs', hard: 'bronze_bar', level: 50, power: 2, toolTier: 1, xpBase: 12 },
-] as const;
+/** Tool tiers: 0 = Stone (pine + stone), k ≥ 1 = made from tier k-1 bars and logs (Bronze, Iron, Steel, …). */
+export const TOOL_TIERS = Array.from({ length: TIER_COUNT }, (_, k) => {
+  if (k === 0) return { k, tier: 'stone', name: 'Stone', rodName: 'Pine fishing rod', logs: 'pine_logs', hard: 'stone', level: 1, power: 1, toolTier: 0, xpBase: 8, region: tierRegion(0) };
+  const m = METALS[k - 1];
+  return {
+    k, tier: m.key, name: m.name, rodName: `${m.name} fishing rod`, logs: `${WOODS[k - 1].key}_logs`, hard: `${m.key}_bar`,
+    level: tierLevel(k), power: k + 1, toolTier: k, xpBase: k === 1 ? 12 : tierXp(k), region: tierRegion(k),
+  };
+});
 
 /** Which gear slot holds each skill's tool. */
 export const TOOL_SLOT_FOR: Partial<Record<SkillId, EquipSlot>> = Object.fromEntries(
@@ -340,6 +413,8 @@ for (const tier of TOOL_TIERS) {
       tier: tier.tier,
       icon: tool.icon,
       stackable: false,
+      tierNum: tier.k,
+      region: tier.region,
       description: `Makes ${tool.skill} faster. ${tier.toolTier > 0 ? `Needed for tier ${tier.toolTier + 1} ${tool.skill} resources (level ${tier.level}+). ` : ''}Upgrade it at the Workshop — even while equipped.`,
       equip: {
         slot: tool.slot,

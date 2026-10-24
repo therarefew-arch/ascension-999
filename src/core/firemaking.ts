@@ -5,16 +5,17 @@ import { addXp, emptyReport, skillLevel, type ProgressReport } from './idle';
 import { countInBag, removeFromBag } from './inventory';
 import { giveLoot, rollLoot } from './loot';
 import type { PlayerState } from './player';
+import { regionOpen, tierLevel, tierRegion, WOODS, type Region } from '../data/tiers';
 
 // ----- Bonfires -----
 
 export const BONFIRE_LOGS = 20;
 /** XP buff for all skills while a bonfire burns. */
 export const BONFIRE_XP_BONUS = 0.05;
-export const BONFIRES: Record<string, { minutes: number; burnAction: string; level: number }> = {
-  pine_logs: { minutes: 10, burnAction: 'burn_pine', level: 5 },
-  oak_logs: { minutes: 20, burnAction: 'burn_oak', level: 55 },
-};
+/** Every wood tier can fuel a bonfire; better logs burn longer (up to an hour). */
+export const BONFIRES: Record<string, { minutes: number; burnAction: string; level: number; region: Region }> = Object.fromEntries(
+  WOODS.map((w, t) => [`${w.key}_logs`, { minutes: Math.min(60, 10 * (t + 1)), burnAction: `burn_${w.key}`, level: tierLevel(t) + 5, region: tierRegion(t) }]),
+);
 
 export function bonfireActive(p: PlayerState, now = Date.now()): boolean {
   return !!p.bonfire && p.bonfire.until > now;
@@ -24,6 +25,7 @@ export function bonfireActive(p: PlayerState, now = Date.now()): boolean {
 export function lightBonfire(p: PlayerState, log: string, report: ProgressReport, now = Date.now()): string | null {
   const b = BONFIRES[log];
   if (!b) return "That can't fuel a bonfire";
+  if (!regionOpen(b.region)) return `Found in ${b.region} — coming in a future update`;
   if (skillLevel(p, 'firemaking') < b.level) return `Needs Firemaking level ${b.level}`;
   if (countInBag(p.inventory, log) < BONFIRE_LOGS) return `Needs ${BONFIRE_LOGS} ${getItem(log).name} in your bag`;
   removeFromBag(p.inventory, log, BONFIRE_LOGS);
