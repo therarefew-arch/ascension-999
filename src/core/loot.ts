@@ -1,6 +1,7 @@
 // THE central loot system. Every item a player gains goes through here.
 // Rule: gems can only drop from bosses and mini bosses — enforced below.
-import { getItem, type GemRarity, type GemType } from '../data/items';
+import { getItem, type GemRarity, type GemType, type SkillId } from '../data/items';
+import { PETS } from '../data/pets';
 import { gemRerollTable, LOOT_TABLES, type LootGroup, type LootSource, type LootTable } from '../data/lootTables';
 import { addToBag, canFitAll } from './inventory';
 import type { ItemStack, PlayerState } from './player';
@@ -75,9 +76,25 @@ export function giveLoot(p: PlayerState, loot: ItemStack[]): ItemStack[] {
   for (const st of loot) {
     if (st.id === 'coins') { p.coins += st.qty; continue; }
     const added = addToBag(p.inventory, st.id, st.qty);
+    if (added > 0) recordCollection(p, st.id, added);
     if (added < st.qty) leftover.push({ id: st.id, qty: st.qty - added });
   }
   return leftover;
+}
+
+/** Collection log: counts every item you've ever received. */
+export function recordCollection(p: PlayerState, id: string, qty: number) {
+  p.collection[id] = (p.collection[id] ?? 0) + qty;
+}
+
+/** Rare pet roll after a finished action (or mini boss kill). Returns the new pet's id, if any. */
+export function rollPet(p: PlayerState, source: SkillId | 'combat', rng: () => number = Math.random): string | null {
+  const pet = PETS.find((x) => x.skill === source);
+  if (!pet || p.pets.includes(pet.id)) return null;
+  if (rng() >= 1 / pet.odds) return null;
+  p.pets.push(pet.id);
+  if (!p.activePet) p.activePet = pet.id;
+  return pet.id;
 }
 
 /**

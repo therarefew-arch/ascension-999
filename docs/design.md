@@ -227,6 +227,14 @@ Based on the owner's reference screenshots:
 - **Bag upgrades**: +5 slots for 2k / 6k / 15k / 40k coins (30 → 50). (Bank was already unlimited.)
 - Save version 6.
 
+### Phase 4b — built (quality of life)
+- **Adventurer's Journal** (Town): XP tracker (XP and XP/hr per skill since reset), collection log (every item ever received; +0 versions only; unfound items shown as silhouettes), pets.
+- **Pets**: one per skill (~1 in 3,000 actions) + Bramble from Old Thornhide (1 in 50). Active pet follows you (shown in Town) and gives +2% XP in its skill (combat pet: all combat skills).
+- **Gear loadouts** (Gear screen): 3 saved setups; equipping pulls from bag/bank; gems stay in slots.
+- **Queue presets** (Idle Slots popup): 3 saved idle-slot setups, restarted with one tap.
+- **Bag-full warnings**: toast when 3 slots from full and when full; the Bag button glows red.
+- Save version 7.
+
 ### Phase 4 — ideas for next
 Ironmoor region, weekly boss with "Defeated" screen, NPC Trading Post and shops (coin sinks), more idle slots, Loot Belt (Enhancing 60).
 

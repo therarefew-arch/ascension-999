@@ -4,6 +4,7 @@ import { ACTIONS, SKILLS } from '../data/skills';
 import { game, type AwayReport } from '../core/store';
 import { OFFLINE_CAP_MS } from '../core/player';
 import { fightMonster, isFightId } from '../core/combat';
+import { PET_MAP } from '../data/pets';
 import { ItemIcon } from './icons';
 import { fmtDuration, fmtNum } from './format';
 
@@ -41,6 +42,7 @@ export function AwayCard({ away }: { away: AwayReport }) {
         {report.combat && (
           <div className="away-line">⚔ {report.combat.kills} monsters defeated · {report.combat.damageDealt} damage dealt{report.combat.foodEaten ? ` · ${report.combat.foodEaten} food eaten` : ''}</div>
         )}
+        {report.pets.map((id) => <div key={id} className="away-line level">🎉 New pet: {PET_MAP[id].emoji} {PET_MAP[id].name}!</div>)}
         {report.failed > 0 && <p className="small muted">{report.failed} enhance {report.failed === 1 ? 'try' : 'tries'} didn't take (items kept safe).</p>}
         {report.actions === 0 && !report.stopped && <p className="muted">Nothing finished while you were gone.</p>}
 

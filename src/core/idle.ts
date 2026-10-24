@@ -8,7 +8,8 @@ import {
 } from '../data/items';
 import { enhanceChance, FAIL_XP_SHARE } from './enhancing';
 import { countInBag, countInBank, removeFromBag, canFitAll } from './inventory';
-import { giveLoot, maxLoot, rollLoot } from './loot';
+import { giveLoot, maxLoot, recordCollection, rollLoot, rollPet } from './loot';
+import { PET_XP_BONUS, petBoosts } from '../data/pets';
 import type { IdleSlot, PlayerState } from './player';
 import { MAX_XP, levelForXp } from './xp';
 import { equipmentStats } from './equipment';
@@ -32,6 +33,8 @@ export interface ProgressReport {
   /** Enhancing tries that didn't succeed (the item was kept). */
   failed: number;
   combat?: CombatReport;
+  /** Pets found. */
+  pets: string[];
 }
 
 export function skillLevel(p: PlayerState, skill: SkillId): number {
@@ -208,7 +211,7 @@ export function stopIdle(p: PlayerState, slot?: number): void {
 }
 
 export function emptyReport(actionId: string | null): ProgressReport {
-  return { actionId, actionIds: actionId ? [actionId] : [], ms: 0, actions: 0, xp: {}, gained: {}, used: {}, levelUps: [], stopped: null, stops: [], failed: 0 };
+  return { actionId, actionIds: actionId ? [actionId] : [], ms: 0, actions: 0, xp: {}, gained: {}, used: {}, levelUps: [], stopped: null, stops: [], failed: 0, pets: [] };
 }
 
 /**
@@ -249,6 +252,7 @@ export function completeAction(
       const made = loot.find((l) => l.id === action.output!.item);
       if (made) {
         p.equipment[fromSlot] = made.id;
+        recordCollection(p, made.id, 1);
         report.gained[made.id] = (report.gained[made.id] ?? 0) + 1;
         loot = loot.filter((l) => l !== made);
       }
@@ -261,10 +265,15 @@ export function completeAction(
   }
   addXp(p, action, report, Math.round(action.xp * (opts.xpMult ?? 1)));
   report.actions++;
+  const pet = rollPet(p, action.skill);
+  if (pet) report.pets.push(pet);
   return true;
 }
 
 export function addXp(p: PlayerState, action: { skill: SkillId }, report: ProgressReport, xp: number) {
+  // Your active pet gives +2% XP in its skill.
+  // (Not rounded, so even small actions get the bonus over time.)
+  if (petBoosts(p.activePet, action.skill)) xp = xp * (1 + PET_XP_BONUS);
   const skill = p.skills[action.skill];
   const before = levelForXp(skill.xp);
   skill.xp = Math.min(MAX_XP, skill.xp + xp);

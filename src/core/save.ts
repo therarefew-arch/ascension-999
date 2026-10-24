@@ -2,7 +2,8 @@
 // Every save has a version number; old saves are upgraded by MIGRATIONS so they never break.
 import { ITEMS, type SkillId } from '../data/items';
 import { ACTIONS } from '../data/skills';
-import { INVENTORY_SLOTS, MAX_BAG_SLOTS, MAX_IDLE_SLOTS, SAVE_VERSION, newPlayer, type ItemStack, type PlayerState } from './player';
+import { INVENTORY_SLOTS, MAX_BAG_SLOTS, MAX_IDLE_SLOTS, SAVE_VERSION, newPlayer, type ItemStack, type Loadout, type PlayerState } from './player';
+import { PET_MAP } from '../data/pets';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
 import { levelForXp } from './xp';
 import { MONSTER_MAP } from '../data/monsters';
@@ -240,6 +241,41 @@ function repair(raw: any): PlayerState {
   p.hp = typeof raw?.hp === 'number' && raw.hp > 0 ? raw.hp : maxHp(p);
   p.hp = Math.min(p.hp, maxHp(p));
   p.regenMs = Number(raw?.regenMs) || 0;
+  // Quality of life (v7)
+  if (raw?.tracker && typeof raw.tracker.since === 'number') {
+    p.tracker = { since: raw.tracker.since, xp: {} };
+    for (const s of Object.keys(p.skills) as SkillId[]) {
+      const v = raw.tracker.xp?.[s];
+      if (typeof v === 'number') p.tracker.xp[s] = v;
+    }
+  } else {
+    p.tracker = { since: Date.now(), xp: Object.fromEntries((Object.keys(p.skills) as SkillId[]).map((s) => [s, p.skills[s].xp])) };
+  }
+  if (raw?.collection && typeof raw.collection === 'object') {
+    for (const [id, n] of Object.entries(raw.collection)) if (ITEMS[id] && typeof n === 'number') p.collection[id] = n;
+  } else {
+    // Start the collection log from what you already own.
+    for (const s of [...p.inventory, ...p.bank]) if (s) p.collection[s.id] = (p.collection[s.id] ?? 0) + s.qty;
+    for (const id of Object.values(p.equipment)) if (id) p.collection[id] = (p.collection[id] ?? 0) + 1;
+  }
+  if (Array.isArray(raw?.pets)) p.pets = raw.pets.filter((id: unknown) => typeof id === 'string' && PET_MAP[id as string]);
+  p.activePet = typeof raw?.activePet === 'string' && p.pets.includes(raw.activePet) ? raw.activePet : null;
+  if (Array.isArray(raw?.loadouts)) {
+    p.loadouts = [0, 1, 2].map((i) => {
+      const l = raw.loadouts[i];
+      if (!l || typeof l.name !== 'string' || typeof l.equipment !== 'object') return null;
+      const equipment: Loadout['equipment'] = {};
+      for (const [slot, id] of Object.entries(l.equipment)) if (typeof id === 'string' && ITEMS[id]?.equip?.slot === slot) equipment[slot as keyof Loadout['equipment']] = id;
+      return { name: l.name.slice(0, 20), equipment };
+    });
+  }
+  if (Array.isArray(raw?.presets)) {
+    p.presets = [0, 1, 2].map((i) => {
+      const pr = raw.presets[i];
+      if (!pr || typeof pr.name !== 'string' || !Array.isArray(pr.actions)) return null;
+      return { name: pr.name.slice(0, 20), actions: [0, 1, 2].map((k) => (typeof pr.actions[k] === 'string' && ACTIONS[pr.actions[k]] ? pr.actions[k] : null)) };
+    });
+  }
   return p;
 }
 

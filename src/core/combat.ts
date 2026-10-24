@@ -6,7 +6,7 @@ import { MONSTER_MAP, type MonsterDef } from '../data/monsters';
 import { equipmentStats } from './equipment';
 import { addXp, chooseSlot, type ProgressReport } from './idle';
 import { countInBag, removeFromBag } from './inventory';
-import { giveLoot, rollLoot } from './loot';
+import { giveLoot, rollLoot, rollPet } from './loot';
 import type { PlayerState } from './player';
 import { levelForXp } from './xp';
 
@@ -236,6 +236,8 @@ export function advanceFight(
         log(f, now, `${monster.name} defeated!`, 'loot');
         if (monster.miniboss) {
           p.bossReadyAt[monster.id] = now + monster.miniboss.respawnMs;
+          const pet = rollPet(p, 'combat', rng);
+          if (pet) report.pets.push(pet);
           return { stop: `${monster.name} defeated!`, usedMs: t };
         }
         f.respawn = RESPAWN_MS;

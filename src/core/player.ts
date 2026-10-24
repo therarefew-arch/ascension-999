@@ -9,8 +9,9 @@ import type { FightState } from './combat';
  * v4: combat — 5 combat skills, hit points, coins, gem sockets, fights, mini boss timers.
  * v5: Runecrafting — minor/major runes → air/earth runes, old staffs → air staffs (blank staffs are new).
  * v6: economy — up to 3 idle slots, bigger bags, rotating-shop purchases.
+ * v7: quality of life — XP tracker, collection log, pets, gear loadouts, idle presets.
  */
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 /** Starting bag size. Can be upgraded with coins up to MAX_BAG_SLOTS. */
 export const INVENTORY_SLOTS = 30;
 export const MAX_BAG_SLOTS = 50;
@@ -59,6 +60,26 @@ export interface PlayerState {
   fight: FightState | null;
   /** When each mini boss can be fought again. */
   bossReadyAt: Record<string, number>;
+  /** XP tracker: XP of every skill when the tracker was (re)started. */
+  tracker: { since: number; xp: Partial<Record<SkillId, number>> };
+  /** Collection log: how many of each item you've ever received. */
+  collection: Record<string, number>;
+  pets: string[];
+  activePet: string | null;
+  /** Saved gear setups (3). */
+  loadouts: (Loadout | null)[];
+  /** Saved idle-slot setups (3). */
+  presets: (IdlePreset | null)[];
+}
+
+export interface Loadout {
+  name: string;
+  equipment: Partial<Record<EquipSlot, string>>;
+}
+
+export interface IdlePreset {
+  name: string;
+  actions: (string | null)[];
 }
 
 export function newSkills(): Record<SkillId, { xp: number }> {
@@ -89,6 +110,12 @@ export function newPlayer(now = Date.now()): PlayerState {
     regenMs: 0,
     fight: null,
     bossReadyAt: {},
+    tracker: { since: now, xp: {} },
+    collection: {},
+    pets: [],
+    activePet: null,
+    loadouts: [null, null, null],
+    presets: [null, null, null],
   };
 }
 

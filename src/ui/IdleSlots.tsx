@@ -86,6 +86,41 @@ function LockedSlot({ index }: { index: number }) {
   );
 }
 
+/** Save up to 3 idle setups and start them again with one tap. */
+function Presets() {
+  const { player } = useGame();
+  const [naming, setNaming] = useState<number | null>(null);
+  const [name, setName] = useState('');
+  return (
+    <div className="presets">
+      <div className="row-between"><b className="small gold">PRESETS</b><span className="small muted">Save &amp; restart a whole setup</span></div>
+      {player.presets.map((pr, i) => (
+        <div key={i} className="preset-row">
+          {naming === i ? (
+            <>
+              <input className="name-input" value={name} maxLength={20} placeholder={`Preset ${i + 1}`} onChange={(e) => setName(e.target.value)} autoFocus />
+              <button className="btn btn-primary" onClick={() => { game.savePreset(i, name); setNaming(null); }}>Save</button>
+              <button className="link-btn" onClick={() => setNaming(null)}>✕</button>
+            </>
+          ) : pr ? (
+            <>
+              <div className="grow">
+                <b>{pr.name}</b>
+                <div className="small muted ellipsis">{pr.actions.map((a) => (a ? ACTIONS[a]?.name : '—')).join(' · ')}</div>
+              </div>
+              <button className="btn btn-hero preset-go" onClick={() => game.applyPreset(i)}>START</button>
+              <button className="icon-btn" aria-label="Overwrite preset" onClick={() => { setNaming(i); setName(pr.name); }}><UiIcon name="refresh" size={16} /></button>
+              <button className="icon-btn" aria-label="Delete preset" onClick={() => game.deletePreset(i)}><UiIcon name="trash" size={16} /></button>
+            </>
+          ) : (
+            <button className="btn btn-outline btn-wide" onClick={() => { setNaming(i); setName(''); }}>+ Save current slots as preset {i + 1}</button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function IdleSlots({ onClose }: { onClose: () => void }) {
   const { player } = useGame();
   const [editing, setEditing] = useState<number | null>(null);
@@ -111,6 +146,7 @@ export function IdleSlots({ onClose }: { onClose: () => void }) {
               i < player.unlockedSlots ? <SlotCard key={i} index={i} onChange={() => choose(i)} /> : <LockedSlot key={i} index={i} />
             ))}
             {player.lastStop && <div className="warn">Last stopped: {player.lastStop.reason}</div>}
+            <Presets />
           </>
         )}
 

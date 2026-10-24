@@ -11,6 +11,8 @@ import {
   whyCantDo, type ProgressReport,
 } from './idle';
 import { ALL_SKILLS } from '../data/skills';
+import { PET_MAP } from '../data/pets';
+import { applyLoadout, applyPreset, resetTracker, saveLoadout, savePreset } from './qol';
 import { levelForXp } from './xp';
 import { bagUpgradeCost, buy as marketBuy, buyDeal, sell as marketSell, SLOT_UNLOCKS } from '../market/market';
 import { deposit, depositAll, withdraw } from './inventory';
@@ -98,6 +100,30 @@ function announceLevels(report: ProgressReport) {
   }
 }
 
+function announcePets(report: ProgressReport) {
+  for (const id of report.pets) {
+    play('levelup');
+    toast(`🎉 New pet: ${PET_MAP[id].emoji} ${PET_MAP[id].name}!`, 'level');
+  }
+}
+
+/** Warn once when the bag is nearly full, and again when it's full. */
+let bagWarned = 0;
+function bagWarnings(p: PlayerState) {
+  const used = p.inventory.filter(Boolean).length;
+  const size = p.inventory.length;
+  if (used >= size && bagWarned < 2) {
+    bagWarned = 2;
+    play('error');
+    toast(`Bag is full (${used}/${size}) — idling that needs space will stop`, 'bad');
+  } else if (used >= size - 3 && used < size && bagWarned < 1) {
+    bagWarned = 1;
+    toast(`Bag almost full (${used}/${size})`, 'info');
+  } else if (used < size - 3) {
+    bagWarned = 0;
+  }
+}
+
 /** Moves the game clock forward to `now`. */
 function tick(now = Date.now()) {
   if (snap.slot === null) return;
@@ -157,6 +183,8 @@ function tick(now = Date.now()) {
     }
   }
   announceLevels(report);
+  announcePets(report);
+  bagWarnings(p);
   for (const s of report.stops) {
     const won = s.reason.endsWith('defeated!');
     play(won ? 'levelup' : 'error');
@@ -290,6 +318,58 @@ export const game = {
     emit();
     return true;
   },
+  // ----- Quality of life -----
+  resetTracker() {
+    resetTracker(snap.player);
+    toast('XP tracker reset', 'info');
+    save();
+    emit();
+  },
+  setActivePet(id: string | null) {
+    const p = snap.player;
+    if (id && !p.pets.includes(id)) return;
+    p.activePet = id;
+    save();
+    emit();
+  },
+  saveLoadout(i: number, name: string) {
+    saveLoadout(snap.player, i, name);
+    toast(`Loadout "${snap.player.loadouts[i]!.name}" saved`, 'good');
+    save();
+    emit();
+  },
+  applyLoadout(i: number) {
+    const missing = applyLoadout(snap.player, i);
+    play('equip');
+    toast(missing.length ? `Equipped — missing: ${missing.join(', ')}` : `Loadout "${snap.player.loadouts[i]?.name}" equipped`, missing.length ? 'info' : 'good');
+    save();
+    emit();
+  },
+  deleteLoadout(i: number) {
+    snap.player.loadouts[i] = null;
+    save();
+    emit();
+  },
+  savePreset(i: number, name: string) {
+    savePreset(snap.player, i, name);
+    toast(`Preset "${snap.player.presets[i]!.name}" saved`, 'good');
+    save();
+    emit();
+  },
+  applyPreset(i: number) {
+    tick();
+    const problems = applyPreset(snap.player, i);
+    play('click');
+    toast(problems.length ? `Started — ${problems.join('; ')}` : `Preset "${snap.player.presets[i]?.name}" started`, problems.length ? 'info' : 'good');
+    save();
+    emit();
+  },
+  deletePreset(i: number) {
+    snap.player.presets[i] = null;
+    save();
+    emit();
+  },
+
   // ----- Trading Post -----
   sell(id: string, qty: number) {
     const coins = marketSell(snap.player, id, qty);
@@ -352,6 +432,7 @@ export const game = {
     });
     play(succeeded ? action.sound : 'fail');
     announceLevels(report);
+    announcePets(report);
     emit();
     return {
       ok: true,

@@ -4,8 +4,9 @@ import { skillLevel } from '../../core/idle';
 import { useGame } from '../../core/store';
 import { UiIcon } from '../icons';
 import { PixelScene } from '../PixelScene';
+import { PET_MAP } from '../../data/pets';
 
-export function TownScreen({ onSkill, onBank, onGear, onIdle, onCombat, onMarket }: { onSkill: (s: SkillId) => void; onBank: () => void; onGear: () => void; onIdle: () => void; onCombat: () => void; onMarket: () => void }) {
+export function TownScreen({ onSkill, onBank, onGear, onIdle, onCombat, onMarket, onJournal }: { onSkill: (s: SkillId) => void; onBank: () => void; onGear: () => void; onIdle: () => void; onCombat: () => void; onMarket: () => void; onJournal: () => void }) {
   const { player } = useGame();
   return (
     <div className="screen">
@@ -15,6 +16,12 @@ export function TownScreen({ onSkill, onBank, onGear, onIdle, onCombat, onMarket
           <h1>POCKETVALE</h1>
           <p>A quiet town at the edge of the hills</p>
         </div>
+        {player.activePet && PET_MAP[player.activePet] && (
+          <button className="town-pet" onClick={onJournal} aria-label={`${PET_MAP[player.activePet].name} follows you`}>
+            <span className="pet-emoji bob">{PET_MAP[player.activePet].emoji}</span>
+            <span className="small">{PET_MAP[player.activePet].name}</span>
+          </button>
+        )}
       </div>
 
       <h2 className="section-title">PLACES IN TOWN</h2>
@@ -26,6 +33,11 @@ export function TownScreen({ onSkill, onBank, onGear, onIdle, onCombat, onMarket
             <span className="mono small muted">{SKILLS[s].name} · Lv {skillLevel(player, s)}</span>
           </button>
         ))}
+        <button className="place" onClick={onJournal}>
+          <span className="tile-icon big skill-journal"><UiIcon name="bolt" size={26} /></span>
+          <span className="place-name">Adventurer's Journal</span>
+          <span className="mono small muted">XP tracker · collection · pets</span>
+        </button>
         <button className="place" onClick={onMarket}>
           <span className="tile-icon big skill-market"><UiIcon name="coin" size={26} /></span>
           <span className="place-name">Trading Post</span>

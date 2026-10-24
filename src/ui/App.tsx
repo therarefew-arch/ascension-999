@@ -6,6 +6,7 @@ import { runningSlots, skillLevel } from '../core/idle';
 import { fightMonster, isFightId, maxHp } from '../core/combat';
 import { CombatScreen } from './screens/CombatScreen';
 import { TradingPostScreen } from './screens/TradingPostScreen';
+import { JournalScreen } from './screens/JournalScreen';
 import { usedSlots } from '../core/inventory';
 import { timeToNextLevel, xpPerHour } from '../core/rates';
 import { useGame } from '../core/store';
@@ -22,7 +23,7 @@ import { SkillScreen, SkillStrip } from './screens/SkillScreen';
 import { TownScreen } from './screens/TownScreen';
 import { fmtNum } from './format';
 
-type Tab = 'town' | 'skills' | 'combat' | 'bank' | 'gear' | 'settings' | 'market';
+type Tab = 'town' | 'skills' | 'combat' | 'bank' | 'gear' | 'settings' | 'market' | 'journal';
 
 function StatusBar({ onIdle, onSettings, settingsOn, onTown, townOn }: {
   onIdle: () => void; onSettings: () => void; settingsOn: boolean; onTown: () => void; townOn: boolean;
@@ -143,8 +144,9 @@ export function App() {
       <IdleLine onOpen={() => setIdleOpen(true)} onFight={() => go('combat')} />
 
       <main className={`content ${tab === 'skills' ? 'content-skill' : ''}`}>
-        {tab === 'town' && <TownScreen onSkill={openSkill} onBank={() => go('bank')} onGear={() => go('gear')} onIdle={() => setIdleOpen(true)} onCombat={() => go('combat')} onMarket={() => go('market')} />}
+        {tab === 'town' && <TownScreen onSkill={openSkill} onBank={() => go('bank')} onGear={() => go('gear')} onIdle={() => setIdleOpen(true)} onCombat={() => go('combat')} onMarket={() => go('market')} onJournal={() => go('journal')} />}
         {tab === 'market' && <TradingPostScreen />}
+        {tab === 'journal' && <JournalScreen />}
         {tab === 'skills' && <SkillScreen skill={skill} />}
         {tab === 'combat' && <CombatScreen onGear={() => go('gear')} onItem={(id) => setItemView({ id, from: 'bag' })} />}
         {tab === 'bank' && <BankScreen onItem={(id) => setItemView({ id, from: 'bank' })} />}
@@ -159,7 +161,7 @@ export function App() {
             <UiIcon name={n.icon} /><span>{n.label}</span>
           </button>
         ))}
-        <button className={`bag-btn ${used >= player.inventory.length ? 'full' : ''}`} onClick={() => setBagOpen(true)} aria-label={`Open bag, ${used} of ${player.inventory.length} slots used`}>
+        <button className={`bag-btn ${used >= player.inventory.length ? 'full' : used >= player.inventory.length - 3 ? 'nearly' : ''}`} onClick={() => setBagOpen(true)} aria-label={`Open bag, ${used} of ${player.inventory.length} slots used`}>
           <UiIcon name="bag" size={30} />
           <span className="bag-count">{used}/{player.inventory.length}</span>
         </button>

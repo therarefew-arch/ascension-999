@@ -118,6 +118,44 @@ function SlotGrid({ slots, onPick }: { slots: EquipSlot[]; onPick: (s: EquipSlot
   );
 }
 
+/** Save up to 3 gear setups and switch with one tap. */
+function Loadouts() {
+  const { player } = useGame();
+  const [naming, setNaming] = useState<number | null>(null);
+  const [name, setName] = useState('');
+  return (
+    <section className="block">
+      <h2 className="section-title">LOADOUTS</h2>
+      <div className="loadout-grid">
+        {player.loadouts.map((l, i) => (
+          <div key={i} className={`loadout ${l ? 'saved' : ''}`}>
+            {naming === i ? (
+              <>
+                <input className="name-input" value={name} maxLength={20} placeholder={`Loadout ${i + 1}`} onChange={(e) => setName(e.target.value)} autoFocus />
+                <button className="btn btn-primary" onClick={() => { game.saveLoadout(i, name); setNaming(null); }}>Save current gear</button>
+                <button className="link-btn" onClick={() => setNaming(null)}>Cancel</button>
+              </>
+            ) : l ? (
+              <>
+                <b>{l.name}</b>
+                <div className="loadout-icons">{Object.values(l.equipment).slice(0, 6).map((id) => id && <ItemIcon key={id} id={id} size={22} />)}</div>
+                <button className="btn btn-hero" onClick={() => game.applyLoadout(i)}>EQUIP</button>
+                <div className="row-between">
+                  <button className="link-btn small" onClick={() => { setNaming(i); setName(l.name); }}>Overwrite</button>
+                  <button className="link-btn small red" onClick={() => game.deleteLoadout(i)}>Delete</button>
+                </div>
+              </>
+            ) : (
+              <button className="btn btn-outline" onClick={() => { setNaming(i); setName(''); }}>+ Save current gear</button>
+            )}
+          </div>
+        ))}
+      </div>
+      <p className="small muted">Equipping a loadout takes items from your bag or bank. Gems stay in their slots.</p>
+    </section>
+  );
+}
+
 export function GearScreen() {
   const { player } = useGame();
   const [picking, setPicking] = useState<EquipSlot | null>(null);
@@ -126,6 +164,7 @@ export function GearScreen() {
   return (
     <div className="screen">
       <h1 className="screen-title">GEAR</h1>
+      <Loadouts />
       <h2 className="section-title">ARMOUR &amp; WEAPONS</h2>
       <SlotGrid slots={ARMOUR_SLOTS} onPick={setPicking} />
       <h2 className="section-title">SKILLING TOOLS</h2>

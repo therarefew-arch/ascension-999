@@ -426,6 +426,33 @@ p { margin: 8px 0; }
 .strike { text-decoration: line-through; }
 .upgrade-card { display: flex; flex-direction: column; gap: 8px; background: rgba(26, 24, 21, 0.92); }
 
+/* Quality of life */
+.skill-journal { color: #fde68a; background: #1f1608; border-color: #a16207; }
+.bag-btn.nearly { box-shadow: 0 0 24px rgba(248, 113, 113, 0.7), 0 8px 18px rgba(0, 0, 0, 0.6); animation: pulseglow 1.2s infinite alternate; }
+@keyframes pulseglow { from { box-shadow: 0 0 10px rgba(248, 113, 113, 0.4); } to { box-shadow: 0 0 26px rgba(248, 113, 113, 0.9); } }
+.right { text-align: right; }
+.slot.unfound { filter: brightness(0) opacity(0.35); cursor: default; }
+.pet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pet-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px; border-radius: 16px; background: rgba(20, 18, 16, 0.92); border: 1.5px solid var(--line); text-align: center; cursor: pointer; }
+.pet-card:disabled { cursor: default; opacity: 0.6; }
+.pet-card.owned { border-color: #92610f; }
+.pet-card.active { border-color: var(--green); box-shadow: 0 0 14px rgba(52, 211, 153, 0.35); }
+.pet-emoji { font-size: 2.2rem; line-height: 1.1; }
+.start-pill.on { color: var(--green); border-color: var(--green); }
+.town-pet { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; align-items: center; background: rgba(13, 12, 11, 0.6); border: 1px solid var(--line); border-radius: 14px; padding: 4px 8px; cursor: pointer; color: var(--text); }
+.bob { animation: bob 1.6s ease-in-out infinite alternate; display: inline-block; }
+@keyframes bob { from { transform: translateY(0); } to { transform: translateY(-4px); } }
+.loadout-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.loadout { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 14px; background: var(--card); border: 1.5px dashed var(--line); min-width: 0; }
+.loadout.saved { border-style: solid; border-color: #92610f; }
+.loadout .btn { min-height: 40px; padding: 6px 8px; font-size: 0.8rem; }
+.loadout-icons { display: flex; flex-wrap: wrap; gap: 2px; min-height: 22px; }
+.name-input { width: 100%; min-height: 40px; border-radius: 10px; border: 1.5px solid var(--line); background: #0a0908; color: var(--text); padding: 0 10px; font-size: 16px; -webkit-user-select: text; user-select: text; }
+.presets { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); }
+.preset-row { display: flex; align-items: center; gap: 6px; }
+.preset-go { min-height: 40px; padding: 6px 12px; }
+@media (max-width: 360px) { .loadout-grid { grid-template-columns: 1fr; } }
+
 /* Combat */
 .coin-chip { color: #fde68a; border-color: #92610f; background: #241a08; }
 .chip-on { box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
