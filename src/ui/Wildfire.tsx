@@ -122,9 +122,12 @@ function WildfireGame() {
       .sort((a, b) => Math.abs(a.at - t) - Math.abs(b.at - t))[0];
     if (target) {
       target.state = 'hit';
-      sound.play('crackle');
-      setFlash({ lane, good: Math.abs(target.at - t) <= PERFECT_WINDOW, at: t });
+      // Water on fire: a steamy hiss (brighter for a perfect hit).
+      const perfect = Math.abs(target.at - t) <= PERFECT_WINDOW;
+      sound.play('douse', { rate: perfect ? 1.15 : 1 });
+      setFlash({ lane, good: perfect, at: t });
     } else {
+      sound.play('whoosh', { volume: 0.6 });
       setFlash({ lane, good: false, at: t });
     }
   };

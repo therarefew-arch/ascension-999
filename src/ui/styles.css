@@ -194,6 +194,9 @@ p { margin: 8px 0; }
   text-align: center;
 }
 .btn:active:not(:disabled) { transform: scale(0.97); }
+/* Every tappable thing gives a little squish when pressed. */
+.nav-btn, .stat-chip, .res-chip, .skill-tile, .profile-btn, .service, .food-btn, .gift-btn, .icon-btn { transition: transform 0.08s ease-out; }
+.nav-btn:active, .stat-chip:active, .res-chip:active:not(:disabled), .skill-tile:active, .profile-btn:active, .service:active, .food-btn:active, .gift-btn:active, .icon-btn:active { transform: scale(0.94); }
 .btn:disabled { opacity: 0.5; cursor: default; }
 .btn-lg { min-height: 56px; font-size: 1.02rem; }
 .btn-xl { min-height: 64px; font-size: 1.2rem; letter-spacing: 0.5px; }

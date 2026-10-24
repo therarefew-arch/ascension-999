@@ -3,12 +3,17 @@
 
 export type SoundKey =
   | 'click' | 'mine' | 'smith' | 'levelup' | 'equip' | 'deposit' | 'error' | 'welcome'
-  | 'chop' | 'splash' | 'sizzle' | 'crackle' | 'craft' | 'enchant' | 'fail' | 'hit' | 'hurt' | 'tile' | 'match';
+  | 'chop' | 'splash' | 'sizzle' | 'crackle' | 'craft' | 'enchant' | 'fail' | 'hit' | 'hurt' | 'tile' | 'match'
+  // per-tap minigame sounds
+  | 'anvil' | 'pickaxe' | 'timber' | 'kindle' | 'ignite' | 'reel' | 'carve' | 'rune' | 'whoosh' | 'douse'
+  | 'coin' | 'shing' | 'block' | 'eat' | 'fire_loop';
 export type MusicKey = 'music_town' | 'music_mahjong';
 
 export const EFFECT_SOUNDS: SoundKey[] = [
   'click', 'mine', 'smith', 'levelup', 'equip', 'deposit', 'error', 'welcome',
   'chop', 'splash', 'sizzle', 'crackle', 'craft', 'enchant', 'fail', 'hit', 'hurt', 'tile', 'match',
+  'anvil', 'pickaxe', 'timber', 'kindle', 'ignite', 'reel', 'carve', 'rune', 'whoosh', 'douse',
+  'coin', 'shing', 'block', 'eat', 'fire_loop',
 ];
 export const MUSIC_TRACKS: MusicKey[] = ['music_town', 'music_mahjong'];
 

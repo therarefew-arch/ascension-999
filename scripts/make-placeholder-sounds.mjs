@@ -48,10 +48,171 @@ function mix(...parts) {
   return out;
 }
 
+// ---------- helpers for richer, "physical" sounds ----------
+/** Simple one-pole low-pass filter (cutoff in Hz). */
+function lowpass(s, cutoff) {
+  const a = 1 - Math.exp((-2 * Math.PI * cutoff) / RATE);
+  const out = new Float32Array(s.length);
+  let y = 0;
+  for (let i = 0; i < s.length; i++) { y += a * (s[i] - y); out[i] = y; }
+  return out;
+}
+/** High-pass = signal minus its low-pass. */
+function highpass(s, cutoff) {
+  const lp = lowpass(s, cutoff);
+  return s.map((v, i) => v - lp[i]);
+}
+/** Band-pass: high-pass then low-pass. */
+function bandpass(s, lo, hi) { return lowpass(highpass(s, lo), hi); }
+/** Multiply a sound by a shape over time: env(t) → 0..1. */
+function shape(s, env) { return s.map((v, i) => v * env(i / RATE)); }
+/** Struck metal/wood: a few inharmonic partials, each with its own decay. */
+function strike(f0, ratios, decays, amps, len, amp = 0.2) {
+  const n = Math.floor(len * RATE);
+  const out = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const t = i / RATE;
+    let v = 0;
+    ratios.forEach((r, k) => { v += amps[k] * Math.sin(2 * Math.PI * f0 * r * t + k) * Math.exp(-decays[k] * t); });
+    out[i] = v * amp * Math.min(1, t / 0.0015);
+  }
+  return out;
+}
+/** A pitch sweep (Hz from → to), sine. */
+function sweep(from, to, len, amp, decay) {
+  const n = Math.floor(len * RATE);
+  const out = new Float32Array(n);
+  let ph = 0;
+  for (let i = 0; i < n; i++) {
+    const t = i / RATE;
+    const f = from + (to - from) * (t / len);
+    ph += (2 * Math.PI * f) / RATE;
+    out[i] = Math.sin(ph) * amp * Math.exp(-decay * t) * Math.min(1, t / 0.004);
+  }
+  return out;
+}
+/** Sparse pops (fire): count pops spread over len seconds. */
+function pops(len, count, amp, seed = 1) {
+  let s = seed;
+  const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  const n = Math.floor(len * RATE);
+  const out = new Float32Array(n);
+  for (let k = 0; k < count; k++) {
+    const at = Math.floor(r() * (n - 400));
+    const a = amp * (0.3 + r() * 0.7);
+    const d = 300 + r() * 900;
+    for (let i = 0; i < 300; i++) out[at + i] += (r() * 2 - 1) * a * Math.exp(-d * (i / RATE));
+  }
+  return highpass(out, 900);
+}
+/** Normalise so the loudest point is `peak`. */
+function norm(s, peak) {
+  let m = 0;
+  for (const v of s) m = Math.max(m, Math.abs(v));
+  return m ? s.map((v) => (v / m) * peak) : s;
+}
+/** Make a loop seamless by fading both ends. */
+function loopFade(s, sec = 0.03) {
+  const f = Math.floor(sec * RATE);
+  const out = Float32Array.from(s);
+  for (let i = 0; i < f; i++) { out[i] *= i / f; out[out.length - 1 - i] *= i / f; }
+  return out;
+}
+
 const sounds = {
-  click: tone([1100], 0.05, 0.08, 60),
+  // Soft wooden "tock" for every button: a woody knock with a tiny click on top.
+  click: norm(mix(['', strike(820, [1, 2.3], [70, 120], [1, 0.4], 0.07, 1)], ['', bandpass(noise(0.012, 1, 300), 1500, 5000)]), 0.16),
   mine: mix(['', noise(0.05, 0.06, 80)], ['', tone([900, 1350], 0.18, 0.1, 25)]),
   smith: tone([1500, 2260, 3100], 0.35, 0.09, 12),
+  // Hammer on anvil: bright inharmonic ring + the thud of the hammer.
+  anvil: norm(mix(
+    ['', strike(640, [1, 2.76, 5.4, 8.93], [5, 8, 14, 22], [1, 0.7, 0.45, 0.25], 1.1, 1)],
+    ['', lowpass(noise(0.03, 1, 120), 1800)],
+    ['', strike(110, [1], [40], [1], 0.12, 0.8)],
+  ), 0.3),
+  // Pickaxe on stone: hard short chink + gravel.
+  pickaxe: norm(mix(
+    ['', strike(1850, [1, 1.7, 2.9], [30, 45, 60], [1, 0.6, 0.3], 0.25, 1)],
+    ['', bandpass(noise(0.08, 1, 40), 600, 4000)],
+    ['', strike(140, [1], [45], [1], 0.1, 0.6)],
+  ), 0.26),
+  // Axe into wood: woody thunk (body resonance) + splintery crack.
+  chop: norm(mix(
+    ['', strike(150, [1, 2.1, 3.6], [28, 40, 60], [1, 0.5, 0.25], 0.25, 1)],
+    ['', bandpass(noise(0.05, 1, 70), 400, 3000)],
+    ['', bandpass(noise(0.015, 0.8, 250), 2500, 7000)],
+  ), 0.3),
+  // The tree falls: creak, then a heavy thud.
+  timber: norm(mix(
+    ['', shape(sweep(260, 120, 0.5, 1, 1.5), (t) => 0.4 + 0.6 * Math.abs(Math.sin(t * 60)))],
+    ['', strike(70, [1, 1.9], [12, 20], [1, 0.4], 0.5, 1.4), 0.5],
+    ['', lowpass(noise(0.3, 0.8, 12), 700), 0.5],
+  ), 0.3),
+  // Snapping a twig of kindling.
+  kindle: norm(mix(
+    ['', bandpass(noise(0.02, 1, 200), 1200, 6000)],
+    ['', bandpass(noise(0.015, 0.7, 260), 1500, 6000), 0.025],
+    ['', pops(0.25, 4, 0.5, 7), 0.02],
+  ), 0.22),
+  // Fire catching: soft "whoomp" then crackles.
+  ignite: norm(mix(
+    ['', shape(lowpass(noise(0.6, 1, 0), 500), (t) => Math.min(1, t / 0.12) * Math.exp(-5 * t))],
+    ['', pops(0.7, 10, 0.6, 3), 0.1],
+  ), 0.3),
+  splash: norm(mix(
+    ['', shape(bandpass(noise(0.35, 1, 0), 300, 2500), (t) => Math.min(1, t / 0.01) * Math.exp(-11 * t))],
+    ['', sweep(500, 1100, 0.06, 0.5, 30), 0.05],
+    ['', sweep(650, 1400, 0.05, 0.4, 35), 0.12],
+  ), 0.24),
+  // Meat on a hot pan: bright hiss that flutters.
+  sizzle: norm(shape(highpass(noise(0.7, 1, 0), 3000), (t) => Math.min(1, t / 0.02) * Math.exp(-3.5 * t) * (0.6 + 0.4 * Math.abs(Math.sin(t * 90) * Math.sin(t * 37)))), 0.16),
+  crackle: norm(pops(0.45, 9, 1, 11), 0.22),
+  // Reel winding: a ratchet loop (played over and over while you hold).
+  reel: (() => {
+    const len = 0.36;
+    const out = new Float32Array(Math.floor(len * RATE));
+    for (let k = 0; k < 10; k++) {
+      const tick = strike(2600 + (k % 2) * 300, [1, 1.6], [180, 260], [1, 0.4], 0.03, 1);
+      const at = Math.floor(k * (len / 10) * RATE);
+      tick.forEach((v, i) => { if (at + i < out.length) out[at + i] += v; });
+    }
+    return norm(mix(['', out], ['', lowpass(noise(len, 0.08, 0), 900)]), 0.13);
+  })(),
+  // Knife carving wood.
+  carve: norm(mix(
+    ['', shape(bandpass(noise(0.16, 1, 0), 1800, 6000), (t) => Math.sin(Math.PI * Math.min(1, t / 0.16)))],
+    ['', strike(900, [1, 2.4], [60, 90], [1, 0.3], 0.08, 0.5), 0.12],
+  ), 0.18),
+  // A soft magical chime (played at higher notes as you trace).
+  rune: norm(mix(
+    ['', strike(784, [1, 2, 3.01], [5, 9, 14], [1, 0.35, 0.15], 0.9, 1)],
+    ['', strike(1568, [1], [10], [0.3], 0.5, 1), 0.02],
+  ), 0.16),
+  // A gentle "nope" swish for a miss — never harsh.
+  whoosh: norm(shape(bandpass(noise(0.22, 1, 0), 500, 2200), (t) => Math.sin(Math.PI * Math.min(1, t / 0.22)) ** 2), 0.07),
+  // Water hitting fire: steam hiss.
+  douse: norm(mix(
+    ['', shape(highpass(noise(0.45, 1, 0), 2200), (t) => Math.min(1, t / 0.01) * Math.exp(-6 * t))],
+    ['', sweep(700, 1300, 0.05, 0.4, 30)],
+  ), 0.2),
+  // Coins: two little bright pings.
+  coin: norm(mix(
+    ['', strike(1976, [1, 2.7], [14, 22], [1, 0.3], 0.35, 1)],
+    ['', strike(2637, [1, 2.7], [12, 20], [1, 0.3], 0.45, 1), 0.07],
+  ), 0.16),
+  // Combat: blade "shing" when charging a strike, shield thud on block, munch when eating.
+  shing: norm(mix(
+    ['', strike(2300, [1, 1.52, 2.4], [6, 9, 14], [1, 0.6, 0.3], 0.6, 1)],
+    ['', shape(highpass(noise(0.15, 1, 0), 3000), (t) => Math.exp(-20 * t))],
+  ), 0.16),
+  block: norm(mix(
+    ['', strike(180, [1, 2.4, 3.9], [25, 35, 50], [1, 0.5, 0.3], 0.3, 1)],
+    ['', lowpass(noise(0.05, 1, 60), 1500)],
+  ), 0.28),
+  eat: norm(mix(
+    ['', bandpass(noise(0.06, 1, 40), 500, 3000)],
+    ['', bandpass(noise(0.06, 0.8, 40), 500, 3000), 0.12],
+  ), 0.18),
   levelup: mix(
     ['', tone([523], 0.3, 0.1, 6)], ['', tone([659], 0.3, 0.1, 6), 0.1],
     ['', tone([784], 0.3, 0.1, 6), 0.2], ['', tone([1047], 0.6, 0.1, 4), 0.3],
@@ -59,10 +220,6 @@ const sounds = {
   equip: mix(['', tone([180, 270], 0.15, 0.14, 20)], ['', noise(0.04, 0.03, 60)]),
   deposit: mix(['', tone([660], 0.12, 0.08, 18)], ['', tone([880], 0.18, 0.08, 14), 0.08]),
   error: tone([220, 233], 0.2, 0.08, 14),
-  chop: mix(['', noise(0.06, 0.08, 50)], ['', tone([220, 330], 0.15, 0.1, 22)]),
-  splash: mix(['', noise(0.25, 0.05, 12)], ['', tone([700, 520], 0.12, 0.04, 25)]),
-  sizzle: noise(0.35, 0.035, 6),
-  crackle: mix(['', noise(0.03, 0.06, 90)], ['', noise(0.03, 0.05, 90), 0.09], ['', noise(0.03, 0.04, 90), 0.2]),
   craft: mix(['', tone([480], 0.08, 0.08, 30)], ['', noise(0.05, 0.03, 60), 0.05]),
   enchant: mix(['', tone([880, 1320], 0.4, 0.07, 6)], ['', tone([1175, 1760], 0.4, 0.06, 6), 0.12]),
   fail: mix(['', tone([392], 0.25, 0.06, 8)], ['', tone([330], 0.35, 0.06, 6), 0.12]),
@@ -74,6 +231,14 @@ const sounds = {
 };
 
 for (const [name, s] of Object.entries(sounds)) writeFileSync(join(OUT, `${name}.wav`), wav(Array.from(s)));
+
+// Cozy fire ambience (loops quietly in the kitchen while the fire is lit): low rumble + crackles.
+{
+  const len = 6;
+  const rumble = lowpass(noise(len, 1, 0), 220);
+  const out = mix(['', norm(rumble, 0.05)], ['', norm(pops(len, 40, 1, 5), 0.12)]);
+  writeFileSync(join(OUT, 'fire_loop.wav'), wav(Array.from(loopFade(out, 0.15))));
+}
 
 // A slow, quiet 16-second loop of soft chords (Am – F – C – G).
 const chords = [[220, 261.6, 329.6], [174.6, 220, 261.6], [130.8, 196, 261.6], [196, 246.9, 293.7]];

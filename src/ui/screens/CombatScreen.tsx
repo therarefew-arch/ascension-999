@@ -14,6 +14,7 @@ import { MonsterArt } from '../MonsterArt';
 import { useAnimationTime, useFeedback, FeedbackLayer } from '../Minigames';
 import { PixelScene } from '../PixelScene';
 import { TRAINING } from '../../data/places';
+import { sound } from '../../audio/sound';
 
 const STYLE_ICON = { melee: 'melee', ranged: 'ranged', magic: 'magic' } as const;
 const STYLE_NAME: Record<CombatStyle, string> = { melee: 'Melee', ranged: 'Ranged', magic: 'Magic' };
@@ -167,12 +168,12 @@ function Fight({ onItem }: { onItem: (id: string) => void }) {
     if (Math.abs(pos - zone) <= STRIKE_VEIN.zone / 2) {
       if (!game.combatCharge()) push('Wait for the next monster', 'miss');
       setZone(0.2 + Math.random() * 0.6);
-    } else push('Missed the timing — try again', 'miss');
+    } else { sound.play('whoosh'); push('Missed the timing — try again', 'miss'); }
   };
   const block = () => {
     const r = game.combatBlock();
     if (r === 'blocked') push('Shield up!', 'good');
-    else if (r === 'early') push('Too early — wait for the wind-up', 'miss');
+    else if (r === 'early') { sound.play('whoosh'); push('Too early — wait for the wind-up', 'miss'); }
   };
 
   const windup = f.respawn > 0 ? 0 : Math.max(0, 1 - f.monsterTimer / BLOCK_WINDOW_MS);

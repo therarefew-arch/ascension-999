@@ -130,7 +130,13 @@ export function App() {
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const el = (e.target as HTMLElement).closest('button');
-      if (el && !el.disabled && el.dataset.silent === undefined) sound.play('click');
+      if (!el || el.disabled || el.dataset.silent !== undefined) return;
+      // A woody "tock": deeper for the big nav buttons, brighter for main action buttons.
+      const c = el.classList;
+      if (c.contains('bag-btn')) sound.play('click', { rate: 0.7 });
+      else if (c.contains('nav-btn')) sound.play('click', { rate: 0.85 });
+      else if (c.contains('btn-primary') || c.contains('btn-hero')) sound.play('click', { rate: 1.12 });
+      else sound.play('click');
     };
     document.addEventListener('click', onClick, true);
     return () => document.removeEventListener('click', onClick, true);

@@ -6,6 +6,7 @@ import { whyCantDo } from '../core/idle';
 import { ANVIL_RHYTHM, STRIKE_VEIN, type HitGrade } from '../core/minigames';
 import { game, useGame, type MinigameResult } from '../core/store';
 import { ItemIcon, UiIcon } from './icons';
+import { sound } from '../audio/sound';
 
 interface Feedback { id: number; text: string; kind: HitGrade | 'combo' | 'info' }
 
@@ -75,6 +76,8 @@ export function StrikeVein({ action }: { action: ActionDef }) {
       setPausedAt(null);
     }, STRIKE_VEIN.pauseMs);
 
+    // Pickaxe on stone every swing — a clean hit rings higher.
+    sound.play('pickaxe', grade === 'miss' ? { rate: 0.8, volume: 0.55 } : { rate: grade === 'perfect' ? 1.12 : 1 });
     if (grade === 'miss') {
       setCombo(0);
       push('So close! Try again', 'miss');
@@ -150,6 +153,8 @@ export function AnvilRhythm({ action }: { action: ActionDef }) {
     const off = Math.abs(t - TARGET) * ANVIL_RHYTHM.ringSeconds;
     const grade: HitGrade = off <= ANVIL_RHYTHM.perfectWindow ? 'perfect' : off <= ANVIL_RHYTHM.goodWindow ? 'good' : 'miss';
     clock.reset();
+    // Hammer on anvil every swing: a perfect hit rings bright, a mistimed one is a dull tap.
+    sound.play('anvil', grade === 'miss' ? { rate: 0.82, volume: 0.45 } : { rate: grade === 'perfect' ? 1.1 : 1 });
     if (grade === 'miss') {
       push('Easy does it… wait for the glow', 'miss');
       return;

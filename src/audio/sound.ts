@@ -77,18 +77,65 @@ class SoundSystem {
     return p;
   }
 
-  play(key: SoundKey): void {
+  /**
+   * Plays a sound effect.
+   * - rate: pitch/speed (1 = normal, 1.12 ≈ two notes higher)
+   * - volume: 0..1 (default 1)
+   * Every play gets a tiny random pitch change so repeated taps never sound robotic.
+   */
+  play(key: SoundKey, opts: { rate?: number; volume?: number; exact?: boolean } = {}): void {
     if (!this.ctx || !this.effects || this.ctx.state !== 'running') return;
     // Avoid the same sound stacking up if many happen at once.
     const now = performance.now();
-    if (now - (this.lastPlayed.get(key) ?? 0) < 60) return;
+    if (now - (this.lastPlayed.get(key) ?? 0) < 35) return;
     this.lastPlayed.set(key, now);
     const buf = this.buffers.get(key);
     if (!buf) { void this.load(key); return; }
     const src = this.ctx.createBufferSource();
     src.buffer = buf;
-    src.connect(this.effects);
+    const vary = opts.exact ? 1 : 1 + (Math.random() - 0.5) * 0.07;
+    src.playbackRate.value = (opts.rate ?? 1) * vary;
+    if (opts.volume !== undefined && opts.volume !== 1) {
+      const g = this.ctx.createGain();
+      g.gain.value = opts.volume;
+      src.connect(g);
+      g.connect(this.effects);
+    } else {
+      src.connect(this.effects);
+    }
     src.start();
+  }
+
+  /** Starts a looping effect (reel winding, fire ambience). Returns a function that stops it. */
+  loop(key: SoundKey, volume = 1): () => void {
+    let src: AudioBufferSourceNode | null = null;
+    let gain: GainNode | null = null;
+    let stopped = false;
+    const begin = (buf: AudioBuffer | null) => {
+      if (stopped || !buf || !this.ctx || !this.effects) return;
+      src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      gain = this.ctx.createGain();
+      gain.gain.value = 0;
+      gain.gain.setTargetAtTime(volume, this.ctx.currentTime, 0.04);
+      src.connect(gain);
+      gain.connect(this.effects);
+      src.start();
+    };
+    if (this.ctx && this.ctx.state === 'running') {
+      const buf = this.buffers.get(key);
+      if (buf) begin(buf); else void this.load(key).then(begin);
+    }
+    return () => {
+      stopped = true;
+      if (src && gain && this.ctx) {
+        gain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
+        const s = src;
+        setTimeout(() => { try { s.stop(); } catch { /* already stopped */ } }, 300);
+      }
+      src = null;
+    };
   }
 
   playMusic(key: MusicKey): void {

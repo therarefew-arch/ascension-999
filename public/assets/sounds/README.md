@@ -24,5 +24,20 @@ as `.mp3`, `.ogg` or `.m4a` (for example `mine.mp3`). The game uses it instead o
 | hurt | A monster attacks you |
 | tile | Tapping a Mahjong tile (soft wooden thud) |
 | match | Finding a Mahjong match |
+| anvil | Every hammer swing in Smithing (and the Enhancing hammer) |
+| pickaxe | Every pickaxe swing in Mining |
+| timber | The tree falling on the 5th chop |
+| kindle | Snapping a twig each kindling tap |
+| ignite | The fire catching ("whoomp") |
+| reel | Reel ratchet — loops while you hold the reel button |
+| carve | Knife carving in Crafting |
+| rune | Magic chime for each Rune Trace point (plays as rising notes) |
+| whoosh | A soft swish for a miss (never harsh) |
+| douse | Water hissing on fire in Wildfire |
+| coin | Selling, buying, request rewards |
+| shing | Charging a combat strike |
+| block | Raising your shield |
+| eat | Eating food |
+| fire_loop | Cozy fire crackle in the kitchen while the fire burns (loops) |
 | music_mahjong | Calm lofi music while playing Tile Match (loops) |
 | music_town | Background music in Pocketvale (loops) |

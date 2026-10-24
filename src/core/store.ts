@@ -362,7 +362,7 @@ export const game = {
   claimRequest(i: number) {
     const coins = claimRequest(snap.player, i);
     if (coins === null) return;
-    play('deposit');
+    play('coin');
     buzz(20);
     toast(`📜 Request done! +${coins} coins`, 'good');
     if (snap.player.requests.tasks.every((t) => t.claimed)) toast('All three done — claim your bonus!', 'level');
@@ -489,14 +489,14 @@ export const game = {
   // ----- Trading Post -----
   sell(id: string, qty: number) {
     const coins = marketSell(snap.player, id, qty);
-    if (coins > 0) { play('deposit'); toast(`Sold for ${coins.toLocaleString()} coins`, 'good'); }
+    if (coins > 0) { play('coin'); toast(`Sold for ${coins.toLocaleString()} coins`, 'good'); }
     save();
     emit();
   },
   buy(id: string, qty: number) {
     const why = marketBuy(snap.player, id, qty);
     if (why) return fail(why);
-    play('deposit');
+    play('coin');
     save();
     emit();
   },
@@ -592,7 +592,7 @@ export const game = {
     if (!f || f.critReady || f.respawn > 0) return false;
     f.critReady = true;
     f.playerTimer = 0; // strike right away — no waiting for the next swing
-    play('enchant');
+    play('shing');
     tick();
     emit();
     return true;
@@ -604,14 +604,14 @@ export const game = {
     if (!f || f.respawn > 0) return 'none';
     if (f.monsterTimer > BLOCK_WINDOW_MS) return 'early';
     f.blockUntil = Date.now() + f.monsterTimer + 60;
-    play('equip');
+    play('block');
     emit();
     return 'blocked';
   },
   eat(id: string) {
     const why = eatFood(snap.player, id);
     if (why) return fail(why);
-    play('sizzle');
+    play('eat');
     emit();
   },
 

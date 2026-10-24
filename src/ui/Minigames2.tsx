@@ -11,6 +11,7 @@ import { CHOP, HEAT, KINDLE, REEL, RUNE_ALIGN, RUNE_TRACE, STEADY_HANDS, type Hi
 import { game, useGame } from '../core/store';
 import { ItemIcon, UiIcon, type UiIconName } from './icons';
 import { FeedbackLayer, gainText, useAnimationTime, useFeedback } from './Minigames';
+import { sound } from '../audio/sound';
 
 function Inputs({ action }: { action: ActionDef }) {
   if (!action.inputs.length) return <>+{action.xp} XP</>;
@@ -57,7 +58,10 @@ export function Chop({ action }: { action: ActionDef }) {
     if (blocked) return;
     setShake((s) => s + 1);
     const next = taps + 1;
+    // A woody thunk every chop, a little higher each time, then TIMBER as it falls.
+    sound.play('chop', { rate: 0.94 + next * 0.04 });
     if (next < CHOP.tapsNeeded) { setTaps(next); return; }
+    sound.play('timber');
     setTaps(0);
     const r = game.minigameReward(action.id, { xpMult: 1, bonusRolls: 0 });
     if (r.ok) push(`TIMBER!  ${gainText(r)}`, 'good');
@@ -90,6 +94,12 @@ export function ReelItIn({ action }: { action: ActionDef }) {
   const s = useRef({ hook: 0.2, vel: 0, catchBar: 0, clean: true, entered: false, holding: false, last: performance.now(), t0: performance.now() });
 
   useEffect(() => { Object.assign(s.current, { catchBar: 0, clean: true, entered: false }); }, [action.id]);
+
+  // Ratchet sound while the reel is winding.
+  const stopReel = useRef<(() => void) | null>(null);
+  const reelOn = () => { s.current.holding = true; if (!stopReel.current) stopReel.current = sound.loop('reel', 0.9); };
+  const reelOff = () => { s.current.holding = false; stopReel.current?.(); stopReel.current = null; };
+  useEffect(() => () => { stopReel.current?.(); }, []);
 
   const zoneCenter = (now: number) => {
     const t = (now - s.current.t0) / 1000;
@@ -143,7 +153,7 @@ export function ReelItIn({ action }: { action: ActionDef }) {
       </div>
       <Panel label="Reel It In" hint="Hold to reel · keep the hook on the fish">
         <BigButton icon="fishing" label={st.holding ? 'REELING…' : 'HOLD TO REEL'} blocked={blocked}
-          onPress={() => { s.current.holding = true; }} onRelease={() => { s.current.holding = false; }} />
+          onPress={reelOn} onRelease={reelOff} />
         <p className="mg-foot">Fill the catch bar. Stay on the fish the whole time for a bonus. Fish never get away.</p>
       </Panel>
     </div>
@@ -175,9 +185,18 @@ export function HeatPrecision({ action }: { action: ActionDef }) {
   const heatFrac = Math.min(1, player.fire.heatMs / MAX_FIRE_MS);
   const flame = FIRE_LOGS[player.fire.log ?? stokeLog ?? 'pine_logs']?.color ?? '#f97316';
 
+  // A cozy crackling fire in the background while it burns.
+  useEffect(() => {
+    if (!lit) return;
+    const stop = sound.loop('fire_loop', 0.8);
+    return stop;
+  }, [lit]);
+
   const sear = () => {
     if (blocked) return;
     const golden = Math.abs(pos - zone) <= HEAT.zone / 2;
+    // Sizzle on every sear — a golden one is louder and brighter.
+    sound.play('sizzle', golden ? { rate: 1.12 } : { volume: 0.75 });
     const next = [...sears, golden];
     if (next.length < HEAT.searsNeeded) {
       setSears(next);
@@ -277,7 +296,11 @@ export function Kindle({ action }: { action: ActionDef }) {
     const now = performance.now();
     if (st.meter === 0) st.startedAt = now;
     st.meter += KINDLE.perTap;
+    // Snap a twig each tap; it crackles more as the fire builds, then WHOOMP when it catches.
+    sound.play('kindle', { rate: 0.9 + Math.min(1, st.meter) * 0.3 });
+    if (st.meter > 0.4) sound.play('crackle', { volume: Math.min(1, st.meter) * 0.8 });
     if (st.meter >= 1) {
+      sound.play('ignite');
       const quick = (now - st.startedAt) / 1000 <= KINDLE.quickSeconds;
       st.meter = 0;
       st.startedAt = 0;
@@ -336,6 +359,7 @@ export function SteadyHands({ action }: { action: ActionDef }) {
 
   const start = () => {
     if (blocked) return;
+    sound.play('carve', { rate: 0.8, volume: 0.6 });
     clock.reset();
     setRunning(true);
   };
@@ -360,8 +384,9 @@ export function SteadyHands({ action }: { action: ActionDef }) {
       const d = Math.abs(pos - n);
       if (hits[i] === null && d < bestDist) { best = i; bestDist = d; }
     });
-    if (best < 0 || bestDist > STEADY_HANDS.goodDistance) { push('Steady… wait for a notch', 'miss'); return; }
+    if (best < 0 || bestDist > STEADY_HANDS.goodDistance) { sound.play('whoosh'); push('Steady… wait for a notch', 'miss'); return; }
     const grade: HitGrade = bestDist <= STEADY_HANDS.perfectDistance ? 'perfect' : 'good';
+    sound.play('carve', { rate: grade === 'perfect' ? 1.15 : 1 });
     const next = [...hits];
     next[best] = grade;
     setHits(next);
@@ -391,6 +416,9 @@ export function SteadyHands({ action }: { action: ActionDef }) {
 // ---------------------------------------------------------------------------
 // Runecrafting — Rune Trace
 // ---------------------------------------------------------------------------
+/** A gentle major-pentatonic scale (as playback rates) for the trace chimes. */
+const RUNE_NOTES = [0, 2, 4, 7, 9, 12, 14, 16].map((semi) => 2 ** (semi / 12));
+
 function makeTrace() {
   const order = Array.from({ length: RUNE_TRACE.nodes }, (_, i) => i).sort(() => Math.random() - 0.5);
   return order.slice(0, RUNE_TRACE.traceLength);
@@ -411,11 +439,14 @@ export function RuneTrace({ action }: { action: ActionDef }) {
     if (blocked) return;
     if (trace[step] !== i) {
       if (trace.slice(0, step).includes(i)) return; // already traced — ignore
+      sound.play('whoosh');
       setMistakes((m) => m + 1);
       setFlash(i);
       setTimeout(() => setFlash(null), 250);
       return;
     }
+    // Each correct point chimes one note higher, like playing a little tune.
+    sound.play('rune', { rate: RUNE_NOTES[Math.min(step, RUNE_NOTES.length - 1)], exact: true });
     if (step + 1 < trace.length) { setStep(step + 1); return; }
     const clean = mistakes === 0;
     const r = game.minigameReward(action.id, { xpMult: clean ? RUNE_TRACE.cleanXpMult : 1, bonusRolls: clean ? RUNE_TRACE.cleanBonusRolls : 0 });
@@ -478,6 +509,9 @@ export function RuneAlign({ action }: { action: ActionDef }) {
     if (blocked || performance.now() < busyUntil) return;
     const luck = fromTop <= RUNE_ALIGN.perfectDegrees ? RUNE_ALIGN.perfectLuck : fromTop <= RUNE_ALIGN.goodDegrees ? RUNE_ALIGN.goodLuck : 0;
     setBusyUntil(performance.now() + 700);
+    // Hammer strikes the rune; a well-aligned strike rings brighter.
+    sound.play('anvil', { rate: luck ? 1.2 : 0.95, volume: 0.7 });
+    if (luck) sound.play('rune', { rate: 1.5, volume: 0.8 });
     const r = game.minigameReward(action.id, { xpMult: 1, bonusRolls: 0, chanceBonus: luck });
     if (!r.ok) return;
     if (luck) push(`Rune aligned! +${Math.round(luck * 100)}% luck`, luck === RUNE_ALIGN.perfectLuck ? 'perfect' : 'good');

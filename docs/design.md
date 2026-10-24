@@ -279,6 +279,12 @@ Based on the owner's reference screenshots:
 - **Tap a Town Request to go there**: XP and collect requests open the right skill, monster requests open Combat.
 - Each skill screen shows its local place name (e.g. "📍 The Deep Mine, Ironmoor"); Combat shows where you fight. Combat's extra Gear button was removed (Gear is on the bottom bar).
 
+### Phase 5.3 — built (satisfying sounds)
+- Every minigame tap has its own sound: pickaxe chink (Mining), hammer on anvil (Smithing, Enhancing), woody chop rising in pitch then a tree-fall (Woodcutting), reel ratchet while holding (Fishing), sizzle on each sear plus a crackling fire ambience while the fire burns (Cooking), twig snaps building to a crackle and a "whoomp" (Firemaking), steam hiss (Wildfire), knife carving (Crafting), rising rune chimes (Runecrafting), blade "shing" and shield thud (Combat), munch (eating), coin pings (Trading Post, requests).
+- Better hits sound brighter; misses get a soft swish, never a harsh buzz.
+- Every sound plays with a tiny random pitch change so repeated taps sound natural. Buttons have a woody "tock" (deeper for the bottom bar, brighter for main actions) and a little squish when pressed.
+- All sounds are synthesised by `scripts/make-placeholder-sounds.mjs` (`npm run sounds`); a real recording with the same name replaces any of them.
+
 ### Phase 4 — ideas for next
 Ironmoor region, weekly boss with "Defeated" screen, NPC Trading Post and shops (coin sinks), more idle slots, Loot Belt (Enhancing 60).
 
