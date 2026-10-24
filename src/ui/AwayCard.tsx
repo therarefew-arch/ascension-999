@@ -3,12 +3,13 @@ import { getItem } from '../data/items';
 import { ACTIONS, SKILLS } from '../data/skills';
 import { game, type AwayReport } from '../core/store';
 import { OFFLINE_CAP_MS } from '../core/player';
+import { fightMonster, isFightId } from '../core/combat';
 import { ItemIcon } from './icons';
 import { fmtDuration, fmtNum } from './format';
 
 export function AwayCard({ away }: { away: AwayReport }) {
   const { report } = away;
-  const action = report.actionId ? ACTIONS[report.actionId] : null;
+  const doing = report.actionIds.map((id) => (isFightId(id) ? `fighting ${fightMonster(id).name}` : ACTIONS[id] ? `${SKILLS[ACTIONS[id].skill].verb.toLowerCase()} ${ACTIONS[id].name}` : '')).filter(Boolean);
   const gained = Object.entries(report.gained);
   const used = Object.entries(report.used);
   const capped = away.awayMs > OFFLINE_CAP_MS;
@@ -18,7 +19,7 @@ export function AwayCard({ away }: { away: AwayReport }) {
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="away-title">
         <h2 id="away-title">Welcome back!</h2>
         <p className="muted">You were away for <b>{fmtDuration(away.awayMs)}</b>.</p>
-        {action && <p>You were {SKILLS[action.skill].verb.toLowerCase()}: <b>{action.name}</b></p>}
+        {doing.length > 0 && <p>You were <b>{doing.join(', ')}</b></p>}
 
         {Object.entries(report.xp).map(([skill, xp]) => (
           <div key={skill} className="away-line xp">+{fmtNum(xp ?? 0)} {SKILLS[skill as keyof typeof SKILLS].name} XP</div>
@@ -43,11 +44,12 @@ export function AwayCard({ away }: { away: AwayReport }) {
         {report.failed > 0 && <p className="small muted">{report.failed} enhance {report.failed === 1 ? 'try' : 'tries'} didn't take (items kept safe).</p>}
         {report.actions === 0 && !report.stopped && <p className="muted">Nothing finished while you were gone.</p>}
 
-        {report.stopped && (
-          <div className="warn">
-            Stopped after <b>{fmtDuration(report.stopped.afterMs)}</b>: {report.stopped.reason}.
+        {report.stops.map((s, k) => (
+          <div key={k} className="warn">
+            {report.stops.length > 1 && <b>{isFightId(s.actionId) ? 'Combat' : ACTIONS[s.actionId]?.name}: </b>}
+            Stopped after <b>{fmtDuration(s.afterMs)}</b>: {s.reason}.
           </div>
-        )}
+        ))}
         {capped && <p className="small muted">Offline progress counts up to 24 hours.</p>}
 
         <button className="btn btn-primary btn-lg btn-wide" onClick={() => game.dismissAway()}>Collect</button>

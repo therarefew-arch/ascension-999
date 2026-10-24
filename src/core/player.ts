@@ -8,9 +8,13 @@ import type { FightState } from './combat';
  * v3: pickaxes moved from Smithing to Crafting; tool tiers renamed (pine→stone, oak→bronze); cooking fire.
  * v4: combat — 5 combat skills, hit points, coins, gem sockets, fights, mini boss timers.
  * v5: Runecrafting — minor/major runes → air/earth runes, old staffs → air staffs (blank staffs are new).
+ * v6: economy — up to 3 idle slots, bigger bags, rotating-shop purchases.
  */
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
+/** Starting bag size. Can be upgraded with coins up to MAX_BAG_SLOTS. */
 export const INVENTORY_SLOTS = 30;
+export const MAX_BAG_SLOTS = 50;
+export const MAX_IDLE_SLOTS = 3;
 /** Max of one stackable item in a single bag slot. */
 export const STACK_LIMIT = 500;
 /** Offline progress counts up to this long. */
@@ -39,8 +43,11 @@ export interface PlayerState {
   equipment: Partial<Record<EquipSlot, string>>;
   /** Gems socketed into gear slots. The gem stays in the slot when you swap gear. */
   sockets: Partial<Record<EquipSlot, string>>;
-  /** One idle slot for now. More slots can be added later as a coin sink. */
-  idle: IdleSlot | null;
+  /** Idle slots (always 3 entries; only the first `unlockedSlots` can be used). */
+  slots: (IdleSlot | null)[];
+  unlockedSlots: number;
+  /** Rotating shop: which deals were bought in the current rotation. */
+  shop: { rotation: number; bought: number[] };
   /** Why idling last stopped by itself (shown to the player). */
   lastStop: { actionId: string; reason: string; at: number } | null;
   /** The cooking fire: how much heat is left and which log is burning (sets the flame colour). */
@@ -72,7 +79,9 @@ export function newPlayer(now = Date.now()): PlayerState {
     bank: [],
     equipment: {},
     sockets: {},
-    idle: null,
+    slots: [null, null, null],
+    unlockedSlots: 1,
+    shop: { rotation: -1, bought: [] },
     lastStop: null,
     fire: { heatMs: 0, log: null },
     coins: 0,

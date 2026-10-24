@@ -1,15 +1,15 @@
 import { usedSlots } from '../core/inventory';
-import { INVENTORY_SLOTS } from '../core/player';
 import { game, useGame } from '../core/store';
 import { ItemSlot, Sheet } from './components';
 
 export function BagSheet({ onClose, onItem }: { onClose: () => void; onItem: (id: string) => void }) {
   const { player } = useGame();
   const used = usedSlots(player.inventory);
-  const full = used >= INVENTORY_SLOTS;
+  const size = player.inventory.length;
+  const full = used >= size;
   return (
     <Sheet
-      title={<>Bag <span className={`count ${full ? 'bad-text' : ''}`}>{used}/{INVENTORY_SLOTS}</span></>}
+      title={<>Bag <span className={`count ${full ? 'bad-text' : ''}`}>{used}/{size}</span></>}
       onClose={onClose}
       footer={<button className="btn btn-primary btn-lg btn-wide" disabled={used === 0} onClick={() => game.depositAll()}>Deposit all to bank</button>}
     >

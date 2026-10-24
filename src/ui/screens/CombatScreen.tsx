@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getItem, ITEMS, type CombatStyle } from '../../data/items';
 import { MONSTERS, type MonsterDef } from '../../data/monsters';
 import { COMBAT_SKILLS, SKILLS } from '../../data/skills';
-import { BLOCK_WINDOW_MS, STRIKE_SWEEP_SECONDS, combatStats, currentAmmo, maxHp, weaponStyle, whyCantFight } from '../../core/combat';
+import { BLOCK_WINDOW_MS, STRIKE_SWEEP_SECONDS, fightSlot, combatStats, currentAmmo, maxHp, weaponStyle, whyCantFight } from '../../core/combat';
 import { countInBag } from '../../core/inventory';
 import { STRIKE_VEIN } from '../../core/minigames';
 import { game, useGame } from '../../core/store';
@@ -178,7 +178,7 @@ function Fight({ onItem }: { onItem: (id: string) => void }) {
 
 export function CombatScreen({ onGear, onItem }: { onGear: () => void; onItem: (id: string) => void }) {
   const { player } = useGame();
-  const fighting = !!player.fight && !!player.idle;
+  const fighting = !!player.fight && fightSlot(player) >= 0;
   const style = weaponStyle(player);
   const max = maxHp(player);
   return (

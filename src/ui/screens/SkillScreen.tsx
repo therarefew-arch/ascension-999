@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import type { SkillId } from '../../data/items';
 import { ACTIONS, actionsForSkill, SKILL_ORDER, SKILLS, tabsForSkill, type ActionDef } from '../../data/skills';
 import { getItem } from '../../data/items';
-import { skillLevel, whyCantDo } from '../../core/idle';
+import { skillLevel, slotOf, whyCantDo } from '../../core/idle';
 import { countInBag } from '../../core/inventory';
 import type { PlayerState } from '../../core/player';
 import { bestAction, timeToNextLevel, visibleActions } from '../../core/rates';
@@ -33,7 +33,7 @@ export function SkillStrip({ selected, onSelect }: { selected: SkillId; onSelect
     <div className="skill-strip" role="tablist" aria-label="Skills">
       {SKILL_ORDER.map((s) => {
         const eta = timeToNextLevel(player, s);
-        const idling = player.idle && actionsForSkill(s).some((a) => a.id === player.idle!.actionId);
+        const idling = player.slots.some((sl) => sl && actionsForSkill(s).some((a) => a.id === sl.actionId));
         return (
           <button key={s} role="tab" aria-selected={selected === s} className={`skill-tile ${selected === s ? 'on' : ''}`} onClick={() => onSelect(s)}>
             {idling && <span className="tile-badge"><UiIcon name="clock" size={11} /></span>}
@@ -88,7 +88,7 @@ function RecipeList({ player, actions, selected, onSelect }: {
           <button key={a.id} className={`recipe ${a.id === selected ? 'on' : ''} ${locked ? 'locked' : ''}`} onClick={() => onSelect(a.id)}>
             <ItemIcon id={a.iconItem} size={36} />
             <div className="grow">
-              <div className="recipe-name">{a.name}{player.idle?.actionId === a.id && <span className="chip-idle"> <UiIcon name="clock" size={12} /></span>}</div>
+              <div className="recipe-name">{a.name}{slotOf(player, a.id) >= 0 && <span className="chip-idle"> <UiIcon name="clock" size={12} /></span>}</div>
               <div className="recipe-sub">{needs.map((i) => `${i.qty}× ${getItem(i.item).name}`).join(' + ')}</div>
             </div>
             <div className="recipe-right mono">
@@ -118,7 +118,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
   const [tab, setTab] = useState<string>(() => ACTIONS[defaultId()]?.tab ?? tabs[0] ?? '');
 
   useEffect(() => {
-    const idleHere = player.idle && allActions.some((a) => a.id === player.idle!.actionId) ? player.idle.actionId : null;
+    const idleHere = player.slots.find((sl) => sl && allActions.some((a) => a.id === sl.actionId))?.actionId ?? null;
     const id = idleHere ?? defaultId();
     setSelectedId(id);
     setTab(ACTIONS[id]?.tab ?? tabs[0] ?? '');
@@ -172,7 +172,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
   }
 
   const unlocked = lvl >= action.level;
-  const idlingThis = player.idle?.actionId === action.id;
+  const idlingThis = slotOf(player, action.id) >= 0;
   const Minigame = MINIGAMES[skill] ?? AnvilRhythm;
 
   return (
@@ -204,7 +204,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
               <ItemIcon id={a.iconItem} size={22} />
               <span>{a.name}</span>
               {locked && <span className="chip-lv">Lv{a.level}</span>}
-              {player.idle?.actionId === a.id && <span className="chip-idle"><UiIcon name="clock" size={12} /></span>}
+              {slotOf(player, a.id) >= 0 && <span className="chip-idle"><UiIcon name="clock" size={12} /></span>}
             </button>
           );
         })}
@@ -226,7 +226,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
       {unlocked && (
         <div className="idle-cta">
           {idlingThis ? (
-            <button className="btn btn-stop btn-lg btn-wide" onClick={() => game.stopAction()}>
+            <button className="btn btn-stop btn-lg btn-wide" onClick={() => game.stopAction(action.id)}>
               <UiIcon name="stop" size={18} /> Stop idling {action.name}
             </button>
           ) : (

@@ -43,13 +43,14 @@ export function visibleActions(p: PlayerState, skill: SkillId): ActionDef[] {
 export function timeToNextLevel(p: PlayerState, skill: SkillId): NextLevelEstimate | null {
   const prog = levelProgress(p.skills[skill].xp);
   if (prog.maxed) return null;
-  const currentAction = p.idle ? ACTIONS[p.idle.actionId] : undefined;
-  const current = currentAction?.skill === skill;
-  const action = current ? currentAction! : bestAction(p, skill);
+  const slot = p.slots.find((s) => s && ACTIONS[s.actionId]?.skill === skill);
+  const currentAction = slot ? ACTIONS[slot.actionId] : undefined;
+  const current = !!currentAction;
+  const action = currentAction ?? bestAction(p, skill);
   if (!action) return null;
   const remainingXp = prog.needed - prog.into;
   const actionsNeeded = Math.ceil(remainingXp / action.xp);
   let ms = actionsNeeded * actionDuration(p, action);
-  if (current && p.idle) ms -= p.idle.progressMs;
+  if (slot) ms -= slot.progressMs;
   return { ms: Math.max(0, ms), action, current };
 }

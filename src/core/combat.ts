@@ -4,7 +4,7 @@
 import { getItem, ITEMS, WEAPON_SPEED, type CombatStyle, type SkillId } from '../data/items';
 import { MONSTER_MAP, type MonsterDef } from '../data/monsters';
 import { equipmentStats } from './equipment';
-import { addXp, type ProgressReport } from './idle';
+import { addXp, chooseSlot, type ProgressReport } from './idle';
 import { countInBag, removeFromBag } from './inventory';
 import { giveLoot, rollLoot } from './loot';
 import type { PlayerState } from './player';
@@ -127,14 +127,23 @@ export function startFight(p: PlayerState, monsterId: string): string | null {
   if (!monster) return 'Unknown monster';
   const why = whyCantFight(p, monster);
   if (why) return why;
-  p.idle = { actionId: FIGHT_PREFIX + monsterId, progressMs: 0 };
+  // Only one fight at a time: reuse the fighting slot, else a free one, else slot 1.
+  const id = FIGHT_PREFIX + monsterId;
+  const i = chooseSlot(p, id);
+  p.slots[i] = { actionId: id, progressMs: 0 };
   p.fight = newFight(monster, p);
   p.lastStop = null;
   return null;
 }
 
+/** The slot index that's fighting, or -1. */
+export function fightSlot(p: PlayerState): number {
+  return p.slots.findIndex((s) => isFightId(s?.actionId));
+}
+
 export function endFight(p: PlayerState) {
-  if (isFightId(p.idle?.actionId)) p.idle = null;
+  const i = fightSlot(p);
+  if (i >= 0) p.slots[i] = null;
   p.fight = null;
 }
 

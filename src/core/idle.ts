@@ -9,13 +9,18 @@ import {
 import { enhanceChance, FAIL_XP_SHARE } from './enhancing';
 import { countInBag, countInBank, removeFromBag, canFitAll } from './inventory';
 import { giveLoot, maxLoot, rollLoot } from './loot';
-import type { PlayerState } from './player';
+import type { IdleSlot, PlayerState } from './player';
 import { MAX_XP, levelForXp } from './xp';
 import { equipmentStats } from './equipment';
 import { advanceFight, isFightId, type CombatReport } from './combat';
 
 export interface ProgressReport {
+  /** The first running activity (kept for simple screens). */
   actionId: string | null;
+  /** Every activity that was running. */
+  actionIds: string[];
+  /** Every slot that stopped by itself. */
+  stops: { actionId: string; reason: string; afterMs: number }[];
   /** Time that was simulated. */
   ms: number;
   actions: number;
@@ -147,24 +152,63 @@ export function whyCantDo(p: PlayerState, action: ActionDef, opts: { manual?: bo
   return null;
 }
 
-export function startIdle(p: PlayerState, actionId: string): string | null {
+// ---------------------------------------------------------------------------
+// Idle slots (1 to start, up to 3 unlocked with total level or coins)
+// ---------------------------------------------------------------------------
+
+/** The skill a slot is working on ('combat' for fights). */
+function slotSkill(actionId: string): SkillId | 'combat' | null {
+  if (isFightId(actionId)) return 'combat';
+  return ACTIONS[actionId]?.skill ?? null;
+}
+
+/** Index of the slot running this action, or -1. */
+export function slotOf(p: PlayerState, actionId: string): number {
+  return p.slots.findIndex((s) => s?.actionId === actionId);
+}
+
+/** All running slots with their index. */
+export function runningSlots(p: PlayerState): { index: number; slot: IdleSlot }[] {
+  return p.slots.map((slot, index) => ({ slot, index })).filter((x): x is { index: number; slot: IdleSlot } => !!x.slot);
+}
+
+/** Which slot a new activity goes into: the slot already doing that skill, else a free one, else slot 1. */
+export function chooseSlot(p: PlayerState, actionId: string): number {
+  const skill = slotSkill(actionId);
+  for (let i = 0; i < p.unlockedSlots; i++) {
+    const s = p.slots[i];
+    if (s && slotSkill(s.actionId) === skill) return i;
+  }
+  for (let i = 0; i < p.unlockedSlots; i++) if (!p.slots[i]) return i;
+  return 0;
+}
+
+/** Puts an activity into a slot (chosen automatically unless given). Returns a reason if it can't start. */
+export function startIdle(p: PlayerState, actionId: string, slot?: number): string | null {
   const action = ACTIONS[actionId];
   if (!action) return 'Unknown activity';
   const why = whyCantDo(p, action);
   if (why) return why;
-  if (p.idle?.actionId !== actionId) p.idle = { actionId, progressMs: 0 };
-  p.fight = null; // starting a skill ends any fight (one idle slot)
+  if (slotOf(p, actionId) >= 0) return null; // already running
+  const i = slot ?? chooseSlot(p, actionId);
+  if (i >= p.unlockedSlots) return 'That idle slot is locked';
+  if (p.slots[i] && isFightId(p.slots[i]!.actionId)) p.fight = null;
+  p.slots[i] = { actionId, progressMs: 0 };
   p.lastStop = null;
   return null;
 }
 
-export function stopIdle(p: PlayerState): void {
-  p.idle = null;
-  p.fight = null;
+/** Stops one slot (or all of them when no slot is given). */
+export function stopIdle(p: PlayerState, slot?: number): void {
+  const indexes = slot === undefined ? p.slots.map((_, i) => i) : [slot];
+  for (const i of indexes) {
+    if (p.slots[i] && isFightId(p.slots[i]!.actionId)) p.fight = null;
+    p.slots[i] = null;
+  }
 }
 
 export function emptyReport(actionId: string | null): ProgressReport {
-  return { actionId, ms: 0, actions: 0, xp: {}, gained: {}, used: {}, levelUps: [], stopped: null, failed: 0 };
+  return { actionId, actionIds: actionId ? [actionId] : [], ms: 0, actions: 0, xp: {}, gained: {}, used: {}, levelUps: [], stopped: null, stops: [], failed: 0 };
 }
 
 /**
@@ -233,56 +277,71 @@ export function addXp(p: PlayerState, action: { skill: SkillId }, report: Progre
   }
 }
 
-/** Runs the idle slot forward by `ms` milliseconds. Changes the player. */
+/**
+ * Runs all idle slots forward by `ms` milliseconds. Changes the player.
+ * With several slots running, time is shared out in small chunks so they all fill the bag fairly.
+ */
 export function advanceIdle(p: PlayerState, ms: number, now = Date.now()): ProgressReport {
-  const report = emptyReport(p.idle?.actionId ?? null);
-  let remaining = Math.max(0, ms);
-  let elapsed = 0;
+  const running = runningSlots(p);
+  const report = emptyReport(running[0]?.slot.actionId ?? null);
+  report.actionIds = running.map((r) => r.slot.actionId);
+  const total = Math.max(0, ms);
+  const chunk = running.length > 1 ? 5000 : total;
+  const startAt = now - total;
+  for (let done = 0; done < total && runningSlots(p).length > 0;) {
+    const step = Math.min(chunk, total - done);
+    for (const { index } of runningSlots(p)) advanceSlot(p, index, step, startAt + done, report, startAt);
+    done += step;
+  }
+  report.ms = total;
+  report.stopped = report.stops[0] ? { reason: report.stops[0].reason, afterMs: report.stops[0].afterMs } : null;
+  return report;
+}
 
-  const stop = (actionId: string, reason: string) => {
-    report.stopped = { reason, afterMs: elapsed };
-    p.idle = null;
-    p.lastStop = { actionId, reason, at: now - (ms - elapsed) };
+/** Runs one slot forward by `ms`, starting at time `startAt`. */
+function advanceSlot(p: PlayerState, i: number, ms: number, startAt: number, report: ProgressReport, overallStart: number) {
+  const slot = p.slots[i];
+  if (!slot) return;
+  const stop = (actionId: string, reason: string, usedMs: number) => {
+    const at = startAt + usedMs;
+    report.stops.push({ actionId, reason, afterMs: at - overallStart });
+    if (isFightId(actionId)) p.fight = null;
+    p.slots[i] = null;
+    p.lastStop = { actionId, reason, at };
   };
 
-  // Fighting uses the idle slot too.
-  if (p.idle && isFightId(p.idle.actionId)) {
-    const cr = (report.combat = { kills: 0, damageDealt: 0, damageTaken: 0, foodEaten: 0 });
-    const fightId = p.idle.actionId;
-    const { stop: why, usedMs } = advanceFight(p, remaining, report, cr, now - ms);
-    elapsed = usedMs;
-    if (why) {
-      stop(fightId, why);
-      p.fight = null;
-    }
-    report.ms = elapsed;
-    return report;
+  // Fighting uses a slot too.
+  if (isFightId(slot.actionId)) {
+    const cr = (report.combat ??= { kills: 0, damageDealt: 0, damageTaken: 0, foodEaten: 0 });
+    const { stop: why, usedMs } = advanceFight(p, ms, report, cr, startAt);
+    if (why) stop(slot.actionId, why, usedMs);
+    return;
   }
 
-  while (p.idle && remaining > 0) {
-    const action = ACTIONS[p.idle.actionId];
-    if (!action) { p.idle = null; break; }
+  let remaining = ms;
+  let elapsed = 0;
+  while (p.slots[i] === slot && remaining > 0) {
+    const action = ACTIONS[slot.actionId];
+    if (!action) { p.slots[i] = null; break; }
 
     const duration = actionDuration(p, action);
-    const need = duration - p.idle.progressMs;
+    const need = duration - slot.progressMs;
     if (remaining < need) {
-      p.idle.progressMs += remaining;
-      elapsed += remaining;
-      remaining = 0;
+      slot.progressMs += remaining;
       break;
     }
     remaining -= need;
     elapsed += need;
-    p.idle.progressMs = 0;
+    slot.progressMs = 0;
 
     const why = whyCantDo(p, action);
-    if (why) { stop(action.id, why); break; }
+    if (why) { stop(action.id, why, elapsed); break; }
 
     // Cooking: keep the fire fed from the bag, and let it burn down as you cook.
     if (action.skill === 'cooking') {
       if (p.fire.heatMs <= 0) {
         const cant = stokeFire(p, report);
-        if (cant) { stop(action.id, 'No logs to keep the cooking fire going'); break; }
+        if (cant) { stop(action.id, 'No logs to keep the cooking fire going', elapsed); break; }
       }
       drainFire(p, duration);
     }
@@ -291,9 +350,6 @@ export function advanceIdle(p: PlayerState, ms: number, now = Date.now()): Progr
 
     // Stop straight away if the next one can't happen (bag full, out of ore...)
     const next = whyCantDo(p, action);
-    if (next) { stop(action.id, next); break; }
+    if (next) { stop(action.id, next, elapsed); break; }
   }
-
-  report.ms = elapsed;
-  return report;
 }

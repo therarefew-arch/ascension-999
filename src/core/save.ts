@@ -2,7 +2,7 @@
 // Every save has a version number; old saves are upgraded by MIGRATIONS so they never break.
 import { ITEMS, type SkillId } from '../data/items';
 import { ACTIONS } from '../data/skills';
-import { INVENTORY_SLOTS, SAVE_VERSION, newPlayer, type ItemStack, type PlayerState } from './player';
+import { INVENTORY_SLOTS, MAX_BAG_SLOTS, MAX_IDLE_SLOTS, SAVE_VERSION, newPlayer, type ItemStack, type PlayerState } from './player';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
 import { levelForXp } from './xp';
 import { MONSTER_MAP } from '../data/monsters';
@@ -96,6 +96,13 @@ const MIGRATIONS: Record<number, (player: any) => any> = {
     if (player?.idle?.actionId) player.idle.actionId = renameAction(player.idle.actionId);
     return player;
   },
+  // v5 → v6: the single idle slot becomes slot 1 of 3.
+  5: (player) => {
+    player.slots = [player?.idle ?? null, null, null];
+    player.unlockedSlots = 1;
+    delete player.idle;
+    return player;
+  },
 };
 
 export function saveGame(slot: SlotId, player: PlayerState): boolean {
@@ -152,9 +159,9 @@ export function slotSummary(slot: SlotId): SlotSummary | null {
     totalLevel: Object.values(levels).reduce((a, b) => a + b, 0),
     levels,
     lastActiveAt: p.lastActiveAt,
-    activity: p.idle
-      ? (isFightId(p.idle.actionId) ? `Fighting ${MONSTER_MAP[p.idle.actionId.slice(6)]?.name ?? ''}` : ACTIONS[p.idle.actionId]?.name ?? null)
-      : null,
+    activity: p.slots.filter(Boolean).map((s) =>
+      isFightId(s!.actionId) ? `Fighting ${MONSTER_MAP[s!.actionId.slice(6)]?.name ?? ''}` : ACTIONS[s!.actionId]?.name ?? '',
+    ).join(', ') || null,
   };
 }
 
@@ -183,7 +190,10 @@ function repair(raw: any): PlayerState {
   const validStack = (s: unknown): s is ItemStack =>
     !!s && typeof (s as ItemStack).id === 'string' && !!ITEMS[(s as ItemStack).id] && (s as ItemStack).qty > 0;
   if (Array.isArray(raw?.inventory)) {
-    for (let i = 0; i < INVENTORY_SLOTS; i++) {
+    // Bag size can be upgraded (30 → 50 in steps of 5).
+    const size = Math.min(MAX_BAG_SLOTS, Math.max(INVENTORY_SLOTS, raw.inventory.length));
+    p.inventory = Array.from({ length: size }, () => null);
+    for (let i = 0; i < size; i++) {
       const s = raw.inventory[i];
       p.inventory[i] = validStack(s) ? { id: s.id, qty: Math.floor(s.qty) } : null;
     }
@@ -194,9 +204,17 @@ function repair(raw: any): PlayerState {
       if (typeof id === 'string' && ITEMS[id]?.equip?.slot === slot) p.equipment[slot as keyof PlayerState['equipment']] = id;
     }
   }
-  const fightOk = raw?.fight && MONSTER_MAP[raw.fight.monsterId] && isFightId(raw?.idle?.actionId);
-  if (raw?.idle && (ACTIONS[raw.idle.actionId] || fightOk)) {
-    p.idle = { actionId: raw.idle.actionId, progressMs: Number(raw.idle.progressMs) || 0 };
+  p.unlockedSlots = Math.min(MAX_IDLE_SLOTS, Math.max(1, Math.floor(Number(raw?.unlockedSlots) || 1)));
+  const rawSlots: unknown[] = Array.isArray(raw?.slots) ? raw.slots : [];
+  const fightOk = raw?.fight && MONSTER_MAP[raw.fight.monsterId] && rawSlots.some((s) => isFightId((s as { actionId?: string })?.actionId));
+  for (let i = 0; i < MAX_IDLE_SLOTS; i++) {
+    const s = rawSlots[i] as { actionId?: string; progressMs?: number } | null;
+    if (i < p.unlockedSlots && s?.actionId && (ACTIONS[s.actionId] || (fightOk && isFightId(s.actionId)))) {
+      p.slots[i] = { actionId: s.actionId, progressMs: Number(s.progressMs) || 0 };
+    }
+  }
+  if (raw?.shop && typeof raw.shop.rotation === 'number' && Array.isArray(raw.shop.bought)) {
+    p.shop = { rotation: raw.shop.rotation, bought: raw.shop.bought.filter((n: unknown) => typeof n === 'number') };
   }
   if (fightOk) {
     const f = raw.fight;

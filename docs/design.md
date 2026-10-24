@@ -218,6 +218,15 @@ Based on the owner's reference screenshots:
 - Faster combat: attacks every 1.6s (melee) / 1.7s (ranged) / 1.9s (magic); monsters ~35% faster; next monster in 0.8s; quicker strike bar; a successful STRIKE hits immediately as a critical.
 - Save version 5: Minor runes → Air runes, Major runes → Earth runes, old staffs → Air staffs (keeping +levels).
 
+### Phase 4a — built (economy)
+- **3 idle slots** running at the same time (one fight at a time). Slot 2: total level 50 or 5,000 coins. Slot 3: total level 150 or 25,000 coins.
+  Starting an activity reuses the slot already doing that skill, else a free slot, else slot 1. Offline time is shared out between slots in 5-second chunks.
+- **Trading Post** (Town): SELL anything (bag first, then bank), BUY basic materials/food, prices drift every 30 minutes with trend arrows.
+  Gems can never be bought. Purchases go through the central loot system. Code lives in `src/market/`.
+- **Rotating shop**: 4 discounted deals every 6 hours, each once per rotation.
+- **Bag upgrades**: +5 slots for 2k / 6k / 15k / 40k coins (30 → 50). (Bank was already unlimited.)
+- Save version 6.
+
 ### Phase 4 — ideas for next
 Ironmoor region, weekly boss with "Defeated" screen, NPC Trading Post and shops (coin sinks), more idle slots, Loot Belt (Enhancing 60).
 

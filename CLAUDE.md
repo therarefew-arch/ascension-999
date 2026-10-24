@@ -29,6 +29,8 @@ Full game vision: `docs/design.md`. Build only the phase that is asked for.
 - Woodcutting minigame stays simple: tap 5 times for a log. Fishing has Reel It In and Tile Match (mahjong, always solvable).
 - Combat (see docs/design.md Phase 3): weapon sets style; bows need arrows and staffs need runes (from the bag). Fights use the idle slot and run offline, except mini bosses (by hand only, respawn timer). Being knocked out or retreating never loses items. Gems: only from mini bosses/bosses; one socket per weapon/armour slot, gem stays in the slot; reroll costs coins. Coins go to `player.coins` via the loot system.
 - Runes belong to **Runecrafting** (not Crafting): rune essence (Mining) + an element talisman in the bag (never used up). Crafting makes blank staffs; Runecrafting makes elemental staffs from a blank staff + runes. Staffs cast only with their own element's runes.
+- Idle: `player.slots` (3 entries, `unlockedSlots` usable). Use `runningSlots`/`slotOf`/`chooseSlot` from core/idle — never assume a single idle. Only one fight slot at a time.
+- Economy lives in `src/market/` (Trading Post, rotating shop, unlock costs). Gems are never sold by NPCs. Coins are in-game only — no real-money purchases ever.
 - Town is opened from the "Pocketvale" chip in the top bar (bottom nav: Skills, Combat, Bag, Bank, Gear).
 - When testing in the browser pane, only run scripts on `localhost` — never on the live site (it holds real saves).
 - Combat skills (Melee, Ranged, Magic, Defense, Health) are the next update.

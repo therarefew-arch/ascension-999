@@ -7,11 +7,15 @@ import { getItem, type EquipSlot } from '../data/items';
 import { ACTIONS, SKILLS } from '../data/skills';
 import { equip, unequip } from './equipment';
 import {
-  addXp, advanceIdle, completeAction, drainFire, emptyReport, startIdle, stokeFire, stopIdle, whyCantDo, type ProgressReport,
+  addXp, advanceIdle, chooseSlot, completeAction, drainFire, emptyReport, runningSlots, slotOf, startIdle, stokeFire, stopIdle,
+  whyCantDo, type ProgressReport,
 } from './idle';
+import { ALL_SKILLS } from '../data/skills';
+import { levelForXp } from './xp';
+import { bagUpgradeCost, buy as marketBuy, buyDeal, sell as marketSell, SLOT_UNLOCKS } from '../market/market';
 import { deposit, depositAll, withdraw } from './inventory';
 import { giveLoot, lootFits, rollGemReroll, validateLootTables } from './loot';
-import { BLOCK_WINDOW_MS, eatFood, endFight, maxHp, regenHp, startFight } from './combat';
+import { BLOCK_WINDOW_MS, eatFood, endFight, fightSlot, maxHp, regenHp, startFight } from './combat';
 import { REROLL_COST, socketGem, unsocketGem } from './equipment';
 import { countInBag, removeFromBag } from './inventory';
 import { MONSTER_MAP } from '../data/monsters';
@@ -106,10 +110,10 @@ function tick(now = Date.now()) {
     // Mini boss fights are by hand only — they pause (end safely) while you're away.
     if (p.fight && MONSTER_MAP[p.fight.monsterId]?.miniboss) {
       const name = MONSTER_MAP[p.fight.monsterId].name;
-      p.lastStop = { actionId: p.idle?.actionId ?? '', reason: `${name} waits for you — mini boss fights pause while you're away`, at: now - gap };
+      p.lastStop = { actionId: p.slots[fightSlot(p)]?.actionId ?? '', reason: `${name} waits for you — mini boss fights pause while you're away`, at: now - gap };
       endFight(p);
     }
-    const hadIdle = !!p.idle;
+    const hadIdle = runningSlots(p).length > 0;
     const report = advanceIdle(p, counted, now);
     if (!p.fight) regenHp(p, counted);
     p.lastActiveAt = now;
@@ -124,18 +128,19 @@ function tick(now = Date.now()) {
 
   p.lastActiveAt = now;
   // The cooking fire burns down while you're at the Kitchen (idle cooking burns it per dish instead).
-  const idleCooking = p.idle && ACTIONS[p.idle.actionId]?.skill === 'cooking';
+  const running = runningSlots(p);
+  const idleCooking = running.some((r) => ACTIONS[r.slot.actionId]?.skill === 'cooking');
   if (cookingOpen && !idleCooking && p.fire.heatMs > 0) {
     drainFire(p, gap);
-    if (!p.idle) emit();
+    if (!running.length) emit();
   }
   if (!p.fight && p.hp < maxHp(p)) {
     const before = p.hp;
     regenHp(p, gap);
-    if (p.hp !== before && !p.idle) emit();
+    if (p.hp !== before && !running.length) emit();
   }
-  if (!p.idle) return;
-  const action = ACTIONS[p.idle.actionId];
+  if (!running.length) return;
+  const action = running.map((r) => ACTIONS[r.slot.actionId]).find(Boolean);
   const fightLogBefore = p.fight?.log.length ?? 0;
   const lastLog = p.fight?.log[p.fight.log.length - 1];
   const report = advanceIdle(p, gap, now);
@@ -152,10 +157,10 @@ function tick(now = Date.now()) {
     }
   }
   announceLevels(report);
-  if (report.stopped) {
-    const won = report.stopped.reason.endsWith('defeated!');
+  for (const s of report.stops) {
+    const won = s.reason.endsWith('defeated!');
     play(won ? 'levelup' : 'error');
-    toast(won ? `🏆 ${report.stopped.reason}` : `Stopped: ${report.stopped.reason}`, won ? 'level' : 'bad');
+    toast(won ? `🏆 ${s.reason}` : `Stopped: ${s.reason}`, won ? 'level' : 'bad');
   }
   emit();
 }
@@ -242,18 +247,84 @@ export const game = {
   },
 
   // ----- Idle -----
-  startAction(actionId: string) {
+  /** Starts idling an action (in a free slot, or the slot already doing that skill, or the given slot). */
+  startAction(actionId: string, slot?: number) {
     tick();
-    const why = startIdle(snap.player, actionId);
+    const p = snap.player;
+    const i = slot ?? chooseSlot(p, actionId);
+    const replacing = p.slots[i];
+    const why = startIdle(p, actionId, i);
     if (why) return fail(why);
-    toast(`Idling: ${ACTIONS[actionId].name}`, 'good');
+    const name = ACTIONS[actionId].name;
+    toast(replacing && replacing.actionId !== actionId ? `Slot ${i + 1}: now idling ${name}` : `Idling: ${name} (slot ${i + 1})`, 'good');
     save();
     emit();
   },
-  stopAction() {
-    stopIdle(snap.player);
+  /** Stops one slot, or the slot doing `actionId`, or every slot. */
+  stopAction(target?: number | string) {
+    const p = snap.player;
+    if (typeof target === 'string') {
+      const i = slotOf(p, target);
+      if (i < 0) return;
+      stopIdle(p, i);
+    } else {
+      stopIdle(p, target);
+    }
     save();
     emit();
+  },
+  /** Unlocks the next idle slot with total level (free) or coins. */
+  unlockSlot(): boolean {
+    const p = snap.player;
+    const next = SLOT_UNLOCKS[p.unlockedSlots];
+    if (!next) return false;
+    const total = ALL_SKILLS.reduce((sum, s) => sum + levelForXp(p.skills[s].xp), 0);
+    if (total < next.level) {
+      if (p.coins < next.coins) { fail(`Needs total level ${next.level} or ${next.coins.toLocaleString()} coins`); return false; }
+      p.coins -= next.coins;
+    }
+    p.unlockedSlots++;
+    play('levelup');
+    toast(`Idle slot ${p.unlockedSlots} unlocked!`, 'level');
+    save();
+    emit();
+    return true;
+  },
+  // ----- Trading Post -----
+  sell(id: string, qty: number) {
+    const coins = marketSell(snap.player, id, qty);
+    if (coins > 0) { play('deposit'); toast(`Sold for ${coins.toLocaleString()} coins`, 'good'); }
+    save();
+    emit();
+  },
+  buy(id: string, qty: number) {
+    const why = marketBuy(snap.player, id, qty);
+    if (why) return fail(why);
+    play('deposit');
+    save();
+    emit();
+  },
+  buyDeal(index: number) {
+    const why = buyDeal(snap.player, index);
+    if (why) return fail(why);
+    play('levelup');
+    toast('Deal bought!', 'good');
+    save();
+    emit();
+  },
+  /** Buys 5 more bag slots. */
+  upgradeBag(): boolean {
+    const p = snap.player;
+    const cost = bagUpgradeCost(p.inventory.length);
+    if (cost === null) return false;
+    if (p.coins < cost) { fail(`Needs ${cost.toLocaleString()} coins`); return false; }
+    p.coins -= cost;
+    for (let k = 0; k < 5; k++) p.inventory.push(null);
+    play('levelup');
+    toast(`Bag upgraded to ${p.inventory.length} slots!`, 'level');
+    save();
+    emit();
+    return true;
   },
 
   // ----- Minigames -----

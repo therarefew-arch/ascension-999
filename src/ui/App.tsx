@@ -2,11 +2,11 @@
 import { sound } from '../audio/sound';
 import { ACTIONS, ALL_SKILLS } from '../data/skills';
 import type { SkillId } from '../data/items';
-import { skillLevel } from '../core/idle';
+import { runningSlots, skillLevel } from '../core/idle';
 import { fightMonster, isFightId, maxHp } from '../core/combat';
 import { CombatScreen } from './screens/CombatScreen';
+import { TradingPostScreen } from './screens/TradingPostScreen';
 import { usedSlots } from '../core/inventory';
-import { INVENTORY_SLOTS } from '../core/player';
 import { timeToNextLevel, xpPerHour } from '../core/rates';
 import { useGame } from '../core/store';
 import { UiIcon, type UiIconName } from './icons';
@@ -22,7 +22,7 @@ import { SkillScreen, SkillStrip } from './screens/SkillScreen';
 import { TownScreen } from './screens/TownScreen';
 import { fmtNum } from './format';
 
-type Tab = 'town' | 'skills' | 'combat' | 'bank' | 'gear' | 'settings';
+type Tab = 'town' | 'skills' | 'combat' | 'bank' | 'gear' | 'settings' | 'market';
 
 function StatusBar({ onIdle, onSettings, settingsOn, onTown, townOn }: {
   onIdle: () => void; onSettings: () => void; settingsOn: boolean; onTown: () => void; townOn: boolean;
@@ -34,8 +34,8 @@ function StatusBar({ onIdle, onSettings, settingsOn, onTown, townOn }: {
       <span className="stat-chip gold-chip"><UiIcon name="trophy" size={16} /> LV {total}</span>
       <span className="stat-chip coin-chip"><UiIcon name="coin" size={16} /> {fmtNum(player.coins)}</span>
       <button className={`stat-chip gold-chip ${townOn ? 'chip-on' : ''}`} onClick={onTown} aria-label="Open Pocketvale town"><UiIcon name="pin" size={16} /> Pocketvale</button>
-      <button className={`stat-chip blue-chip ${player.idle ? 'live' : ''}`} onClick={onIdle}>
-        <UiIcon name="clock" size={16} /> IDLE ({player.idle ? 1 : 0}/1)
+      <button className={`stat-chip blue-chip ${runningSlots(player).length ? 'live' : ''}`} onClick={onIdle}>
+        <UiIcon name="clock" size={16} /> IDLE ({runningSlots(player).length}/{player.unlockedSlots})
       </button>
       <button className={`icon-btn ${settingsOn ? 'on' : ''}`} onClick={onSettings} aria-label="Settings"><UiIcon name="settings" /></button>
     </header>
@@ -44,8 +44,18 @@ function StatusBar({ onIdle, onSettings, settingsOn, onTown, townOn }: {
 
 function IdleLine({ onOpen, onFight }: { onOpen: () => void; onFight: () => void }) {
   const { player } = useGame();
-  if (player.idle && isFightId(player.idle.actionId) && player.fight) {
-    const m = fightMonster(player.idle.actionId);
+  const running = runningSlots(player);
+  if (running.length > 1) {
+    return (
+      <button className="idle-line" onClick={onOpen}>
+        <span className="ellipsis"><UiIcon name="bolt" size={14} /> {running.map((r) => isFightId(r.slot.actionId) ? `⚔ ${fightMonster(r.slot.actionId).name}` : ACTIONS[r.slot.actionId]?.name).join(' · ')}</span>
+        <span className="mono blue">{running.length}/{player.unlockedSlots} slots</span>
+      </button>
+    );
+  }
+  const only = running[0]?.slot;
+  if (only && isFightId(only.actionId) && player.fight) {
+    const m = fightMonster(only.actionId);
     return (
       <button className="idle-line" onClick={onFight}>
         <span className="ellipsis"><UiIcon name="combat" size={14} /> Fighting {m.name}</span>
@@ -54,7 +64,7 @@ function IdleLine({ onOpen, onFight }: { onOpen: () => void; onFight: () => void
       </button>
     );
   }
-  const action = player.idle ? ACTIONS[player.idle.actionId] : null;
+  const action = only ? ACTIONS[only.actionId] : null;
   if (!action) {
     return (
       <button className={`idle-line ${player.lastStop ? 'stopped' : ''}`} onClick={onOpen}>
@@ -133,7 +143,8 @@ export function App() {
       <IdleLine onOpen={() => setIdleOpen(true)} onFight={() => go('combat')} />
 
       <main className={`content ${tab === 'skills' ? 'content-skill' : ''}`}>
-        {tab === 'town' && <TownScreen onSkill={openSkill} onBank={() => go('bank')} onGear={() => go('gear')} onIdle={() => setIdleOpen(true)} onCombat={() => go('combat')} />}
+        {tab === 'town' && <TownScreen onSkill={openSkill} onBank={() => go('bank')} onGear={() => go('gear')} onIdle={() => setIdleOpen(true)} onCombat={() => go('combat')} onMarket={() => go('market')} />}
+        {tab === 'market' && <TradingPostScreen />}
         {tab === 'skills' && <SkillScreen skill={skill} />}
         {tab === 'combat' && <CombatScreen onGear={() => go('gear')} onItem={(id) => setItemView({ id, from: 'bag' })} />}
         {tab === 'bank' && <BankScreen onItem={(id) => setItemView({ id, from: 'bank' })} />}
@@ -148,9 +159,9 @@ export function App() {
             <UiIcon name={n.icon} /><span>{n.label}</span>
           </button>
         ))}
-        <button className={`bag-btn ${used >= INVENTORY_SLOTS ? 'full' : ''}`} onClick={() => setBagOpen(true)} aria-label={`Open bag, ${used} of ${INVENTORY_SLOTS} slots used`}>
+        <button className={`bag-btn ${used >= player.inventory.length ? 'full' : ''}`} onClick={() => setBagOpen(true)} aria-label={`Open bag, ${used} of ${player.inventory.length} slots used`}>
           <UiIcon name="bag" size={30} />
-          <span className="bag-count">{used}/{INVENTORY_SLOTS}</span>
+          <span className="bag-count">{used}/{player.inventory.length}</span>
         </button>
         {NAV.slice(2).map((n) => (
           <button key={n.tab} className={`nav-btn ${tab === n.tab ? 'on' : ''}`} onClick={() => go(n.tab)} aria-current={tab === n.tab}>

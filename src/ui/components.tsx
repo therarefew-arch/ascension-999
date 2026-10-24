@@ -15,20 +15,23 @@ export function ProgressBar({ value, tone = 'gold', thin }: { value: number; ton
   );
 }
 
-/** Smooth progress bar for the running action (animates between game ticks). */
-export function ActionProgress({ player, thin }: { player: PlayerState; thin?: boolean }) {
+/** Smooth progress bar for a running idle slot (animates between game ticks). */
+export function ActionProgress({ player, thin, slot = 0 }: { player: PlayerState; thin?: boolean; slot?: number }) {
   const fill = useRef<HTMLDivElement>(null);
   const data = useRef(player);
   data.current = player;
+  const slotRef = useRef(slot);
+  slotRef.current = slot;
   useEffect(() => {
     let raf = 0;
     const loop = () => {
       const p = data.current;
-      const action = p.idle ? ACTIONS[p.idle.actionId] : null;
+      const s = p.slots[slotRef.current];
+      const action = s ? ACTIONS[s.actionId] : null;
       if (fill.current) {
         let f = 0;
-        if (p.idle && action) {
-          const progress = p.idle.progressMs + Math.max(0, Date.now() - p.lastActiveAt);
+        if (s && action) {
+          const progress = s.progressMs + Math.max(0, Date.now() - p.lastActiveAt);
           f = Math.min(1, progress / actionDuration(p, action));
         }
         fill.current.style.width = `${f * 100}%`;
