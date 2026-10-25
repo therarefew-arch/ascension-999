@@ -1,9 +1,9 @@
 // Skills and the actions (resources/recipes) you can idle on or play minigames with. Static data only.
 import {
-  BOWS, CRAFTED_TOOLS, ELEMENTS, elementRegion, GEAR_PIECES, ITEMS, MAX_UPGRADE, METAL_ORES, METAL_TIERS, STAFF_WOODS, TOOL_TIERS, toolName,
+  BOWS, CRAFTED_TOOLS, ELEMENTS, elementRegion, GEAR_PIECES, ITEMS, MAX_UPGRADE, MEALS, METAL_ORES, METAL_TIERS, STAFF_WOODS, TOOL_TIERS, toolName,
   upgradeId, type SkillId,
 } from './items';
-import { FISH, METALS, TIER_COUNT, tierLevel, tierRegion, tierTimeMs, tierXp, WOODS, type Region } from './tiers';
+import { FISH, HERBS, METALS, TIER_COUNT, tierLevel, tierRegion, tierTimeMs, tierXp, WOODS, type Region } from './tiers';
 import type { SoundKey } from '../audio/soundList';
 
 export interface SkillDef {
@@ -24,6 +24,8 @@ export const SKILLS: Record<SkillId, SkillDef> = {
   crafting: { id: 'crafting', name: 'Crafting', verb: 'Crafting', place: 'The Workshop', description: 'Make a tool for every skill and upgrade it +1 to +10.' },
   enhancing: { id: 'enhancing', name: 'Enhancing', verb: 'Enhancing', place: 'Rune Tower', description: 'Improve weapons and armour +1 to +10. A failed try only uses the bars — never the item.' },
   runecrafting: { id: 'runecrafting', name: 'Runecrafting', verb: 'Runecrafting', place: 'Rune Altar', description: 'Shape rune essence into talismans and runes, and give blank staffs an element.' },
+  herblore: { id: 'herblore', name: 'Herblore', verb: 'Foraging', place: 'The Wild Meadow', description: 'Forage wild herbs in every town and dry them for brews. Sometimes you find seeds for your garden.' },
+  farming: { id: 'farming', name: 'Farming', verb: 'Farming', place: 'Your Garden', description: 'Plant seeds in your garden plots. They grow over real time — even while you\'re away.' },
   melee: { id: 'melee', name: 'Melee', verb: 'Fighting', place: 'Training Grounds', description: 'Fight up close with swords. Beats Ranged.' },
   ranged: { id: 'ranged', name: 'Ranged', verb: 'Fighting', place: 'Training Grounds', description: 'Fight from afar with bows and arrows. Beats Magic.' },
   magic: { id: 'magic', name: 'Magic', verb: 'Fighting', place: 'Training Grounds', description: 'Cast spells with staffs and runes. Beats Melee.' },
@@ -31,7 +33,7 @@ export const SKILLS: Record<SkillId, SkillDef> = {
   health: { id: 'health', name: 'Health', verb: 'Fighting', place: 'Training Grounds', description: 'More hit points. Trained by all combat.' },
 };
 /** Gathering & making skills (shown on the Skills tab). */
-export const SKILL_ORDER: SkillId[] = ['mining', 'smithing', 'woodcutting', 'firemaking', 'fishing', 'cooking', 'crafting', 'runecrafting', 'enhancing'];
+export const SKILL_ORDER: SkillId[] = ['mining', 'smithing', 'woodcutting', 'firemaking', 'fishing', 'cooking', 'herblore', 'farming', 'crafting', 'runecrafting', 'enhancing'];
 /** Combat skills (shown on the Combat tab). */
 export const COMBAT_SKILLS: SkillId[] = ['melee', 'ranged', 'magic', 'defense', 'health'];
 export const ALL_SKILLS: SkillId[] = [...SKILL_ORDER, ...COMBAT_SKILLS];
@@ -125,12 +127,31 @@ for (let t = 0; t < TIER_COUNT; t++) {
   const f = FISH[t];
   add({ id: `fish_${f.key}`, skill: 'fishing', name: f.name, level: tierLevel(t), needsTool: tool(t), durationMs: gatherMs(t), xp: gatherXp(t), inputs: [], output: { item: `raw_${f.key}`, qty: 1 }, iconItem: `raw_${f.key}`, sound: 'splash', region: tierRegion(t) });
   add({
-    id: `cook_${f.key}`, skill: 'cooking', name: f.name, level: tierLevel(t), needsTool: tool(t),
+    id: `cook_${f.key}`, skill: 'cooking', name: f.name, tab: 'Fish', level: tierLevel(t), needsTool: tool(t),
     durationMs: t === 0 ? 2500 : t === 1 ? 2800 : tierTimeMs(t) - 300, xp: gatherXp(t),
     inputs: [{ item: `raw_${f.key}`, qty: 1 }], output: { item: `cooked_${f.key}`, qty: 1 }, greatLootTable: `cook_${f.key}_great`,
     iconItem: `cooked_${f.key}`, sound: 'sizzle', region: tierRegion(t),
   });
   GREAT_FOOD[`cook_${f.key}_great`] = `great_${f.key}`;
+}
+
+// ----- Cooking: meals (+speed) and brews (+XP) from your garden and your herbs -----
+for (const m of MEALS) {
+  add({
+    id: `cook_${m.id}`, skill: 'cooking', name: m.name, tab: m.tab, level: m.level,
+    durationMs: 4000, xp: Math.round(gatherXp(m.tierNum) * 3),
+    inputs: m.inputs, output: { item: m.id, qty: 1 }, iconItem: m.id, sound: 'sizzle', region: tierRegion(m.tierNum),
+  });
+}
+
+// ----- 🌿 Herblore: forage wild herbs on location (sometimes a seed too), then dry them for brews -----
+for (let t = 0; t < TIER_COUNT; t++) {
+  const h = HERBS[t];
+  add({ id: `forage_${h.key}`, skill: 'herblore', name: h.name, tab: 'Forage', level: tierLevel(t), durationMs: gatherMs(t), xp: gatherXp(t), inputs: [], output: { item: h.key, qty: 1 }, iconItem: h.key, sound: 'carve', region: tierRegion(t) });
+}
+for (let t = 0; t < TIER_COUNT; t++) {
+  const h = HERBS[t];
+  add({ id: `dry_${h.key}`, skill: 'herblore', name: `Dry ${h.name.toLowerCase()}`, tab: 'Dry', level: tierLevel(t) + 2, durationMs: gatherMs(t), xp: Math.round(gatherXp(t) * 1.6), inputs: [{ item: h.key, qty: 2 }], output: { item: `dried_${h.key}`, qty: 1 }, iconItem: `dried_${h.key}`, sound: 'crackle', region: tierRegion(t) });
 }
 
 // ----- Crafting: a tool for every skill, then upgrades (always succeed) -----

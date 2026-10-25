@@ -1,7 +1,7 @@
 // One skill: pick a resource, play its minigame, or set it to idle.
 import { useEffect, useState } from 'react';
 import type { SkillId } from '../../data/items';
-import { ACTIONS, actionsForSkill, SKILL_ORDER, SKILLS, tabsForSkill, type ActionDef } from '../../data/skills';
+import { ACTIONS, actionsForSkill, COMBAT_SKILLS, SKILL_ORDER, SKILLS, tabsForSkill, type ActionDef } from '../../data/skills';
 import { getItem } from '../../data/items';
 import { LOCAL_SKILLS, regionOpen } from '../../data/tiers';
 import { SEASONED, seasonedPercent, skillLevel, slotOf, whyCantDo } from '../../core/idle';
@@ -10,6 +10,8 @@ import type { PlayerState } from '../../core/player';
 import { bestAction, timeToLevel, timeToNextLevel, visibleActions } from '../../core/rates';
 import { goalChoices } from '../../core/cozy';
 import { xpBoost } from '../../core/boosts';
+import { activeBuffs, buffText } from '../../core/buffs';
+import { RipePicking } from '../HerbloreGame';
 import { game, useGame } from '../../core/store';
 import { levelProgress, MAX_LEVEL } from '../../core/xp';
 import { ProgressBar } from '../components';
@@ -33,16 +35,23 @@ export function shortTime(ms: number) {
 }
 
 /** 🌱 / 🧭 XP boosts this skill is getting right now (hidden when there are none). */
-function BoostRow({ skill }: { skill: SkillId }) {
+export function BoostRow({ skill }: { skill: SkillId }) {
   const { player } = useGame();
   const b = xpBoost(player, skill);
   const seasoned = seasonedPercent(player, skill);
   const uses = player.toolUses[skill] ?? 0;
   const toNext = seasoned < SEASONED.maxPercent ? SEASONED.perPercent - (uses % SEASONED.perPercent) : 0;
-  if (b.total <= 1.001 && seasoned === 0 && uses === 0) return null;
+  const now = Date.now();
+  const meals = activeBuffs(player, now).filter((a) => a.buff.skill === skill || a.buff.skill === 'all' || (a.buff.skill === 'combat' && COMBAT_SKILLS.includes(skill)));
+  if (b.total <= 1.001 && seasoned === 0 && uses === 0 && !meals.length) return null;
   const pct = (m: number) => `+${Math.round((m - 1) * 100)}%`;
   return (
     <div className="boost-row">
+      {meals.map((m) => (
+        <span key={m.item} className="boost-chip meal" title={getItem(m.item).name}>
+          {getItem(m.item).emoji} {buffText(m.buff)} · {Math.ceil((m.until - now) / 60000)}m
+        </span>
+      ))}
       {(seasoned > 0 || uses > 0) && (
         <span className="boost-chip seasoned" title={`Your tools get faster with use: +1% speed every ${SEASONED.perPercent.toLocaleString()} actions, up to +${SEASONED.maxPercent}%`}>
           🪓 Seasoned +{seasoned}% speed{toNext ? ` · next in ${toNext.toLocaleString()}` : ' · max'}
@@ -56,7 +65,7 @@ function BoostRow({ skill }: { skill: SkillId }) {
 }
 
 /** 🎯 Pick a target level; shows how long it'll take at your current (or best) pace. */
-function GoalRow({ skill, place }: { skill: SkillId; place: string }) {
+export function GoalRow({ skill, place }: { skill: SkillId; place: string }) {
   const { player } = useGame();
   const [picking, setPicking] = useState(false);
   const lvl = skillLevel(player, skill);
@@ -114,18 +123,20 @@ function regionTag(player: PlayerState, a: ActionDef): string | null {
   if (!a.region) return null;
   if (!regionOpen(a.region)) return `🔒 ${a.region}`;
   if (!player.regions.includes(a.region)) return `🧭 ${a.region}`;
-  if ((LOCAL_SKILLS as readonly string[]).includes(a.skill) && player.location !== a.region) return `📍 ${a.region}`;
+  if ((LOCAL_SKILLS as readonly string[]).includes(a.skill) && a.inputs.length === 0 && player.location !== a.region) return `📍 ${a.region}`;
   return null;
 }
 
 const SCENES: Partial<Record<SkillId, SceneName>> = {
   mining: 'mine', smithing: 'forge', woodcutting: 'forest', firemaking: 'camp',
   fishing: 'river', cooking: 'kitchen', crafting: 'workshop', enhancing: 'tower', runecrafting: 'altar',
+  herblore: 'forest', farming: 'town',
 };
 
 const MINIGAMES: Partial<Record<SkillId, (p: { action: ActionDef }) => JSX.Element>> = {
   mining: StrikeVein, smithing: AnvilRhythm, woodcutting: Chop, firemaking: FiremakingGames,
   fishing: FishingGames, cooking: CookingGames, crafting: SteadyHands, enhancing: RuneAlign, runecrafting: RuneTrace,
+  herblore: RipePicking,
 };
 
 const TAB_ICONS: Record<string, UiIconName> = {

@@ -320,7 +320,8 @@ export type UiIconName =
   | 'stop' | 'clock' | 'up' | 'down' | 'lock' | 'mining' | 'smithing' | 'sound' | 'music'
   | 'trash' | 'play' | 'refresh' | 'trophy' | 'pin' | 'bolt' | 'door'
   | 'woodcutting' | 'firemaking' | 'fishing' | 'cooking' | 'crafting' | 'enhancing' | 'sword' | 'shield'
-  | 'melee' | 'ranged' | 'magic' | 'defense' | 'health' | 'combat' | 'coin' | 'heart' | 'gem' | 'ammo' | 'runecrafting' | 'profile';
+  | 'melee' | 'ranged' | 'magic' | 'defense' | 'health' | 'combat' | 'coin' | 'heart' | 'gem' | 'ammo' | 'runecrafting' | 'profile'
+  | 'herblore' | 'farming';
 
 /** Simple line icons for buttons and navigation. */
 export function UiIcon({ name, size = 24 }: { name: UiIconName; size?: number }) {
@@ -349,7 +350,9 @@ export function UiIcon({ name, size = 24 }: { name: UiIconName; size?: number })
     case 'cooking': body = <g {...common}><path d="M3 13 H17 Q17 19 10 19 Q3 19 3 13 Z" /><path d="M17 14 L21 12" /><path d="M8 9 Q7 7 8.5 5 M12 9 Q11 7 12.5 5" /></g>; break;
     case 'crafting': body = <g {...common}><path d="M4 20 L13 11" /><path d="M11 6 L16 3 L21 8 L18 13 Z" /><path d="M3 4 L8 9" /><path d="M2 7 L5 4" /></g>; break;
     case 'enhancing': body = <g {...common}><path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z" /><circle cx="12" cy="12" r="2" /></g>; break;
-    case 'profile': body = <g {...common}><circle cx="12" cy="8" r="4" /><path d="M4 21 Q4 14 12 14 Q20 14 20 21" /></g>; break;
+    case 'herblore': body = <g {...common}><path d="M12 21 V9" /><path d="M12 13 Q6 13 4 7 Q10 7 12 13" /><path d="M12 10 Q18 10 20 4 Q14 4 12 10" /><path d="M12 17 Q8 16 7 13" /></g>; break;
+    case 'farming': body = <g {...common}><path d="M3 20 H21" /><path d="M7 20 V15 M12 20 V12 M17 20 V15" /><path d="M12 12 Q9 11 9 8 Q12 8 12 12 Q12 8 15 7 Q15 11 12 12" /><path d="M7 15 Q5 14 5 12 Q7 12 7 15 Q8 13 9 13 Q9 15 7 15" /><path d="M17 15 Q15 14 15 12 Q17 12 17 15 Q18 13 19 13 Q19 15 17 15" /></g>; break;
+    case 'profile': body =<g {...common}><circle cx="12" cy="8" r="4" /><path d="M4 21 Q4 14 12 14 Q20 14 20 21" /></g>; break;
     case 'runecrafting': body = <g {...common}><circle cx="12" cy="12" r="9" /><path d="M12 6 V18 M7 9 L17 15 M17 9 L7 15" /></g>; break;
     case 'melee': case 'combat': body = <g {...common}><path d="M4 4 L14 14 M20 4 L10 14" /><path d="M12 16 L8 20 M12 16 L16 20" /><path d="M6 12 L12 18 L18 12" /></g>; break;
     case 'ranged': case 'ammo': body = <g {...common}><path d="M6 3 Q20 6 21 18" /><path d="M6 3 L21 18" strokeWidth="1" /><path d="M3 21 L16 8" /><path d="M16 8 L13 8 M16 8 L16 11" /></g>; break;

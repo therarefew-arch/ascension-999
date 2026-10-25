@@ -6,6 +6,7 @@ import type { PlayerState } from './player';
 import { levelForXp, levelProgress, MAX_LEVEL, XP_AT } from './xp';
 import { catchUpMult, MAX_BOOST, xpBoost, zealMult } from './boosts';
 import { PET_XP_BONUS, petBoosts } from '../data/pets';
+import { buffXpMult } from './buffs';
 import { countInBag, countInBank } from './inventory';
 import { REGIONS, regionOpen } from '../data/tiers';
 
@@ -86,5 +87,5 @@ function extraMult(p: PlayerState, skill: SkillId) {
   let m = 1;
   if (petBoosts(p.activePet, skill)) m *= 1 + PET_XP_BONUS;
   if (p.bonfire && p.bonfire.until > Date.now()) m *= 1.05;
-  return m;
+  return m * buffXpMult(p, skill);
 }

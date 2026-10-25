@@ -328,6 +328,20 @@ function repair(raw: any): PlayerState {
     }
   }
   p.starsCaught = Math.max(0, Number(raw?.starsCaught) || 0);
+  // Buffs + garden (v18)
+  if (raw?.buffs && typeof raw.buffs === 'object') {
+    for (const [k, b] of Object.entries(raw.buffs as Record<string, { item?: string; until?: number }>)) {
+      if (b && ITEMS[b.item ?? '']?.buff && typeof b.until === 'number' && b.until > Date.now()) p.buffs[k] = { item: b.item!, until: b.until };
+    }
+  }
+  if (Array.isArray(raw?.farm?.plots)) {
+    p.farm.plots = [0, 1, 2, 3].map((i) => {
+      const pl = raw.farm.plots[i];
+      return pl && typeof pl.crop === 'number' && pl.crop >= 0 && pl.crop < 11 && typeof pl.readyAt === 'number'
+        ? { crop: pl.crop, plantedAt: Number(pl.plantedAt) || Date.now(), readyAt: pl.readyAt, tendedMs: Number(pl.tendedMs) || 0 }
+        : null;
+    });
+  }
   // Bounty Board + seasoned tools (v17)
   if (raw?.bounties && typeof raw.bounties.day === 'string' && Array.isArray(raw.bounties.list)) {
     p.bounties = {

@@ -408,6 +408,8 @@ p { margin: 8px 0; }
 
 /* Runecrafting — Rune Trace */
 .skill-runecrafting { color: #a5b4fc; background: #161a33; border-color: #4338ca; }
+.skill-herblore { color: #bbf7d0; background: #0f2416; border-color: #15803d; }
+.skill-farming { color: #fde68a; background: #23200b; border-color: #a16207; }
 .trace-stage { --rune: #a5b4fc; height: clamp(190px, 30vh, 240px); width: min(250px, 70vw); }
 .trace-svg { position: absolute; inset: 8px; width: calc(100% - 16px); height: calc(100% - 16px); }
 .trace-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; border-radius: 50%; background: #161a33; border: 2px solid #4338ca; display: flex; align-items: center; justify-content: center; }
@@ -898,6 +900,26 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 
 .satchel-toggle { width: 100%; margin-bottom: 8px; padding: 8px 10px; border-radius: 10px; border: 1.5px dashed var(--line); background: var(--bg2); color: var(--muted); font-weight: 800; font-size: 0.82rem; cursor: pointer; text-align: left; }
 .satchel-toggle.on { border-style: solid; border-color: #92610f; background: #241a08; color: var(--gold); }
+
+/* 🌿 Herblore: Ripe Picking */
+.herb-patch { display: grid; grid-template-columns: repeat(3, 64px); gap: 8px; justify-content: center; padding: 6px 0; }
+.herb-cell { width: 64px; height: 64px; border-radius: 14px; border: 2px solid #3f6212; background: radial-gradient(circle at 50% 70%, #2d3a1a, #1a2410); font-size: 1.7rem; cursor: pointer; transition: transform 0.12s, box-shadow 0.2s; }
+.herb-cell.ripe { border-color: #a3e635; box-shadow: 0 0 16px rgba(163, 230, 53, 0.7); transform: scale(1.06); animation: ripeGlow 0.8s ease-in-out infinite alternate; }
+.herb-cell.picked { transform: scale(0.85); }
+@keyframes ripeGlow { from { box-shadow: 0 0 8px rgba(163, 230, 53, 0.5); } to { box-shadow: 0 0 22px rgba(190, 242, 100, 0.95); } }
+
+/* 🌱 Farming: the garden */
+.garden { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+.plot { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; border-radius: 14px; background: linear-gradient(180deg, #3b2a1a, #2a1d12); border: 2px solid #5c4024; min-height: 150px; text-align: center; }
+.plot.ready { border-color: #a3e635; box-shadow: 0 0 14px rgba(163, 230, 53, 0.35); }
+.plot.empty { border-style: dashed; justify-content: center; }
+.plot-crop { font-size: 2.6rem; line-height: 1; }
+.plot-soil { font-size: 1.8rem; opacity: 0.6; }
+.plot-pest { position: absolute; top: 8px; right: 8px; font-size: 1.7rem; background: none; border: 0; cursor: pointer; animation: pestWiggle 0.4s ease-in-out infinite alternate; }
+@keyframes pestWiggle { from { transform: rotate(-12deg) scale(1); } to { transform: rotate(12deg) scale(1.12); } }
+.plot .bar { width: 100%; }
+.chip-row.wrap { flex-wrap: wrap; overflow: visible; }
+.boost-chip.meal { color: #fed7aa; border-color: #9a3412; background: #2a1408; }
 
 /* 📋 Bounty Board */
 .bounty-board { display: flex; flex-direction: column; gap: 8px; }

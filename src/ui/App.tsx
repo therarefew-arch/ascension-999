@@ -26,6 +26,7 @@ import { TownScreen } from './screens/TownScreen';
 import { fmtNum } from './format';
 import { cozyBadge } from '../core/cozy';
 import { Confetti, LuckyStar } from './Cozy';
+import { FarmScreen } from './FarmScreen';
 
 type Tab = 'town' | 'skills' | 'combat' | 'bank' | 'gear' | 'profile' | 'market' | 'journal';
 
@@ -172,7 +173,7 @@ export function App() {
         {tab === 'town' && <TownScreen onSkill={openSkill} onSettings={() => { setProfileStart('settings'); go('profile'); }} onSkills={() => go('skills')} onCombat={() => go('combat')} onMarket={() => go('market')} onJournal={() => go('journal')} />}
         {tab === 'market' && <TradingPostScreen />}
         {tab === 'journal' && <JournalScreen />}
-        {tab === 'skills' && <SkillScreen skill={skill} />}
+        {tab === 'skills' && (skill === 'farming' ? <FarmScreen /> : <SkillScreen skill={skill} />)}
         {tab === 'combat' && <CombatScreen onItem={(id) => setItemView({ id, from: 'bag' })} />}
         {tab === 'bank' && <BankScreen onItem={(id) => setItemView({ id, from: 'bank' })} />}
         {tab === 'gear' && <GearScreen />}

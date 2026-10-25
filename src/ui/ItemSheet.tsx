@@ -10,6 +10,7 @@ import { game, useGame } from '../core/store';
 import { ItemIcon } from './icons';
 import { Sheet, StatCompare } from './components';
 import { fmtNum } from './format';
+import { buffText } from '../core/buffs';
 
 export type ItemPlace = 'bag' | 'bank' | 'worn';
 
@@ -73,6 +74,14 @@ export function ItemSheet({ id, from, onClose, onReroll }: { id: string; from: I
               <button className="btn btn-lg" onClick={() => game.openFind(id, true)}>Open all ({countInBag(player.inventory, id)})</button>
             )}
           </>
+        )}
+        {item.buff && (
+          <section className="block">
+            <p className="small"><b>{buffText(item.buff)}</b> for {item.buff.minutes} minutes{item.buff.kind === 'speed' ? ' — actions go faster' : ''}.</p>
+            {from === 'bag'
+              ? <button className="btn btn-primary btn-lg btn-wide" onClick={() => game.consumeBuff(id)}>{item.category === 'meal' && /tea|tonic|brew/.test(item.id) ? '🍵 Drink it' : '🍽️ Eat it'}</button>
+              : <p className="small muted">Withdraw it to your bag to {/tea|tonic|brew/.test(item.id) ? 'drink' : 'eat'} it.</p>}
+          </section>
         )}
         {item.heals && from === 'bag' && (
           <button className="btn btn-primary btn-lg" onClick={() => game.eat(id)}>

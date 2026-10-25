@@ -32,7 +32,7 @@ export const REGION_INFO: Partial<Record<Region, {
 };
 
 /** Skills whose resources must be gathered on location (you start them in that region). */
-export const LOCAL_SKILLS = ['mining', 'woodcutting', 'fishing'] as const;
+export const LOCAL_SKILLS = ['mining', 'woodcutting', 'fishing', 'herblore'] as const;
 
 export const TIER_COUNT = 11;
 /** The level each tier (and its town) unlocks at — front-loaded: quick early, wider later. */
@@ -97,6 +97,38 @@ export const WOODS: WoodTier[] = [
   { key: 'starbloom', name: 'Starbloom', hue: 50, light: 60 },
   { key: 'celestwood', name: 'Celestwood', hue: 175, light: 55 },
   { key: 'worldtree', name: 'Worldtree', hue: 90, light: 55 },
+];
+
+/** 🌿 Herblore: one wild herb per town (forage it there, dry it for brews). */
+export interface HerbTier { key: string; name: string }
+export const HERBS: HerbTier[] = [
+  { key: 'meadowsweet', name: 'Meadowsweet' },
+  { key: 'ironroot', name: 'Ironroot' },
+  { key: 'willowcap', name: 'Willowcap' },
+  { key: 'seafennel', name: 'Sea fennel' },
+  { key: 'moonpetal', name: 'Moonpetal' },
+  { key: 'emberleaf', name: 'Emberleaf' },
+  { key: 'frostmint', name: 'Frostmint' },
+  { key: 'voidbloom', name: 'Voidbloom' },
+  { key: 'starthistle', name: 'Starthistle' },
+  { key: 'skysage', name: 'Skysage' },
+  { key: 'worldroot', name: 'Worldroot' },
+];
+
+/** 🌱 Farming: one crop per town. Grows in your garden over real time. */
+export interface CropTier { key: string; name: string; emoji: string; growMinutes: number }
+export const CROPS: CropTier[] = [
+  { key: 'garlic', name: 'Garlic', emoji: '🧄', growMinutes: 15 },
+  { key: 'onion', name: 'Onion', emoji: '🧅', growMinutes: 30 },
+  { key: 'carrot', name: 'Carrot', emoji: '🥕', growMinutes: 60 },
+  { key: 'potato', name: 'Potato', emoji: '🥔', growMinutes: 90 },
+  { key: 'moonmelon', name: 'Moon melon', emoji: '🍈', growMinutes: 120 },
+  { key: 'emberpepper', name: 'Ember pepper', emoji: '🌶️', growMinutes: 180 },
+  { key: 'snowcabbage', name: 'Snow cabbage', emoji: '🥬', growMinutes: 240 },
+  { key: 'voidplum', name: 'Void plum', emoji: '🍇', growMinutes: 300 },
+  { key: 'starfruit', name: 'Starfruit', emoji: '🍋', growMinutes: 360 },
+  { key: 'skypear', name: 'Sky pear', emoji: '🍐', growMinutes: 420 },
+  { key: 'worldpumpkin', name: 'Worldpumpkin', emoji: '🎃', growMinutes: 480 },
 ];
 
 export interface FishTier { key: string; name: string; hue: number; shrimp?: boolean }

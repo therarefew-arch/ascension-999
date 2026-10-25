@@ -5,6 +5,8 @@ import type { FightState } from './combat';
 import type { Region } from '../data/tiers';
 import type { TownRequest } from './cozy';
 import type { Bounty } from './bounties';
+import type { ActiveBuff } from './buffs';
+import type { Plot } from './farming';
 
 /**
  * v2: added 6 skills; the old "tool" gear slot became "pickaxe".
@@ -23,8 +25,9 @@ import type { Bounty } from './bounties';
  * v15: Lunaria's mystery (lanterns relit, town restored).
  * v16: the Satchel, rare finds, "Settling In" starter questline.
  * v17: Bounty Board, seasoned tools.
+ * v18: Herblore and Farming skills, garden plots, meal/brew buffs.
  */
-export const SAVE_VERSION = 17;
+export const SAVE_VERSION = 18;
 /** Starting bag size. Can be upgraded with coins up to MAX_BAG_SLOTS. */
 export const INVENTORY_SLOTS = 30;
 export const MAX_BAG_SLOTS = 50;
@@ -111,6 +114,10 @@ export interface PlayerState {
   bounties: { day: string; list: Bounty[]; rerolled: boolean };
   /** 🪓 Seasoned tools: actions done per skill (tools get a little faster with use). */
   toolUses: Partial<Record<SkillId, number>>;
+  /** 🍲 Active meal and brew bonuses, keyed by kind + skill. */
+  buffs: Record<string, ActiveBuff>;
+  /** 🌱 Your garden plots (Farming). */
+  farm: { plots: (Plot | null)[] };
 }
 
 export interface Loadout {
@@ -127,6 +134,7 @@ export function newSkills(): Record<SkillId, { xp: number }> {
   return {
     mining: { xp: 0 }, smithing: { xp: 0 }, woodcutting: { xp: 0 }, firemaking: { xp: 0 },
     fishing: { xp: 0 }, cooking: { xp: 0 }, crafting: { xp: 0 }, enhancing: { xp: 0 }, runecrafting: { xp: 0 },
+    herblore: { xp: 0 }, farming: { xp: 0 },
     melee: { xp: 0 }, ranged: { xp: 0 }, magic: { xp: 0 }, defense: { xp: 0 }, health: { xp: 0 },
   };
 }
@@ -171,6 +179,8 @@ export function newPlayer(now = Date.now()): PlayerState {
     tutorial: { step: 0, progress: 0, done: false },
     bounties: { day: '', list: [], rerolled: false },
     toolUses: {},
+    buffs: {},
+    farm: { plots: [null, null, null, null] },
   };
 }
 

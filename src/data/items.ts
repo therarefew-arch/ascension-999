@@ -1,8 +1,9 @@
 // Static item definitions. No player data lives here.
 // Tiered items (ores, bars, logs, fish, gear, tools, ammo) are generated for all 20 tiers from data/tiers.ts.
-import { FISH, METALS, TIER_COUNT, WOODS, tierForLevel, tierLevel, tierPalette, tierRegion, tierXp, type Region } from './tiers';
+import { CROPS, FISH, HERBS, METALS, TIER_COUNT, WOODS, tierForLevel, tierLevel, tierPalette, tierRegion, tierXp, type Region } from './tiers';
 
-export type ItemCategory = 'ore' | 'bar' | 'log' | 'material' | 'fish' | 'food' | 'weapon' | 'armour' | 'tool' | 'gem' | 'ammo' | 'currency' | 'treasure';
+export type ItemCategory = 'ore' | 'bar' | 'log' | 'material' | 'fish' | 'food' | 'weapon' | 'armour' | 'tool' | 'gem' | 'ammo' | 'currency' | 'treasure'
+  | 'herb' | 'crop' | 'seed' | 'meal';
 export type CombatStyle = 'melee' | 'ranged' | 'magic';
 export type GemType = 'ruby' | 'sapphire' | 'emerald';
 export type GemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
@@ -16,8 +17,17 @@ export type IconKind =
   | 'bow' | 'staff' | 'arrows' | 'rune' | 'coins' | 'talisman';
 export type SkillId =
   | 'mining' | 'smithing' | 'woodcutting' | 'firemaking' | 'fishing' | 'cooking' | 'crafting' | 'enhancing'
-  | 'runecrafting'
+  | 'runecrafting' | 'herblore' | 'farming'
   | 'melee' | 'ranged' | 'magic' | 'defense' | 'health';
+
+/** A timed bonus from a meal or brew (Cooking). 'speed' makes actions faster; 'xp' gives more XP. */
+export interface Buff {
+  /** The skill it helps, 'combat' (all combat skills) or 'all'. */
+  skill: SkillId | 'combat' | 'all';
+  kind: 'speed' | 'xp';
+  pct: number;
+  minutes: number;
+}
 
 /** Colour keys. Each tier/material gets its own tint so icons look unique. */
 export const TIER_COLORS: Record<string, { main: string; light: string; dark: string }> = {
@@ -135,6 +145,10 @@ export interface ItemDef {
   value?: number;
   /** Rare finds: which gathering skill's open table it uses when opened. */
   opens?: 'woodcutting' | 'mining' | 'fishing';
+  /** Meals and brews: the timed bonus you get when you eat or drink it. */
+  buff?: Buff;
+  /** Seeds: the crop (tier index into CROPS) it grows into. */
+  seedOf?: number;
 }
 
 export const MAX_UPGRADE = 10;
@@ -448,6 +462,74 @@ items.push(
   { id: 'sea_pearl', name: 'Sea pearl', category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🦪', stackable: true, value: 1600,
     description: 'A perfect pearl that rolled out of a bottle. Traders love these.' },
 );
+
+// ----- 🌿 Herblore: herbs and dried herbs · 🌱 Farming: seeds and crops (one of each per town) -----
+for (let t = 0; t < TIER_COUNT; t++) {
+  const h = HERBS[t];
+  const c = CROPS[t];
+  const region = tierRegion(t);
+  items.push(
+    { id: h.key, name: h.name, category: 'herb', tier: 'oak', icon: 'log', emoji: '🌿', stackable: true, tierNum: t, region,
+      description: `A wild herb that grows around ${region}. Dry it to use in brews.` },
+    { id: `dried_${h.key}`, name: `Dried ${h.name.toLowerCase()}`, category: 'herb', tier: 'oak', icon: 'log', emoji: '🍂', stackable: true, tierNum: t, region,
+      description: `${h.name}, dried and fragrant. Used in Cooking brews.` },
+    { id: `${c.key}_seed`, name: `${c.name} seed`, category: 'seed', tier: 'oak', icon: 'log', emoji: '🌱', stackable: true, tierNum: t, region, seedOf: t,
+      description: `Plant it in your garden (Farming). Grows into ${c.name.toLowerCase()} in about ${c.growMinutes >= 60 ? `${c.growMinutes / 60} hour${c.growMinutes > 60 ? 's' : ''}` : `${c.growMinutes} minutes`}.` },
+    { id: c.key, name: c.name, category: 'crop', tier: 'oak', icon: 'log', emoji: c.emoji, stackable: true, tierNum: t, region,
+      description: `Fresh from your garden. Used in Cooking meals.` },
+  );
+}
+
+// ----- 🍲 Meals (+speed) and 🍵 brews (+XP), made in Cooking. Eat or drink them from your bag. -----
+export interface MealDef {
+  id: string; name: string; emoji: string; tab: 'Meals' | 'Brews'; level: number; tierNum: number;
+  inputs: { item: string; qty: number }[]; buff: Buff; description: string;
+}
+export const MEALS: MealDef[] = [
+  { id: 'miners_pasty', name: "Miner's pasty", emoji: '🥟', tab: 'Meals', level: 10, tierNum: 0,
+    inputs: [{ item: 'cooked_shrimp', qty: 2 }, { item: 'garlic', qty: 2 }], buff: { skill: 'mining', kind: 'speed', pct: 6, minutes: 30 },
+    description: 'A warm pasty that fits in a miner\'s pocket.' },
+  { id: 'foragers_salad', name: "Forager's salad", emoji: '🥗', tab: 'Meals', level: 20, tierNum: 0,
+    inputs: [{ item: 'garlic', qty: 2 }, { item: 'dried_meadowsweet', qty: 1 }], buff: { skill: 'herblore', kind: 'speed', pct: 6, minutes: 30 },
+    description: 'Crunchy, green and full of the meadow.' },
+  { id: 'woodsmans_stew', name: "Woodsman's stew", emoji: '🍲', tab: 'Meals', level: 55, tierNum: 1,
+    inputs: [{ item: 'cooked_shrimp', qty: 2 }, { item: 'onion', qty: 2 }], buff: { skill: 'woodcutting', kind: 'speed', pct: 6, minutes: 30 },
+    description: 'Thick, hearty and good for swinging an axe all day.' },
+  { id: 'anglers_chowder', name: "Angler's chowder", emoji: '🥣', tab: 'Meals', level: 60, tierNum: 1,
+    inputs: [{ item: 'cooked_trout', qty: 2 }, { item: 'garlic', qty: 2 }], buff: { skill: 'fishing', kind: 'speed', pct: 6, minutes: 30 },
+    description: 'Creamy chowder that keeps your hands steady on the rod.' },
+  { id: 'forgehand_pie', name: 'Forge-hand pie', emoji: '🥧', tab: 'Meals', level: 70, tierNum: 1,
+    inputs: [{ item: 'cooked_trout', qty: 2 }, { item: 'onion', qty: 2 }], buff: { skill: 'smithing', kind: 'speed', pct: 6, minutes: 30 },
+    description: 'A sturdy pie for a sturdy smith.' },
+  { id: 'hearth_roast', name: 'Hearth roast', emoji: '🍖', tab: 'Meals', level: 115, tierNum: 2,
+    inputs: [{ item: 'cooked_salmon', qty: 2 }, { item: 'carrot', qty: 2 }], buff: { skill: 'firemaking', kind: 'speed', pct: 6, minutes: 30 },
+    description: 'Slow-roasted by the fire. Of course.' },
+  { id: 'tinkers_hotpot', name: "Tinker's hotpot", emoji: '🫕', tab: 'Meals', level: 125, tierNum: 2,
+    inputs: [{ item: 'cooked_salmon', qty: 2 }, { item: 'carrot', qty: 3 }], buff: { skill: 'crafting', kind: 'speed', pct: 6, minutes: 30 },
+    description: 'Bubbling away on the workbench stove.' },
+  { id: 'mystic_broth', name: 'Mystic broth', emoji: '🍜', tab: 'Meals', level: 180, tierNum: 3,
+    inputs: [{ item: 'cooked_lobster', qty: 2 }, { item: 'potato', qty: 2 }], buff: { skill: 'runecrafting', kind: 'speed', pct: 6, minutes: 30 },
+    description: 'The steam curls into little rune shapes.' },
+  { id: 'meadow_tea', name: 'Meadow tea', emoji: '🍵', tab: 'Brews', level: 5, tierNum: 0,
+    inputs: [{ item: 'dried_meadowsweet', qty: 2 }], buff: { skill: 'farming', kind: 'xp', pct: 8, minutes: 30 },
+    description: 'Calming and sweet. Gardeners swear by it.' },
+  { id: 'ironroot_tonic', name: 'Ironroot tonic', emoji: '🧉', tab: 'Brews', level: 55, tierNum: 1,
+    inputs: [{ item: 'dried_ironroot', qty: 2 }, { item: 'onion', qty: 1 }], buff: { skill: 'combat', kind: 'xp', pct: 8, minutes: 30 },
+    description: 'Bitter, bracing and good for a fight.' },
+  { id: 'willowcap_brew', name: 'Willowcap brew', emoji: '☕', tab: 'Brews', level: 112, tierNum: 2,
+    inputs: [{ item: 'dried_willowcap', qty: 2 }], buff: { skill: 'cooking', kind: 'xp', pct: 8, minutes: 30 },
+    description: 'An earthy brew cooks drink while they cook.' },
+  { id: 'seafennel_tonic', name: 'Sea fennel tonic', emoji: '🧋', tab: 'Brews', level: 178, tierNum: 3,
+    inputs: [{ item: 'dried_seafennel', qty: 2 }, { item: 'potato', qty: 1 }], buff: { skill: 'enhancing', kind: 'xp', pct: 8, minutes: 30 },
+    description: 'Salty and sharp. Steadies the hand at the anvil.' },
+  { id: 'moonpetal_tea', name: 'Moonpetal tea', emoji: '🫖', tab: 'Brews', level: 248, tierNum: 4,
+    inputs: [{ item: 'dried_moonpetal', qty: 3 }, { item: 'moonmelon', qty: 1 }], buff: { skill: 'all', kind: 'xp', pct: 4, minutes: 30 },
+    description: 'Silver and sweet. Everything feels a little easier.' },
+];
+for (const m of MEALS) {
+  items.push({ id: m.id, name: m.name, category: 'meal', tier: 'oak', icon: 'log', emoji: m.emoji, stackable: true, tierNum: m.tierNum,
+    region: tierRegion(m.tierNum), buff: m.buff, description: m.description });
+}
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(items.map((i) => [i.id, i]));
 export const ITEM_LIST = items;

@@ -2,7 +2,7 @@
 // rolled by the central loot system in src/core/loot.ts.
 import { ACTION_LIST, GREAT_FOOD } from './skills';
 import { GEM_RANGES, GEM_TYPES, gemId, RARITIES, type GemRarity, type GemType } from './items';
-import { FISH, METALS, TIER_COUNT, WOODS } from './tiers';
+import { CROPS, FISH, HERBS, METALS, TIER_COUNT, WOODS } from './tiers';
 
 /** Where a loot table is used. Gems may only appear in 'boss' and 'miniboss' tables. */
 export type LootSource = 'skilling' | 'monster' | 'miniboss' | 'boss';
@@ -104,6 +104,16 @@ tables.push(
     groups: [{ chance: 0, items: [] }], // replaced below with the gem group
   },
 );
+
+// ----- 🌿 Foraging: the herb, and sometimes a seed for your garden (replaces the plain herb table) -----
+for (let t = 0; t < TIER_COUNT; t++) {
+  tables.push({ id: `forage_${HERBS[t].key}`, source: 'skilling', entries: [e(HERBS[t].key, 1, 1, 1), e(`${CROPS[t].key}_seed`, 1, 1, 0.12)] });
+}
+
+// ----- 🌱 Harvesting a garden plot: a handful of the crop, and often a seed or two back -----
+for (let t = 0; t < TIER_COUNT; t++) {
+  tables.push({ id: `harvest_${CROPS[t].key}`, source: 'skilling', entries: [e(CROPS[t].key, 3, 6, 1), e(`${CROPS[t].key}_seed`, 1, 2, 0.6)] });
+}
 
 // ----- 🎁 Rare finds while gathering, and what's inside when you open them -----
 /** Chance per gathering action to turn up a find. */

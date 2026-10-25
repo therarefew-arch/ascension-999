@@ -15,6 +15,7 @@ import type { IdleSlot, PlayerState } from './player';
 import { MAX_XP, levelForXp } from './xp';
 import { xpBoost } from './boosts';
 import { FIND_ITEM } from '../data/lootTables';
+import { buffSpeedPct, buffXpMult } from './buffs';
 import { equipmentStats } from './equipment';
 import { advanceFight, isFightId, type CombatReport } from './combat';
 
@@ -55,7 +56,8 @@ export function seasonedPercent(p: PlayerState, skill: SkillId): number {
 export function actionDuration(p: PlayerState, action: ActionDef): number {
   const statKey = `${action.skill}Speed` as keyof ItemStats;
   const speed = statKey in STAT_LABELS ? equipmentStats(p)[statKey] ?? 0 : 0;
-  return Math.max(500, Math.round(action.durationMs * (1 - speed / 100) * (1 - seasonedPercent(p, action.skill) / 100)));
+  const meal = buffSpeedPct(p, action.skill);
+  return Math.max(500, Math.round(action.durationMs * (1 - speed / 100) * (1 - seasonedPercent(p, action.skill) / 100) * (1 - meal / 100)));
 }
 
 // ---------------------------------------------------------------------------
@@ -138,7 +140,8 @@ export function whyCantDo(p: PlayerState, action: ActionDef, opts: { manual?: bo
   if (!regionOpen(action.region)) return `Found in ${action.region} — coming in a future update`;
   if (action.region && !p.regions.includes(action.region)) return `Travel to ${action.region} to unlock this`;
   // Gathering happens on location: start it in its region (idle slots keep going if you travel away).
-  if ((opts.manual || opts.start) && action.region && (LOCAL_SKILLS as readonly string[]).includes(action.skill) && p.location !== action.region) {
+  // (Only gathering — actions with no inputs. Processing, like drying herbs, works anywhere.)
+  if ((opts.manual || opts.start) && action.region && action.inputs.length === 0 && (LOCAL_SKILLS as readonly string[]).includes(action.skill) && p.location !== action.region) {
     return `Gather this in ${action.region} (you're in ${p.location})`;
   }
   if (skillLevel(p, action.skill) < action.level) return `Needs level ${action.level}`;
@@ -310,6 +313,8 @@ export function addXp(p: PlayerState, action: { skill: SkillId }, report: Progre
   if (petBoosts(p.activePet, action.skill)) xp = xp * (1 + PET_XP_BONUS);
   // A lit bonfire warms everyone up: +5% XP to all skills.
   if (p.bonfire && p.bonfire.until > Date.now()) xp = xp * 1.05;
+  // 🍵 Brews from Cooking.
+  xp = xp * buffXpMult(p, action.skill);
   const skill = p.skills[action.skill];
   const before = levelForXp(skill.xp);
   skill.xp = Math.min(MAX_XP, skill.xp + xp);

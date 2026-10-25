@@ -21,6 +21,9 @@ import { LANTERNS, lightLantern, ringBell, whyCantLight, whyCantRing } from './l
 import { openFinds } from './finds';
 import { claimStep, trackTutorial, TUTORIAL } from './tutorial';
 import { claimBounty, ensureBounties, rerollBounty, trackBounties } from './bounties';
+import { harvest, plant, tend } from './farming';
+import { buffText, consumeBuff } from './buffs';
+import { CROPS } from '../data/tiers';
 import { FIND_ITEM } from '../data/lootTables';
 import type { Region } from '../data/tiers';
 import type { SkillId } from '../data/items';
@@ -200,6 +203,7 @@ function tick(now = Date.now()) {
   }
 
   p.lastActiveAt = now;
+  checkGarden(p, now);
   // Lucky Stars: appear every few minutes while you're playing, and drift away if not caught.
   if (snap.star && now > snap.star.until) { snap.star = null; emit(); }
   if (!nextStarAt) nextStarAt = now + nextStarDelay();
@@ -262,6 +266,27 @@ function tick(now = Date.now()) {
 let started = false;
 let cookingOpen = false;
 let nextStarAt = 0;
+
+function afterHarvest(report: ProgressReport) {
+  trackRequests(snap.player, report, 0);
+  trackTutorial(snap.player, report);
+  announceLevels(report);
+  announcePets(report);
+  checkGoals();
+  save();
+  emit();
+}
+
+/** 🌱 Tell the player (once) when a crop becomes ready while they're playing. */
+const announcedCrops = new Set<number>();
+function checkGarden(p: PlayerState, now: number) {
+  for (const pl of p.farm.plots) {
+    if (pl && now >= pl.readyAt && !announcedCrops.has(pl.readyAt)) {
+      announcedCrops.add(pl.readyAt);
+      if (now - pl.readyAt < 10_000) { play('match'); toast(`🌱 Your ${CROPS[pl.crop].name.toLowerCase()} is ready to harvest!`, 'good'); }
+    }
+  }
+}
 
 /** 📜 Found a tale (lore note). */
 function announceLore(notes: LoreNote[]) {
@@ -768,6 +793,55 @@ export const game = {
     play('block');
     emit();
     return 'blocked';
+  },
+  // ----- 🌱 Farming -----
+  plantSeed(i: number, seedId: string) {
+    const report = emptyReport(null);
+    const why = plant(snap.player, i, seedId, report);
+    if (why) return fail(why);
+    play('carve');
+    announceLevels(report);
+    trackRequests(snap.player, report, 0);
+    save();
+    emit();
+  },
+  harvestPlot(i: number) {
+    const report = emptyReport(null);
+    if (!harvest(snap.player, i, report)) return;
+    play('chop');
+    play('coin');
+    buzz(15);
+    const what = Object.entries(report.gained).map(([id, n]) => `+${n} ${getItem(id).name}`).join(' · ');
+    toast(`🧺 ${what}`, 'good');
+    afterHarvest(report);
+  },
+  harvestAll() {
+    const report = emptyReport(null);
+    let n = 0;
+    snap.player.farm.plots.forEach((_, i) => { if (harvest(snap.player, i, report)) n++; });
+    if (!n) return;
+    play('chop');
+    play('coin');
+    buzz(20);
+    toast(`🧺 Harvested ${n} plot${n > 1 ? 's' : ''}: ${Object.entries(report.gained).map(([id, q]) => `+${q} ${getItem(id).name}`).join(' · ')}`, 'good');
+    afterHarvest(report);
+  },
+  tendPlot(i: number) {
+    const report = emptyReport(null);
+    if (!tend(snap.player, i, report)) return;
+    announceLevels(report);
+    trackRequests(snap.player, report, 0);
+    emit();
+  },
+  /** 🍲 Eat a meal or drink a brew for its bonus. */
+  consumeBuff(id: string) {
+    const why = consumeBuff(snap.player, id);
+    if (why) return fail(why);
+    const item = getItem(id);
+    play(item.id.includes('tea') || item.id.includes('tonic') || item.id.includes('brew') ? 'splash' : 'eat');
+    toast(`${item.emoji} ${item.name}: ${buffText(item.buff!)} for ${item.buff!.minutes} minutes`, 'good');
+    save();
+    emit();
   },
   /** 📋 Bounty Board */
   ensureBounties() {

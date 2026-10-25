@@ -45,6 +45,11 @@ export function baseValue(item: ItemDef): number {
   if (BASE[item.id] !== undefined) return BASE[item.id];
   if (item.value !== undefined) return item.value;
   if (item.opens) return 60; // unopened finds
+  // Herbs, seeds, crops, meals and brews (Herblore / Farming / Cooking).
+  if (['herb', 'seed', 'crop', 'meal'].includes(item.category) && item.tierNum !== undefined) {
+    const base = item.category === 'meal' ? 40 : item.category === 'seed' ? 6 : item.id.startsWith('dried_') ? 10 : item.category === 'crop' ? 6 : 4;
+    return Math.round(base * Math.pow(1.35, item.tierNum));
+  }
   // Higher tiers are worth more (about ×1.35 per tier, like their XP).
   if (item.tierNum !== undefined && item.tierNum >= 2 && ['ore', 'bar', 'log', 'fish', 'food', 'ammo'].includes(item.category)) {
     const base = { ore: 3, bar: 9, log: 3, fish: 4, food: 7, ammo: 1 }[item.category as 'ore'] ?? 5;
@@ -88,12 +93,12 @@ export function priceTrend(id: string, now = Date.now()): -1 | 0 | 1 {
 
 /** What each town's Trading Post sells: local basic materials and food. Never gems or gear. */
 export const BUY_LISTS: Partial<Record<Region, string[]>> = {
-  Pocketvale: ['copper_ore', 'tin_ore', 'stone', 'rune_essence', 'pine_logs', 'raw_shrimp', 'bronze_bar', 'bronze_arrows', 'cooked_shrimp'],
-  Ironmoor: ['iron_ore', 'oak_logs', 'raw_trout', 'iron_bar', 'iron_arrows', 'cooked_trout', 'stone', 'rune_essence'],
-  Coalhaven: ['coal', 'willow_logs', 'raw_salmon', 'steel_bar', 'steel_arrows', 'cooked_salmon', 'iron_ore', 'stone', 'rune_essence'],
-  Bluecliff: ['cobalt_ore', 'maple_logs', 'raw_lobster', 'cobalt_bar', 'cobalt_arrows', 'cooked_lobster', 'coal', 'stone', 'rune_essence'],
+  Pocketvale: ['copper_ore', 'tin_ore', 'stone', 'rune_essence', 'pine_logs', 'raw_shrimp', 'bronze_bar', 'bronze_arrows', 'cooked_shrimp', 'garlic_seed'],
+  Ironmoor: ['iron_ore', 'oak_logs', 'raw_trout', 'iron_bar', 'iron_arrows', 'cooked_trout', 'stone', 'rune_essence', 'onion_seed'],
+  Coalhaven: ['coal', 'willow_logs', 'raw_salmon', 'steel_bar', 'steel_arrows', 'cooked_salmon', 'iron_ore', 'stone', 'rune_essence', 'carrot_seed'],
+  Bluecliff: ['cobalt_ore', 'maple_logs', 'raw_lobster', 'cobalt_bar', 'cobalt_arrows', 'cooked_lobster', 'coal', 'stone', 'rune_essence', 'potato_seed'],
   // Lunaria's market only reopens once the town is brought home (the Silent Bell).
-  Lunaria: ['moonsilver_ore', 'moonwood_logs', 'raw_moonfin', 'moonsilver_bar', 'moonsilver_arrows', 'cooked_moonfin', 'cobalt_ore', 'stone', 'rune_essence'],
+  Lunaria: ['moonsilver_ore', 'moonwood_logs', 'raw_moonfin', 'moonsilver_bar', 'moonsilver_arrows', 'cooked_moonfin', 'cobalt_ore', 'stone', 'rune_essence', 'moonmelon_seed'],
 };
 /** 🎒 The Satchel: sends whatever doesn't fit in your bag to the bank. Needs any skill at 110 (Coalhaven). */
 export const SATCHEL = { level: 110, coins: 25_000 };

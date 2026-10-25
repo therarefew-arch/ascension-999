@@ -346,6 +346,12 @@ Based on the owner's reference screenshots:
 - **📋 Bounty Board** (Combat screen, `core/bounties.ts`): three bounties a day on regular monsters from towns you've discovered, up to ~10 levels above your best combat skill. Each pays coins (about 60% of the monster's coin drops for that many kills, plus level × 10) and a rare find (nest, geode or bottle). One free swap a day. Progress counts while idling and offline.
 - **🪓 Seasoned tools**: every tool skill gets +1% speed per 2,500 actions, up to +10% (shown on the skill screen). Applies to idling and minigames and is included in time estimates. Save version 17.
 
+### Release 3b — built · v0.0.1.13
+- **🌿 Herblore** (new skill): forage one wild herb per town on location (Meadowsweet, Ironroot, Willowcap, Sea fennel, Moonpetal…; ~12% chance of a seed too), and dry herbs (2 → 1, works anywhere). Minigame **Ripe Picking**: tap herbs while they glow; 3 picks = one action, a clean set gives bonus XP (+1 herb when foraging). Pet 🐝 Bumble. No tool needed (for now).
+- **🌱 Farming** (new skill): 4 garden plots (Pocketvale) that grow over real time, even while away (garlic 15 min, onion 30 min, carrot 1 h, potato 1.5 h, moon melon 2 h, …). Harvest = 3–6 crops (+ seeds back 60%) and big Farming XP; planting gives a little XP. Minigame **Garden Helpers**: tap pests/weeds that pop up on growing plots for XP and up to 25% faster growth. Seeds from foraging or each town's Trading Post. Pet 🐌 Shelly. "Crop is ready" notice while playing.
+- **🍲 Cooking: Meals & Brews** tabs (fish recipes moved to a Fish tab). Meals (cooked fish + crops) = +6% speed to one skill for 30 min (Miner's pasty, Forager's salad, Woodsman's stew, Angler's chowder, Forge-hand pie, Hearth roast, Tinker's hotpot, Mystic broth). Brews (dried herbs) = +8% XP for 30 min (Meadow tea → Farming, Ironroot tonic → all combat, Willowcap brew → Cooking, Sea fennel tonic → Enhancing, Moonpetal tea → +4% all skills). Eat/drink from the bag; eating again adds time (max 2 h). Active buffs show on skill screens and count in XP/h and time estimates.
+- Save version 18.
+
 ### Owner's notes for later
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.

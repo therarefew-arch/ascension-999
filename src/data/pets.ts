@@ -22,6 +22,8 @@ export const PETS: PetDef[] = [
   { id: 'pet_whittle', name: 'Whittle', emoji: '🦫', skill: 'crafting', odds: 3000, blurb: 'A beaver who is very proud of their teeth.' },
   { id: 'pet_glyph', name: 'Glyph', emoji: '🦉', skill: 'runecrafting', odds: 3000, blurb: 'A wise owl who can read every rune.' },
   { id: 'pet_twinkle', name: 'Twinkle', emoji: '🐱', skill: 'enhancing', odds: 3000, blurb: 'A cat who thinks every shiny thing is hers.' },
+  { id: 'pet_bumble', name: 'Bumble', emoji: '🐝', skill: 'herblore', odds: 3000, blurb: 'A fuzzy bee who always knows where the best herbs grow.' },
+  { id: 'pet_shelly', name: 'Shelly', emoji: '🐌', skill: 'farming', odds: 300, blurb: 'A slow, happy snail who loves your garden (but promises not to eat it).' },
   { id: 'pet_bramble', name: 'Bramble', emoji: '🐻', skill: 'combat', odds: 50, blurb: "Old Thornhide's cub. Fierce, fluffy and loyal." },
   { id: 'pet_pinch', name: 'Pinch', emoji: '🦀', skill: 'combat', odds: 50, blurb: "Mother Clawsoot's littlest hatchling. Only pinches gently." },
   { id: 'pet_peep', name: 'Peep', emoji: '🐥', skill: 'combat', odds: 50, blurb: "Old Galewing's fluffy chick. Steals your snacks, but cutely." },
