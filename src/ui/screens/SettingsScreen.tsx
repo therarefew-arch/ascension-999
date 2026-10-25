@@ -4,6 +4,7 @@ import { game, useGame } from '../../core/store';
 import { UiIcon } from '../icons';
 import { fmtDuration } from '../format';
 import { GAME_VERSION } from '../../version';
+import { BackupCard } from '../Backup';
 
 const SLIDERS: { key: 'master' | 'effects' | 'music'; label: string; icon: 'sound' | 'music' }[] = [
   { key: 'master', label: 'Master volume', icon: 'sound' },
@@ -41,6 +42,8 @@ export function SettingsScreen() {
         <p className="small">Your game saves automatically on this device.{lastSavedAt > 0 && <> Last saved <b>{fmtDuration(Date.now() - lastSavedAt)}</b> ago.</>}</p>
         <p className="small muted">Tip: add Ascension 999 to your home screen so your phone keeps the save safe.</p>
       </div>
+
+      <BackupCard />
 
       <div className="card">
         <h3>Save slots</h3>

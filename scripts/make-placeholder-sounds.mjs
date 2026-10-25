@@ -1,7 +1,11 @@
-// Makes quiet placeholder .wav sounds in public/assets/sounds/.
-// Run with: npm run sounds   (only overwrites the .wav placeholders)
-import { mkdirSync, writeFileSync } from 'node:fs';
+// Makes the game's placeholder sounds in public/assets/sounds/.
+// Run with: npm run sounds
+// Short effects are .wav (tiny, and loops stay perfectly seamless). Songs are compressed to .mp3
+// (about 5× smaller, so the game loads fast on mobile data). Every song starts and ends in silence,
+// so the MP3's tiny padding never makes the loop click.
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { Mp3Encoder } from '@breezystack/lamejs';
 
 const RATE = 22050;
 const OUT = join(process.cwd(), 'public', 'assets', 'sounds');
@@ -15,6 +19,24 @@ function wav(samples, rate = RATE) {
   buf.write('data', 36); buf.writeUInt32LE(samples.length * 2, 40);
   samples.forEach((s, i) => buf.writeInt16LE(Math.max(-1, Math.min(1, s)) * 32767, 44 + i * 2));
   return buf;
+}
+
+/** Saves a song as a mono MP3 (and removes an old .wav copy so the game uses the small file). */
+function writeMusic(name, samples, rate = RATE) {
+  const kbps = rate <= 12000 ? 40 : 56;
+  const enc = new Mp3Encoder(1, rate, kbps);
+  const pcm = new Int16Array(samples.length);
+  for (let i = 0; i < samples.length; i++) pcm[i] = Math.max(-1, Math.min(1, samples[i])) * 32767;
+  const parts = [];
+  for (let i = 0; i < pcm.length; i += 1152) {
+    const buf = enc.encodeBuffer(pcm.subarray(i, i + 1152));
+    if (buf.length) parts.push(Buffer.from(buf));
+  }
+  const end = enc.flush();
+  if (end.length) parts.push(Buffer.from(end));
+  writeFileSync(join(OUT, `${name}.mp3`), Buffer.concat(parts));
+  const oldWav = join(OUT, `${name}.wav`);
+  if (existsSync(oldWav)) unlinkSync(oldWav);
 }
 
 /** A soft note: frequencies (Hz), length (s), loudness, decay speed. */
@@ -305,7 +327,7 @@ for (const [name, s] of Object.entries(sounds)) writeFileSync(join(OUT, `${name}
       }
     });
   });
-  writeFileSync(join(OUT, 'music_town.wav'), wav(Array.from(out), MR));
+  writeMusic('music_town', out, MR);
 }
 
 // ---------- Town themes: every town has its own ~2-minute song ----------
@@ -358,7 +380,7 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
       }
     }
   }));
-  writeFileSync(join(OUT, 'music_lunaria.wav'), wav(Array.from(out), MR));
+  writeMusic('music_lunaria', out, MR);
 }
 
 // Ironmoor: a warm, steady miners' work song. Pickaxe "tinks" on the off-beats, a soft drum like boots
@@ -436,7 +458,7 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
   }
   const f = Math.floor(0.3 * MR);
   for (let i = 0; i < f; i++) { out[i] *= i / f; out[total - 1 - i] *= i / f; }
-  writeFileSync(join(OUT, 'music_ironmoor.wav'), wav(Array.from(out), MR));
+  writeMusic('music_ironmoor', out, MR);
 }
 
 // Kitchen (Pantry Prep): a cosy café tune — soft electric-piano chords with tremolo, a walking upright bass,
@@ -485,7 +507,7 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
   }
   const f = Math.floor(0.3 * MR);
   for (let i = 0; i < f; i++) { out[i] *= i / f; out[total - 1 - i] *= i / f; }
-  writeFileSync(join(OUT, 'music_kitchen.wav'), wav(Array.from(out), MR));
+  writeMusic('music_kitchen', out, MR);
 }
 
 // Coalhaven: a gentle harbour waltz (3/4). Reedy accordion-like chords, soft waves, a far-off foghorn.
@@ -577,7 +599,7 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
   // Fade the very ends so the loop is seamless.
   const f = Math.floor(0.4 * MR);
   for (let i = 0; i < f; i++) { out[i] *= i / f; out[total - 1 - i] *= i / f; }
-  writeFileSync(join(OUT, 'music_coalhaven.wav'), wav(Array.from(out), MR));
+  writeMusic('music_coalhaven', out, MR);
 }
 
 // Bluecliff: airy and open. Rippling harp arpeggios, a soft high pad, sea wind, and a bell buoy far out on the water.
@@ -654,7 +676,7 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
   }
   const f = Math.floor(0.4 * MR);
   for (let i = 0; i < f; i++) { out[i] *= i / f; out[total - 1 - i] *= i / f; }
-  writeFileSync(join(OUT, 'music_bluecliff.wav'), wav(Array.from(out), MR));
+  writeMusic('music_bluecliff', out, MR);
 }
 
 // Calm lofi loop for the Mahjong tile game: 72 bpm, jazzy 7th chords, soft kick + brush, vinyl crackle. 4 bars × 2 = ~26.7s.
@@ -700,7 +722,7 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
   // fade the loop ends a touch so it repeats smoothly
   const fade = Math.floor(0.05 * RATE);
   for (let i = 0; i < fade; i++) { out[i] *= i / fade; out[len - 1 - i] *= i / fade; }
-  writeFileSync(join(OUT, 'music_mahjong.wav'), wav(Array.from(out)));
+  writeMusic('music_mahjong', out);
 }
 
 console.log('Placeholder sounds written to', OUT);

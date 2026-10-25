@@ -31,7 +31,7 @@ import { MONSTER_MAP } from '../data/monsters';
 import { clampReward } from './minigames';
 import { newPlayer, OFFLINE_CAP_MS, type PlayerState } from './player';
 import {
-  deleteSave, loadedFromVersion, loadGame, loadSettings, requestPersistentStorage, saveGame, saveSettings, type SlotId,
+  deleteSave, exportSave, importSave, loadedFromVersion, loadGame, loadSettings, markBackedUp, requestPersistentStorage, saveGame, saveSettings, type SlotId,
 } from './save';
 import type { Settings } from './settings';
 
@@ -349,6 +349,27 @@ export const game = {
   deleteSlot(slot: SlotId) {
     deleteSave(slot);
     emit();
+  },
+  /** 🛟 Makes a backup code of the game being played. */
+  async backupCode(): Promise<string> {
+    tick();
+    save();
+    const code = await exportSave(snap.player);
+    if (snap.slot !== null) markBackedUp(snap.slot);
+    emit();
+    return code;
+  },
+  /** 🛟 Restores a backup code into a save slot (replacing what's there). Returns an error message, or null when it worked. */
+  async restoreBackup(slot: SlotId, code: string): Promise<string | null> {
+    let player: PlayerState;
+    try { player = await importSave(code); } catch (e) { play('error'); return (e as Error).message; }
+    if (!saveGame(slot, player)) { play('error'); return "Couldn't save on this device — is storage full?"; }
+    markBackedUp(slot);
+    play('levelup');
+    if (snap.slot === slot) { snap.player = player; snap.away = null; }
+    toast(`🛟 Backup restored into save slot ${slot}`, 'level');
+    emit();
+    return null;
   },
   /** Saves and goes back to the title screen. */
   backToTitle() {

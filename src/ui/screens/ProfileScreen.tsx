@@ -13,7 +13,7 @@ import { fmtDuration, fmtNum } from '../format';
 import { PixelScene } from '../PixelScene';
 import { SettingsScreen } from './SettingsScreen';
 
-type ProfileTab = 'character' | 'stats' | 'pets' | 'settings';
+export type ProfileTab = 'character' | 'stats' | 'pets' | 'settings';
 
 function Character({ onGear }: { onGear: () => void }) {
   const { player } = useGame();
@@ -123,8 +123,8 @@ function Pets() {
   );
 }
 
-export function ProfileScreen({ onGear }: { onGear: () => void }) {
-  const [tab, setTab] = useState<ProfileTab>('character');
+export function ProfileScreen({ onGear, startTab = 'character' }: { onGear: () => void; startTab?: ProfileTab }) {
+  const [tab, setTab] = useState<ProfileTab>(startTab);
   return (
     <div className="skill-screen">
       <PixelScene scene="town" dim={0.75} className="screen-bg" />

@@ -6,10 +6,12 @@ import { UiIcon } from './icons';
 import { fmtDuration } from './format';
 import { PixelScene } from './PixelScene';
 import { GAME_VERSION, VERSION_NOTE } from '../version';
+import { RestoreForm } from './Backup';
 
 export function TitleScreen() {
   useGame(); // re-render after deletes
   const [confirm, setConfirm] = useState<{ slot: SlotId; kind: 'new' | 'delete' } | null>(null);
+  const [restoring, setRestoring] = useState<SlotId | null>(null);
 
   return (
     <div className="title-screen">
@@ -61,6 +63,11 @@ export function TitleScreen() {
                 <button className="btn btn-hero btn-lg btn-wide" onClick={() => game.newGameInSlot(slot)}>
                   <UiIcon name="play" size={20} /> START NEW GAME
                 </button>
+              )}
+              {!asking && (
+                restoring === slot
+                  ? <RestoreForm slot={slot} hasSave={!!s} onDone={() => setRestoring(null)} />
+                  : <button className="link-btn small" onClick={() => setRestoring(slot)}>📥 Restore from a backup code</button>
               )}
             </div>
           );

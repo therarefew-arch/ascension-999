@@ -56,6 +56,8 @@ Full game vision: `docs/design.md`. Build only the phase that is asked for.
 - `src/market/` — reserved for the NPC Trading Post (not built yet). Keep it separate from player data.
 - `src/audio/` — sound system. Files live in `public/assets/sounds/`. A real `.mp3`/`.ogg` with the same name as a placeholder `.wav` replaces it automatically.
 - `src/ui/` — React screens and components. UI reads state from the store and calls actions; it never changes player data directly.
+- **Save safety**: backup codes (`exportSave`/`importSave` in `src/core/save.ts`, "A999z:" + gzip + base64) — made in Profile → Settings, restorable there or from any title-screen slot. A gentle Town reminder asks to add the game to the Home Screen (iPhone Safari can wipe site data after ~7 days otherwise) or to make a backup when the last one is over 7 days old.
+- **Audio**: songs are generated as compressed `.mp3` (via `@breezystack/lamejs` in `scripts/make-placeholder-sounds.mjs`, dev-only); short effects stay `.wav`. Songs must start and end in silence so MP3 padding never clicks at the loop.
 - Player save data has a `version` number. When the save shape changes, add a migration in `src/core/save.ts` — never break old saves.
 
 ## Working habits

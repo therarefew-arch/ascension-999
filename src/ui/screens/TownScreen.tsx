@@ -11,6 +11,7 @@ import { PET_MAP } from '../../data/pets';
 import { fmtDuration } from '../format';
 import { PettablePet, TodayCard } from '../Cozy';
 import { SilentBell } from '../SilentBell';
+import { SaveSafetyHint } from '../Backup';
 import { dayPhase } from '../PixelScene';
 
 function greeting() {
@@ -100,7 +101,7 @@ function skillForItem(id: string): SkillId | null {
 
 // Town only shows what you can't reach from the bottom bar:
 // the daily gift + requests, the Journal, the Trading Post and travel.
-export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal }: { onSkill: (s: SkillId) => void; onSkills: () => void; onCombat: () => void; onMarket: () => void; onJournal: () => void }) {
+export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, onSettings }: { onSkill: (s: SkillId) => void; onSkills: () => void; onCombat: () => void; onMarket: () => void; onJournal: () => void; onSettings: () => void }) {
   const { player } = useGame();
   const here = player.location;
   const info = REGION_INFO[here];
@@ -121,6 +122,8 @@ export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal }:
           <PettablePet emoji={PET_MAP[player.activePet].emoji} name={PET_MAP[player.activePet].name} />
         )}
       </div>
+
+      <SaveSafetyHint onSettings={onSettings} />
 
       {here === 'Lunaria' && <SilentBell onJournal={onJournal} onCombat={onCombat} />}
 

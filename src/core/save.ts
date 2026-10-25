@@ -37,6 +37,69 @@ interface SaveFile {
   player: PlayerState;
 }
 
+// ---------------------------------------------------------------------------
+// 🛟 Backups: a save can be turned into a code you keep somewhere safe (Notes, email…)
+// and restored later — even if the phone wiped the browser's storage.
+// Format: "A999z:" + base64(gzip(json))  (or "A999:" + base64(json) where gzip isn't available).
+// ---------------------------------------------------------------------------
+
+const B64_CHUNK = 0x8000;
+function bytesToBase64(bytes: Uint8Array): string {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += B64_CHUNK) s += String.fromCharCode(...bytes.subarray(i, i + B64_CHUNK));
+  return btoa(s);
+}
+function base64ToBytes(b64: string): Uint8Array {
+  const s = atob(b64);
+  const out = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+  return out;
+}
+async function pipe(bytes: Uint8Array, stream: CompressionStream | DecompressionStream): Promise<Uint8Array> {
+  const res = new Response(new Blob([bytes]).stream().pipeThrough(stream));
+  return new Uint8Array(await res.arrayBuffer());
+}
+
+/** Turns a game into a backup code. */
+export async function exportSave(player: PlayerState): Promise<string> {
+  const file: SaveFile = { version: SAVE_VERSION, savedAt: Date.now(), player };
+  const json = new TextEncoder().encode(JSON.stringify(file));
+  if (typeof CompressionStream !== 'undefined') {
+    try { return 'A999z:' + bytesToBase64(await pipe(json, new CompressionStream('gzip'))); } catch { /* fall through */ }
+  }
+  return 'A999:' + bytesToBase64(json);
+}
+
+/** Reads a backup code back into a game (old versions are upgraded). Throws a friendly message if the code is broken. */
+export async function importSave(code: string): Promise<PlayerState> {
+  const clean = code.trim().replace(/\s+/g, '');
+  let json: string;
+  try {
+    if (clean.startsWith('A999z:')) {
+      if (typeof DecompressionStream === 'undefined') throw new Error('old browser');
+      json = new TextDecoder().decode(await pipe(base64ToBytes(clean.slice(6)), new DecompressionStream('gzip')));
+    } else if (clean.startsWith('A999:')) {
+      json = new TextDecoder().decode(base64ToBytes(clean.slice(5)));
+    } else {
+      throw new Error('not ours');
+    }
+  } catch {
+    throw new Error("That doesn't look like an Ascension 999 backup code. Make sure you copied all of it.");
+  }
+  let file: SaveFile;
+  try { file = JSON.parse(json) as SaveFile; } catch { throw new Error('The backup code is incomplete — try copying it again.'); }
+  if (!file?.player?.skills) throw new Error('The backup code is incomplete — try copying it again.');
+  return repair(migrate(file.player, file.version ?? 1));
+}
+
+const backupStampKey = (slot: SlotId) => `pocketvale.slot${slot}.lastBackup`;
+export function lastBackupAt(slot: SlotId): number {
+  try { return Number(localStorage.getItem(backupStampKey(slot))) || 0; } catch { return 0; }
+}
+export function markBackedUp(slot: SlotId) {
+  try { localStorage.setItem(backupStampKey(slot), String(Date.now())); } catch { /* ignore */ }
+}
+
 /** MIGRATIONS[n] upgrades a save from version n to n + 1. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const MIGRATIONS: Record<number, (player: any) => any> = {

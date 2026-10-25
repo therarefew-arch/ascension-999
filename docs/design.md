@@ -332,6 +332,11 @@ Based on the owner's reference screenshots:
 - **🔍 The Silent Bell** (quest card on Lunaria's town screen, `src/core/lunaria.ts`): 1) arrive; 2) find Lune's 4 clues while skilling on the island (in order, ~1 in 150 actions each); 3) defeat The Hush; 4) relight the 7 Moonlanterns (each 8 Moonwood logs + 2 Moonsilver bars, Firemaking 245, +1,000 Firemaking XP); 5) ring the bell with the key from Old Galewing's nest. **Payoff**: the fog lifts, colour returns, the Silver Willow crew wakes on the quay, Lune is reunited with her brother (the Coalhaven harbourmaster); reward coins/food/bars, reward pet **Wick** 🕯️ (Firemaking, never a random drop), Lunaria's Trading Post reopens (empty until then), final tale "The Moonwake".
 - Lunaria tales: The Empty Quay · Lune's Diary — The Moonwake · The Lamplighter's List · A Child's Drawing · Lune's Diary — The Last Page · What the Hush Left Behind · The Moonwake. Save version 15.
 
+### Release 1 of the pro review — built · v0.0.1.10
+- **🛟 Save backups**: Profile → Settings → "Back up your save" makes a backup code (copy, share, or download as a file) and can restore one. Every title-screen slot has "Restore from a backup code" (for after a phone wipes data). Old backups upgrade automatically.
+- **Home-screen reminder** on the Town screen when the game isn't installed (iPhone: Share → Add to Home Screen; Android: an Install button) or when the last backup is over a week old. "Later" hides it for 3 days.
+- **Music compressed to MP3**: sounds went from 16.4 MB to 4.3 MB; songs only download when you're in their town.
+
 ### Owner's notes for later
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.

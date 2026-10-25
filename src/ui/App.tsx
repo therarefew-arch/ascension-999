@@ -19,7 +19,7 @@ import { ItemSheet, type ItemPlace } from './ItemSheet';
 import { TitleScreen } from './TitleScreen';
 import { BankScreen } from './screens/BankScreen';
 import { GearScreen } from './screens/GearScreen';
-import { ProfileScreen } from './screens/ProfileScreen';
+import { ProfileScreen, type ProfileTab } from './screens/ProfileScreen';
 import { PET_MAP } from '../data/pets';
 import { SkillScreen, SkillStrip } from './screens/SkillScreen';
 import { TownScreen } from './screens/TownScreen';
@@ -111,6 +111,7 @@ const NAV: { tab: Tab; label: string; icon: UiIconName }[] = [
 export function App() {
   const { slot, player, away, toasts } = useGame();
   const [tab, setTab] = useState<Tab>('town');
+  const [profileStart, setProfileStart] = useState<ProfileTab>('character');
   const [skill, setSkill] = useState<SkillId>('mining');
   const [bagOpen, setBagOpen] = useState(false);
   const [idleOpen, setIdleOpen] = useState(false);
@@ -163,19 +164,19 @@ export function App() {
 
   return (
     <div className="app">
-      <StatusBar onIdle={() => setIdleOpen(true)} onSettings={() => go(tab === 'profile' ? 'town' : 'profile')} settingsOn={tab === 'profile'}
+      <StatusBar onIdle={() => setIdleOpen(true)} onSettings={() => { setProfileStart('character'); go(tab === 'profile' ? 'town' : 'profile'); }} settingsOn={tab === 'profile'}
         onTown={() => go('town')} townOn={tab === 'town'} />
       <IdleLine onOpen={() => setIdleOpen(true)} onFight={() => go('combat')} />
 
       <main className={`content ${tab === 'skills' ? 'content-skill' : ''}`}>
-        {tab === 'town' && <TownScreen onSkill={openSkill} onSkills={() => go('skills')} onCombat={() => go('combat')} onMarket={() => go('market')} onJournal={() => go('journal')} />}
+        {tab === 'town' && <TownScreen onSkill={openSkill} onSettings={() => { setProfileStart('settings'); go('profile'); }} onSkills={() => go('skills')} onCombat={() => go('combat')} onMarket={() => go('market')} onJournal={() => go('journal')} />}
         {tab === 'market' && <TradingPostScreen />}
         {tab === 'journal' && <JournalScreen />}
         {tab === 'skills' && <SkillScreen skill={skill} />}
         {tab === 'combat' && <CombatScreen onItem={(id) => setItemView({ id, from: 'bag' })} />}
         {tab === 'bank' && <BankScreen onItem={(id) => setItemView({ id, from: 'bank' })} />}
         {tab === 'gear' && <GearScreen />}
-        {tab === 'profile' && <ProfileScreen onGear={() => go('gear')} />}
+        {tab === 'profile' && <ProfileScreen key={profileStart} startTab={profileStart} onGear={() => go('gear')} />}
       </main>
       {tab === 'skills' && <SkillStrip selected={skill} onSelect={setSkill} />}
 
