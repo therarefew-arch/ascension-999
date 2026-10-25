@@ -12,6 +12,7 @@ import { fmtDuration } from '../format';
 import { PettablePet, TodayCard } from '../Cozy';
 import { SilentBell } from '../SilentBell';
 import { SaveSafetyHint } from '../Backup';
+import { SettlingIn } from '../SettlingIn';
 import { dayPhase } from '../PixelScene';
 
 function greeting() {
@@ -122,6 +123,8 @@ export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, o
           <PettablePet emoji={PET_MAP[player.activePet].emoji} name={PET_MAP[player.activePet].name} />
         )}
       </div>
+
+      <SettlingIn onSkill={onSkill} onCombat={onCombat} />
 
       <SaveSafetyHint onSettings={onSettings} />
 

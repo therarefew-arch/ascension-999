@@ -2,6 +2,7 @@
 // rolled by the central loot system in src/core/loot.ts.
 import { ACTION_LIST, GREAT_FOOD } from './skills';
 import { GEM_RANGES, GEM_TYPES, gemId, RARITIES, type GemRarity, type GemType } from './items';
+import { FISH, METALS, TIER_COUNT, WOODS } from './tiers';
 
 /** Where a loot table is used. Gems may only appear in 'boss' and 'miniboss' tables. */
 export type LootSource = 'skilling' | 'monster' | 'miniboss' | 'boss';
@@ -103,6 +104,23 @@ tables.push(
     groups: [{ chance: 0, items: [] }], // replaced below with the gem group
   },
 );
+
+// ----- 🎁 Rare finds while gathering, and what's inside when you open them -----
+/** Chance per gathering action to turn up a find. */
+export const FIND_CHANCE = 1 / 250;
+export const FIND_ITEM = { woodcutting: 'bird_nest', mining: 'geode', fishing: 'message_bottle' } as const;
+for (const [skill, item] of Object.entries(FIND_ITEM)) {
+  tables.push({ id: `find_${skill}`, source: 'skilling', entries: [e(item, 1, 1, FIND_CHANCE)] });
+}
+const oreFor = (t: number) => (t === 0 ? 'copper_ore' : t === 1 ? 'iron_ore' : t === 2 ? 'coal' : `${METALS[t].key}_ore`);
+for (let t = 0; t < TIER_COUNT; t++) {
+  const m = t + 1;
+  tables.push(
+    { id: `open_woodcutting_${t}`, source: 'skilling', entries: [e('coins', 30 * m, 90 * m, 1), e(`${WOODS[t].key}_logs`, 6, 15, 0.8), e('rune_essence', 5, 15, 0.4), e('golden_egg', 1, 1, 0.05)] },
+    { id: `open_mining_${t}`, source: 'skilling', entries: [e('coins', 30 * m, 90 * m, 1), e(oreFor(t), 5, 12, 0.8), e('stone', 6, 15, 0.4), e('starlit_crystal', 1, 1, 0.05)] },
+    { id: `open_fishing_${t}`, source: 'skilling', entries: [e('coins', 50 * m, 150 * m, 1), e(`raw_${FISH[t].key}`, 3, 8, 0.6), e('sea_pearl', 1, 1, 0.06)] },
+  );
+}
 
 // ----- Mini boss: the ONLY place gems drop (in Pocketvale) -----
 /** Chance weights per rarity: common is common, mythic is very rare. */

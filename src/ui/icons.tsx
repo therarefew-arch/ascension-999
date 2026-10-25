@@ -292,6 +292,14 @@ export function ItemIcon({ id, size = 40 }: { id: string; size?: number }) {
   const plus = item.upgrade?.level ?? 0;
   const great = item.id.startsWith('great_');
   const rarity = item.gem ? RARITY_COLORS[item.gem.rarity] : null;
+  if (item.emoji) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" className="item-icon">
+        {item.value !== undefined && <circle cx="24" cy="25" r="21" fill="#fbbf24" opacity="0.16" stroke="#fbbf24" strokeWidth="1.5" />}
+        <text x="24" y="34" textAnchor="middle" fontSize="28">{item.emoji}</text>
+      </svg>
+    );
+  }
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" className="item-icon">
       {rarity && <circle cx="24" cy="25" r="21" fill={rarity} opacity="0.18" stroke={rarity} strokeWidth="2" />}

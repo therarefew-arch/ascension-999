@@ -18,12 +18,15 @@ import { checkArrival, fastTravel, startWalk } from './travel';
 import { catchStar, claimGift, claimRequest, claimRequestBonus, ensureRequests, nextStarDelay, rollLoreFind, STAR, syncLore, trackRequests } from './cozy';
 import type { LoreNote } from '../data/lore';
 import { LANTERNS, lightLantern, ringBell, whyCantLight, whyCantRing } from './lunaria';
+import { openFinds } from './finds';
+import { claimStep, trackTutorial, TUTORIAL } from './tutorial';
+import { FIND_ITEM } from '../data/lootTables';
 import type { Region } from '../data/tiers';
 import type { SkillId } from '../data/items';
 import { levelForXp } from './xp';
-import { bagUpgradeCost, buy as marketBuy, buyDeal, sell as marketSell, SLOT_UNLOCKS } from '../market/market';
+import { bagUpgradeCost, buy as marketBuy, buyDeal, buySatchel, sell as marketSell, SLOT_UNLOCKS } from '../market/market';
 import { deposit, depositAll, withdraw } from './inventory';
-import { giveLoot, lootFits, rollGemReroll, validateLootTables } from './loot';
+import { giveLoot, lootFits, rollGemReroll, satchelOn, validateLootTables } from './loot';
 import { BLOCK_WINDOW_MS, eatFood, endFight, fightSlot, maxHp, regenHp, startFight } from './combat';
 import { REROLL_COST, socketGem, unsocketGem } from './equipment';
 import { countInBag, removeFromBag } from './inventory';
@@ -136,6 +139,7 @@ function announcePets(report: ProgressReport) {
 /** Warn once when the bag is nearly full, and again when it's full. */
 let bagWarned = 0;
 function bagWarnings(p: PlayerState) {
+  if (satchelOn(p)) return; // the Satchel sends the overflow to the bank
   const used = p.inventory.filter(Boolean).length;
   const size = p.inventory.length;
   if (used >= size && bagWarned < 2) {
@@ -179,6 +183,7 @@ function tick(now = Date.now()) {
     const hadIdle = runningSlots(p).length > 0;
     const report = advanceIdle(p, counted, now);
     trackRequests(p, report);
+    trackTutorial(p, report);
     if (!p.fight) regenHp(p, counted);
     p.lastActiveAt = now;
     if (hadIdle) {
@@ -229,11 +234,16 @@ function tick(now = Date.now()) {
     // (Drops show on the fight screen — no toast for every kill, to keep things calm.)
   }
   trackRequests(p, report);
+  trackTutorial(p, report);
   announceLevels(report);
   if (report.levelUps.length) checkGoals();
   announcePets(report);
   bagWarnings(p);
   if (report.stops.some((s) => s.reason.endsWith('defeated!'))) announceLore(syncLore(p));
+  // 🎁 Found something while gathering?
+  for (const id of Object.values(FIND_ITEM)) {
+    if (report.gained[id]) { play('rune'); toast(`${getItem(id).emoji} You found a ${getItem(id).name}! Open it from your bag.`, 'good'); }
+  }
   const found = rollLoreFind(p, report.actions);
   if (found) announceLore([found]);
   for (const s of report.stops) {
@@ -633,6 +643,24 @@ export const game = {
     emit();
   },
   /** Buys 5 more bag slots. */
+  /** 🎒 Buy the Satchel (overflow goes to the bank). */
+  buySatchel() {
+    const why = buySatchel(snap.player);
+    if (why) return fail(why);
+    play('coin');
+    celebrate();
+    toast('🎒 Satchel bought! Anything that won\'t fit in your bag now goes to the bank — idling never stops for a full bag.', 'level');
+    save();
+    emit();
+  },
+  toggleSatchel() {
+    if (!snap.player.satchel.owned) return;
+    snap.player.satchel.on = !snap.player.satchel.on;
+    play('equip');
+    toast(snap.player.satchel.on ? '🎒 Satchel on: overflow goes to the bank' : '🎒 Satchel off: a full bag stops idling', 'info');
+    save();
+    emit();
+  },
   upgradeBag(): boolean {
     const p = snap.player;
     const cost = bagUpgradeCost(p.inventory.length);
@@ -673,6 +701,7 @@ export const game = {
     play(succeeded ? action.sound : 'fail');
     buzz(12);
     trackRequests(snap.player, report, 1);
+    trackTutorial(snap.player, report);
     announceLevels(report);
     announcePets(report);
     const found = rollLoreFind(snap.player, 1);
@@ -694,6 +723,7 @@ export const game = {
     const report = emptyReport(actionId);
     addXp(snap.player, action, report, Math.round(Math.min(xp, action.xp * 3)));
     trackRequests(snap.player, report, 1);
+    trackTutorial(snap.player, report);
     announceLevels(report);
     emit();
   },
@@ -733,6 +763,37 @@ export const game = {
     play('block');
     emit();
     return 'blocked';
+  },
+  /** 📖 Claim the current "Settling In" step. */
+  claimTutorialStep() {
+    const step = claimStep(snap.player);
+    if (!step) return;
+    play('levelup');
+    buzz(20);
+    const reward = step.reward.map((g) => (g.id === 'coins' ? `+${g.qty} coins` : `+${g.qty} ${getItem(g.id).name}`)).join(' · ');
+    if (snap.player.tutorial.done) {
+      celebrate();
+      toast(`📖 Settling In complete! ${reward} · The road to Ironmoor is open — see Travel in Town.`, 'level');
+    } else {
+      toast(`📖 "${step.title}" done! ${reward} · Next: ${TUTORIAL[snap.player.tutorial.step].title}`, 'good');
+    }
+    save();
+    emit();
+  },
+  /** 🎁 Open a bird's nest, geode or bottle (or all of them). */
+  openFind(id: string, all = false) {
+    const r = openFinds(snap.player, id, all ? 9999 : 1);
+    if (typeof r === 'string') return fail(r);
+    play('match');
+    play('coin');
+    buzz([10, 30, 10]);
+    const what = r.loot.map((g) => (g.id === 'coins' ? `+${g.qty.toLocaleString()} coins` : `+${g.qty} ${getItem(g.id).name}`)).join(' · ');
+    const treasure = r.loot.find((g) => getItem(g.id).value !== undefined);
+    toast(`${getItem(id).emoji ?? '🎁'} ${r.opened > 1 ? `Opened ${r.opened}: ` : ''}${what}`, treasure ? 'level' : 'good');
+    if (treasure) { celebrate(); toast(`✨ A treasure! ${getItem(treasure.id).emoji} ${getItem(treasure.id).name}`, 'level'); }
+    announceLore(r.tales);
+    save();
+    emit();
   },
   eat(id: string) {
     const why = eatFood(snap.player, id);

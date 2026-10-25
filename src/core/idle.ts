@@ -8,12 +8,13 @@ import {
 } from '../data/items';
 import { enhanceChance, FAIL_XP_SHARE } from './enhancing';
 import { countInBag, countInBank, removeFromBag, canFitAll } from './inventory';
-import { giveLoot, maxLoot, recordCollection, rollLoot, rollPet } from './loot';
+import { giveLoot, maxLoot, recordCollection, rollLoot, rollPet, satchelOn } from './loot';
 import { PET_XP_BONUS, petBoosts } from '../data/pets';
 import { LOCAL_SKILLS, regionOpen, WOODS } from '../data/tiers';
 import type { IdleSlot, PlayerState } from './player';
 import { MAX_XP, levelForXp } from './xp';
 import { xpBoost } from './boosts';
+import { FIND_ITEM } from '../data/lootTables';
 import { equipmentStats } from './equipment';
 import { advanceFight, isFightId, type CombatReport } from './combat';
 
@@ -161,6 +162,8 @@ export function whyCantDo(p: PlayerState, action: ActionDef, opts: { manual?: bo
   }
   // Bag space after the inputs are used up. Upgrading a worn item puts the result straight back in its slot.
   if (fromSlot && fromSlot !== 'bag') return null;
+  // 🎒 With the Satchel on, anything that doesn't fit goes to the bank — so a full bag never stops you.
+  if (satchelOn(p)) return null;
   const bag = p.inventory.map((s) => (s ? { ...s } : null));
   for (const input of action.inputs) removeFromBag(bag, input.item, input.qty);
   if (!canFitAll(bag, maxLoot(action.lootTable))) return 'Your bag is full';
@@ -273,6 +276,14 @@ export function completeAction(
     for (const st of loot) {
       const lost = leftover.find((l) => l.id === st.id)?.qty ?? 0;
       if (st.qty - lost > 0) report.gained[st.id] = (report.gained[st.id] ?? 0) + st.qty - lost;
+    }
+  }
+  // 🎁 A rare find now and then while gathering (bird nests, geodes, bottles).
+  if (!action.kind && action.skill in FIND_ITEM) {
+    const find = rollLoot(`find_${action.skill}`);
+    if (find.length) {
+      giveLoot(p, find);
+      for (const st of find) report.gained[st.id] = (report.gained[st.id] ?? 0) + st.qty;
     }
   }
   addXp(p, action, report, Math.round(action.xp * (opts.xpMult ?? 1)));

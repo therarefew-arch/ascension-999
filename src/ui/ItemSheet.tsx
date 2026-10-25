@@ -66,6 +66,14 @@ export function ItemSheet({ id, from, onClose, onReroll }: { id: string; from: I
       )}
 
       <div className="action-stack">
+        {item.opens && from === 'bag' && countInBag(player.inventory, id) > 0 && (
+          <>
+            <button className="btn btn-hero btn-lg" onClick={() => game.openFind(id)}>🎁 Open one</button>
+            {countInBag(player.inventory, id) > 1 && (
+              <button className="btn btn-lg" onClick={() => game.openFind(id, true)}>Open all ({countInBag(player.inventory, id)})</button>
+            )}
+          </>
+        )}
         {item.heals && from === 'bag' && (
           <button className="btn btn-primary btn-lg" onClick={() => game.eat(id)}>
             Eat (+{item.heals} HP) · you have {player.hp}/{maxHp(player)}

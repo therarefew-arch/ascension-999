@@ -6,6 +6,7 @@ import { countInBag, countInBank, removeFromBag, removeFromBank, spaceFor } from
 import { giveLoot } from '../core/loot';
 import type { PlayerState } from '../core/player';
 import type { Region } from '../data/tiers';
+import { levelForXp } from '../core/xp';
 
 // ---------------------------------------------------------------------------
 // Coin unlocks
@@ -42,6 +43,8 @@ const GEM_VALUE: Record<string, number> = { common: 60, uncommon: 150, rare: 400
 /** A fair base value for every item. */
 export function baseValue(item: ItemDef): number {
   if (BASE[item.id] !== undefined) return BASE[item.id];
+  if (item.value !== undefined) return item.value;
+  if (item.opens) return 60; // unopened finds
   // Higher tiers are worth more (about ×1.35 per tier, like their XP).
   if (item.tierNum !== undefined && item.tierNum >= 2 && ['ore', 'bar', 'log', 'fish', 'food', 'ammo'].includes(item.category)) {
     const base = { ore: 3, bar: 9, log: 3, fish: 4, food: 7, ammo: 1 }[item.category as 'ore'] ?? 5;
@@ -92,7 +95,24 @@ export const BUY_LISTS: Partial<Record<Region, string[]>> = {
   // Lunaria's market only reopens once the town is brought home (the Silent Bell).
   Lunaria: ['moonsilver_ore', 'moonwood_logs', 'raw_moonfin', 'moonsilver_bar', 'moonsilver_arrows', 'cooked_moonfin', 'cobalt_ore', 'stone', 'rune_essence'],
 };
-export const buyListFor = (where: Region, p?: PlayerState) =>
+/** 🎒 The Satchel: sends whatever doesn't fit in your bag to the bank. Needs any skill at 110 (Coalhaven). */
+export const SATCHEL = { level: 110, coins: 25_000 };
+export function whyCantBuySatchel(p: PlayerState): string | null {
+  if (p.satchel.owned) return 'You already have the Satchel';
+  const best = Math.max(...Object.values(p.skills).map((s) => levelForXp(s.xp)));
+  if (best < SATCHEL.level) return `Needs any skill at level ${SATCHEL.level}`;
+  if (p.coins < SATCHEL.coins) return `Needs ${SATCHEL.coins.toLocaleString()} coins`;
+  return null;
+}
+export function buySatchel(p: PlayerState): string | null {
+  const why = whyCantBuySatchel(p);
+  if (why) return why;
+  p.coins -= SATCHEL.coins;
+  p.satchel = { owned: true, on: true };
+  return null;
+}
+
+export const buyListFor =(where: Region, p?: PlayerState) =>
   where === 'Lunaria' && !p?.lunaria.restored ? [] : BUY_LISTS[where] ?? [];
 /** Everything sold anywhere (kept for older code). */
 export const BUY_LIST = Array.from(new Set(Object.values(BUY_LISTS).flat()));

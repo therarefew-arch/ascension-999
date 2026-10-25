@@ -117,19 +117,21 @@ const HOW_FOUND: Record<LoreTrigger, string> = {
   boss: 'Found by defeating the mini boss',
   find: 'Found by chance while skilling here',
   restore: 'Found by bringing Lunaria home',
+  bottle: 'Found in a corked bottle',
 };
 
 /** 📜 Tales: short notes found in each town. */
 function Tales() {
   const { player } = useGame();
-  const towns = OPEN_REGIONS.filter((r) => LORE.some((n) => n.region === r));
+  const towns = OPEN_REGIONS.filter((r) => LORE.some((n) => n.region === r && n.trigger !== 'bottle'));
+  const bottles = LORE.filter((n) => n.trigger === 'bottle');
   const total = LORE.filter((n) => regionOpen(n.region)).length;
   const found = player.lore.length;
   return (
     <>
       <p className="small muted">Little stories hidden in every town. {found}/{total} found.</p>
       {towns.map((r) => {
-        const notes = LORE.filter((n) => n.region === r);
+        const notes = LORE.filter((n) => n.region === r && n.trigger !== 'bottle');
         const visited = player.regions.includes(r);
         return (
           <section key={r} className="tale-town">
@@ -151,6 +153,18 @@ function Tales() {
           </section>
         );
       })}
+      <section className="tale-town">
+        <div className="row-between">
+          <h3>🍶 Messages in Bottles</h3>
+          <span className="small mono muted">{bottles.filter((n) => player.lore.includes(n.id)).length}/{bottles.length}</span>
+        </div>
+        <p className="small tale-vibe">Notes that washed up from places far away. Open the corked bottles you find while fishing.</p>
+        {bottles.map((n) => player.lore.includes(n.id) ? (
+          <article key={n.id} className="tale"><b>🍶 {n.title}</b><p>{n.text}</p></article>
+        ) : (
+          <div key={n.id} className="tale locked"><b>??? </b><span className="small dim">Found in a corked bottle</span></div>
+        ))}
+      </section>
       {player.lore.includes('ch_letter') && player.lore.includes('ch_clawsoot') && !player.lore.includes('bc_bottle') && (
         <p className="small center tale-tease">🌫️ Across the black water, the lights of Lunaria stay dark…</p>
       )}

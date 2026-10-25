@@ -3,7 +3,7 @@
 import { getItem, type GemRarity, type GemType, type SkillId } from '../data/items';
 import { PETS } from '../data/pets';
 import { gemRerollTable, LOOT_TABLES, type LootGroup, type LootSource, type LootTable } from '../data/lootTables';
-import { addToBag, canFitAll } from './inventory';
+import { addToBag, addToBank, canFitAll } from './inventory';
 import type { ItemStack, PlayerState } from './player';
 
 const GEM_SOURCES: LootSource[] = ['boss', 'miniboss'];
@@ -70,14 +70,27 @@ export function lootFits(p: PlayerState, tableId: string): boolean {
   return canFitAll(p.inventory, maxLoot(tableId));
 }
 
-/** Puts rolled loot into the player's bag (coins go to the purse). Returns anything that didn't fit. */
+/** Is the 🎒 Satchel switched on? (Anything that doesn't fit in the bag goes to the bank.) */
+export const satchelOn = (p: PlayerState) => p.satchel.owned && p.satchel.on;
+
+/**
+ * Puts rolled loot into the player's bag (coins go to the purse). Returns anything that didn't fit.
+ * With the Satchel on, whatever doesn't fit in the bag goes straight to the bank instead.
+ */
 export function giveLoot(p: PlayerState, loot: ItemStack[]): ItemStack[] {
   const leftover: ItemStack[] = [];
   for (const st of loot) {
     if (st.id === 'coins') { p.coins += st.qty; continue; }
     const added = addToBag(p.inventory, st.id, st.qty);
     if (added > 0) recordCollection(p, st.id, added);
-    if (added < st.qty) leftover.push({ id: st.id, qty: st.qty - added });
+    if (added < st.qty) {
+      if (satchelOn(p)) {
+        addToBank(p, st.id, st.qty - added);
+        recordCollection(p, st.id, st.qty - added);
+      } else {
+        leftover.push({ id: st.id, qty: st.qty - added });
+      }
+    }
   }
   return leftover;
 }

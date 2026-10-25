@@ -20,8 +20,9 @@ import type { TownRequest } from './cozy';
  * v13: new XP pacing (towns every 75 levels). XP is kept as-is; levels are worked out from it, so they only go up.
  * v14: towns front-loaded (1, 50, 110, 175 …). Levels don't change; towns just open sooner.
  * v15: Lunaria's mystery (lanterns relit, town restored).
+ * v16: the Satchel, rare finds, "Settling In" starter questline.
  */
-export const SAVE_VERSION = 15;
+export const SAVE_VERSION = 16;
 /** Starting bag size. Can be upgraded with coins up to MAX_BAG_SLOTS. */
 export const INVENTORY_SLOTS = 30;
 export const MAX_BAG_SLOTS = 50;
@@ -100,6 +101,10 @@ export interface PlayerState {
   lore: string[];
   /** 🔍 Lunaria's mystery: Moonlanterns relit, and whether the town is home again. */
   lunaria: { lanterns: number; restored: boolean };
+  /** 🎒 The Satchel: when on, anything that doesn't fit in the bag goes to the bank. */
+  satchel: { owned: boolean; on: boolean };
+  /** 📖 "Settling In" starter questline. */
+  tutorial: { step: number; progress: number; done: boolean };
 }
 
 export interface Loadout {
@@ -156,6 +161,8 @@ export function newPlayer(now = Date.now()): PlayerState {
     starsCaught: 0,
     lore: [],
     lunaria: { lanterns: 0, restored: false },
+    satchel: { owned: false, on: false },
+    tutorial: { step: 0, progress: 0, done: false },
   };
 }
 

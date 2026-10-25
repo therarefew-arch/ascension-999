@@ -4,7 +4,7 @@
 import type { Region } from './tiers';
 
 /** How a note is found: arriving in town, beating its mini boss, by chance while skilling there, or by bringing Lunaria back. */
-export type LoreTrigger = 'arrive' | 'boss' | 'find' | 'restore';
+export type LoreTrigger = 'arrive' | 'boss' | 'find' | 'restore' | 'bottle';
 
 export interface LoreNote {
   id: string;
@@ -109,7 +109,34 @@ export const LORE: LoreNote[] = [
     id: 'lu_moonwake', region: 'Lunaria', trigger: 'restore', title: 'The Moonwake',
     text: 'Seven lanterns burn. The key turns, and the bell rings out, warm and round, across the water. The fog lifts like a curtain. Colour floods back into faces — the baker, the lamplighter, the children on the steps — and down at the quay, the crew of the Silver Willow blink awake, still holding their ropes. Lune runs to the end of the pier with a letter in her hand. Across the water, Coalhaven\'s lights flicker in answer. Her brother is coming. Lunaria is home.',
   },
+  // ----- 🍶 Messages in bottles (found in corked bottles while fishing, in order). Little hints of the Frontier. -----
+  // (Not tied to a town — the Tales page shows them in their own section.)
+  {
+    id: 'bt_boast', region: 'Coalhaven', trigger: 'bottle', title: "A Fisher's Boast",
+    text: '"To whoever finds this: I caught a salmon THIS big off Salmon Quay. Nobody believes me. Now you know. Tell everyone. — Tobb" (There is a drawing of the fish. It is enormous. It is probably not to scale.)',
+  },
+  {
+    id: 'bt_ember', region: 'Coalhaven', trigger: 'bottle', title: 'Warm Glass',
+    text: 'The bottle is still warm. "The mountain is awake again. The goats sneeze sparks and the bread bakes itself on the windowsill. If you\'re coming to Cinderpeak, bring a hat — and something to trade for our ember-pepper. — The Ash Market"',
+  },
+  {
+    id: 'bt_frost', region: 'Coalhaven', trigger: 'bottle', title: 'A Recipe, Half Frozen',
+    text: '"FROSTHOLD WINTER STEW: one frostcod, three snow-onions, a knob of butter, and a song sung slowly while it simmers. (The song is the important part.)" The rest of the recipe is frozen into the glass.',
+  },
+  {
+    id: 'bt_star', region: 'Coalhaven', trigger: 'bottle', title: 'Unsigned, Smelling of Stars',
+    text: '"Something fell from the sky last night and landed in the crater. It hums. The cows are calm about it. We are trying to be calm about it too." The paper sparkles faintly in the dark.',
+  },
+  {
+    id: 'bt_rift', region: 'Coalhaven', trigger: 'bottle', title: 'The Last Bottle',
+    text: '"Before the towns, before the roads, there was the Rift. Everything began there, and everything finds its way back. I have walked every road there is to walk, and I wanted to tell someone: it was worth it, every step. — A traveller, at the end of the world"',
+  },
 ];
+
+/** Messages in bottles, in the order they're found. */
+export const BOTTLE_TALES = ['bt_boast', 'bt_ember', 'bt_frost', 'bt_star', 'bt_rift'];
+/** Chance an opened bottle holds the next message. */
+export const BOTTLE_TALE_CHANCE = 0.35;
 
 export const LORE_MAP: Record<string, LoreNote> = Object.fromEntries(LORE.map((n) => [n.id, n]));
 

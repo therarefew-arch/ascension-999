@@ -2,7 +2,7 @@
 // Tiered items (ores, bars, logs, fish, gear, tools, ammo) are generated for all 20 tiers from data/tiers.ts.
 import { FISH, METALS, TIER_COUNT, WOODS, tierForLevel, tierLevel, tierPalette, tierRegion, tierXp, type Region } from './tiers';
 
-export type ItemCategory = 'ore' | 'bar' | 'log' | 'material' | 'fish' | 'food' | 'weapon' | 'armour' | 'tool' | 'gem' | 'ammo' | 'currency';
+export type ItemCategory = 'ore' | 'bar' | 'log' | 'material' | 'fish' | 'food' | 'weapon' | 'armour' | 'tool' | 'gem' | 'ammo' | 'currency' | 'treasure';
 export type CombatStyle = 'melee' | 'ranged' | 'magic';
 export type GemType = 'ruby' | 'sapphire' | 'emerald';
 export type GemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
@@ -129,6 +129,12 @@ export interface ItemDef {
   region?: Region;
   /** Resource tier 0–19. */
   tierNum?: number;
+  /** Drawn as this emoji instead of a drawn icon (rare finds and treasures). */
+  emoji?: string;
+  /** Fixed trading value (treasures). */
+  value?: number;
+  /** Rare finds: which gathering skill's open table it uses when opened. */
+  opens?: 'woodcutting' | 'mining' | 'fishing';
 }
 
 export const MAX_UPGRADE = 10;
@@ -425,6 +431,23 @@ for (const tier of TOOL_TIERS) {
     }, 'crafting');
   }
 }
+
+// ----- 🎁 Rare finds while gathering (open them from the bag) and the treasures inside -----
+// Never gems: gems only come from bosses.
+items.push(
+  { id: 'bird_nest', name: "Bird's nest", category: 'treasure', tier: 'pine', icon: 'coins', emoji: '🪺', stackable: true,
+    description: 'Knocked loose from a tree. Something rustles inside — open it!', opens: 'woodcutting' },
+  { id: 'geode', name: 'Geode', category: 'treasure', tier: 'stone', icon: 'coins', emoji: '🪨', stackable: true,
+    description: 'A plain-looking rock that sparkles when you shake it. Crack it open!', opens: 'mining' },
+  { id: 'message_bottle', name: 'Corked bottle', category: 'treasure', tier: 'trout', icon: 'coins', emoji: '🍶', stackable: true,
+    description: 'Bobbing in your net. There might be a note inside — open it!', opens: 'fishing' },
+  { id: 'golden_egg', name: 'Golden egg', category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🥚', stackable: true, value: 1500,
+    description: 'A real golden egg from a bird\'s nest. Traders pay handsomely for these.' },
+  { id: 'starlit_crystal', name: 'Starlit crystal', category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🔮', stackable: true, value: 1800,
+    description: 'Found inside a geode. Tiny stars drift inside it. Worth a lot at the Trading Post.' },
+  { id: 'sea_pearl', name: 'Sea pearl', category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🦪', stackable: true, value: 1600,
+    description: 'A perfect pearl that rolled out of a bottle. Traders love these.' },
+);
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(items.map((i) => [i.id, i]));
 export const ITEM_LIST = items;

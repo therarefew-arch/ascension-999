@@ -337,6 +337,11 @@ Based on the owner's reference screenshots:
 - **Home-screen reminder** on the Town screen when the game isn't installed (iPhone: Share → Add to Home Screen; Android: an Install button) or when the last backup is over a week old. "Later" hides it for 3 days.
 - **Music compressed to MP3**: sounds went from 16.4 MB to 4.3 MB; songs only download when you're in their town.
 
+### Release 2 of the pro review — built · v0.0.1.11
+- **🎒 The Satchel** (Trading Post → Upgrades; any skill 110 + 25,000 coins): anything that won't fit in the bag goes straight to the bank, so idling (and offline time) never stops for a full bag. Can be switched off from the bag. Without it, the original rule stands.
+- **🎁 Rare finds** while gathering (~1 in 250 actions): 🪺 bird's nests, 🪨 geodes, 🍶 corked bottles. Open them from the bag for coins and resources from the best area you've reached, with a ~5% chance of a treasure (🥚 golden egg, 🔮 starlit crystal, 🦪 sea pearl — about 1,600 coins each). Bottles can also hold one of 5 **Messages in Bottles** (Tales page): notes that hint at Cinderpeak, Frosthold, Starfall Crater and the Primordial Rift.
+- **📖 Settling In**: a 9-step starter questline for new players (copper for the bell, tin, first bronze, the inn's woodpile, shrimp for supper, cooking, a stone pickaxe, rats in the grain, and the road east at level 50). Each step has a Go button and a small reward. Saves already past the start skip it. Save version 16.
+
 ### Owner's notes for later
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.

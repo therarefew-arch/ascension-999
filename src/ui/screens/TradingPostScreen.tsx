@@ -8,7 +8,7 @@ import { MAX_BAG_SLOTS, MAX_IDLE_SLOTS } from '../../core/player';
 import { game, useGame } from '../../core/store';
 import {
   bagUpgradeCost, buyListFor, buyPrice, msUntilNextPrices, priceTrend, sellable, sellPrice, shopDeals, shopRotation,
-  SHOP_ROTATION_MS, SLOT_UNLOCKS,
+  SATCHEL, SHOP_ROTATION_MS, SLOT_UNLOCKS, whyCantBuySatchel,
 } from '../../market/market';
 import { ItemIcon, UiIcon } from '../icons';
 import { fmtDuration, fmtNum } from '../format';
@@ -138,6 +138,17 @@ function UpgradesTab() {
             +5 bag slots: {fmtNum(bagCost)} coins
           </button>
         ) : <p className="small green">Your bag is as big as it gets!</p>}
+      </div>
+      <div className="card upgrade-card">
+        <div className="row"><span style={{ fontSize: 22 }}>🎒</span><b className="grow">The Satchel</b>{player.satchel.owned && <span className="chip up">Owned</span>}</div>
+        <p className="small muted">A sturdy satchel that sends anything that won't fit in your bag straight to the bank — so a full bag never stops your idling (even while you're away).</p>
+        {player.satchel.owned ? (
+          <button className="btn btn-wide" onClick={() => game.toggleSatchel()}>{player.satchel.on ? '✅ On — tap to turn off' : 'Off — tap to turn on'}</button>
+        ) : (
+          <button className="btn btn-hero btn-wide" disabled={!!whyCantBuySatchel(player)} onClick={() => game.buySatchel()}>
+            {whyCantBuySatchel(player) ?? `Buy the Satchel: ${fmtNum(SATCHEL.coins)} coins`}
+          </button>
+        )}
       </div>
     </>
   );

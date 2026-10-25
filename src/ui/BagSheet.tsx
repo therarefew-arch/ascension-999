@@ -13,7 +13,12 @@ export function BagSheet({ onClose, onItem }: { onClose: () => void; onItem: (id
       onClose={onClose}
       footer={<button className="btn btn-primary btn-lg btn-wide" disabled={used === 0} onClick={() => game.depositAll()}>Deposit all to bank</button>}
     >
-      {full && <div className="warn">Your bag is full. Idling stops when there's no room — deposit to keep going.</div>}
+      {player.satchel.owned && (
+        <button className={`satchel-toggle ${player.satchel.on ? 'on' : ''}`} onClick={() => game.toggleSatchel()}>
+          🎒 Satchel {player.satchel.on ? 'on — overflow goes to the bank' : 'off — tap to turn on'}
+        </button>
+      )}
+      {full && !(player.satchel.owned && player.satchel.on) && <div className="warn">Your bag is full. Idling stops when there's no room — deposit to keep going.{player.satchel.owned ? '' : ' (Later, the Satchel from the Trading Post sends extras to the bank.)'}</div>}
       <div className="grid bag-grid">
         {player.inventory.map((s, i) =>
           s ? <ItemSlot key={i} id={s.id} qty={s.qty} onClick={() => onItem(s.id)} /> : <ItemSlot key={i} empty />,

@@ -9,6 +9,7 @@ import { DEFAULT_SETTINGS, type Settings } from './settings';
 import { levelForXp, MAX_LEVEL } from './xp';
 import { MONSTER_MAP } from '../data/monsters';
 import { LORE_MAP } from '../data/lore';
+import { alreadySettled, TUTORIAL } from './tutorial';
 import { isFightId, maxHp } from './combat';
 
 export const SAVE_SLOTS = [1, 2, 3] as const;
@@ -327,6 +328,12 @@ function repair(raw: any): PlayerState {
     }
   }
   p.starsCaught = Math.max(0, Number(raw?.starsCaught) || 0);
+  // Settling In (v16): older saves that are already past the start skip it.
+  if (raw?.tutorial && typeof raw.tutorial === 'object') {
+    p.tutorial = { step: Math.max(0, Math.floor(Number(raw.tutorial.step) || 0)), progress: Math.max(0, Number(raw.tutorial.progress) || 0), done: !!raw.tutorial.done };
+  }
+  // Satchel (v16)
+  if (raw?.satchel && typeof raw.satchel === 'object') p.satchel = { owned: !!raw.satchel.owned, on: !!raw.satchel.owned && !!raw.satchel.on };
   // Lunaria's mystery (v15)
   if (raw?.lunaria && typeof raw.lunaria === 'object') {
     p.lunaria = { lanterns: Math.max(0, Math.min(7, Math.floor(Number(raw.lunaria.lanterns) || 0))), restored: !!raw.lunaria.restored };
@@ -377,6 +384,9 @@ function repair(raw: any): PlayerState {
       return { name: pr.name.slice(0, 20), actions: [0, 1, 2].map((k) => (typeof pr.actions[k] === 'string' && ACTIONS[pr.actions[k]] ? pr.actions[k] : null)) };
     });
   }
+  // Saves from before the starter questline that are already well underway skip it.
+  if (!raw?.tutorial && alreadySettled(p)) p.tutorial.done = true;
+  if (p.tutorial.step >= TUTORIAL.length) p.tutorial.done = true;
   return p;
 }
 
