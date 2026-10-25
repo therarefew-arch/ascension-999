@@ -27,8 +27,9 @@ import { fmtNum } from './format';
 import { cozyBadge } from '../core/cozy';
 import { Confetti, LuckyStar } from './Cozy';
 import { FarmScreen } from './FarmScreen';
+import { CottageScreen } from './CottageScreen';
 
-type Tab = 'town' | 'skills' | 'combat' | 'bank' | 'gear' | 'profile' | 'market' | 'journal';
+type Tab = 'town' | 'skills' | 'combat' | 'bank' | 'gear' | 'profile' | 'market' | 'journal' | 'cottage';
 
 function StatusBar({ onIdle, onSettings, settingsOn, onTown, townOn }: {
   onIdle: () => void; onSettings: () => void; settingsOn: boolean; onTown: () => void; townOn: boolean;
@@ -170,8 +171,9 @@ export function App() {
       <IdleLine onOpen={() => setIdleOpen(true)} onFight={() => go('combat')} />
 
       <main className={`content ${tab === 'skills' ? 'content-skill' : ''}`}>
-        {tab === 'town' && <TownScreen onSkill={openSkill} onSettings={() => { setProfileStart('settings'); go('profile'); }} onSkills={() => go('skills')} onCombat={() => go('combat')} onMarket={() => go('market')} onJournal={() => go('journal')} />}
+        {tab === 'town' && <TownScreen onSkill={openSkill} onCottage={() => go('cottage')} onSettings={() => { setProfileStart('settings'); go('profile'); }} onSkills={() => go('skills')} onCombat={() => go('combat')} onMarket={() => go('market')} onJournal={() => go('journal')} />}
         {tab === 'market' && <TradingPostScreen />}
+        {tab === 'cottage' && <CottageScreen onGarden={() => openSkill('farming')} />}
         {tab === 'journal' && <JournalScreen />}
         {tab === 'skills' && (skill === 'farming' ? <FarmScreen /> : <SkillScreen skill={skill} />)}
         {tab === 'combat' && <CombatScreen onItem={(id) => setItemView({ id, from: 'bag' })} />}

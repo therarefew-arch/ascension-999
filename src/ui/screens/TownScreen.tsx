@@ -102,7 +102,7 @@ function skillForItem(id: string): SkillId | null {
 
 // Town only shows what you can't reach from the bottom bar:
 // the daily gift + requests, the Journal, the Trading Post and travel.
-export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, onSettings }: { onSkill: (s: SkillId) => void; onSkills: () => void; onCombat: () => void; onMarket: () => void; onJournal: () => void; onSettings: () => void }) {
+export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, onSettings, onCottage }: { onSkill: (s: SkillId) => void; onSkills: () => void; onCombat: () => void; onMarket: () => void; onJournal: () => void; onSettings: () => void; onCottage: () => void }) {
   const { player } = useGame();
   const here = player.location;
   const info = REGION_INFO[here];
@@ -140,6 +140,10 @@ export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, o
         <button className="service" onClick={onJournal}>
           <span className="tile-icon skill-journal"><UiIcon name="bolt" size={20} /></span>
           <span><b>Journal</b><span className="small muted">XP, log, pets</span></span>
+        </button>
+        <button className="service service-wide" onClick={onCottage}>
+          <span className="tile-icon skill-farming">🏡</span>
+          <span><b>Your Cottage</b><span className="small muted">Furniture, perks &amp; your garden · {player.cottage.length} built</span></span>
         </button>
       </div>
 

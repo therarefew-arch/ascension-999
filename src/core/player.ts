@@ -26,8 +26,9 @@ import type { Plot } from './farming';
  * v16: the Satchel, rare finds, "Settling In" starter questline.
  * v17: Bounty Board, seasoned tools.
  * v18: Herblore and Farming skills, garden plots, meal/brew buffs.
+ * v19: the Cottage (furniture built).
  */
-export const SAVE_VERSION = 18;
+export const SAVE_VERSION = 19;
 /** Starting bag size. Can be upgraded with coins up to MAX_BAG_SLOTS. */
 export const INVENTORY_SLOTS = 30;
 export const MAX_BAG_SLOTS = 50;
@@ -118,6 +119,8 @@ export interface PlayerState {
   buffs: Record<string, ActiveBuff>;
   /** 🌱 Your garden plots (Farming). */
   farm: { plots: (Plot | null)[] };
+  /** 🏡 Cottage furniture you've built (ids from core/cottage.ts). */
+  cottage: string[];
 }
 
 export interface Loadout {
@@ -181,6 +184,7 @@ export function newPlayer(now = Date.now()): PlayerState {
     toolUses: {},
     buffs: {},
     farm: { plots: [null, null, null, null] },
+    cottage: [],
   };
 }
 

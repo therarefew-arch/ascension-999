@@ -352,6 +352,15 @@ Based on the owner's reference screenshots:
 - **🍲 Cooking: Meals & Brews** tabs (fish recipes moved to a Fish tab). Meals (cooked fish + crops) = +6% speed to one skill for 30 min (Miner's pasty, Forager's salad, Woodsman's stew, Angler's chowder, Forge-hand pie, Hearth roast, Tinker's hotpot, Mystic broth). Brews (dried herbs) = +8% XP for 30 min (Meadow tea → Farming, Ironroot tonic → all combat, Willowcap brew → Cooking, Sea fennel tonic → Enhancing, Moonpetal tea → +4% all skills). Eat/drink from the bag; eating again adds time (max 2 h). Active buffs show on skill screens and count in XP/h and time estimates.
 - Save version 18.
 
+### Release 4 — built (the Cottage) · v0.0.1.14
+- **🏡 Your Cottage** (Town → "Your Cottage", `core/cottage.ts`, `ui/CottageScreen.tsx`): a room in Pocketvale (window follows day/night, your pet visits) with 15 pieces of furniture across the five towns. Each is built from things your skills make (bag first, then bank), gives XP in its skill, appears in its spot in the room, and gives a small permanent perk:
+  - Pocketvale: Pine bed (+1% all XP), Stone hearth (cooking fire +25% longer), Shrimp tank (+3% Fishing), Copper kettle (+3% Cooking), Herb rack (+3% Herblore), Flower box (+3% Farming).
+  - Ironmoor: Oak table (+3% Crafting), Display anvil (+3% Smithing), Miner's lamp (+3% Mining).
+  - Coalhaven: Willow rocking chair (+3% Woodcutting), Stargazing telescope (Lucky Stars 20% more often), Weapon rack (+3% combat).
+  - Bluecliff: Maple bookcase (+3% Runecrafting), Rune mirror (+3% Enhancing).
+  - Lunaria: Moonsilver chandelier (+2% all XP; needs Lunaria brought home).
+- Links to your Garden (Farming). Save version 19.
+
 ### Owner's notes for later
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.

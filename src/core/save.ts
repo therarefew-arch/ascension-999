@@ -10,6 +10,7 @@ import { levelForXp, MAX_LEVEL } from './xp';
 import { MONSTER_MAP } from '../data/monsters';
 import { LORE_MAP } from '../data/lore';
 import { alreadySettled, TUTORIAL } from './tutorial';
+import { FURNITURE_MAP } from './cottage';
 import { isFightId, maxHp } from './combat';
 
 export const SAVE_SLOTS = [1, 2, 3] as const;
@@ -328,6 +329,8 @@ function repair(raw: any): PlayerState {
     }
   }
   p.starsCaught = Math.max(0, Number(raw?.starsCaught) || 0);
+  // Cottage (v19)
+  if (Array.isArray(raw?.cottage)) p.cottage = Array.from(new Set(raw.cottage.filter((id: unknown) => typeof id === 'string' && !!FURNITURE_MAP[id as string])));
   // Buffs + garden (v18)
   if (raw?.buffs && typeof raw.buffs === 'object') {
     for (const [k, b] of Object.entries(raw.buffs as Record<string, { item?: string; until?: number }>)) {

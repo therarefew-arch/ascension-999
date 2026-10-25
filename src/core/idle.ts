@@ -16,6 +16,7 @@ import { MAX_XP, levelForXp } from './xp';
 import { xpBoost } from './boosts';
 import { FIND_ITEM } from '../data/lootTables';
 import { buffSpeedPct, buffXpMult } from './buffs';
+import { cottageFirePct, cottageXpMult } from './cottage';
 import { equipmentStats } from './equipment';
 import { advanceFight, isFightId, type CombatReport } from './combat';
 
@@ -117,7 +118,7 @@ export function stokeFire(p: PlayerState, report: ProgressReport, log?: string):
   if (!chosen) return 'No logs you can burn in your bag';
   if (p.fire.heatMs >= MAX_FIRE_MS - 1000) return 'The fire is already roaring';
   completeAction(p, ACTIONS[FIRE_LOGS[chosen].burnAction], report);
-  const bonus = 1 + skillLevel(p, 'firemaking') / 250;
+  const bonus = (1 + skillLevel(p, 'firemaking') / 250) * (1 + cottageFirePct(p) / 100);
   p.fire.heatMs = Math.min(MAX_FIRE_MS, Math.max(0, p.fire.heatMs) + FIRE_LOGS[chosen].heatMs * bonus);
   p.fire.log = chosen;
   return null;
@@ -313,8 +314,8 @@ export function addXp(p: PlayerState, action: { skill: SkillId }, report: Progre
   if (petBoosts(p.activePet, action.skill)) xp = xp * (1 + PET_XP_BONUS);
   // A lit bonfire warms everyone up: +5% XP to all skills.
   if (p.bonfire && p.bonfire.until > Date.now()) xp = xp * 1.05;
-  // 🍵 Brews from Cooking.
-  xp = xp * buffXpMult(p, action.skill);
+  // 🍵 Brews from Cooking, and 🏡 Cottage furniture.
+  xp = xp * buffXpMult(p, action.skill) * cottageXpMult(p, action.skill);
   const skill = p.skills[action.skill];
   const before = levelForXp(skill.xp);
   skill.xp = Math.min(MAX_XP, skill.xp + xp);

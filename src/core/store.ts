@@ -23,6 +23,7 @@ import { claimStep, trackTutorial, TUTORIAL } from './tutorial';
 import { claimBounty, ensureBounties, rerollBounty, trackBounties } from './bounties';
 import { harvest, plant, tend } from './farming';
 import { buffText, consumeBuff } from './buffs';
+import { build, cottageStarPct, FURNITURE_MAP, perkText } from './cottage';
 import { CROPS } from '../data/tiers';
 import { FIND_ITEM } from '../data/lootTables';
 import type { Region } from '../data/tiers';
@@ -206,10 +207,12 @@ function tick(now = Date.now()) {
   checkGarden(p, now);
   // Lucky Stars: appear every few minutes while you're playing, and drift away if not caught.
   if (snap.star && now > snap.star.until) { snap.star = null; emit(); }
-  if (!nextStarAt) nextStarAt = now + nextStarDelay();
+  // (The Cottage telescope makes them come more often.)
+  const starGap = () => nextStarDelay() / (1 + cottageStarPct(p) / 100);
+  if (!nextStarAt) nextStarAt = now + starGap();
   if (!snap.star && now >= nextStarAt) {
     snap.star = { id: now, until: now + STAR.visibleMs };
-    nextStarAt = now + STAR.visibleMs + nextStarDelay();
+    nextStarAt = now + STAR.visibleMs + starGap();
     play('rune');
     emit();
   }
@@ -793,6 +796,22 @@ export const game = {
     play('block');
     emit();
     return 'blocked';
+  },
+  /** 🏡 Build a piece of Cottage furniture. */
+  buildFurniture(id: string) {
+    const report = emptyReport(null);
+    const why = build(snap.player, id, report);
+    if (why) return fail(why);
+    const f = FURNITURE_MAP[id];
+    play('craft');
+    play('levelup');
+    celebrate();
+    buzz([20, 40, 20]);
+    toast(`🏡 ${f.emoji} ${f.name} built! ${perkText(f.perk)}`, 'level');
+    announceLevels(report);
+    trackRequests(snap.player, report, 0);
+    save();
+    emit();
   },
   // ----- 🌱 Farming -----
   plantSeed(i: number, seedId: string) {
