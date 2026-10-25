@@ -239,7 +239,7 @@ export function advanceFight(
         log(f, now, `${monster.name} defeated!`, 'loot');
         if (monster.miniboss) {
           p.bossReadyAt[monster.id] = monster.weekly ? nextWeeklyReset(now) : now + monster.miniboss.respawnMs;
-          const petId = monster.weekly ? 'pet_sprout' : monster.id === 'old_thornhide' ? 'pet_bramble' : null;
+          const petId = monster.weekly ? 'pet_sprout' : monster.pet ?? null;
           const pet = petId ? rollPet(p, 'combat', rng, petId) : null;
           if (pet) report.pets.push(pet);
           return { stop: `${monster.name} defeated!`, usedMs: t };

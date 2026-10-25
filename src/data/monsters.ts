@@ -20,9 +20,11 @@ export interface MonsterDef {
   miniboss?: { respawnMs: number };
   /** Weekly boss: returns every Monday, and its combat style changes each week. */
   weekly?: boolean;
+  /** Mini bosses: the combat pet they can drop. */
+  pet?: string;
   /** Colours for its portrait. */
   colors: { body: string; dark: string; accent: string };
-  art: 'rat' | 'sprite' | 'bandit' | 'boar' | 'bear' | 'treant';
+  art: 'rat' | 'sprite' | 'bandit' | 'boar' | 'bear' | 'treant' | 'crab';
   blurb: string;
 }
 
@@ -54,7 +56,7 @@ export const MONSTERS: MonsterDef[] = [
   {
     id: 'old_thornhide', name: 'Old Thornhide', region: 'Pocketvale', level: 45, style: 'melee',
     hp: 180, attack: 45, defense: 36, maxHit: 10, speedMs: 2200, lootTable: 'boss_old_thornhide',
-    miniboss: { respawnMs: 5 * 60 * 1000 },
+    miniboss: { respawnMs: 5 * 60 * 1000 }, pet: 'pet_bramble',
     colors: { body: '#5b4636', dark: '#2a1f17', accent: '#a3e635' }, art: 'bear',
     blurb: 'Mini boss. A great bramble-covered bear who guards the old forest. Drops gems.',
   },
@@ -92,6 +94,41 @@ MONSTERS.push(
     miniboss: { respawnMs: 5 * 60 * 1000 },
     colors: { body: '#57534e', dark: '#1c1917', accent: '#f97316' }, art: 'bear',
     blurb: 'Mini boss. A huge old forge-bear who guards the deepest mine. Drops gems.',
+  },
+);
+
+// ----- Coalhaven (tier 2, levels 180+) — a sooty harbour town -----
+MONSTERS.push(
+  {
+    id: 'soot_crab', name: 'Soot Crab', region: 'Coalhaven', level: 185, style: 'melee',
+    hp: 340, attack: 185, defense: 160, maxHit: 26, speedMs: 2000, lootTable: 'mon_soot_crab',
+    colors: { body: '#57534e', dark: '#1c1917', accent: '#fb923c' }, art: 'crab',
+    blurb: 'Scuttles over the coal heaps on the quay. Its shell is always a bit dusty.',
+  },
+  {
+    id: 'smog_wisp', name: 'Smog Wisp', region: 'Coalhaven', level: 200, style: 'magic',
+    hp: 320, attack: 195, defense: 160, maxHit: 27, speedMs: 2000, lootTable: 'mon_smog_wisp',
+    colors: { body: '#71717a', dark: '#27272a', accent: '#a5f3fc' }, art: 'sprite',
+    blurb: 'A curl of chimney smoke that came alive and learned a few spells.',
+  },
+  {
+    id: 'dockside_smuggler', name: 'Dockside Smuggler', region: 'Coalhaven', level: 220, style: 'ranged',
+    hp: 440, attack: 220, defense: 190, maxHit: 34, speedMs: 1900, lootTable: 'mon_dockside_smuggler',
+    colors: { body: '#1e3a5f', dark: '#0f172a', accent: '#facc15' }, art: 'bandit',
+    blurb: 'Sneaks crates off the coal barges at night, crossbow at the ready.',
+  },
+  {
+    id: 'cinderhide_boar', name: 'Cinderhide Boar', region: 'Coalhaven', level: 245, style: 'melee',
+    hp: 450, attack: 240, defense: 205, maxHit: 36, speedMs: 2000, lootTable: 'mon_cinderhide_boar',
+    colors: { body: '#3f3f46', dark: '#18181b', accent: '#f97316' }, art: 'boar',
+    blurb: 'Roots for warm coal under the willows. Its bristles glow faintly.',
+  },
+  {
+    id: 'mother_clawsoot', name: 'Mother Clawsoot', region: 'Coalhaven', level: 265, style: 'ranged',
+    hp: 1600, attack: 265, defense: 235, maxHit: 50, speedMs: 2200, lootTable: 'boss_mother_clawsoot',
+    miniboss: { respawnMs: 5 * 60 * 1000 }, pet: 'pet_pinch',
+    colors: { body: '#7c2d12', dark: '#1c1917', accent: '#fbbf24' }, art: 'crab',
+    blurb: 'Mini boss. A giant harbour crab who spits lumps of hot coal. Drops gems.',
   },
 );
 

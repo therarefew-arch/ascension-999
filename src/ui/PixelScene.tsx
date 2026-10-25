@@ -2,7 +2,7 @@
 // Our own art — no image files needed. Each scene is the same every time (seeded).
 import { useEffect, useRef, useState } from 'react';
 
-export type SceneName = 'forest' | 'town' | 'mine' | 'forge' | 'river' | 'camp' | 'kitchen' | 'workshop' | 'tower' | 'altar' | 'ironmoor';
+export type SceneName = 'forest' | 'town' | 'mine' | 'forge' | 'river' | 'camp' | 'kitchen' | 'workshop' | 'tower' | 'altar' | 'ironmoor' | 'coalhaven';
 
 const W = 72;
 const H = 128;
@@ -241,13 +241,62 @@ function drawIronmoor(px: Px, r: () => number) {
   for (let i = 0; i < 30; i++) px(Math.floor(r() * W), 104 + Math.floor(r() * 24), 2, 1, ['#4a443d', '#2e2a26'][Math.floor(r() * 2)]);
 }
 
+function drawCoalhaven(px: Px, r: () => number) {
+  // smoky teal-grey harbour sky
+  const sky = ['#5b6b74', '#6e7c82', '#87908f', '#a59a88'];
+  for (let y = 0; y < 52; y++) px(0, y, W, 1, sky[Math.min(3, Math.floor(y / 13))]);
+  // drifting smoke bands
+  for (let i = 0; i < 6; i++) px(Math.floor(r() * W) - 10, 6 + i * 6, 18 + Math.floor(r() * 14), 2, 'rgba(60,60,64,0.35)');
+  // cliff on the left with weeping willows
+  for (let x = 0; x < 26; x++) { const h = 30 + Math.round(x * 0.9 + Math.sin(x / 3) * 2); px(x, h, 1, 70 - h, '#3d4035'); }
+  const willow = (cx: number, cy: number) => {
+    px(cx, cy, 2, 10, '#4a3b2a');
+    for (let k = -5; k <= 6; k += 1) {
+      const len = 6 + Math.floor(r() * 7);
+      px(cx + k, cy - 2 + Math.abs(k) / 2, 1, len, ['#6f8f3a', '#5c7a30', '#83a24a'][Math.floor(r() * 3)]);
+    }
+    px(cx - 5, cy - 3, 12, 3, '#6f8f3a');
+  };
+  willow(6, 34); willow(17, 40);
+  // houses up the hill with smoking chimneys and warm windows
+  const house = (x: number, y: number, w: number, roof: string) => {
+    px(x, y, w, 9, '#5b524a'); px(x, y, w, 1, '#2f2a25');
+    for (let i = 0; i < Math.ceil(w / 2) + 1; i++) px(x - 1 + i, y - 1 - i, w + 2 - i * 2, 1, roof);
+    px(x + 2, y + 3, 2, 2, '#fbbf24');
+    px(x + w - 3, y - 6, 2, 4, '#2f2a25');
+    for (let k = 0; k < 4; k++) px(x + w - 3 + k, y - 8 - k * 3, 2, 2, `rgba(40,40,44,${0.55 - k * 0.12})`);
+  };
+  house(30, 50, 10, '#7f1d1d'); house(44, 46, 12, '#334155'); house(60, 51, 9, '#7f1d1d');
+  // quay
+  px(0, 62, W, 8, '#4b4640');
+  for (let x = 0; x < W; x += 6) px(x, 62, 5, 1, '#5c564e');
+  // coal heaps on the quay
+  for (const [x, w] of [[4, 10], [16, 7]] as const) for (let i = 0; i < w / 2; i++) px(x + i, 61 - i, w - i * 2, 1, i % 2 ? '#1c1917' : '#27272a');
+  // lantern posts
+  for (const x of [30, 52]) { px(x, 52, 1, 10, '#1f1d1b'); px(x - 1, 50, 3, 3, '#fcd34d'); px(x - 3, 48, 7, 7, 'rgba(252,211,77,0.15)'); }
+  // harbour water
+  for (let y = 70; y < 108; y++) px(0, y, W, 1, y % 4 === 0 ? '#2c4a57' : '#223d48');
+  for (let i = 0; i < 45; i++) px(Math.floor(r() * W), 70 + Math.floor(r() * 38), 2 + Math.floor(r() * 4), 1, '#4f7887');
+  // lantern reflections
+  for (const x of [30, 52]) for (let y = 72; y < 90; y += 3) px(x - 1 + (y % 2), y, 2, 1, 'rgba(252,211,77,0.35)');
+  // wooden pier and a coal barge
+  px(40, 68, 32, 3, '#6b4f33');
+  for (const x of [42, 52, 62, 70]) px(x, 71, 2, 14, '#4a3624');
+  px(6, 84, 30, 7, '#3b2a1c'); px(4, 83, 34, 2, '#5e4329'); px(8, 80, 26, 4, '#18181b');
+  for (let i = 0; i < 8; i++) px(9 + i * 3, 79 - (i % 3), 3, 2, '#27272a');
+  px(30, 70, 1, 13, '#3b2a1c'); px(31, 71, 6, 6, 'rgba(229,222,207,0.55)');
+  // shingle beach
+  px(0, 108, W, H - 108, '#57514a');
+  for (let i = 0; i < 50; i++) px(Math.floor(r() * W), 108 + Math.floor(r() * 20), 2, 1, ['#6b645b', '#3f3a35', '#1c1917'][Math.floor(r() * 3)]);
+}
+
 const DRAW: Record<SceneName, (px: Px, r: () => number) => void> = {
   forest: drawForest, town: drawTown, mine: drawMine, forge: drawForge,
-  river: drawRiver, camp: drawCamp, kitchen: drawKitchen, workshop: drawWorkshop, tower: drawTower, altar: drawAltar, ironmoor: drawIronmoor,
+  river: drawRiver, camp: drawCamp, kitchen: drawKitchen, workshop: drawWorkshop, tower: drawTower, altar: drawAltar, ironmoor: drawIronmoor, coalhaven: drawCoalhaven,
 };
 
 /** Outdoor scenes follow the real clock on your phone. Indoor ones stay cosy all day. */
-const OUTDOOR: SceneName[] = ['forest', 'town', 'river', 'ironmoor'];
+const OUTDOOR: SceneName[] = ['forest', 'town', 'river', 'ironmoor', 'coalhaven'];
 
 export type DayPhase = 'dawn' | 'day' | 'dusk' | 'night';
 

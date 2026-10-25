@@ -292,6 +292,22 @@ Based on the owner's reference screenshots:
 - **🎯 Skill goals**: on any skill screen, set a target (next 10, next tier, next 100, or 999). The chip shows the time left at your current pace (or best option); reaching it celebrates with confetti and clears the goal. Profile → Stats also shows day streak and goals set.
 - Save version 11 (goals, stars caught).
 
+### Phase 6 — built (Coalhaven, lore, town themes)
+- **Coalhaven** (region 3, tier 2 at level 180): a sooty harbour where coal barges dock under weeping willows. Unlocks Coal, Steel bars and steel gear/arrows, Willow, Salmon, Iron tools (made from Ironmoor materials) and willow bows/staffs. Road opens when any skill reaches 180; walk 2 min, fast travel 350 coins.
+- **Monsters at The Docks**: Soot Crab (185, melee), Smog Wisp (200, magic), Dockside Smuggler (220, ranged), Cinderhide Boar (245, melee); **mini boss Mother Clawsoot** (265, ranged — spits hot coal), gem 85% with better rarities than Brask, can drop the pet **Pinch** 🦀. New crab portrait. Balance simulated to match Ironmoor at the same relative level.
+- Local place names (Blackseam Pit, Harbour Steelworks, Weeping Willows, Salmon Quay, The Salty Kettle, Lantern Row, Shipwright's Loft, Tide Stones, Anchor Forge), its own pixel-art harbour scene (day/night), Trading Post sells coal/steel/salmon/willow.
+- **Loose lore (📜 Tales in the Journal)**: each town has a one-line vibe and 3 short notes — found by arriving, by beating its mini boss, and by chance while skilling there (~1 in 250 actions). Older saves receive the notes they've already earned. A thread runs through them: the barge *Silver Willow* never came back from **Lunaria**, whose lights went dark.
+- **Every town has its own music**: Pocketvale keeps its song; Ironmoor has a deep, slow minor theme with distant anvil chimes; Coalhaven has a gentle harbour waltz with soft waves and a far-off foghorn. Songs crossfade when you travel and only download when needed.
+- Save version 12 (lore).
+
+### Owner's notes for later
+- **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
+- **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.
+- **Fishing journal**: only worth doing if there are *many different random fish* to catch (rare/odd catches), not just one fish per tier — otherwise your level already shows them all.
+- **No achievements** — the owner isn't a completionist.
+- **Loot Belt** was an idea for *more incentives to use the skills* that make the game more fun and efficient — keep looking for features like that (skills feeding each other).
+- Goal: build all 11 towns.
+
 ### Phase 4 — ideas for next
 Ironmoor region, weekly boss with "Defeated" screen, NPC Trading Post and shops (coin sinks), more idle slots, Loot Belt (Enhancing 60).
 

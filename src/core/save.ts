@@ -8,6 +8,7 @@ import { OPEN_REGIONS, REGIONS } from '../data/tiers';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
 import { levelForXp, MAX_LEVEL } from './xp';
 import { MONSTER_MAP } from '../data/monsters';
+import { LORE_MAP } from '../data/lore';
 import { isFightId, maxHp } from './combat';
 
 export const SAVE_SLOTS = [1, 2, 3] as const;
@@ -259,6 +260,8 @@ function repair(raw: any): PlayerState {
     }
   }
   p.starsCaught = Math.max(0, Number(raw?.starsCaught) || 0);
+  // Lore (v12)
+  if (Array.isArray(raw?.lore)) p.lore = Array.from(new Set(raw.lore.filter((id: unknown) => typeof id === 'string' && !!LORE_MAP[id as string])));
   // Regions (v9)
   if (Array.isArray(raw?.regions)) p.regions = raw.regions.filter((r: unknown) => typeof r === 'string' && (REGIONS as readonly string[]).includes(r as string));
   if (!p.regions.includes('Pocketvale')) p.regions.unshift('Pocketvale');

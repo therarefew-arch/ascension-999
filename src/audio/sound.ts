@@ -1,6 +1,6 @@
 // Sound system. Uses the Web Audio API so volume works on iPhones too.
 // Volume chain: each sound → effects or music volume → master volume → speakers.
-import { EFFECT_SOUNDS, MUSIC_TRACKS, SOUND_EXTENSIONS, type MusicKey, type SoundKey } from './soundList';
+import { EFFECT_SOUNDS, SOUND_EXTENSIONS, type MusicKey, type SoundKey } from './soundList';
 import type { Settings } from '../core/settings';
 
 /** How many copies of one sound may overlap. */
@@ -16,6 +16,8 @@ class SoundSystem {
   private buffers = new Map<string, AudioBuffer | null>();
   private loading = new Map<string, Promise<AudioBuffer | null>>();
   private musicSource: AudioBufferSourceNode | null = null;
+  private musicGain: GainNode | null = null;
+  private musicKey: MusicKey | null = null;
   private wantedMusic: MusicKey | null = null;
   private volumes: Settings = { master: 0.8, effects: 0.7, music: 0.4, vibrate: true };
   private lastPlayed = new Map<SoundKey, number>();
@@ -34,7 +36,8 @@ class SoundSystem {
       this.music.connect(this.master);
       this.master.connect(this.ctx.destination);
       this.applyVolumes();
-      for (const key of [...EFFECT_SOUNDS, ...MUSIC_TRACKS]) void this.load(key);
+      // Effects load right away; songs load only when they're needed (they're big).
+      for (const key of EFFECT_SOUNDS) void this.load(key);
       if (this.wantedMusic) void this.startMusic(this.wantedMusic);
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
@@ -171,13 +174,26 @@ class SoundSystem {
   private async startMusic(key: MusicKey) {
     const buf = await this.load(key);
     if (!buf || !this.ctx || !this.music || this.wantedMusic !== key) return;
-    this.musicSource?.stop();
+    if (this.musicKey === key && this.musicSource) return;
+    const t = this.ctx.currentTime;
+    // Crossfade: the old song fades out while the new one fades in.
+    if (this.musicSource && this.musicGain) {
+      const oldSrc = this.musicSource;
+      this.musicGain.gain.setTargetAtTime(0, t, 0.5);
+      try { oldSrc.stop(t + 2.5); } catch { /* already stopped */ }
+    }
+    const gain = this.ctx.createGain();
+    gain.gain.value = 0;
+    gain.gain.setTargetAtTime(1, t, 0.6);
+    gain.connect(this.music);
     const src = this.ctx.createBufferSource();
     src.buffer = buf;
     src.loop = true;
-    src.connect(this.music);
+    src.connect(gain);
     src.start();
     this.musicSource = src;
+    this.musicGain = gain;
+    this.musicKey = key;
   }
 
   /** Pause everything when the app goes to the background. */

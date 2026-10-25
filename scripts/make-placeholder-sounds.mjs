@@ -244,7 +244,7 @@ for (const [name, s] of Object.entries(sounds)) writeFileSync(join(OUT, `${name}
 // so the loop doesn't repeat every 16 seconds. 8 sections × 4 chords × 4 s = 128 s.
 // Saved at 11,025 Hz (plenty for soft, mellow tones) to keep the file small for phones.
 {
-  const MR = 11025;
+  const MR = 11025; // eslint-disable-line no-shadow
   const CH = 4; // seconds per chord
   const N = {
     Am: [220, 261.6, 329.6], F: [174.6, 220, 261.6], C: [130.8, 196, 261.6], G: [196, 246.9, 293.7],
@@ -306,6 +306,130 @@ for (const [name, s] of Object.entries(sounds)) writeFileSync(join(OUT, `${name}
     });
   });
   writeFileSync(join(OUT, 'music_town.wav'), wav(Array.from(out), MR));
+}
+
+// ---------- Town themes: every town has its own ~2-minute song ----------
+const MR = 11025;
+function seeded(seed) { let s = seed; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+/** Adds fn(t) into out from `start` (samples) for `len` samples. */
+function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out.length; i++) out[start + i] += fn(i / MR); }
+
+// Ironmoor: deep, slow, minor. Low pad with a soft fifth, a drone, and distant anvil chimes echoing in the mine.
+{
+  const CH = 4.5;
+  const N = {
+    Dm: [146.8, 174.6, 220], Bb: [116.5, 146.8, 174.6], F: [130.8, 174.6, 220], C: [130.8, 164.8, 196],
+    Gm: [98, 146.8, 196], A: [110, 138.6, 164.8], Am: [110, 130.8, 164.8],
+  };
+  const sections = [
+    { chords: ['Dm', 'Bb', 'F', 'C'], chime: false, hum: false },
+    { chords: ['Dm', 'Bb', 'F', 'C'], chime: true, hum: false },
+    { chords: ['Dm', 'Gm', 'Bb', 'A'], chime: true, hum: true },
+    { chords: ['F', 'C', 'Dm', 'A'], chime: false, hum: true },
+    { chords: ['Bb', 'F', 'Gm', 'A'], chime: true, hum: true },
+    { chords: ['Dm', 'Am', 'Bb', 'C'], chime: true, hum: false },
+    { chords: ['Dm', 'Bb', 'F', 'C'], chime: false, hum: false },
+  ];
+  const rnd = seeded(7);
+  const total = Math.floor(sections.length * 4 * CH * MR);
+  const out = new Float32Array(total);
+  // A low drone on D the whole way (fades at both ends so the loop is seamless).
+  addTo(out, 0, total, (t) => Math.sin(2 * Math.PI * 73.4 * t) * 0.022 * Math.min(1, t / 3, (total / MR - t) / 3));
+  sections.forEach((sec, si) => sec.chords.forEach((name, ci) => {
+    const chord = N[name];
+    const start = Math.floor((si * 4 + ci) * CH * MR);
+    const len = Math.floor(CH * MR);
+    addTo(out, start, len, (t) => {
+      const env = Math.sin(Math.PI * (t / CH)) ** 1.8;
+      let v = 0;
+      for (const f of chord) v += Math.sin(2 * Math.PI * f * t) + 0.2 * Math.sin(2 * Math.PI * f * 1.5 * t) + 0.12 * Math.sin(4 * Math.PI * f * t);
+      return (v / chord.length) * env * 0.06;
+    });
+    // Miners humming the root, an octave up, very softly.
+    if (sec.hum) addTo(out, start, len, (t) => Math.sin(2 * Math.PI * chord[0] * 2 * t + 0.3 * Math.sin(2 * Math.PI * 5 * t)) * Math.sin(Math.PI * (t / CH)) ** 3 * 0.012);
+    // Distant anvil chimes: an inharmonic "ting" with a long tail, echoing once.
+    if (sec.chime && rnd() < 0.75) {
+      const f = chord[Math.floor(rnd() * chord.length)] * 4;
+      const at = start + Math.floor((0.6 + rnd() * 2) * MR);
+      for (const [delay, amp] of [[0, 0.02], [0.45, 0.008]]) {
+        addTo(out, at + Math.floor(delay * MR), Math.floor(2.5 * MR), (t) =>
+          (Math.sin(2 * Math.PI * f * t) + 0.5 * Math.sin(2 * Math.PI * f * 2.76 * t) * Math.exp(-6 * t)) * Math.exp(-2.2 * t) * Math.min(1, t / 0.003) * amp);
+      }
+    }
+  }));
+  writeFileSync(join(OUT, 'music_ironmoor.wav'), wav(Array.from(out), MR));
+}
+
+// Coalhaven: a gentle harbour waltz (3/4). Reedy accordion-like chords, soft waves, a far-off foghorn.
+{
+  const beat = 60 / 84;
+  const bar = 3 * beat;
+  const N = {
+    G: [196, 246.9, 293.7], Em: [164.8, 196, 246.9], C: [130.8, 164.8, 196], D: [146.8, 185, 220],
+    Am: [110, 130.8, 164.8], Bm: [123.5, 146.8, 185],
+  };
+  // 4 bars per line, 2 lines per section.
+  const sections = [
+    { bars: ['G', 'Em', 'C', 'D', 'G', 'Em', 'C', 'D'], mel: false },
+    { bars: ['G', 'Em', 'C', 'D', 'G', 'C', 'D', 'G'], mel: true },
+    { bars: ['Em', 'C', 'G', 'D', 'Em', 'Bm', 'C', 'D'], mel: true },
+    { bars: ['C', 'G', 'Am', 'D', 'C', 'G', 'D', 'G'], mel: false },
+    { bars: ['G', 'Em', 'C', 'D', 'G', 'C', 'D', 'G'], mel: true },
+    { bars: ['G', 'Em', 'C', 'D', 'G', 'Em', 'C', 'D'], mel: false },
+  ];
+  const rnd = seeded(11);
+  const SCALE = [392, 440, 493.9, 587.3, 659.3, 784];
+  const totalBars = sections.reduce((n, s) => n + s.bars.length, 0);
+  const total = Math.floor(totalBars * bar * MR);
+  const out = new Float32Array(total);
+  // Reedy "accordion" tone with a slow wobble.
+  const reed = (f, t) => (Math.sin(2 * Math.PI * f * t) + 0.45 * Math.sin(4 * Math.PI * f * t) + 0.22 * Math.sin(6 * Math.PI * f * t)) * (0.9 + 0.1 * Math.sin(2 * Math.PI * 5.5 * t));
+  let b = 0;
+  for (const sec of sections) {
+    for (const name of sec.bars) {
+      const chord = N[name];
+      const start = Math.floor(b * bar * MR);
+      // Oom (bass on beat 1)…
+      addTo(out, start, Math.floor(beat * 1.6 * MR), (t) => Math.sin(2 * Math.PI * (chord[0] / 2) * t) * Math.exp(-2.4 * t) * Math.min(1, t / 0.01) * 0.07);
+      // …pah-pah (soft chords on beats 2 and 3).
+      for (const k of [1, 2]) {
+        addTo(out, start + Math.floor(k * beat * MR), Math.floor(beat * 0.95 * MR), (t) => {
+          let v = 0;
+          for (const f of chord) v += reed(f, t);
+          return (v / chord.length) * Math.min(1, t / 0.03) * Math.exp(-3 * t) * 0.03;
+        });
+      }
+      // A sea-shanty-ish melody on some lines.
+      if (sec.mel) {
+        const times = rnd() < 0.5 ? [0, 2] : [0, 1, 2];
+        for (const k of times) {
+          const near = SCALE.filter((f) => chord.some((c) => Math.abs(Math.log2(f / c) - Math.round(Math.log2(f / c))) < 0.02));
+          const pool = near.length && rnd() < 0.75 ? near : SCALE;
+          const f = pool[Math.floor(rnd() * pool.length)];
+          addTo(out, start + Math.floor(k * beat * MR), Math.floor(beat * 1.3 * MR), (t) => reed(f, t) * Math.min(1, t / 0.02) * Math.exp(-2.2 * t) * 0.022);
+        }
+      }
+      b++;
+    }
+  }
+  // Soft waves washing in and out (low-passed noise, ~7 s swells).
+  let y = 0;
+  const a = 1 - Math.exp((-2 * Math.PI * 350) / MR);
+  for (let i = 0; i < total; i++) {
+    y += a * ((rnd() * 2 - 1) - y);
+    const t = i / MR;
+    const swell = 0.5 + 0.5 * Math.sin((2 * Math.PI * t) / 7 - Math.PI / 2);
+    out[i] += y * 0.06 * swell * Math.min(1, t / 3, (total / MR - t) / 3);
+  }
+  // A far-off foghorn twice in the song.
+  for (const at of [24, 70]) {
+    addTo(out, Math.floor(at * MR), Math.floor(3.2 * MR), (t) =>
+      (Math.sin(2 * Math.PI * 82 * t) + 0.5 * Math.sin(2 * Math.PI * 164 * t)) * Math.sin(Math.PI * Math.min(1, t / 3.2)) ** 2 * 0.03);
+  }
+  // Fade the very ends so the loop is seamless.
+  const f = Math.floor(0.4 * MR);
+  for (let i = 0; i < f; i++) { out[i] *= i / f; out[total - 1 - i] *= i / f; }
+  writeFileSync(join(OUT, 'music_coalhaven.wav'), wav(Array.from(out), MR));
 }
 
 // Calm lofi loop for the Mahjong tile game: 72 bpm, jazzy 7th chords, soft kick + brush, vinyl crackle. 4 bars × 2 = ~26.7s.

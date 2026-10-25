@@ -856,6 +856,17 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 @keyframes starTwinkle { from { transform: scale(0.9) rotate(-8deg); } to { transform: scale(1.12) rotate(8deg); } }
 @media (prefers-reduced-motion: reduce) { .lucky-star { animation: none !important; left: 50%; transform: translateX(-50%); } }
 
+/* 📜 Tales */
+.tale-town { margin: 14px 0; }
+.tale-town h3 { margin: 0; color: var(--gold); }
+.tale-vibe { color: var(--muted); font-style: italic; margin: 2px 0 8px; }
+.tale { background: linear-gradient(180deg, #2a2216, #1f1a12); border: 1.5px solid #5c4524; border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+.tale b { color: #fde68a; }
+.tale p { margin: 6px 0 0; font-size: 0.88rem; line-height: 1.45; color: #e7dcc6; }
+.tale.locked { background: var(--card); border-color: var(--line); border-style: dashed; }
+.tale.locked > * { opacity: 0.7; }
+.tale-tease { color: #a5b4fc; margin-top: 10px; }
+
 /* 🎯 Skill goal */
 .goal-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .goal-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 28px; padding: 0 10px; border-radius: 99px; border: 1.5px solid #92610f; background: #241a08; color: var(--gold); font-size: 0.76rem; font-weight: 800; cursor: pointer; font-family: var(--mono); }

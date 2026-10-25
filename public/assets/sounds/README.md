@@ -40,4 +40,6 @@ as `.mp3`, `.ogg` or `.m4a` (for example `mine.mp3`). The game uses it instead o
 | eat | Eating food |
 | fire_loop | Cozy fire crackle in the kitchen while the fire burns (loops) |
 | music_mahjong | Calm lofi music while playing Tile Match (loops) |
-| music_town | Background music in Pocketvale (loops) |
+| music_town | Background music in Pocketvale (loops, ~2 min) |
+| music_ironmoor | Ironmoor's theme: deep, slow, distant anvil chimes (loops) |
+| music_coalhaven | Coalhaven's theme: harbour waltz with waves and a foghorn (loops) |

@@ -1,5 +1,6 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import { sound } from '../audio/sound';
+import { musicFor } from '../audio/soundList';
 import { ACTIONS, ALL_SKILLS } from '../data/skills';
 import type { SkillId } from '../data/items';
 import { runningSlots, skillLevel } from '../core/idle';
@@ -118,8 +119,11 @@ export function App() {
   const closeBag = useCallback(() => setBagOpen(false), []);
 
   // Sound can only start after the first tap (browser rule).
+  // Each town has its own song; it crossfades when you arrive somewhere new.
+  const town = player.location;
+  useEffect(() => { sound.playMusic(musicFor(town)); }, [town]);
+
   useEffect(() => {
-    sound.playMusic('music_town');
     const unlock = () => sound.unlock();
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('keydown', unlock);

@@ -15,7 +15,8 @@ import { PET_MAP } from '../data/pets';
 import { applyLoadout, applyPreset, resetTracker, saveLoadout, savePreset } from './qol';
 import { finishWildfire, lightBonfire } from './firemaking';
 import { checkArrival, fastTravel, startWalk } from './travel';
-import { catchStar, claimGift, claimRequest, claimRequestBonus, ensureRequests, nextStarDelay, STAR, trackRequests } from './cozy';
+import { catchStar, claimGift, claimRequest, claimRequestBonus, ensureRequests, nextStarDelay, rollLoreFind, STAR, syncLore, trackRequests } from './cozy';
+import type { LoreNote } from '../data/lore';
 import type { Region } from '../data/tiers';
 import type { SkillId } from '../data/items';
 import { levelForXp } from './xp';
@@ -161,6 +162,7 @@ function tick(now = Date.now()) {
     play(arrival.firstVisit ? 'levelup' : 'welcome');
     toast(arrival.firstVisit ? `🗺️ You discovered ${arrival.arrived}! Its resources are unlocked.` : `Welcome to ${arrival.arrived}`, arrival.firstVisit ? 'level' : 'good');
     if (arrival.firstVisit) celebrate();
+    announceLore(syncLore(p));
     save();
     emit();
   }
@@ -230,6 +232,9 @@ function tick(now = Date.now()) {
   if (report.levelUps.length) checkGoals();
   announcePets(report);
   bagWarnings(p);
+  if (report.stops.some((s) => s.reason.endsWith('defeated!'))) announceLore(syncLore(p));
+  const found = rollLoreFind(p, report.actions);
+  if (found) announceLore([found]);
   for (const s of report.stops) {
     const won = s.reason.endsWith('defeated!');
     play(won ? 'levelup' : 'error');
@@ -241,6 +246,14 @@ function tick(now = Date.now()) {
 let started = false;
 let cookingOpen = false;
 let nextStarAt = 0;
+
+/** 📜 Found a tale (lore note). */
+function announceLore(notes: LoreNote[]) {
+  for (const n of notes) {
+    play('rune');
+    toast(`📜 Tale found: "${n.title}" — read it in the Journal`, 'level');
+  }
+}
 
 /** 🎯 Any skill goals reached? Celebrate and clear them. */
 function checkGoals() {
@@ -307,6 +320,9 @@ export const game = {
     snap.slot = slot;
     snap.player = loadGame(slot) ?? newPlayer();
     snap.away = null;
+    // Older saves: hand out the tales already earned (towns visited, mini bosses beaten).
+    const earned = syncLore(snap.player);
+    if (earned.length) setTimeout(() => { play('rune'); toast(`📜 ${earned.length} tale${earned.length > 1 ? 's' : ''} waiting in your Journal`, 'good'); emit(); }, 1500);
     play('click');
     tick();
     save();
@@ -600,6 +616,8 @@ export const game = {
     trackRequests(snap.player, report, 1);
     announceLevels(report);
     announcePets(report);
+    const found = rollLoreFind(snap.player, 1);
+    if (found) announceLore([found]);
     emit();
     return {
       ok: true,

@@ -65,6 +65,19 @@ tables.push(
   },
 );
 
+// ----- Monsters (Coalhaven) -----
+tables.push(
+  { id: 'mon_soot_crab', source: 'monster', entries: [e('coins', 120, 240, 1), e('raw_salmon', 2, 5, 0.4), e('coal', 3, 8, 0.4), e('stone', 5, 12, 0.25)] },
+  { id: 'mon_smog_wisp', source: 'monster', entries: [e('coins', 140, 280, 1), e('air_rune', 20, 45, 0.4), e('water_rune', 15, 35, 0.35), e('coal', 3, 6, 0.3), e('steel_bar', 1, 2, 0.15)] },
+  { id: 'mon_dockside_smuggler', source: 'monster', entries: [e('coins', 180, 340, 1), e('steel_arrows', 15, 35, 0.45), e('steel_bar', 1, 3, 0.25), e('cooked_salmon', 1, 3, 0.3)] },
+  { id: 'mon_cinderhide_boar', source: 'monster', entries: [e('coins', 220, 420, 1), e('willow_logs', 4, 10, 0.35), e('raw_salmon', 3, 6, 0.35), e('coal', 4, 10, 0.3)] },
+  {
+    id: 'boss_mother_clawsoot', source: 'miniboss',
+    entries: [e('coins', 900, 1800, 1), e('steel_bar', 8, 18, 0.6), e('great_salmon', 3, 8, 0.5), e('steel_arrows', 40, 80, 0.4), e('water_rune', 30, 60, 0.4), e('coal', 20, 40, 0.5)],
+    groups: [{ chance: 0, items: [] }], // replaced below with the gem group
+  },
+);
+
 // ----- Mini boss: the ONLY place gems drop (in Pocketvale) -----
 /** Chance weights per rarity: common is common, mythic is very rare. */
 export const GEM_RARITY_WEIGHTS: Record<GemRarity, number> = { common: 45, uncommon: 28, rare: 15, epic: 8, legendary: 3, mythic: 1 };
@@ -89,6 +102,9 @@ tables.push({
 
 // Forgefather Brask: a gem 80% of the time, slightly better odds than Old Thornhide.
 tables.find((t) => t.id === 'boss_forgefather_brask')!.groups = [gemGroup(0.8, { common: 35, uncommon: 30, rare: 20, epic: 10, legendary: 4, mythic: 1 })];
+
+// Mother Clawsoot: a gem 85% of the time, better odds again than Brask.
+tables.find((t) => t.id === 'boss_mother_clawsoot')!.groups = [gemGroup(0.85, { common: 28, uncommon: 30, rare: 22, epic: 13, legendary: 5, mythic: 2 })];
 
 // ----- Weekly boss: 2 guaranteed gems with better rarity odds -----
 const WEEKLY_GEM_WEIGHTS: Record<GemRarity, number> = { common: 20, uncommon: 30, rare: 25, epic: 15, legendary: 7, mythic: 3 };

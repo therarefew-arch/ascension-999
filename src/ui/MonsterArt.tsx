@@ -85,6 +85,29 @@ export function MonsterArt({ monster, size = 96, hurt = false }: { monster: Mons
         </g>
       );
       break;
+    case 'crab':
+      art = (
+        <g>
+          {/* legs */}
+          <path d="M26 66 L12 76 L8 88 M30 70 L20 82 L18 92 M70 66 L84 76 L88 88 M66 70 L76 82 L78 92" stroke={dark} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          {/* claws */}
+          <path d="M26 54 Q14 44 16 30" stroke={body} strokeWidth="7" fill="none" strokeLinecap="round" />
+          <path d="M70 54 Q82 44 80 30" stroke={body} strokeWidth="7" fill="none" strokeLinecap="round" />
+          <path d="M8 26 Q14 12 26 22 L18 28 Z" fill={body} stroke={dark} strokeWidth="2.5" strokeLinejoin="round" />
+          <path d="M88 26 Q82 12 70 22 L78 28 Z" fill={body} stroke={dark} strokeWidth="2.5" strokeLinejoin="round" />
+          {/* shell */}
+          <ellipse cx="48" cy="62" rx="30" ry="18" fill={body} stroke={dark} strokeWidth="3" />
+          <path d="M26 58 Q48 46 70 58" stroke={accent} strokeWidth="2.5" fill="none" opacity="0.8" />
+          <circle cx="36" cy="66" r="2.5" fill={dark} opacity="0.5" /><circle cx="58" cy="68" r="2" fill={dark} opacity="0.5" /><circle cx="48" cy="72" r="1.8" fill={dark} opacity="0.5" />
+          {/* eye stalks */}
+          <path d="M40 48 L38 36 M56 48 L58 36" stroke={dark} strokeWidth="3" strokeLinecap="round" />
+          <g transform="translate(38 34)">{eye}</g>
+          <g transform="translate(58 34)">{eye}</g>
+          <path d="M42 58 Q48 62 54 58" stroke={dark} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <circle cx="30" cy="76" r="2" fill={accent} /><circle cx="68" cy="50" r="1.6" fill={accent} />
+        </g>
+      );
+      break;
     case 'bear':
       art = (
         <g>

@@ -2,7 +2,9 @@
 import { useEffect, useState } from 'react';
 import { ITEM_LIST, type ItemCategory } from '../../data/items';
 import { PETS, PET_XP_BONUS } from '../../data/pets';
-import { regionOpen } from '../../data/tiers';
+import { OPEN_REGIONS, regionOpen } from '../../data/tiers';
+import { LORE, TOWN_VIBE, type LoreTrigger } from '../../data/lore';
+import { MONSTER_MAP } from '../../data/monsters';
 import { SKILLS } from '../../data/skills';
 import { trackerGains } from '../../core/qol';
 import { game, useGame } from '../../core/store';
@@ -10,7 +12,7 @@ import { ItemIcon, UiIcon } from '../icons';
 import { fmtDuration, fmtNum } from '../format';
 import { PixelScene } from '../PixelScene';
 
-type JournalTab = 'tracker' | 'collection' | 'pets';
+type JournalTab = 'tracker' | 'collection' | 'pets' | 'tales';
 
 function Tracker() {
   const { player } = useGame();
@@ -110,6 +112,51 @@ function Pets() {
   );
 }
 
+const HOW_FOUND: Record<LoreTrigger, string> = {
+  arrive: 'Found by arriving in town',
+  boss: 'Found by defeating the mini boss',
+  find: 'Found by chance while skilling here',
+};
+
+/** 📜 Tales: short notes found in each town. */
+function Tales() {
+  const { player } = useGame();
+  const towns = OPEN_REGIONS.filter((r) => LORE.some((n) => n.region === r));
+  const total = LORE.filter((n) => regionOpen(n.region)).length;
+  const found = player.lore.length;
+  return (
+    <>
+      <p className="small muted">Little stories hidden in every town. {found}/{total} found.</p>
+      {towns.map((r) => {
+        const notes = LORE.filter((n) => n.region === r);
+        const visited = player.regions.includes(r);
+        return (
+          <section key={r} className="tale-town">
+            <div className="row-between">
+              <h3>{r}</h3>
+              <span className="small mono muted">{notes.filter((n) => player.lore.includes(n.id)).length}/{notes.length}</span>
+            </div>
+            <p className="small tale-vibe">{visited ? TOWN_VIBE[r] : 'You haven’t been here yet.'}</p>
+            {notes.map((n) => player.lore.includes(n.id) ? (
+              <article key={n.id} className="tale">
+                <b>📜 {n.title}</b>
+                <p>{n.text}</p>
+              </article>
+            ) : (
+              <div key={n.id} className="tale locked">
+                <b>??? </b><span className="small dim">{n.trigger === 'boss' && n.boss ? `Found by defeating ${MONSTER_MAP[n.boss]?.name ?? 'the mini boss'}` : HOW_FOUND[n.trigger]}</span>
+              </div>
+            ))}
+          </section>
+        );
+      })}
+      {player.lore.includes('ch_letter') && player.lore.includes('ch_clawsoot') && (
+        <p className="small center tale-tease">🌫️ Across the black water, the lights of Lunaria stay dark… (a future update)</p>
+      )}
+    </>
+  );
+}
+
 export function JournalScreen() {
   const [tab, setTab] = useState<JournalTab>('tracker');
   return (
@@ -121,10 +168,12 @@ export function JournalScreen() {
           <button className={`tab-pill ${tab === 'tracker' ? 'on' : ''}`} onClick={() => setTab('tracker')}><UiIcon name="bolt" size={14} /> XP TRACKER</button>
           <button className={`tab-pill ${tab === 'collection' ? 'on' : ''}`} onClick={() => setTab('collection')}><UiIcon name="bank" size={14} /> COLLECTION</button>
           <button className={`tab-pill ${tab === 'pets' ? 'on' : ''}`} onClick={() => setTab('pets')}><UiIcon name="heart" size={14} /> PETS</button>
+          <button className={`tab-pill ${tab === 'tales' ? 'on' : ''}`} onClick={() => setTab('tales')}>📜 TALES</button>
         </div>
         {tab === 'tracker' && <Tracker />}
         {tab === 'collection' && <Collection />}
         {tab === 'pets' && <Pets />}
+        {tab === 'tales' && <Tales />}
       </div>
     </div>
   );

@@ -2,7 +2,8 @@
 // All rewards go through the central loot system (giveLoot).
 import { getItem, type SkillId } from '../data/items';
 import { ACTION_LIST, SKILL_ORDER, SKILLS, type ActionDef } from '../data/skills';
-import { regionOpen, tierRegion } from '../data/tiers';
+import { REGIONS, regionOpen, tierRegion } from '../data/tiers';
+import { LORE, LORE_FIND_CHANCE, type LoreNote } from '../data/lore';
 import type { ProgressReport } from './idle';
 import { giveLoot } from './loot';
 import type { ItemStack, PlayerState } from './player';
@@ -80,7 +81,7 @@ export function makeRequests(p: PlayerState, rng: () => number = Math.random): T
   const items = doableItemActions(p);
   if (items.length) {
     const a = pick(items, rng);
-    const tier = a.region ? Math.max(0, ['Pocketvale', 'Ironmoor'].indexOf(a.region)) : 0;
+    const tier = a.region ? Math.max(0, REGIONS.indexOf(a.region)) : 0;
     out.push({ kind: 'item', target: a.output!.item, goal: 25 + Math.floor(rng() * 4) * 10, progress: 0, reward: 150 + 150 * tier, claimed: false });
   }
   const skill = pick(SKILL_ORDER.filter((s) => s !== out[0]?.target), rng) as SkillId;
@@ -195,6 +196,38 @@ export function goalChoices(level: number): number[] {
   if (level < 900) opts.add(Math.floor(level / 100) * 100 + 100);
   if (level < 999) opts.add(999);
   return [...opts].sort((a, b) => a - b);
+}
+
+// ---------------------------------------------------------------------------
+// Lore notes (📜 Tales in the Journal)
+// ---------------------------------------------------------------------------
+
+function learn(p: PlayerState, note: LoreNote, out: LoreNote[]) {
+  if (p.lore.includes(note.id)) return;
+  p.lore.push(note.id);
+  out.push(note);
+}
+
+/** Gives notes you've earned: arriving in a town, and having beaten its mini boss. */
+export function syncLore(p: PlayerState): LoreNote[] {
+  const found: LoreNote[] = [];
+  for (const n of LORE) {
+    if (n.trigger === 'arrive' && p.regions.includes(n.region)) learn(p, n, found);
+    if (n.trigger === 'boss' && n.boss && p.bossReadyAt[n.boss] !== undefined) learn(p, n, found);
+  }
+  return found;
+}
+
+/** A chance to find the current town's hidden note, once per finished action there. */
+export function rollLoreFind(p: PlayerState, actions: number, rng: () => number = Math.random): LoreNote | null {
+  if (actions <= 0 || p.travel) return null;
+  const note = LORE.find((n) => n.trigger === 'find' && n.region === p.location && !p.lore.includes(n.id));
+  if (!note) return null;
+  const chance = 1 - Math.pow(1 - LORE_FIND_CHANCE, Math.min(actions, 2000));
+  if (rng() >= chance) return null;
+  const out: LoreNote[] = [];
+  learn(p, note, out);
+  return note;
 }
 
 export { tierRegion };

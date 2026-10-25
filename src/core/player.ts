@@ -16,8 +16,9 @@ import type { TownRequest } from './cozy';
  * v9: regions — where you are, which regions you've discovered, travelling.
  * v10: cozy — daily gift streak, Town Requests.
  * v11: skill goals, Lucky Stars caught.
+ * v12: lore notes found (Coalhaven update).
  */
-export const SAVE_VERSION = 11;
+export const SAVE_VERSION = 12;
 /** Starting bag size. Can be upgraded with coins up to MAX_BAG_SLOTS. */
 export const INVENTORY_SLOTS = 30;
 export const MAX_BAG_SLOTS = 50;
@@ -92,6 +93,8 @@ export interface PlayerState {
   goals: Partial<Record<SkillId, number>>;
   /** Lucky Stars caught (just for fun / the Journal). */
   starsCaught: number;
+  /** Lore notes found (ids from data/lore.ts). */
+  lore: string[];
 }
 
 export interface Loadout {
@@ -146,6 +149,7 @@ export function newPlayer(now = Date.now()): PlayerState {
     requests: { day: '', tasks: [], bonusClaimed: false },
     goals: {},
     starsCaught: 0,
+    lore: [],
   };
 }
 
