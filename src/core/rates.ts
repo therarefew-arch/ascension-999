@@ -3,7 +3,9 @@ import type { SkillId } from '../data/items';
 import { ACTIONS, actionsForSkill, type ActionDef } from '../data/skills';
 import { actionDuration, skillLevel } from './idle';
 import type { PlayerState } from './player';
-import { levelProgress, MAX_LEVEL, XP_AT } from './xp';
+import { levelForXp, levelProgress, MAX_LEVEL, XP_AT } from './xp';
+import { catchUpMult, MAX_BOOST, xpBoost, zealMult } from './boosts';
+import { PET_XP_BONUS, petBoosts } from '../data/pets';
 import { countInBag, countInBank } from './inventory';
 import { REGIONS, regionOpen } from '../data/tiers';
 
@@ -14,8 +16,9 @@ export interface NextLevelEstimate {
   current: boolean;
 }
 
+/** Real XP per hour for an action — includes the early boost, catch-up bonus, pet and bonfire. */
 export function xpPerHour(p: PlayerState, action: ActionDef): number {
-  return (action.xp / actionDuration(p, action)) * 3_600_000;
+  return ((action.xp * xpBoost(p, action.skill).total * extraMult(p, action.skill)) / actionDuration(p, action)) * 3_600_000;
 }
 
 /** Best unlocked action for a skill, by XP per second. */
@@ -47,24 +50,41 @@ export function visibleActions(p: PlayerState, skill: SkillId): ActionDef[] {
 export function timeToNextLevel(p: PlayerState, skill: SkillId): NextLevelEstimate | null {
   const prog = levelProgress(p.skills[skill].xp);
   if (prog.maxed) return null;
-  return timeForXp(p, skill, prog.needed - prog.into);
+  return timeForXp(p, skill, prog.level + 1);
 }
 
 /** How long until a skill reaches a target level (🎯 goals), at the current or best pace. */
 export function timeToLevel(p: PlayerState, skill: SkillId, target: number): NextLevelEstimate | null {
-  const remaining = XP_AT[Math.min(MAX_LEVEL, target)] - p.skills[skill].xp;
-  if (remaining <= 0) return null;
-  return timeForXp(p, skill, remaining);
+  if (XP_AT[Math.min(MAX_LEVEL, target)] - p.skills[skill].xp <= 0) return null;
+  return timeForXp(p, skill, Math.min(MAX_LEVEL, target));
 }
 
-function timeForXp(p: PlayerState, skill: SkillId, remainingXp: number): NextLevelEstimate | null {
+/** Time to reach `target`, level by level — the early boost fades as you climb, so later levels are counted at their own rate. */
+function timeForXp(p: PlayerState, skill: SkillId, target: number): NextLevelEstimate | null {
   const slot = p.slots.find((s) => s && ACTIONS[s.actionId]?.skill === skill);
   const currentAction = slot ? ACTIONS[slot.actionId] : undefined;
   const current = !!currentAction;
   const action = currentAction ?? bestAction(p, skill);
   if (!action) return null;
-  const actionsNeeded = Math.ceil(remainingXp / action.xp);
-  let ms = actionsNeeded * actionDuration(p, action);
+  const boost = xpBoost(p, skill);
+  const perAction = action.xp * extraMult(p, skill);
+  const msPerAction = actionDuration(p, action);
+  let xp = p.skills[skill].xp;
+  let ms = 0;
+  for (let L = levelForXp(xp); L < target; L++) {
+    const need = XP_AT[L + 1] - Math.max(xp, XP_AT[L]);
+    const mult = Math.min(MAX_BOOST, zealMult(L) * catchUpMult(L, boost.highest));
+    ms += (need / (perAction * mult)) * msPerAction;
+    xp = XP_AT[L + 1];
+  }
   if (slot) ms -= slot.progressMs;
   return { ms: Math.max(0, ms), action, current };
+}
+
+/** Pet and bonfire bonuses (the boosts are counted separately). */
+function extraMult(p: PlayerState, skill: SkillId) {
+  let m = 1;
+  if (petBoosts(p.activePet, skill)) m *= 1 + PET_XP_BONUS;
+  if (p.bonfire && p.bonfire.until > Date.now()) m *= 1.05;
+  return m;
 }

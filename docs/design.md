@@ -313,6 +313,14 @@ Based on the owner's reference screenshots:
 - Minigames named to fit their skill: **Sort the Catch** (Fishing, was Tile Match), **Pantry Prep** (Cooking).
 - Music: Pantry Prep has a cosy café tune (electric-piano chords, walking bass, brushes, a bubbling pot). **Ironmoor** has a new miners' work song (boots-on-stone drum, pickaxe tinks, walking bass, mallet chords, whistled tune, miners' hum). Ironmoor's first song is saved as **`music_lunaria`** for the foggy island ghost town.
 
+### Phase 8 — built (new pacing) · v0.0.1.5
+- **A town every 75 levels**: 1, 75, 150, 225, 300, 375, 450, 525, 600, 675, 750 — every town open by **750**; **750 → 999 is the endgame** (to be designed: mastery perks every 25 levels, Ascended crafting at 800/850/900/950, endgame bosses, a gold "Ascended" glow at 999).
+- **New XP curve** built from time targets (one skill idling its best basic action, no boosts): 75 ≈ 6 h · 150 ≈ 24 h · 300 ≈ 96 h · 750 ≈ 600 h · 999 ≈ 1,120 h. Before, 94% of the time to 999 was spent before the last town and the middle dragged (≈2,000 h between 180 and 630).
+- **🌱 Early boost**: ×3 XP below level 90, fading to normal by 180. **🧭 Catch-up**: any skill behind your highest skill gets +10% XP per 10 levels behind (up to +100%). Together max ×4; shown under each skill's XP bar, and included in XP/hour, "next level" and goal times. Real pace with boosts: 75 ≈ 2 h, 150 ≈ 10 h; a lagging skill reaches 150 in ≈ 8 h.
+- **Saves**: XP is kept and levels are re-worked out from it, so levels only go up (e.g. old 90 → 153, old 163 → 277). A one-time note explains it. Monsters outside Pocketvale were scaled to the new town bands (×75/90) and re-simulated: same feel as before. Rune elements and gear requirements follow the new tier levels.
+- Save version 13.
+- Alternative spacing considered: front-loaded (towns closer early, wider later, e.g. 1, 50, 110, 175, 245, 320, 400, 485, 570, 660, 750) — kept even steps for now.
+
 ### Owner's notes for later
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.

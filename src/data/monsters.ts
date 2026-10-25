@@ -167,6 +167,18 @@ MONSTERS.push(
   },
 );
 
+// Towns are now every 75 levels (they used to be every 90), so monsters outside Pocketvale
+// are scaled to match: same place in their town's level band, same feel.
+const TOWN_SCALE = 75 / 90;
+for (const m of MONSTERS) {
+  if (m.region === 'Pocketvale') continue;
+  m.level = Math.round(m.level * TOWN_SCALE);
+  m.hp = Math.round(m.hp * TOWN_SCALE);
+  m.attack = Math.round(m.attack * TOWN_SCALE);
+  m.defense = Math.round(m.defense * TOWN_SCALE);
+  m.maxHit = Math.round(m.maxHit * TOWN_SCALE);
+}
+
 /** The weekly boss sits apart from the regular list on the Combat screen. */
 export const WEEKLY_BOSS: MonsterDef = {
   id: 'grumbleroot', name: 'Grumbleroot, the Moss King', region: 'Pocketvale', level: 80, style: 'melee',

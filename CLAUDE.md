@@ -9,7 +9,8 @@ Full game vision: `docs/design.md`. Build only the phase that is asked for.
 - Single-player for now, but keep **player data**, **market**, and **loot** logic separate so multiplayer can be added later.
 - **All loot goes through one central loot system** (`src/core/loot.ts`). Never add items to a player any other way.
 - **Gems can ONLY drop from bosses and mini bosses.** The loot system enforces this; never weaken that check.
-- **All skills cap at level 999**, with **resource and region tiers every 90 levels** (1, 90, 180, 270, 360, 450, 540, 630, 720, 810, 900) — one tier per region (`src/data/tiers.ts`). Tiers of regions that aren't built yet are locked (`OPEN_REGIONS`).
+- **All skills cap at level 999**, with **resource and region tiers every 75 levels** (1, 75, 150, 225, 300, 375, 450, 525, 600, 675, 750) — one tier per region (`src/data/tiers.ts`, `TIER_EVERY`). **Every town is open by 750; 750 → 999 is the endgame** (the Ascension: mastery perks, Ascended crafting, endgame bosses — to be designed). Tiers of regions that aren't built yet are locked (`OPEN_REGIONS`). (Owner changed this from every-90 in v0.0.1.5.)
+- **Pacing** (`src/core/xp.ts`, built from time targets for one skill idling its best basic action, no boosts): 75 ≈ 6 h, 150 ≈ 24 h, 300 ≈ 96 h, 750 ≈ 600 h, then 750 → 999 ≈ 520 h (endgame slightly shorter than the journey — owner will feel it out). Boosts (`src/core/boosts.ts`): 🌱 ×3 below 90 fading to ×1 at 180; 🧭 catch-up +10% per 10 levels behind your highest skill (max +100%); combined max ×4. Early levels never cost more than the old curve, so levels never drop.
 - **No energy limits and no paying to skip the grind.**
 - **Cozy medieval fantasy style; clean, uncluttered UI.**
 - **Never remove or change existing features unless the owner asks.**
@@ -19,7 +20,7 @@ Full game vision: `docs/design.md`. Build only the phase that is asked for.
 
 - Inventory full while idling → idling **stops** (owner's choice). The offline summary must say when and why it stopped.
 - Offline progress counts up to **24 hours** away.
-- XP curve target: roughly **800–1,000 hours** per skill to reach 500 once all tiers exist (see `src/core/xp.ts`).
+- XP curve: see **Pacing** above (the old "800–1,000 hours to 500" target is replaced).
 - Iron bars use **iron ore only** for now; coal arrives with the Coalhaven region.
 - Smithing uses materials from the **inventory** (not the bank).
 - **Every skill gets a fun, optional minigame.** The game is cozy and laid back: misses never cost anything, idling never needs the minigame. Rules live in `src/core/minigames.ts`.

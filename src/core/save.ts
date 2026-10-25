@@ -120,6 +120,9 @@ export function saveGame(slot: SlotId, player: PlayerState): boolean {
   }
 }
 
+/** The save version of the game most recently loaded (to show "what changed" notes once). */
+export let loadedFromVersion = SAVE_VERSION;
+
 export function loadGame(slot: SlotId): PlayerState | null {
   moveOldSave();
   for (const key of [saveKey(slot), backupKey(slot)]) {
@@ -127,6 +130,7 @@ export function loadGame(slot: SlotId): PlayerState | null {
       const raw = localStorage.getItem(key);
       if (!raw) continue;
       const file = JSON.parse(raw) as SaveFile;
+      loadedFromVersion = file.version ?? 1;
       return repair(migrate(file.player, file.version ?? 1));
     } catch {
       // try the backup next

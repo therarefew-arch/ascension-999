@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { SkillId } from '../../data/items';
 import { ACTION_LIST } from '../../data/skills';
-import { OPEN_REGIONS, REGION_INFO, REGIONS } from '../../data/tiers';
+import { OPEN_REGIONS, REGION_INFO, REGIONS, tierLevel } from '../../data/tiers';
 import type { TownRequest } from '../../core/cozy';
 import { highestSkill, whyCantTravel } from '../../core/travel';
 import { game, useGame } from '../../core/store';
@@ -48,7 +48,7 @@ function TravelMap() {
           const info = REGION_INFO[r];
           const here = player.location === r;
           const visited = player.regions.includes(r);
-          const level = i === 0 ? 1 : i * 90;
+          const level = tierLevel(i);
           if (!built) {
             return (
               <div key={r} className="region-row locked">

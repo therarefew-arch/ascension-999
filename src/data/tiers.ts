@@ -1,4 +1,5 @@
-// The 11 resource tiers — one per region, a new tier every 90 levels (1, 90, 180 … 900), up to the 999 cap.
+// The 11 resource tiers — one per region, a new tier every 75 levels (1, 75, 150 … 750).
+// Every town is open by 750; 750 → 999 is the endgame ("the Ascension").
 // Tiers outside an open region exist in the game data but stay locked until that region is built.
 
 export const REGIONS = [
@@ -22,24 +23,31 @@ export const REGION_INFO: Partial<Record<Region, {
   scene: 'town' | 'ironmoor' | 'coalhaven' | 'bluecliff';
 }>> = {
   Pocketvale: { unlockLevel: 1, walkMs: 90_000, fastTravelCoins: 200, blurb: 'A quiet town at the edge of the hills', scene: 'town' },
-  Ironmoor: { unlockLevel: 90, walkMs: 90_000, fastTravelCoins: 200, blurb: 'A smoky mountain town built around the deep iron mines', scene: 'ironmoor' },
-  Coalhaven: { unlockLevel: 180, walkMs: 120_000, fastTravelCoins: 350, blurb: 'A sooty harbour where coal barges dock under weeping willows', scene: 'coalhaven' },
-  Bluecliff: { unlockLevel: 270, walkMs: 150_000, fastTravelCoins: 500, blurb: 'Windswept sea cliffs, red maples and a lighthouse that never sleeps', scene: 'bluecliff' },
+  Ironmoor: { unlockLevel: 75, walkMs: 90_000, fastTravelCoins: 200, blurb: 'A smoky mountain town built around the deep iron mines', scene: 'ironmoor' },
+  Coalhaven: { unlockLevel: 150, walkMs: 120_000, fastTravelCoins: 350, blurb: 'A sooty harbour where coal barges dock under weeping willows', scene: 'coalhaven' },
+  Bluecliff: { unlockLevel: 225, walkMs: 150_000, fastTravelCoins: 500, blurb: 'Windswept sea cliffs, red maples and a lighthouse that never sleeps', scene: 'bluecliff' },
 };
 
 /** Skills whose resources must be gathered on location (you start them in that region). */
 export const LOCAL_SKILLS = ['mining', 'woodcutting', 'fishing'] as const;
 
 export const TIER_COUNT = 11;
-/** Level a tier unlocks at: 1, 90, 180, 270 … 900. */
-export const tierLevel = (t: number) => (t === 0 ? 1 : t * 90);
+/** Levels between tiers (and towns). */
+export const TIER_EVERY = 75;
+/** Level a tier unlocks at: 1, 75, 150, 225 … 750. */
+export const tierLevel = (t: number) => (t === 0 ? 1 : t * TIER_EVERY);
+/** Which tier a level belongs to (0–10). */
+export const tierForLevel = (level: number) => Math.min(TIER_COUNT - 1, Math.floor(level / TIER_EVERY));
 /** One tier per region, in order (Pocketvale = tier 0 … Primordial Rift = tier 10). */
 export const tierRegion = (t: number): Region => REGIONS[Math.min(REGIONS.length - 1, t)];
 export const regionOpen = (r: Region | undefined) => !r || OPEN_REGIONS.includes(r);
 
-/** XP and time per action at tier t (tiers 0–1 keep their hand-tuned values). ~3,150 hours to 999 per skill. */
+/** XP and time per action at tier t (tiers 0–1 keep their hand-tuned values). */
 export const tierXp = (t: number) => Math.round(8 * Math.pow(1.7, t));
 export const tierTimeMs = (t: number) => 3000 + 300 * t;
+/** XP per hour of the basic gathering action at tier t (what the XP curve is paced against). */
+export const gatherXpPerHour = (t: number) =>
+  ((t === 0 ? 8 : t === 1 ? 12 : tierXp(t)) / (t === 0 ? 3000 : t === 1 ? 3300 : tierTimeMs(t))) * 3_600_000;
 
 /** A colour for each tier, so every tier's icons look different. */
 export function tierPalette(hue: number, sat = 55, light = 55) {

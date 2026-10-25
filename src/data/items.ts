@@ -1,6 +1,6 @@
 // Static item definitions. No player data lives here.
 // Tiered items (ores, bars, logs, fish, gear, tools, ammo) are generated for all 20 tiers from data/tiers.ts.
-import { FISH, METALS, TIER_COUNT, WOODS, tierLevel, tierPalette, tierRegion, tierXp, type Region } from './tiers';
+import { FISH, METALS, TIER_COUNT, WOODS, tierForLevel, tierLevel, tierPalette, tierRegion, tierXp, type Region } from './tiers';
 
 export type ItemCategory = 'ore' | 'bar' | 'log' | 'material' | 'fish' | 'food' | 'weapon' | 'armour' | 'tool' | 'gem' | 'ammo' | 'currency';
 export type CombatStyle = 'melee' | 'ranged' | 'magic';
@@ -201,12 +201,12 @@ export const ELEMENTS: { element: Element; name: string; level: number; power: n
   { element: 'water', name: 'Water', level: 10, power: 3 },
   { element: 'earth', name: 'Earth', level: 20, power: 4 },
   { element: 'fire', name: 'Fire', level: 30, power: 5 },
-  { element: 'nature', name: 'Nature', level: 270, power: 9 },
-  { element: 'frost', name: 'Frost', level: 540, power: 14 },
-  { element: 'shadow', name: 'Shadow', level: 630, power: 20 },
-  { element: 'light', name: 'Light', level: 810, power: 27 },
+  { element: 'nature', name: 'Nature', level: tierLevel(3), power: 9 },
+  { element: 'frost', name: 'Frost', level: tierLevel(6), power: 14 },
+  { element: 'shadow', name: 'Shadow', level: tierLevel(7), power: 20 },
+  { element: 'light', name: 'Light', level: tierLevel(9), power: 27 },
 ];
-export const elementRegion = (level: number) => tierRegion(Math.floor(level / 90));
+export const elementRegion = (level: number) => tierRegion(tierForLevel(level));
 for (const el of ELEMENTS) {
   const region = elementRegion(el.level);
   items.push(

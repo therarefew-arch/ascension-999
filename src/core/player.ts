@@ -17,8 +17,9 @@ import type { TownRequest } from './cozy';
  * v10: cozy — daily gift streak, Town Requests.
  * v11: skill goals, Lucky Stars caught.
  * v12: lore notes found (Coalhaven update).
+ * v13: new XP pacing (towns every 75 levels). XP is kept as-is; levels are worked out from it, so they only go up.
  */
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
 /** Starting bag size. Can be upgraded with coins up to MAX_BAG_SLOTS. */
 export const INVENTORY_SLOTS = 30;
 export const MAX_BAG_SLOTS = 50;

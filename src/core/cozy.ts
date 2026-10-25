@@ -188,11 +188,11 @@ export function catchStar(p: PlayerState): ItemStack[] {
 // Skill goals (🎯)
 // ---------------------------------------------------------------------------
 
-/** Handy targets to pick from: next 10, next tier (every 90), next 100, and 999. */
+/** Handy targets to pick from: next 10, next town (every 75, up to 750), next 100, and 999. */
 export function goalChoices(level: number): number[] {
   const opts = new Set<number>();
   if (level < 999) opts.add(Math.min(999, Math.floor(level / 10) * 10 + 10));
-  if (level < 900) opts.add(Math.floor(level / 90) * 90 + 90);
+  if (level < 750) opts.add(Math.floor(level / 75) * 75 + 75);
   if (level < 900) opts.add(Math.floor(level / 100) * 100 + 100);
   if (level < 999) opts.add(999);
   return [...opts].sort((a, b) => a - b);

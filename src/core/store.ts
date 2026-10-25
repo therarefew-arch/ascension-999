@@ -30,7 +30,7 @@ import { MONSTER_MAP } from '../data/monsters';
 import { clampReward } from './minigames';
 import { newPlayer, OFFLINE_CAP_MS, type PlayerState } from './player';
 import {
-  deleteSave, loadGame, loadSettings, requestPersistentStorage, saveGame, saveSettings, type SlotId,
+  deleteSave, loadedFromVersion, loadGame, loadSettings, requestPersistentStorage, saveGame, saveSettings, type SlotId,
 } from './save';
 import type { Settings } from './settings';
 
@@ -323,6 +323,11 @@ export const game = {
     // Older saves: hand out the tales already earned (towns visited, mini bosses beaten).
     const earned = syncLore(snap.player);
     if (earned.length) setTimeout(() => { play('rune'); toast(`📜 ${earned.length} tale${earned.length > 1 ? 's' : ''} waiting in your Journal`, 'good'); emit(); }, 1500);
+    // The big pacing update (v13): XP is kept, the level table changed — so levels jumped up. Say so once.
+    if (loadedFromVersion < 13) {
+      setTimeout(() => { play('levelup'); celebrate(); toast('📈 New pacing! Towns now open every 75 levels — your skills jumped up. Check your levels!', 'level'); emit(); }, 900);
+    }
+    checkGoals();
     play('click');
     tick();
     save();

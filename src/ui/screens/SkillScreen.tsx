@@ -9,6 +9,7 @@ import { countInBag } from '../../core/inventory';
 import type { PlayerState } from '../../core/player';
 import { bestAction, timeToLevel, timeToNextLevel, visibleActions } from '../../core/rates';
 import { goalChoices } from '../../core/cozy';
+import { xpBoost } from '../../core/boosts';
 import { game, useGame } from '../../core/store';
 import { levelProgress, MAX_LEVEL } from '../../core/xp';
 import { ProgressBar } from '../components';
@@ -29,6 +30,21 @@ export function shortTime(ms: number) {
   if (m < 60) return `${m}m`;
   const h = Math.round(m / 60);
   return h < 48 ? `${h}h` : `${Math.round(h / 24)}d`;
+}
+
+/** 🌱 / 🧭 XP boosts this skill is getting right now (hidden when there are none). */
+function BoostRow({ skill }: { skill: SkillId }) {
+  const { player } = useGame();
+  const b = xpBoost(player, skill);
+  if (b.total <= 1.001) return null;
+  const pct = (m: number) => `+${Math.round((m - 1) * 100)}%`;
+  return (
+    <div className="boost-row">
+      {b.zeal > 1.001 && <span className="boost-chip zeal" title="Early levels are faster: ×3 below 90, fading to normal by 180">🌱 ×{b.zeal.toFixed(1).replace('.0', '')} early levels</span>}
+      {b.catchUp > 1.001 && b.highestSkill && <span className="boost-chip catch" title="Skills behind your highest skill get +10% XP per 10 levels behind (up to +100%)">🧭 {pct(b.catchUp)} catching up to {SKILLS[b.highestSkill].name}</span>}
+      {b.zeal * b.catchUp > b.total + 0.001 && <span className="small dim">(max ×{b.total})</span>}
+    </div>
+  );
 }
 
 /** 🎯 Pick a target level; shows how long it'll take at your current (or best) pace. */
@@ -236,6 +252,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
           <span className="muted">{prog.maxed ? 'MAX' : `${fmtNum(prog.into)} / ${fmtNum(prog.needed)} XP`}</span>
           {eta && <span className="gold"><UiIcon name="clock" size={13} /> next lv {fmtDuration(eta.ms)}</span>}
         </div>
+        <BoostRow skill={skill} />
         <GoalRow skill={skill} place={`📍 ${placeName(player.location, skill)}, ${player.location}`} />
       </div>
 

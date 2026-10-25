@@ -13,6 +13,7 @@ import { PET_XP_BONUS, petBoosts } from '../data/pets';
 import { LOCAL_SKILLS, regionOpen, WOODS } from '../data/tiers';
 import type { IdleSlot, PlayerState } from './player';
 import { MAX_XP, levelForXp } from './xp';
+import { xpBoost } from './boosts';
 import { equipmentStats } from './equipment';
 import { advanceFight, isFightId, type CombatReport } from './combat';
 
@@ -282,6 +283,8 @@ export function completeAction(
 }
 
 export function addXp(p: PlayerState, action: { skill: SkillId }, report: ProgressReport, xp: number) {
+  // 🌱 Early-level boost and 🧭 catch-up bonus (core/boosts.ts).
+  xp = xp * xpBoost(p, action.skill).total;
   // Your active pet gives +2% XP in its skill.
   // (Not rounded, so even small actions get the bonus over time.)
   if (petBoosts(p.activePet, action.skill)) xp = xp * (1 + PET_XP_BONUS);
