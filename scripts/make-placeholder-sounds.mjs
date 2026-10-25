@@ -540,15 +540,34 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
       b++;
     }
   }
-  // A faint hush of waves far below the quay (owner: the first version was too much).
-  // Quieter, lower and slower: an occasional soft swell every ~13 s with near-silence between.
-  let y = 0;
-  const a = 1 - Math.exp((-2 * Math.PI * 200) / MR);
-  for (let i = 0; i < total; i++) {
-    y += a * ((rnd() * 2 - 1) - y);
-    const t = i / MR;
-    const swell = (0.5 + 0.5 * Math.sin((2 * Math.PI * t) / 13 - Math.PI / 2)) ** 2;
-    out[i] += y * 0.022 * swell * Math.min(1, t / 3, (total / MR - t) / 3);
+  // Waves: only TWO per loop, and each one different (owner: constant waves got annoying).
+  // Placed so they never overlap the foghorns (~24 s and ~70 s).
+  {
+    const wr = seeded(77);
+    const lowNoise = (cutoff) => { let y = 0; const a = 1 - Math.exp((-2 * Math.PI * cutoff) / MR); return () => { y += a * ((wr() * 2 - 1) - y); return y; }; };
+    // Wave 1 (~10 s): one long, slow wave rolling up the shingle and sliding back — "shhhhh…".
+    {
+      const n = lowNoise(260); const hiss = lowNoise(1400);
+      const len = 6.5;
+      addTo(out, Math.floor(10 * MR), Math.floor(len * MR), (t) => {
+        const rise = Math.min(1, t / 2.2) ** 2;            // rolls in
+        const fall = Math.max(0, 1 - Math.max(0, t - 2.4) / (len - 2.4)); // slides back out
+        const env = rise * fall * fall;
+        return (n() * 0.05 + hiss() * 0.012 * fall) * env;
+      });
+    }
+    // Wave 2 (~48 s): small waves lapping against the wooden pier — a few short, gentle splashes.
+    {
+      const laps = [0, 0.9, 1.7, 2.8, 3.5];
+      laps.forEach((at, k) => {
+        const n = lowNoise(700 + k * 60); const thud = lowNoise(160);
+        const amp = 0.035 * (1 - k * 0.12);
+        addTo(out, Math.floor((48 + at) * MR), Math.floor(0.9 * MR), (t) => {
+          const env = Math.min(1, t / 0.04) * Math.exp(-5.5 * t);
+          return (n() * amp + thud() * amp * 1.4 * Math.exp(-14 * t)) * env;
+        });
+      });
+    }
   }
   // A far-off foghorn twice in the song.
   for (const at of [24, 70]) {
