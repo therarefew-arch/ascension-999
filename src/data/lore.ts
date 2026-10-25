@@ -21,6 +21,7 @@ export const TOWN_VIBE: Partial<Record<Region, string>> = {
   Pocketvale: 'Sleepy hills, warm bread and a well everyone makes wishes in.',
   Ironmoor: 'Brass bells, soot-black faces and songs sung deep underground.',
   Coalhaven: 'Foghorns, lantern-light on black water, and a question nobody likes to ask.',
+  Bluecliff: 'Salt wind, red maples and a lighthouse that watches the one island nobody visits.',
 };
 
 export const LORE: LoreNote[] = [
@@ -62,6 +63,19 @@ export const LORE: LoreNote[] = [
   {
     id: 'ch_letter', region: 'Coalhaven', trigger: 'find', title: "The Harbourmaster's Unsent Letter",
     text: '"Dear sister — the lights on Lunaria went out again last night. Not dimmed. Out. The fishermen swear they can still hear the town bell ringing across the water, though there is no one left to ring it. I will sail over when the fog lifts." The letter was never sent.',
+  },
+  // ----- Bluecliff -----
+  {
+    id: 'bc_logbook', region: 'Bluecliff', trigger: 'arrive', title: "The Lighthouse Keeper's Log",
+    text: 'Forty years of nights in a neat hand. Almost every entry says the same: "Sea calm. Lunaria lights: on." Then, one autumn night: "Lunaria lights: on — then off. All at once, like a candle snuffed." Every entry since says only: "Lunaria lights: off." The keeper still writes it, every night.',
+  },
+  {
+    id: 'bc_galewing', region: 'Bluecliff', trigger: 'boss', boss: 'old_galewing', title: "Galewing's Nest",
+    text: "High on the cliff, Old Galewing's nest is lined with shiny treasures: buttons, a teaspoon, a fishing lure… and a heavy brass key stamped LUNARIA BELL TOWER. Gulls fly everywhere. Even there.",
+  },
+  {
+    id: 'bc_bottle', region: 'Bluecliff', trigger: 'find', title: 'A Message in a Bottle',
+    text: 'Wedged between the rocks below the lighthouse, a corked bottle. The note inside is written in silver ink: "To whoever finds this — we are not gone. We are only waiting. Whatever you hear, please do not ring the bell. — L." The ink still shimmers.',
   },
 ];
 

@@ -150,8 +150,11 @@ function Tales() {
           </section>
         );
       })}
-      {player.lore.includes('ch_letter') && player.lore.includes('ch_clawsoot') && (
-        <p className="small center tale-tease">🌫️ Across the black water, the lights of Lunaria stay dark… (a future update)</p>
+      {player.lore.includes('ch_letter') && player.lore.includes('ch_clawsoot') && !player.lore.includes('bc_bottle') && (
+        <p className="small center tale-tease">🌫️ Across the black water, the lights of Lunaria stay dark…</p>
+      )}
+      {player.lore.includes('bc_bottle') && player.lore.includes('bc_galewing') && (
+        <p className="small center tale-tease">🔑 You have the bell tower key. Lunaria is waiting… (a future update)</p>
       )}
     </>
   );

@@ -5,6 +5,7 @@ import { game, useGame } from '../core/store';
 import { UiIcon } from './icons';
 import { fmtDuration } from './format';
 import { PixelScene } from './PixelScene';
+import { GAME_VERSION, VERSION_NOTE } from '../version';
 
 export function TitleScreen() {
   useGame(); // re-render after deletes
@@ -64,7 +65,8 @@ export function TitleScreen() {
             </div>
           );
         })}
-        <p className="mono small dim center">Progress saves on this device · Phase 1</p>
+        <p className="mono small dim center">Progress saves on this device</p>
+        <p className="version-tag center"><b>{GAME_VERSION}</b> · {VERSION_NOTE}</p>
       </div>
     </div>
   );

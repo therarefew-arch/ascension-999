@@ -8,7 +8,7 @@ export const REGIONS = [
 export type Region = (typeof REGIONS)[number];
 
 /** Regions that are built. Add a region here when it's built (players still have to travel there to unlock it). */
-export const OPEN_REGIONS: Region[] = ['Pocketvale', 'Ironmoor', 'Coalhaven'];
+export const OPEN_REGIONS: Region[] = ['Pocketvale', 'Ironmoor', 'Coalhaven', 'Bluecliff'];
 
 /** How to reach each built region. */
 export const REGION_INFO: Partial<Record<Region, {
@@ -19,11 +19,12 @@ export const REGION_INFO: Partial<Record<Region, {
   /** Fast travel cost (instant, only to places you've visited). */
   fastTravelCoins: number;
   blurb: string;
-  scene: 'town' | 'ironmoor' | 'coalhaven';
+  scene: 'town' | 'ironmoor' | 'coalhaven' | 'bluecliff';
 }>> = {
   Pocketvale: { unlockLevel: 1, walkMs: 90_000, fastTravelCoins: 200, blurb: 'A quiet town at the edge of the hills', scene: 'town' },
   Ironmoor: { unlockLevel: 90, walkMs: 90_000, fastTravelCoins: 200, blurb: 'A smoky mountain town built around the deep iron mines', scene: 'ironmoor' },
   Coalhaven: { unlockLevel: 180, walkMs: 120_000, fastTravelCoins: 350, blurb: 'A sooty harbour where coal barges dock under weeping willows', scene: 'coalhaven' },
+  Bluecliff: { unlockLevel: 270, walkMs: 150_000, fastTravelCoins: 500, blurb: 'Windswept sea cliffs, red maples and a lighthouse that never sleeps', scene: 'bluecliff' },
 };
 
 /** Skills whose resources must be gathered on location (you start them in that region). */

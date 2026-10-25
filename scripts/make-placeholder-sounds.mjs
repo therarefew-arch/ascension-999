@@ -432,6 +432,83 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
   writeFileSync(join(OUT, 'music_coalhaven.wav'), wav(Array.from(out), MR));
 }
 
+// Bluecliff: airy and open. Rippling harp arpeggios, a soft high pad, sea wind, and a bell buoy far out on the water.
+{
+  const bpm = 76;
+  const beat = 60 / bpm;
+  const BAR = 4 * beat;
+  const N = {
+    D: [146.8, 185, 220], A: [110, 138.6, 164.8], Bm: [123.5, 146.8, 185], G: [98, 123.5, 146.8],
+    Em: [164.8 / 2, 98, 123.5], Fsm: [92.5, 110, 138.6], Gmaj7: [98, 123.5, 146.8, 185], Asus: [110, 146.8, 164.8],
+  };
+  const sections = [
+    { bars: ['D', 'A', 'Bm', 'G'], harp: true, pad: false, mel: false },
+    { bars: ['D', 'A', 'Bm', 'G'], harp: true, pad: true, mel: false },
+    { bars: ['G', 'D', 'Em', 'Asus'], harp: true, pad: true, mel: true },
+    { bars: ['Bm', 'G', 'D', 'A'], harp: true, pad: true, mel: true },
+    { bars: ['Gmaj7', 'D', 'Fsm', 'Bm'], harp: false, pad: true, mel: true },
+    { bars: ['G', 'D', 'Em', 'Asus'], harp: true, pad: true, mel: false },
+    { bars: ['D', 'A', 'Bm', 'G'], harp: true, pad: false, mel: true },
+    { bars: ['D', 'A', 'G', 'D'], harp: true, pad: true, mel: false },
+  ];
+  const rnd = seeded(23);
+  const SCALE = [587.3, 659.3, 740, 880, 987.8, 1174.7]; // D major pentatonic, up high
+  const totalBars = sections.reduce((n, s) => n + s.bars.length, 0);
+  const total = Math.floor(totalBars * BAR * MR);
+  const out = new Float32Array(total);
+  const pluck = (f, t) => (Math.sin(2 * Math.PI * f * t) + 0.3 * Math.sin(4 * Math.PI * f * t) * Math.exp(-6 * t)) * Math.exp(-3.4 * t) * Math.min(1, t / 0.004);
+  let b = 0;
+  for (const sec of sections) {
+    for (const name of sec.bars) {
+      const chord = N[name];
+      const start = Math.floor(b * BAR * MR);
+      // Harp: chord notes rising and falling in eighth notes, two octaves up.
+      if (sec.harp) {
+        const up = [...chord.map((f) => f * 2), ...chord.map((f) => f * 4)];
+        const pattern = [0, 1, 2, 3, 4, 3, 2, 1].map((k) => up[Math.min(k, up.length - 1)]);
+        pattern.forEach((f, k) => addTo(out, start + Math.floor(k * (beat / 2) * MR), Math.floor(1.6 * MR), (t) => pluck(f, t) * 0.02));
+      }
+      // Low root, gently.
+      addTo(out, start, Math.floor(BAR * MR), (t) => Math.sin(2 * Math.PI * (chord[0] / 2 < 60 ? chord[0] : chord[0] / 2) * t) * Math.sin(Math.PI * (t / BAR)) ** 2 * 0.04);
+      // Soft high pad that breathes with the bar.
+      if (sec.pad) addTo(out, start, Math.floor(BAR * MR), (t) => {
+        let v = 0;
+        for (const f of chord) v += Math.sin(2 * Math.PI * f * 2 * t) + 0.25 * Math.sin(2 * Math.PI * f * 3 * t);
+        return (v / chord.length) * Math.sin(Math.PI * (t / BAR)) ** 1.6 * 0.03;
+      });
+      // A few long, singing melody notes.
+      if (sec.mel && rnd() < 0.85) {
+        const near = SCALE.filter((f) => chord.some((c) => Math.abs(Math.log2(f / c) - Math.round(Math.log2(f / c))) < 0.02));
+        const f = (near.length ? near : SCALE)[Math.floor(rnd() * (near.length || SCALE.length))];
+        addTo(out, start + Math.floor(beat * MR * (rnd() < 0.5 ? 0 : 2)), Math.floor(2.4 * MR), (t) =>
+          Math.sin(2 * Math.PI * f * t + 0.004 * Math.sin(2 * Math.PI * 5 * t) * f) * Math.min(1, t / 0.08) * Math.exp(-1.1 * t) * 0.018);
+      }
+      b++;
+    }
+  }
+  // Sea wind: band-passed noise that swells slowly.
+  let lo = 0; let lo2 = 0;
+  const a1 = 1 - Math.exp((-2 * Math.PI * 900) / MR);
+  const a2 = 1 - Math.exp((-2 * Math.PI * 250) / MR);
+  for (let i = 0; i < total; i++) {
+    const n = rnd() * 2 - 1;
+    lo += a1 * (n - lo); lo2 += a2 * (n - lo2);
+    const t = i / MR;
+    const swell = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin((2 * Math.PI * t) / 11));
+    out[i] += (lo - lo2) * 0.08 * swell * Math.min(1, t / 3, (total / MR - t) / 3);
+  }
+  // A bell buoy far out on the water, rocking with the waves (rings twice, softly).
+  for (const at of [18, 62, 96]) {
+    for (const [d, amp] of [[0, 0.02], [1.6, 0.012]]) {
+      addTo(out, Math.floor((at + d) * MR), Math.floor(4 * MR), (t) =>
+        (Math.sin(2 * Math.PI * 392 * t) + 0.6 * Math.sin(2 * Math.PI * 392 * 2.4 * t) * Math.exp(-3 * t) + 0.3 * Math.sin(2 * Math.PI * 392 * 0.5 * t)) * Math.exp(-1.2 * t) * Math.min(1, t / 0.004) * amp);
+    }
+  }
+  const f = Math.floor(0.4 * MR);
+  for (let i = 0; i < f; i++) { out[i] *= i / f; out[total - 1 - i] *= i / f; }
+  writeFileSync(join(OUT, 'music_bluecliff.wav'), wav(Array.from(out), MR));
+}
+
 // Calm lofi loop for the Mahjong tile game: 72 bpm, jazzy 7th chords, soft kick + brush, vinyl crackle. 4 bars × 2 = ~26.7s.
 {
   const bpm = 72;

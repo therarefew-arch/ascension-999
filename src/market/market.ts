@@ -88,6 +88,7 @@ export const BUY_LISTS: Partial<Record<Region, string[]>> = {
   Pocketvale: ['copper_ore', 'tin_ore', 'stone', 'rune_essence', 'pine_logs', 'raw_shrimp', 'bronze_bar', 'bronze_arrows', 'cooked_shrimp'],
   Ironmoor: ['iron_ore', 'oak_logs', 'raw_trout', 'iron_bar', 'iron_arrows', 'cooked_trout', 'stone', 'rune_essence'],
   Coalhaven: ['coal', 'willow_logs', 'raw_salmon', 'steel_bar', 'steel_arrows', 'cooked_salmon', 'iron_ore', 'stone', 'rune_essence'],
+  Bluecliff: ['cobalt_ore', 'maple_logs', 'raw_lobster', 'cobalt_bar', 'cobalt_arrows', 'cooked_lobster', 'coal', 'stone', 'rune_essence'],
 };
 export const buyListFor = (where: Region) => BUY_LISTS[where] ?? [];
 /** Everything sold anywhere (kept for older code). */

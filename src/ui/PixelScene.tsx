@@ -2,7 +2,7 @@
 // Our own art — no image files needed. Each scene is the same every time (seeded).
 import { useEffect, useRef, useState } from 'react';
 
-export type SceneName = 'forest' | 'town' | 'mine' | 'forge' | 'river' | 'camp' | 'kitchen' | 'workshop' | 'tower' | 'altar' | 'ironmoor' | 'coalhaven';
+export type SceneName = 'forest' | 'town' | 'mine' | 'forge' | 'river' | 'camp' | 'kitchen' | 'workshop' | 'tower' | 'altar' | 'ironmoor' | 'coalhaven' | 'bluecliff';
 
 const W = 72;
 const H = 128;
@@ -290,13 +290,52 @@ function drawCoalhaven(px: Px, r: () => number) {
   for (let i = 0; i < 50; i++) px(Math.floor(r() * W), 108 + Math.floor(r() * 20), 2, 1, ['#6b645b', '#3f3a35', '#1c1917'][Math.floor(r() * 3)]);
 }
 
-const DRAW: Record<SceneName, (px: Px, r: () => number) => void> = {
+function drawBluecliff(px: Px, r: () => number) {
+  // bright, airy sea sky
+  const sky = ['#7cc4e8', '#93d0ec', '#aedcf0', '#c9e8f4'];
+  for (let y = 0; y < 50; y++) px(0, y, W, 1, sky[Math.min(3, Math.floor(y / 13))]);
+  // soft clouds
+  for (const [x, y, w] of [[6, 8, 14], [40, 5, 18], [58, 16, 10]] as const) { px(x, y, w, 2, '#f8fafc'); px(x + 2, y - 1, w - 4, 1, '#f8fafc'); }
+  // the sea, and far on the horizon a small dark island with no lights (Lunaria)
+  for (let y = 50; y < 128; y++) px(0, y, W, 1, y % 5 === 0 ? '#2b7aa6' : '#22688f');
+  px(8, 46, 14, 4, '#2c3440'); px(11, 44, 8, 2, '#2c3440'); px(14, 41, 2, 3, '#2c3440');
+  // whitecaps
+  for (let i = 0; i < 40; i++) px(Math.floor(r() * W), 52 + Math.floor(r() * 70), 2 + Math.floor(r() * 3), 1, '#d6f0fb');
+  // cobalt-grey cliffs on the right, stepping down to the sea
+  for (let x = 30; x < W; x++) {
+    const top = 44 + Math.round(Math.max(0, 50 - x) * 0.9 + Math.sin(x / 4) * 1.5);
+    for (let y = top; y < H; y++) px(x, y, 1, 1, (y + x) % 7 === 0 ? '#3b5878' : y - top < 3 ? '#5a7a52' : '#46607e');
+  }
+  // clifftop grass and red maples
+  for (let x = 30; x < W; x++) { const top = 44 + Math.round(Math.max(0, 50 - x) * 0.9 + Math.sin(x / 4) * 1.5); px(x, top - 1, 1, 2, '#6f9a4a'); }
+  const maple = (x: number, y: number) => {
+    px(x + 2, y + 4, 1, 5, '#5b3d22');
+    for (let k = 0; k < 9; k++) px(x + Math.floor(r() * 6) - 1, y + Math.floor(r() * 5), 2, 2, ['#dc2626', '#ea580c', '#f59e0b'][Math.floor(r() * 3)]);
+  };
+  maple(34, 52); maple(40, 46);
+  // little white cottages
+  for (const [x, y] of [[46, 40], [53, 41]] as const) { px(x, y, 6, 5, '#f1f5f9'); px(x - 1, y - 2, 8, 2, '#1d4ed8'); px(x + 2, y + 2, 2, 3, '#7c4a24'); px(x + 4, y + 1, 1, 1, '#fde68a'); }
+  // the lighthouse on the point, with a light beam towards the dark island
+  px(62, 16, 6, 26, '#f8fafc');
+  for (let y = 18; y < 42; y += 6) px(62, y, 6, 3, '#dc2626');
+  px(61, 13, 8, 3, '#1e293b'); px(62, 11, 6, 2, '#fde68a'); px(63, 9, 4, 2, '#1e293b');
+  for (let i = 0; i < 40; i++) px(61 - i, 12 - Math.floor(i / 12), 1, 1 + Math.floor(i / 10), 'rgba(253,230,138,0.25)');
+  // gulls
+  for (const [x, y] of [[24, 18], [30, 24], [18, 28]] as const) { px(x, y, 2, 1, '#f8fafc'); px(x + 2, y - 1, 2, 1, '#f8fafc'); px(x + 4, y, 2, 1, '#f8fafc'); }
+  // lobster pots bobbing
+  for (const x of [8, 16, 24]) { px(x, 70 + (x % 3), 3, 2, '#b45309'); px(x + 1, 69 + (x % 3), 1, 1, '#f59e0b'); }
+}
+
+export const DRAW: Record<SceneName, (px: Px, r: () => number) => void> = {
   forest: drawForest, town: drawTown, mine: drawMine, forge: drawForge,
-  river: drawRiver, camp: drawCamp, kitchen: drawKitchen, workshop: drawWorkshop, tower: drawTower, altar: drawAltar, ironmoor: drawIronmoor, coalhaven: drawCoalhaven,
+  river: drawRiver, camp: drawCamp, kitchen: drawKitchen, workshop: drawWorkshop, tower: drawTower, altar: drawAltar, ironmoor: drawIronmoor, coalhaven: drawCoalhaven, bluecliff: drawBluecliff,
 };
 
+/** Where the interesting part of each scene is (0% = top, 100% = bottom), for short banners. */
+const FOCUS: Partial<Record<SceneName, number>> = { bluecliff: 22, coalhaven: 46, ironmoor: 50, town: 50 };
+
 /** Outdoor scenes follow the real clock on your phone. Indoor ones stay cosy all day. */
-const OUTDOOR: SceneName[] = ['forest', 'town', 'river', 'ironmoor', 'coalhaven'];
+const OUTDOOR: SceneName[] = ['forest', 'town', 'river', 'ironmoor', 'coalhaven', 'bluecliff'];
 
 export type DayPhase = 'dawn' | 'day' | 'dusk' | 'night';
 
@@ -342,7 +381,7 @@ export function PixelScene({ scene, dim = 0.55, className = '' }: { scene: Scene
   }, [scene, phase]);
   return (
     <div className={`pixel-scene ${className} sky-${phase}`} aria-hidden="true">
-      <canvas ref={ref} width={W} height={H} />
+      <canvas ref={ref} width={W} height={H} style={{ objectPosition: `center ${FOCUS[scene] ?? 50}%` }} />
       <div className="pixel-sky" />
       <div className="pixel-dim" style={{ opacity: dim }} />
     </div>

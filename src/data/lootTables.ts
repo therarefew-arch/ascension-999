@@ -78,6 +78,19 @@ tables.push(
   },
 );
 
+// ----- Monsters (Bluecliff) -----
+tables.push(
+  { id: 'mon_gull_thief', source: 'monster', entries: [e('coins', 260, 480, 1), e('raw_lobster', 2, 5, 0.45), e('cobalt_arrows', 10, 25, 0.3), e('maple_logs', 3, 7, 0.25)] },
+  { id: 'mon_spray_sprite', source: 'monster', entries: [e('coins', 280, 520, 1), e('nature_rune', 15, 35, 0.4), e('water_rune', 25, 50, 0.35), e('rune_essence', 10, 25, 0.3)] },
+  { id: 'mon_cliff_wrecker', source: 'monster', entries: [e('coins', 340, 620, 1), e('cobalt_arrows', 20, 40, 0.45), e('cobalt_bar', 1, 3, 0.25), e('cooked_lobster', 1, 3, 0.3)] },
+  { id: 'mon_cobalt_crab', source: 'monster', entries: [e('coins', 400, 720, 1), e('cobalt_ore', 4, 10, 0.45), e('raw_lobster', 3, 6, 0.35), e('maple_logs', 4, 10, 0.3)] },
+  {
+    id: 'boss_old_galewing', source: 'miniboss',
+    entries: [e('coins', 1600, 3000, 1), e('cobalt_bar', 8, 18, 0.6), e('great_lobster', 3, 8, 0.5), e('cobalt_arrows', 50, 100, 0.4), e('nature_rune', 40, 80, 0.45), e('maple_logs', 20, 40, 0.4)],
+    groups: [{ chance: 0, items: [] }], // replaced below with the gem group
+  },
+);
+
 // ----- Mini boss: the ONLY place gems drop (in Pocketvale) -----
 /** Chance weights per rarity: common is common, mythic is very rare. */
 export const GEM_RARITY_WEIGHTS: Record<GemRarity, number> = { common: 45, uncommon: 28, rare: 15, epic: 8, legendary: 3, mythic: 1 };
@@ -105,6 +118,9 @@ tables.find((t) => t.id === 'boss_forgefather_brask')!.groups = [gemGroup(0.8, {
 
 // Mother Clawsoot: a gem 85% of the time, better odds again than Brask.
 tables.find((t) => t.id === 'boss_mother_clawsoot')!.groups = [gemGroup(0.85, { common: 28, uncommon: 30, rare: 22, epic: 13, legendary: 5, mythic: 2 })];
+
+// Old Galewing: a gem 88% of the time, rarities a step better again.
+tables.find((t) => t.id === 'boss_old_galewing')!.groups = [gemGroup(0.88, { common: 22, uncommon: 30, rare: 25, epic: 15, legendary: 6, mythic: 2 })];
 
 // ----- Weekly boss: 2 guaranteed gems with better rarity odds -----
 const WEEKLY_GEM_WEIGHTS: Record<GemRarity, number> = { common: 20, uncommon: 30, rare: 25, epic: 15, legendary: 7, mythic: 3 };

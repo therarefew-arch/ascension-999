@@ -300,6 +300,14 @@ Based on the owner's reference screenshots:
 - **Every town has its own music**: Pocketvale keeps its song; Ironmoor has a deep, slow minor theme with distant anvil chimes; Coalhaven has a gentle harbour waltz with soft waves and a far-off foghorn. Songs crossfade when you travel and only download when needed.
 - Save version 12 (lore).
 
+### Phase 7 — built (Bluecliff) · v0.0.1.3
+- **Bluecliff** (region 4, tier 3 at level 270): windswept sea cliffs, red maples, white cottages and a red-and-white lighthouse — with the dark island of Lunaria on the horizon. Unlocks Cobalt ore/bars/gear/arrows, Maple, Lobster, Steel tools (from Coalhaven materials), maple bows/staffs, and the new **Nature** rune element (nature talisman, runes and nature staffs). Road opens at 270; walk 2.5 min, fast travel 500 coins.
+- **Monsters on The Cliff Path**: Gull Thief (275, ranged), Spray Sprite (290, magic), Cliff Wrecker (310, ranged — swings false lanterns to wreck ships), Cobalt Crab (335, melee); **mini boss Old Galewing** (355, magic — a huge grumpy storm gull), gem 88% with better rarities, can drop the pet **Peep** 🐥. New gull portrait. Balance simulated against Coalhaven.
+- Places: Cobalt Cliffs, Lighthouse Forge, Maple Ridge, The Lobster Pots, Clifftop Chowder House, Beacon Point, Netmaker's Hut, Wind Stones, Tidecut Anvil. Trading Post sells cobalt/maple/lobster.
+- **Music**: airy harp arpeggios, a soft high pad, sea wind, and a bell buoy ringing far out on the water.
+- **Lore** (towards Lunaria): the lighthouse log shows Lunaria's lights went out all at once one autumn night; Galewing's nest holds a brass key stamped LUNARIA BELL TOWER; a message in a bottle in silver ink: "we are not gone… please do not ring the bell. — L."
+- Town banners now focus on the best part of each scene. **Version number** shown on the title screen and in Settings (`src/version.ts`).
+
 ### Owner's notes for later
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.

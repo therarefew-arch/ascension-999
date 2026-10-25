@@ -108,6 +108,29 @@ export function MonsterArt({ monster, size = 96, hurt = false }: { monster: Mons
         </g>
       );
       break;
+    case 'bird':
+      art = (
+        <g>
+          {/* tail + far wing */}
+          <path d="M70 62 L92 54 L88 70 Z" fill={dark} opacity="0.85" />
+          <path d="M58 46 Q78 22 92 30 Q80 44 66 58 Z" fill={dark} opacity="0.7" />
+          {/* body */}
+          <ellipse cx="50" cy="60" rx="28" ry="20" fill={body} stroke={dark} strokeWidth="3" />
+          {/* near wing */}
+          <path d="M40 54 Q60 44 78 58 Q62 72 44 68 Z" fill="#cbd5e1" stroke={dark} strokeWidth="2.5" strokeLinejoin="round" />
+          <path d="M60 62 L74 60 M58 66 L70 66" stroke={dark} strokeWidth="1.5" opacity="0.6" />
+          {/* head */}
+          <circle cx="26" cy="40" r="15" fill={body} stroke={dark} strokeWidth="3" />
+          <g transform="translate(24 37)">{eye}</g>
+          <path d="M18 31 L30 33" stroke={dark} strokeWidth="2.5" strokeLinecap="round" />
+          {/* beak */}
+          <path d="M12 42 L2 46 L12 49 Z" fill={accent} stroke={dark} strokeWidth="2" strokeLinejoin="round" />
+          <circle cx="6.5" cy="46.5" r="1.5" fill="#ef4444" />
+          {/* feet */}
+          <path d="M42 78 L40 90 M56 78 L58 90 M36 90 L44 90 M54 90 L62 90" stroke={accent} strokeWidth="3" strokeLinecap="round" />
+        </g>
+      );
+      break;
     case 'bear':
       art = (
         <g>

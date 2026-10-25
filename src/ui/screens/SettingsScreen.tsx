@@ -3,6 +3,7 @@ import { sound } from '../../audio/sound';
 import { game, useGame } from '../../core/store';
 import { UiIcon } from '../icons';
 import { fmtDuration } from '../format';
+import { GAME_VERSION } from '../../version';
 
 const SLIDERS: { key: 'master' | 'effects' | 'music'; label: string; icon: 'sound' | 'music' }[] = [
   { key: 'master', label: 'Master volume', icon: 'sound' },
@@ -46,7 +47,7 @@ export function SettingsScreen() {
         <p className="small muted">You're playing save slot {slot}. Switch slots, start over or delete a save from the title screen.</p>
         <button className="btn btn-wide" onClick={() => game.backToTitle()}><UiIcon name="door" size={18} /> Save &amp; back to title screen</button>
       </div>
-      <p className="small muted center">Ascension 999</p>
+      <p className="small muted center">Ascension 999 · <span className="mono">{GAME_VERSION}</span></p>
     </div>
   );
 }

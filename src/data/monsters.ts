@@ -24,7 +24,7 @@ export interface MonsterDef {
   pet?: string;
   /** Colours for its portrait. */
   colors: { body: string; dark: string; accent: string };
-  art: 'rat' | 'sprite' | 'bandit' | 'boar' | 'bear' | 'treant' | 'crab';
+  art: 'rat' | 'sprite' | 'bandit' | 'boar' | 'bear' | 'treant' | 'crab' | 'bird';
   blurb: string;
 }
 
@@ -129,6 +129,41 @@ MONSTERS.push(
     miniboss: { respawnMs: 5 * 60 * 1000 }, pet: 'pet_pinch',
     colors: { body: '#7c2d12', dark: '#1c1917', accent: '#fbbf24' }, art: 'crab',
     blurb: 'Mini boss. A giant harbour crab who spits lumps of hot coal. Drops gems.',
+  },
+);
+
+// ----- Bluecliff (tier 3, levels 270+) — windswept sea cliffs and a lighthouse -----
+MONSTERS.push(
+  {
+    id: 'gull_thief', name: 'Gull Thief', region: 'Bluecliff', level: 275, style: 'ranged',
+    hp: 580, attack: 275, defense: 240, maxHit: 42, speedMs: 1900, lootTable: 'mon_gull_thief',
+    colors: { body: '#f1f5f9', dark: '#334155', accent: '#f59e0b' }, art: 'bird',
+    blurb: 'Steals lobsters from the pots and throws pebbles at anyone who complains.',
+  },
+  {
+    id: 'spray_sprite', name: 'Spray Sprite', region: 'Bluecliff', level: 290, style: 'magic',
+    hp: 520, attack: 285, defense: 240, maxHit: 41, speedMs: 2000, lootTable: 'mon_spray_sprite',
+    colors: { body: '#7dd3fc', dark: '#0c4a6e', accent: '#e0f2fe' }, art: 'sprite',
+    blurb: 'Born from sea spray hitting the cliffs. Giggles like a wave on pebbles.',
+  },
+  {
+    id: 'cliff_wrecker', name: 'Cliff Wrecker', region: 'Bluecliff', level: 310, style: 'ranged',
+    hp: 580, attack: 305, defense: 260, maxHit: 46, speedMs: 1900, lootTable: 'mon_cliff_wrecker',
+    colors: { body: '#1e293b', dark: '#020617', accent: '#fbbf24' }, art: 'bandit',
+    blurb: 'Swings a false lantern on stormy nights to lure ships onto the rocks.',
+  },
+  {
+    id: 'cobalt_crab', name: 'Cobalt Crab', region: 'Bluecliff', level: 335, style: 'melee',
+    hp: 600, attack: 325, defense: 280, maxHit: 48, speedMs: 2000, lootTable: 'mon_cobalt_crab',
+    colors: { body: '#1d4ed8', dark: '#172554', accent: '#93c5fd' }, art: 'crab',
+    blurb: 'Its shell is studded with cobalt from the cliffs. Clacks very proudly.',
+  },
+  {
+    id: 'old_galewing', name: 'Old Galewing', region: 'Bluecliff', level: 355, style: 'magic',
+    hp: 2300, attack: 355, defense: 315, maxHit: 66, speedMs: 2200, lootTable: 'boss_old_galewing',
+    miniboss: { respawnMs: 5 * 60 * 1000 }, pet: 'pet_peep',
+    colors: { body: '#e2e8f0', dark: '#1e293b', accent: '#38bdf8' }, art: 'bird',
+    blurb: 'Mini boss. A huge, grumpy old gull who rides the storm winds. Drops gems.',
   },
 );
 
