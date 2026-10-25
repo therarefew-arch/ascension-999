@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import type { SkillId } from '../../data/items';
 import { ACTION_LIST } from '../../data/skills';
-import { OPEN_REGIONS, REGION_INFO, REGIONS, tierLevel } from '../../data/tiers';
+import { HEARTLAND_TOWNS, OPEN_REGIONS, REGION_INFO, REGIONS, tierLevel } from '../../data/tiers';
 import type { TownRequest } from '../../core/cozy';
 import { highestSkill, whyCantTravel } from '../../core/travel';
 import { game, useGame } from '../../core/store';
@@ -49,18 +49,28 @@ function TravelMap() {
           const here = player.location === r;
           const visited = player.regions.includes(r);
           const level = tierLevel(i);
+          const heading = i === 0
+            ? <div className="region-band"><b>🏡 The Heartland</b><span className="small muted">Cozy neighbouring towns, a short walk apart</span></div>
+            : i === HEARTLAND_TOWNS
+              ? <div className="region-band frontier"><b>🧭 The Frontier</b><span className="small muted">Far-flung, wilder places — each one an expedition</span></div>
+              : null;
           if (!built) {
             return (
-              <div key={r} className="region-row locked">
-                <span className="region-num mono">{level}</span>
-                <div className="grow"><b>{r}</b><div className="small dim">Coming in a future update</div></div>
-                <UiIcon name="lock" size={16} />
-              </div>
+              <Fragment key={r}>
+                {heading}
+                <div className="region-row locked">
+                  <span className="region-num mono">{level}</span>
+                  <div className="grow"><b>{r}</b><div className="small dim">Coming in a future update</div></div>
+                  <UiIcon name="lock" size={16} />
+                </div>
+              </Fragment>
             );
           }
           const roadOpen = best >= (info?.unlockLevel ?? 1);
           return (
-            <div key={r} className={`region-row ${here ? 'here' : ''}`}>
+            <Fragment key={r}>
+            {heading}
+            <div className={`region-row ${here ? 'here' : ''}`}>
               <span className="region-num mono">{level}</span>
               <div className="grow">
                 <b>{r}</b> {here && <span className="chip up">You are here</span>}
@@ -74,6 +84,7 @@ function TravelMap() {
                 </div>
               )}
             </div>
+            </Fragment>
           );
         })}
       </div>}

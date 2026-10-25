@@ -1,5 +1,6 @@
 // Monsters and their loot tables. Static data only.
 import type { CombatStyle } from './items';
+import { REGIONS, TIER_LEVELS, type Region } from './tiers';
 
 export interface MonsterDef {
   id: string;
@@ -167,16 +168,22 @@ MONSTERS.push(
   },
 );
 
-// Towns are now every 75 levels (they used to be every 90), so monsters outside Pocketvale
-// are scaled to match: same place in their town's level band, same feel.
-const TOWN_SCALE = 75 / 90;
+// Monsters above are written for the first town spacing (a town every 90 levels).
+// Towns now open at TIER_LEVELS (1, 50, 110, 175 …), so each monster is moved to the same spot
+// inside its town's new level band, and its stats scale with its level — same feel, earlier.
 for (const m of MONSTERS) {
-  if (m.region === 'Pocketvale') continue;
-  m.level = Math.round(m.level * TOWN_SCALE);
-  m.hp = Math.round(m.hp * TOWN_SCALE);
-  m.attack = Math.round(m.attack * TOWN_SCALE);
-  m.defense = Math.round(m.defense * TOWN_SCALE);
-  m.maxHit = Math.round(m.maxHit * TOWN_SCALE);
+  const t = REGIONS.indexOf(m.region as Region);
+  if (t <= 0) continue;
+  const oldLo = t * 90;
+  const newLo = TIER_LEVELS[t];
+  const newHi = TIER_LEVELS[t + 1] ?? newLo + 90;
+  const level = Math.round(newLo + (m.level - oldLo) * ((newHi - newLo) / 90));
+  const s = level / m.level;
+  m.level = level;
+  m.hp = Math.round(m.hp * s);
+  m.attack = Math.round(m.attack * s);
+  m.defense = Math.round(m.defense * s);
+  m.maxHit = Math.round(m.maxHit * s);
 }
 
 /** The weekly boss sits apart from the regular list on the Combat screen. */

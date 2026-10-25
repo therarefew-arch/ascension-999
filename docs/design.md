@@ -319,7 +319,12 @@ Based on the owner's reference screenshots:
 - **🌱 Early boost**: ×3 XP below level 90, fading to normal by 180. **🧭 Catch-up**: any skill behind your highest skill gets +10% XP per 10 levels behind (up to +100%). Together max ×4; shown under each skill's XP bar, and included in XP/hour, "next level" and goal times. Real pace with boosts: 75 ≈ 2 h, 150 ≈ 10 h; a lagging skill reaches 150 in ≈ 8 h.
 - **Saves**: XP is kept and levels are re-worked out from it, so levels only go up (e.g. old 90 → 153, old 163 → 277). A one-time note explains it. Monsters outside Pocketvale were scaled to the new town bands (×75/90) and re-simulated: same feel as before. Rune elements and gear requirements follow the new tier levels.
 - Save version 13.
-- Alternative spacing considered: front-loaded (towns closer early, wider later, e.g. 1, 50, 110, 175, 245, 320, 400, 485, 570, 660, 750) — kept even steps for now.
+- Alternative spacing considered: front-loaded — built next in v0.0.1.6.
+
+### Phase 8.1 — built (the Heartland & the Frontier) · v0.0.1.6
+- **Front-loaded towns**: 1, 50, 110, 175, 245, 320, 400, 485, 570, 660, 750. **The Heartland** (Pocketvale, Ironmoor 50, Coalhaven 110, Bluecliff 175) is a cozy cluster of neighbouring towns; **the Frontier** (Lunaria 245 onwards) is far-flung — each town an expedition, wilder and stranger the further out (longer walks there). The travel map shows both bands.
+- The XP table is unchanged (nobody's levels move) — towns simply open sooner. Real pace with boosts: town 2 ≈ 50 min, town 3 ≈ 4 h, town 4 ≈ 13 h, Lunaria ≈ 37 h. Gaps between towns grow: ≈ 2.5, 9, 15, 24, 33, 46, 64, 80, 104, 127 h (no boosts). All towns ≈ 505 h, then the endgame ≈ 520 h (owner: keep the endgame long).
+- Monsters re-fitted into the new town bands (same spot in their band) and re-simulated; mini bosses beatable 15 levels above them. Rune elements, gear and recipe levels follow the new tier levels. Save version 14 (one-time note).
 
 ### Owner's notes for later
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.

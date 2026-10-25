@@ -1,9 +1,13 @@
-// XP curve, cap 999. Built from time targets (one skill, idling its best basic action, no boosts):
-//   town 2 (75) ≈ 6 h · town 3 (150) ≈ 24 h · town 5 (300) ≈ 96 h · all towns (750) ≈ 600 h
-//   then the endgame, 750 → 999 ≈ 520 h more (slightly shorter than the journey).
-// Each level's XP cost = hours that level should take × XP per hour at that level's tier.
-// The early ×3 boost and catch-up bonus (core/boosts.ts) make the real game faster than this.
-import { gatherXpPerHour, tierForLevel } from '../data/tiers';
+// XP curve, cap 999. Built from time targets (one skill, idling its best basic action, no boosts),
+// paced against tiers every 75 levels. The XP table up to 750 is kept exactly as it was in v0.0.1.5
+// so nobody's levels move; since v0.0.1.6 towns open EARLIER (1, 50, 110, 175 …), which makes the real
+// pace faster: town 2 (50) ≈ 2.5 h · town 3 (110) ≈ 12 h · town 4 (175) ≈ 27 h · all towns (750) ≈ 505 h.
+// Then the endgame, 750 → 999 ≈ 520 h (a little longer than the journey — the owner wants a long grind).
+// The early ×3 boost and catch-up bonus (core/boosts.ts) make the real game faster still.
+import { gatherXpPerHour } from '../data/tiers';
+
+/** The tier spacing the XP table is paced against (kept at every-75 so levels never change). */
+const paceTier = (level: number) => Math.min(10, Math.floor(level / 75));
 
 export const MAX_LEVEL = 999;
 /** Every town is open by this level; after it comes the endgame. */
@@ -29,7 +33,7 @@ const oldXpToNext = (level: number) => Math.round(0.5 * Math.pow(level, 2.2) + 1
 /** XP needed to go from `level` to `level + 1`. */
 export function xpToNext(level: number): number {
   const hours = targetHours(level + 1) - targetHours(level);
-  const xp = Math.max(10, Math.round(hours * gatherXpPerHour(tierForLevel(level))));
+  const xp = Math.max(10, Math.round(hours * gatherXpPerHour(paceTier(level))));
   return level < 100 ? Math.min(xp, oldXpToNext(level)) : xp;
 }
 

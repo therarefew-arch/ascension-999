@@ -325,7 +325,9 @@ export const game = {
     if (earned.length) setTimeout(() => { play('rune'); toast(`📜 ${earned.length} tale${earned.length > 1 ? 's' : ''} waiting in your Journal`, 'good'); emit(); }, 1500);
     // The big pacing update (v13): XP is kept, the level table changed — so levels jumped up. Say so once.
     if (loadedFromVersion < 13) {
-      setTimeout(() => { play('levelup'); celebrate(); toast('📈 New pacing! Towns now open every 75 levels — your skills jumped up. Check your levels!', 'level'); emit(); }, 900);
+      setTimeout(() => { play('levelup'); celebrate(); toast('📈 New pacing! Towns open much sooner and your skills jumped up. Check your levels!', 'level'); emit(); }, 900);
+    } else if (loadedFromVersion < 14) {
+      setTimeout(() => { play('levelup'); toast('🗺️ The Heartland towns moved closer: Ironmoor 50 · Coalhaven 110 · Bluecliff 175', 'level'); emit(); }, 900);
     }
     checkGoals();
     play('click');

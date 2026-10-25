@@ -2,7 +2,7 @@
 // All rewards go through the central loot system (giveLoot).
 import { getItem, type SkillId } from '../data/items';
 import { ACTION_LIST, SKILL_ORDER, SKILLS, type ActionDef } from '../data/skills';
-import { REGIONS, regionOpen, tierRegion } from '../data/tiers';
+import { REGIONS, regionOpen, TIER_LEVELS, tierRegion } from '../data/tiers';
 import { LORE, LORE_FIND_CHANCE, type LoreNote } from '../data/lore';
 import type { ProgressReport } from './idle';
 import { giveLoot } from './loot';
@@ -188,11 +188,12 @@ export function catchStar(p: PlayerState): ItemStack[] {
 // Skill goals (🎯)
 // ---------------------------------------------------------------------------
 
-/** Handy targets to pick from: next 10, next town (every 75, up to 750), next 100, and 999. */
+/** Handy targets to pick from: next 10, the next town's level, next 100, and 999. */
 export function goalChoices(level: number): number[] {
   const opts = new Set<number>();
   if (level < 999) opts.add(Math.min(999, Math.floor(level / 10) * 10 + 10));
-  if (level < 750) opts.add(Math.floor(level / 75) * 75 + 75);
+  const nextTown = TIER_LEVELS.find((l) => l > level);
+  if (nextTown) opts.add(nextTown);
   if (level < 900) opts.add(Math.floor(level / 100) * 100 + 100);
   if (level < 999) opts.add(999);
   return [...opts].sort((a, b) => a - b);

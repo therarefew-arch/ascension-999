@@ -1,4 +1,5 @@
-// The 11 resource tiers — one per region, a new tier every 75 levels (1, 75, 150 … 750).
+// The 11 resource tiers — one per region. Towns are close together early (the cozy Heartland)
+// and further apart later (the wild Frontier): 1, 50, 110, 175, 245, 320, 400, 485, 570, 660, 750.
 // Every town is open by 750; 750 → 999 is the endgame ("the Ascension").
 // Tiers outside an open region exist in the game data but stay locked until that region is built.
 
@@ -23,21 +24,27 @@ export const REGION_INFO: Partial<Record<Region, {
   scene: 'town' | 'ironmoor' | 'coalhaven' | 'bluecliff';
 }>> = {
   Pocketvale: { unlockLevel: 1, walkMs: 90_000, fastTravelCoins: 200, blurb: 'A quiet town at the edge of the hills', scene: 'town' },
-  Ironmoor: { unlockLevel: 75, walkMs: 90_000, fastTravelCoins: 200, blurb: 'A smoky mountain town built around the deep iron mines', scene: 'ironmoor' },
-  Coalhaven: { unlockLevel: 150, walkMs: 120_000, fastTravelCoins: 350, blurb: 'A sooty harbour where coal barges dock under weeping willows', scene: 'coalhaven' },
-  Bluecliff: { unlockLevel: 225, walkMs: 150_000, fastTravelCoins: 500, blurb: 'Windswept sea cliffs, red maples and a lighthouse that never sleeps', scene: 'bluecliff' },
+  Ironmoor: { unlockLevel: 50, walkMs: 90_000, fastTravelCoins: 200, blurb: 'A smoky mountain town built around the deep iron mines', scene: 'ironmoor' },
+  Coalhaven: { unlockLevel: 110, walkMs: 120_000, fastTravelCoins: 350, blurb: 'A sooty harbour where coal barges dock under weeping willows', scene: 'coalhaven' },
+  Bluecliff: { unlockLevel: 175, walkMs: 150_000, fastTravelCoins: 500, blurb: 'Windswept sea cliffs, red maples and a lighthouse that never sleeps', scene: 'bluecliff' },
 };
 
 /** Skills whose resources must be gathered on location (you start them in that region). */
 export const LOCAL_SKILLS = ['mining', 'woodcutting', 'fishing'] as const;
 
 export const TIER_COUNT = 11;
-/** Levels between tiers (and towns). */
-export const TIER_EVERY = 75;
-/** Level a tier unlocks at: 1, 75, 150, 225 … 750. */
-export const tierLevel = (t: number) => (t === 0 ? 1 : t * TIER_EVERY);
+/** The level each tier (and its town) unlocks at — front-loaded: quick early, wider later. */
+export const TIER_LEVELS = [1, 50, 110, 175, 245, 320, 400, 485, 570, 660, 750] as const;
+/** The towns close together at the start, and the far-flung ones after. */
+export const HEARTLAND_TOWNS = 4;
+/** Level a tier unlocks at. */
+export const tierLevel = (t: number) => TIER_LEVELS[Math.max(0, Math.min(TIER_COUNT - 1, t))];
 /** Which tier a level belongs to (0–10). */
-export const tierForLevel = (level: number) => Math.min(TIER_COUNT - 1, Math.floor(level / TIER_EVERY));
+export function tierForLevel(level: number): number {
+  let t = 0;
+  for (let i = 0; i < TIER_LEVELS.length; i++) if (level >= TIER_LEVELS[i]) t = i;
+  return t;
+}
 /** One tier per region, in order (Pocketvale = tier 0 … Primordial Rift = tier 10). */
 export const tierRegion = (t: number): Region => REGIONS[Math.min(REGIONS.length - 1, t)];
 export const regionOpen = (r: Region | undefined) => !r || OPEN_REGIONS.includes(r);
