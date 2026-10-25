@@ -16,10 +16,14 @@ const PLACE_NAMES: Partial<Record<Region, Partial<Record<SkillId, string>>>> = {
     mining: 'Cobalt Cliffs', smithing: 'Lighthouse Forge', woodcutting: 'Maple Ridge', fishing: 'The Lobster Pots',
     cooking: 'Clifftop Chowder House', firemaking: 'Beacon Point', crafting: 'Netmaker’s Hut', runecrafting: 'Wind Stones', enhancing: 'Tidecut Anvil',
   },
+  Lunaria: {
+    mining: 'Moonsilver Seams', smithing: 'The Cold Forge', woodcutting: 'Moonwood Grove', fishing: 'The Still Quay',
+    cooking: 'The Empty Tavern', firemaking: 'Lantern Walk', crafting: 'The Lamplighter’s Shed', runecrafting: 'The Moon Circle', enhancing: 'The Bell Anvil',
+  },
 };
 
 /** Where the combat area is in each town. */
-export const TRAINING: Partial<Record<Region, string>> = { Pocketvale: 'Training Grounds', Ironmoor: 'Mine Tunnels', Coalhaven: 'The Docks', Bluecliff: 'The Cliff Path' };
+export const TRAINING: Partial<Record<Region, string>> = { Pocketvale: 'Training Grounds', Ironmoor: 'Mine Tunnels', Coalhaven: 'The Docks', Bluecliff: 'The Cliff Path', Lunaria: 'The Fog Streets' };
 
 export function placeName(region: Region, skill: SkillId): string {
   return PLACE_NAMES[region]?.[skill] ?? SKILLS[skill].place;

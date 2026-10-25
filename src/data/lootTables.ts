@@ -91,6 +91,19 @@ tables.push(
   },
 );
 
+// ----- Monsters (Lunaria) -----
+tables.push(
+  { id: 'mon_mist_crab', source: 'monster', entries: [e('coins', 480, 860, 1), e('raw_moonfin', 2, 5, 0.45), e('moonsilver_ore', 3, 7, 0.3), e('stone', 8, 16, 0.2)] },
+  { id: 'mon_moonmoth', source: 'monster', entries: [e('coins', 520, 920, 1), e('nature_rune', 25, 50, 0.4), e('air_rune', 40, 80, 0.35), e('moonwood_logs', 3, 7, 0.3)] },
+  { id: 'mon_fog_scavenger', source: 'monster', entries: [e('coins', 600, 1050, 1), e('moonsilver_arrows', 20, 45, 0.45), e('moonsilver_bar', 1, 3, 0.25), e('cooked_moonfin', 1, 3, 0.3)] },
+  { id: 'mon_hollow_hound', source: 'monster', entries: [e('coins', 680, 1200, 1), e('moonwood_logs', 4, 10, 0.4), e('moonsilver_ore', 4, 9, 0.35), e('raw_moonfin', 3, 6, 0.3)] },
+  {
+    id: 'boss_the_hush', source: 'miniboss',
+    entries: [e('coins', 2600, 4800, 1), e('moonsilver_bar', 8, 18, 0.6), e('great_moonfin', 3, 8, 0.5), e('moonwood_logs', 20, 40, 0.5), e('nature_rune', 50, 100, 0.45)],
+    groups: [{ chance: 0, items: [] }], // replaced below with the gem group
+  },
+);
+
 // ----- Mini boss: the ONLY place gems drop (in Pocketvale) -----
 /** Chance weights per rarity: common is common, mythic is very rare. */
 export const GEM_RARITY_WEIGHTS: Record<GemRarity, number> = { common: 45, uncommon: 28, rare: 15, epic: 8, legendary: 3, mythic: 1 };
@@ -121,6 +134,9 @@ tables.find((t) => t.id === 'boss_mother_clawsoot')!.groups = [gemGroup(0.85, { 
 
 // Old Galewing: a gem 88% of the time, rarities a step better again.
 tables.find((t) => t.id === 'boss_old_galewing')!.groups = [gemGroup(0.88, { common: 22, uncommon: 30, rare: 25, epic: 15, legendary: 6, mythic: 2 })];
+
+// The Hush: a gem 90% of the time, rarities a step better again.
+tables.find((t) => t.id === 'boss_the_hush')!.groups = [gemGroup(0.9, { common: 18, uncommon: 29, rare: 27, epic: 17, legendary: 7, mythic: 2 })];
 
 // ----- Weekly boss: 2 guaranteed gems with better rarity odds -----
 const WEEKLY_GEM_WEIGHTS: Record<GemRarity, number> = { common: 20, uncommon: 30, rare: 25, epic: 15, legendary: 7, mythic: 3 };

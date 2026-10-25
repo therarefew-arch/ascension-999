@@ -25,7 +25,7 @@ export interface MonsterDef {
   pet?: string;
   /** Colours for its portrait. */
   colors: { body: string; dark: string; accent: string };
-  art: 'rat' | 'sprite' | 'bandit' | 'boar' | 'bear' | 'treant' | 'crab' | 'bird';
+  art: 'rat' | 'sprite' | 'bandit' | 'boar' | 'bear' | 'treant' | 'crab' | 'bird' | 'ghost';
   blurb: string;
 }
 
@@ -165,6 +165,42 @@ MONSTERS.push(
     miniboss: { respawnMs: 5 * 60 * 1000 }, pet: 'pet_peep',
     colors: { body: '#e2e8f0', dark: '#1e293b', accent: '#38bdf8' }, art: 'bird',
     blurb: 'Mini boss. A huge, grumpy old gull who rides the storm winds. Drops gems.',
+  },
+);
+
+// ----- Lunaria (tier 4) — the ghost town on the misty island -----
+// The ghosts are the townsfolk (gentle, not monsters). These are the things that moved in after the lights went out.
+MONSTERS.push(
+  {
+    id: 'mist_crab', name: 'Mist Crab', region: 'Lunaria', level: 365, style: 'melee',
+    hp: 640, attack: 355, defense: 310, maxHit: 52, speedMs: 2000, lootTable: 'mon_mist_crab',
+    colors: { body: '#cbd5e1', dark: '#475569', accent: '#e0e7ff' }, art: 'crab',
+    blurb: 'Half there, half fog. Scuttles through the empty streets looking for warm lanterns.',
+  },
+  {
+    id: 'moonmoth', name: 'Moonmoth', region: 'Lunaria', level: 380, style: 'magic',
+    hp: 600, attack: 370, defense: 315, maxHit: 52, speedMs: 2000, lootTable: 'mon_moonmoth',
+    colors: { body: '#e0e7ff', dark: '#3730a3', accent: '#fef9c3' }, art: 'sprite',
+    blurb: 'Drawn to the dark lanterns, fluttering silver dust that stings like frost.',
+  },
+  {
+    id: 'fog_scavenger', name: 'Fog Scavenger', region: 'Lunaria', level: 400, style: 'ranged',
+    hp: 720, attack: 395, defense: 340, maxHit: 58, speedMs: 1900, lootTable: 'mon_fog_scavenger',
+    colors: { body: '#334155', dark: '#0f172a', accent: '#cbd5e1' }, art: 'bandit',
+    blurb: 'Rowed over to loot the empty houses. The ghosts keep hiding the silverware.',
+  },
+  {
+    id: 'hollow_hound', name: 'Hollow Hound', region: 'Lunaria', level: 425, style: 'melee',
+    hp: 760, attack: 420, defense: 365, maxHit: 62, speedMs: 2000, lootTable: 'mon_hollow_hound',
+    colors: { body: '#64748b', dark: '#1e293b', accent: '#a5b4fc' }, art: 'boar',
+    blurb: 'A shadowy beast that prowls the shore where the lanterns used to shine.',
+  },
+  {
+    id: 'the_hush', name: 'The Hush', region: 'Lunaria', level: 445, style: 'magic',
+    hp: 2900, attack: 445, defense: 395, maxHit: 82, speedMs: 2200, lootTable: 'boss_the_hush',
+    miniboss: { respawnMs: 5 * 60 * 1000 }, pet: 'pet_mote',
+    colors: { body: '#1e1b4b', dark: '#020617', accent: '#c7d2fe' }, art: 'ghost',
+    blurb: 'Mini boss. The silence that swallowed every light in Lunaria. Drops gems.',
   },
 );
 

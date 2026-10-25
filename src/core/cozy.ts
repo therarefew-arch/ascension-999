@@ -215,6 +215,7 @@ export function syncLore(p: PlayerState): LoreNote[] {
   for (const n of LORE) {
     if (n.trigger === 'arrive' && p.regions.includes(n.region)) learn(p, n, found);
     if (n.trigger === 'boss' && n.boss && p.bossReadyAt[n.boss] !== undefined) learn(p, n, found);
+    if (n.trigger === 'restore' && n.region === 'Lunaria' && p.lunaria.restored) learn(p, n, found);
   }
   return found;
 }
@@ -224,7 +225,7 @@ export function rollLoreFind(p: PlayerState, actions: number, rng: () => number 
   if (actions <= 0 || p.travel) return null;
   const note = LORE.find((n) => n.trigger === 'find' && n.region === p.location && !p.lore.includes(n.id));
   if (!note) return null;
-  const chance = 1 - Math.pow(1 - LORE_FIND_CHANCE, Math.min(actions, 2000));
+  const chance = 1 - Math.pow(1 - (note.chance ?? LORE_FIND_CHANCE), Math.min(actions, 2000));
   if (rng() >= chance) return null;
   const out: LoreNote[] = [];
   learn(p, note, out);

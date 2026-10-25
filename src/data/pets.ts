@@ -25,6 +25,8 @@ export const PETS: PetDef[] = [
   { id: 'pet_bramble', name: 'Bramble', emoji: '🐻', skill: 'combat', odds: 50, blurb: "Old Thornhide's cub. Fierce, fluffy and loyal." },
   { id: 'pet_pinch', name: 'Pinch', emoji: '🦀', skill: 'combat', odds: 50, blurb: "Mother Clawsoot's littlest hatchling. Only pinches gently." },
   { id: 'pet_peep', name: 'Peep', emoji: '🐥', skill: 'combat', odds: 50, blurb: "Old Galewing's fluffy chick. Steals your snacks, but cutely." },
+  { id: 'pet_mote', name: 'Mote', emoji: '🌙', skill: 'combat', odds: 50, blurb: 'A crumb of moonlight that slipped out of the Hush. It glows when you smile.' },
+  { id: 'pet_wick', name: 'Wick', emoji: '🕯️', skill: 'firemaking', odds: 0, blurb: "Lunaria's lantern spirit. A thank-you from the whole town for bringing the light back." },
   { id: 'pet_sprout', name: 'Sprout', emoji: '🌱', skill: 'combat', odds: 20, blurb: "A seedling from Grumbleroot's crown. Grows a little every week." },
 ];
 

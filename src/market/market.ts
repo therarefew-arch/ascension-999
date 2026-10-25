@@ -89,8 +89,11 @@ export const BUY_LISTS: Partial<Record<Region, string[]>> = {
   Ironmoor: ['iron_ore', 'oak_logs', 'raw_trout', 'iron_bar', 'iron_arrows', 'cooked_trout', 'stone', 'rune_essence'],
   Coalhaven: ['coal', 'willow_logs', 'raw_salmon', 'steel_bar', 'steel_arrows', 'cooked_salmon', 'iron_ore', 'stone', 'rune_essence'],
   Bluecliff: ['cobalt_ore', 'maple_logs', 'raw_lobster', 'cobalt_bar', 'cobalt_arrows', 'cooked_lobster', 'coal', 'stone', 'rune_essence'],
+  // Lunaria's market only reopens once the town is brought home (the Silent Bell).
+  Lunaria: ['moonsilver_ore', 'moonwood_logs', 'raw_moonfin', 'moonsilver_bar', 'moonsilver_arrows', 'cooked_moonfin', 'cobalt_ore', 'stone', 'rune_essence'],
 };
-export const buyListFor = (where: Region) => BUY_LISTS[where] ?? [];
+export const buyListFor = (where: Region, p?: PlayerState) =>
+  where === 'Lunaria' && !p?.lunaria.restored ? [] : BUY_LISTS[where] ?? [];
 /** Everything sold anywhere (kept for older code). */
 export const BUY_LIST = Array.from(new Set(Object.values(BUY_LISTS).flat()));
 export const buyPrice = (id: string, now = Date.now()) => Math.max(2, Math.round(sellPrice(id, now) * 1.6));
@@ -121,7 +124,7 @@ export function sell(p: PlayerState, id: string, qty: number, now = Date.now()):
 
 /** Buys into the bag (through the central loot system). Returns a reason if it can't. */
 export function buy(p: PlayerState, id: string, qty: number, now = Date.now()): string | null {
-  if (!buyListFor(p.location).includes(id) || ITEMS[id]?.gem) return `The ${p.location} Trading Post doesn't sell that`;
+  if (!buyListFor(p.location, p).includes(id) || ITEMS[id]?.gem) return `The ${p.location} Trading Post doesn't sell that`;
   const cost = buyPrice(id, now) * qty;
   if (p.coins < cost) return `Needs ${cost.toLocaleString()} coins`;
   if (spaceFor(p.inventory, id) < qty) return 'Not enough room in your bag';

@@ -10,7 +10,7 @@ export const REGIONS = [
 export type Region = (typeof REGIONS)[number];
 
 /** Regions that are built. Add a region here when it's built (players still have to travel there to unlock it). */
-export const OPEN_REGIONS: Region[] = ['Pocketvale', 'Ironmoor', 'Coalhaven', 'Bluecliff'];
+export const OPEN_REGIONS: Region[] = ['Pocketvale', 'Ironmoor', 'Coalhaven', 'Bluecliff', 'Lunaria'];
 
 /** How to reach each built region. */
 export const REGION_INFO: Partial<Record<Region, {
@@ -21,12 +21,14 @@ export const REGION_INFO: Partial<Record<Region, {
   /** Fast travel cost (instant, only to places you've visited). */
   fastTravelCoins: number;
   blurb: string;
-  scene: 'town' | 'ironmoor' | 'coalhaven' | 'bluecliff';
+  scene: 'town' | 'ironmoor' | 'coalhaven' | 'bluecliff' | 'lunaria';
 }>> = {
   Pocketvale: { unlockLevel: 1, walkMs: 90_000, fastTravelCoins: 200, blurb: 'A quiet town at the edge of the hills', scene: 'town' },
   Ironmoor: { unlockLevel: 50, walkMs: 90_000, fastTravelCoins: 200, blurb: 'A smoky mountain town built around the deep iron mines', scene: 'ironmoor' },
   Coalhaven: { unlockLevel: 110, walkMs: 120_000, fastTravelCoins: 350, blurb: 'A sooty harbour where coal barges dock under weeping willows', scene: 'coalhaven' },
   Bluecliff: { unlockLevel: 175, walkMs: 150_000, fastTravelCoins: 500, blurb: 'Windswept sea cliffs, red maples and a lighthouse that never sleeps', scene: 'bluecliff' },
+  // The first Frontier town: a ferry crossing through the fog.
+  Lunaria: { unlockLevel: 245, walkMs: 240_000, fastTravelCoins: 800, blurb: 'A misty island town where every lantern went dark at once', scene: 'lunaria' },
 };
 
 /** Skills whose resources must be gathered on location (you start them in that region). */

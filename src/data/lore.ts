@@ -3,8 +3,8 @@
 // (Lunaria is planned as a ghost town to investigate.)
 import type { Region } from './tiers';
 
-/** How a note is found: arriving in town, beating its mini boss, or by chance while skilling there. */
-export type LoreTrigger = 'arrive' | 'boss' | 'find';
+/** How a note is found: arriving in town, beating its mini boss, by chance while skilling there, or by bringing Lunaria back. */
+export type LoreTrigger = 'arrive' | 'boss' | 'find' | 'restore';
 
 export interface LoreNote {
   id: string;
@@ -12,6 +12,8 @@ export interface LoreNote {
   trigger: LoreTrigger;
   /** Mini boss id for 'boss' notes. */
   boss?: string;
+  /** 'find' notes: chance per finished action (default LORE_FIND_CHANCE). Several 'find' notes in a town are found in order. */
+  chance?: number;
   title: string;
   text: string;
 }
@@ -22,6 +24,7 @@ export const TOWN_VIBE: Partial<Record<Region, string>> = {
   Ironmoor: 'Brass bells, soot-black faces and songs sung deep underground.',
   Coalhaven: 'Foghorns, lantern-light on black water, and a question nobody likes to ask.',
   Bluecliff: 'Salt wind, red maples and a lighthouse that watches the one island nobody visits.',
+  Lunaria: 'Fog, silver moonlight, and a whole town holding its breath.',
 };
 
 export const LORE: LoreNote[] = [
@@ -76,6 +79,35 @@ export const LORE: LoreNote[] = [
   {
     id: 'bc_bottle', region: 'Bluecliff', trigger: 'find', title: 'A Message in a Bottle',
     text: 'Wedged between the rocks below the lighthouse, a corked bottle. The note inside is written in silver ink: "To whoever finds this — we are not gone. We are only waiting. Whatever you hear, please do not ring the bell. — L." The ink still shimmers.',
+  },
+  // ----- Lunaria: the Silent Bell -----
+  {
+    id: 'lu_quay', region: 'Lunaria', trigger: 'arrive', title: 'The Empty Quay',
+    text: 'The ferry bumps against a silent quay. Every door in Lunaria stands open. Teacups wait on tables, a broom leans where someone left it, and every lantern is dark. Pale shapes stand along the shore, looking out to sea. One turns — a woman with a ring of keys at her belt — and whispers: "You came. Please… not the bell. Not yet."',
+  },
+  {
+    id: 'lu_diary1', region: 'Lunaria', trigger: 'find', chance: 1 / 150, title: "Lune's Diary — The Moonwake",
+    text: '"Tonight is the Moonwake, when the moon comes down to touch the sea. We light the seven Moonlanterns along the shore, and at midnight I ring the bell to call everyone home to watch. My brother writes from Coalhaven that the Silver Willow sails tonight with his iron. I have saved the crew a seat at the lanterns." — Lune, bell-keeper',
+  },
+  {
+    id: 'lu_lamplist', region: 'Lunaria', trigger: 'find', chance: 1 / 150, title: "The Lamplighter's List",
+    text: 'A tidy list pinned inside the lamplighter\'s shed: "Seven Moonlanterns — Quay, Well, Market, School, Orchard, Chapel, Bell Tower. Moonwood for the flame, moonsilver for the cage. RULE ONE: never ring the bell while a single lantern is dark."',
+  },
+  {
+    id: 'lu_drawing', region: 'Lunaria', trigger: 'find', chance: 1 / 150, title: "A Child's Drawing",
+    text: 'Crayon on brown paper: everyone on the shore, waving at a little boat with a silver sail. The moon is big and smiling. But in the corner, someone has scribbled a dark cloud, pressing hard, and above the lanterns, one by one, the yellow has been crossed out.',
+  },
+  {
+    id: 'lu_diary2', region: 'Lunaria', trigger: 'find', chance: 1 / 150, title: "Lune's Diary — The Last Page",
+    text: '"The fog came in silent. The Hush. It drank the lanterns one by one, and in the dark I rang the bell too early — to call everyone in, to keep them safe. And we slipped. Half a step sideways, into the moonlight. We can see you. We are still here. If the bell rings again in the dark, we will fade for good. Light the lanterns first. Then ring. Then we can come home."',
+  },
+  {
+    id: 'lu_hush', region: 'Lunaria', trigger: 'boss', boss: 'the_hush', title: 'What the Hush Left Behind',
+    text: 'Where The Hush faded, seven cold lantern wicks lie on the cobbles, and a little crumb of moonlight hops between them. The fog is thinner already. Along the shore, the pale shapes turn to watch you — and for the first time, one of them waves.',
+  },
+  {
+    id: 'lu_moonwake', region: 'Lunaria', trigger: 'restore', title: 'The Moonwake',
+    text: 'Seven lanterns burn. The key turns, and the bell rings out, warm and round, across the water. The fog lifts like a curtain. Colour floods back into faces — the baker, the lamplighter, the children on the steps — and down at the quay, the crew of the Silver Willow blink awake, still holding their ropes. Lune runs to the end of the pier with a letter in her hand. Across the water, Coalhaven\'s lights flicker in answer. Her brother is coming. Lunaria is home.',
   },
 ];
 

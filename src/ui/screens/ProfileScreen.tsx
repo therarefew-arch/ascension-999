@@ -114,7 +114,7 @@ function Pets() {
               <b>{owned ? pet.name : '???'}</b>
               <span className="small muted">{pet.skill === 'combat' ? 'Combat' : SKILLS[pet.skill].name}</span>
               {owned && <span className={`start-pill ${active ? 'on' : ''}`}>{active ? 'Equipped' : 'Equip'}</span>}
-              {!owned && <span className="small dim">1 in {fmtNum(pet.odds)}</span>}
+              {!owned && <span className="small dim">{pet.odds > 0 ? `1 in ${fmtNum(pet.odds)}` : 'A special reward'}</span>}
             </button>
           );
         })}

@@ -131,6 +131,24 @@ export function MonsterArt({ monster, size = 96, hurt = false }: { monster: Mons
         </g>
       );
       break;
+    case 'ghost':
+      art = (
+        <g>
+          {/* misty glow */}
+          <ellipse cx="48" cy="52" rx="40" ry="38" fill={accent} opacity="0.12" />
+          {/* body: a soft sheet with a wavy hem */}
+          <path d="M18 88 L18 46 Q18 12 48 12 Q78 12 78 46 L78 88 Q71 80 64 88 Q56 80 48 88 Q40 80 32 88 Q25 80 18 88 Z" fill={body} stroke={dark} strokeWidth="3" strokeLinejoin="round" opacity="0.92" />
+          {/* little arms */}
+          <path d="M18 54 Q8 58 10 66 M78 54 Q88 58 86 66" stroke={body} strokeWidth="6" fill="none" strokeLinecap="round" />
+          {/* glowing eyes and a small 'o' mouth */}
+          <ellipse cx="38" cy="42" rx="5" ry="6.5" fill={accent} /><ellipse cx="58" cy="42" rx="5" ry="6.5" fill={accent} />
+          <circle cx="38" cy="43" r="2" fill={dark} /><circle cx="58" cy="43" r="2" fill={dark} />
+          <ellipse cx="48" cy="58" rx="4" ry="5" fill={dark} opacity="0.8" />
+          {/* wisps */}
+          <circle cx="12" cy="24" r="2.5" fill={accent} opacity="0.7" /><circle cx="84" cy="18" r="2" fill={accent} opacity="0.7" /><circle cx="86" cy="76" r="1.6" fill={accent} opacity="0.6" />
+        </g>
+      );
+      break;
     case 'bear':
       art = (
         <g>

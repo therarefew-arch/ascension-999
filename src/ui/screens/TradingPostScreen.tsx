@@ -60,8 +60,11 @@ function BuyTab() {
   return (
     <>
       <p className="small muted">Local goods from {player.location}. Each town sells different things. Gems can never be bought — they only drop from bosses.</p>
+      {player.location === 'Lunaria' && !player.lunaria.restored && (
+        <div className="empty">🌫️ The market stalls stand empty, wrapped in fog. A pale shopkeeper waves sadly. (Bring Lunaria home and the market returns.)</div>
+      )}
       <div className="list">
-        {buyListFor(player.location).map((id) => {
+        {buyListFor(player.location, player).map((id) => {
           const price = buyPrice(id);
           return (
             <div key={id} className="market-row">

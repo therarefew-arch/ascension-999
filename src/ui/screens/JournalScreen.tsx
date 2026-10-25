@@ -103,7 +103,7 @@ function Pets() {
               <span className="small muted">{pet.skill === 'combat' ? 'Combat' : SKILLS[pet.skill].name}</span>
               {owned && <span className="small">{pet.blurb}</span>}
               {owned && <span className={`start-pill ${active ? 'on' : ''}`}>{active ? 'Following you' : 'Choose'}</span>}
-              {!owned && <span className="small dim">1 in {fmtNum(pet.odds)}</span>}
+              {!owned && <span className="small dim">{pet.odds > 0 ? `1 in ${fmtNum(pet.odds)}` : 'A special reward'}</span>}
             </button>
           );
         })}
@@ -116,6 +116,7 @@ const HOW_FOUND: Record<LoreTrigger, string> = {
   arrive: 'Found by arriving in town',
   boss: 'Found by defeating the mini boss',
   find: 'Found by chance while skilling here',
+  restore: 'Found by bringing Lunaria home',
 };
 
 /** 📜 Tales: short notes found in each town. */
@@ -153,8 +154,11 @@ function Tales() {
       {player.lore.includes('ch_letter') && player.lore.includes('ch_clawsoot') && !player.lore.includes('bc_bottle') && (
         <p className="small center tale-tease">🌫️ Across the black water, the lights of Lunaria stay dark…</p>
       )}
-      {player.lore.includes('bc_bottle') && player.lore.includes('bc_galewing') && (
-        <p className="small center tale-tease">🔑 You have the bell tower key. Lunaria is waiting… (a future update)</p>
+      {player.lore.includes('bc_bottle') && player.lore.includes('bc_galewing') && !player.regions.includes('Lunaria') && (
+        <p className="small center tale-tease">🔑 You have the bell tower key. Lunaria is waiting across the fog…</p>
+      )}
+      {player.lunaria.restored && (
+        <p className="small center tale-tease">🕯️ Lunaria is home again. The Frontier stretches on…</p>
       )}
     </>
   );

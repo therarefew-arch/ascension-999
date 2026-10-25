@@ -17,6 +17,7 @@ import { finishWildfire, lightBonfire } from './firemaking';
 import { checkArrival, fastTravel, startWalk } from './travel';
 import { catchStar, claimGift, claimRequest, claimRequestBonus, ensureRequests, nextStarDelay, rollLoreFind, STAR, syncLore, trackRequests } from './cozy';
 import type { LoreNote } from '../data/lore';
+import { LANTERNS, lightLantern, ringBell, whyCantLight, whyCantRing } from './lunaria';
 import type { Region } from '../data/tiers';
 import type { SkillId } from '../data/items';
 import { levelForXp } from './xp';
@@ -450,6 +451,36 @@ export const game = {
     emit();
   },
   /** Pet your pet. Hearts, a happy sound — nothing else needed. */
+  /** 🕯️ Relight one of Lunaria's Moonlanterns. */
+  lightLantern() {
+    const why = whyCantLight(snap.player);
+    if (why) return fail(why);
+    const report = emptyReport(null);
+    lightLantern(snap.player, report);
+    play('ignite');
+    buzz(20);
+    const n = snap.player.lunaria.lanterns;
+    toast(n >= LANTERNS ? '🕯️ All seven Moonlanterns burn! The bell tower waits…' : `🕯️ Moonlantern ${n}/${LANTERNS} relit`, n >= LANTERNS ? 'level' : 'good');
+    if (n >= LANTERNS) celebrate();
+    announceLevels(report);
+    save();
+    emit();
+  },
+  /** 🔔 Ring Lunaria's bell — only once every lantern is lit. */
+  ringBell() {
+    const why = whyCantRing(snap.player);
+    if (why) return fail(why);
+    ringBell(snap.player);
+    play('welcome');
+    setTimeout(() => play('levelup'), 600);
+    celebrate();
+    buzz([40, 60, 40, 60, 80]);
+    toast('🔔 The bell rings out across the water… Lunaria is home!', 'level');
+    announceLore(syncLore(snap.player));
+    toast('🕯️ Wick the lantern spirit joined you · the market reopens', 'good');
+    save();
+    emit();
+  },
   petPet() {
     play('match');
     buzz([10, 30, 10]);

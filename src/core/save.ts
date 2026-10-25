@@ -264,6 +264,10 @@ function repair(raw: any): PlayerState {
     }
   }
   p.starsCaught = Math.max(0, Number(raw?.starsCaught) || 0);
+  // Lunaria's mystery (v15)
+  if (raw?.lunaria && typeof raw.lunaria === 'object') {
+    p.lunaria = { lanterns: Math.max(0, Math.min(7, Math.floor(Number(raw.lunaria.lanterns) || 0))), restored: !!raw.lunaria.restored };
+  }
   // Lore (v12)
   if (Array.isArray(raw?.lore)) p.lore = Array.from(new Set(raw.lore.filter((id: unknown) => typeof id === 'string' && !!LORE_MAP[id as string])));
   // Regions (v9)

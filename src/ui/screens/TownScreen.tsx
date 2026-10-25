@@ -10,6 +10,7 @@ import { PixelScene } from '../PixelScene';
 import { PET_MAP } from '../../data/pets';
 import { fmtDuration } from '../format';
 import { PettablePet, TodayCard } from '../Cozy';
+import { SilentBell } from '../SilentBell';
 import { dayPhase } from '../PixelScene';
 
 function greeting() {
@@ -111,15 +112,17 @@ export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal }:
   return (
     <div className="screen">
       <div className="town-hero compact">
-        <PixelScene scene={info?.scene ?? 'town'} dim={0} />
+        <PixelScene scene={here === 'Lunaria' && player.lunaria.restored ? 'lunaria_restored' : info?.scene ?? 'town'} dim={0} />
         <div className="town-title">
           <h1>{here.toUpperCase()}</h1>
-          <p>{greeting()} · {info?.blurb}</p>
+          <p>{here === 'Lunaria' && player.lunaria.restored ? 'Lanterns lit, bell ringing — a town come home' : `${greeting()} · ${info?.blurb}`}</p>
         </div>
         {player.activePet && PET_MAP[player.activePet] && (
           <PettablePet emoji={PET_MAP[player.activePet].emoji} name={PET_MAP[player.activePet].name} />
         )}
       </div>
+
+      {here === 'Lunaria' && <SilentBell onJournal={onJournal} onCombat={onCombat} />}
 
       <TodayCard onGo={goTo} />
 

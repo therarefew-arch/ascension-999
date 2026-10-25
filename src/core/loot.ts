@@ -89,12 +89,21 @@ export function recordCollection(p: PlayerState, id: string, qty: number) {
 
 /** Rare pet roll after a finished action (or mini boss kill). Returns the new pet's id, if any. */
 export function rollPet(p: PlayerState, source: SkillId | 'combat', rng: () => number = Math.random, petId?: string): string | null {
-  const pet = petId ? PETS.find((x) => x.id === petId) : PETS.find((x) => x.skill === source);
-  if (!pet || p.pets.includes(pet.id)) return null;
+  // Pets with odds 0 are rewards (never random drops).
+  const pet = petId ? PETS.find((x) => x.id === petId) : PETS.find((x) => x.skill === source && x.odds > 0);
+  if (!pet || pet.odds <= 0 || p.pets.includes(pet.id)) return null;
   if (rng() >= 1 / pet.odds) return null;
   p.pets.push(pet.id);
   if (!p.activePet) p.activePet = pet.id;
   return pet.id;
+}
+
+/** A reward pet (odds 0) given for finishing something special. */
+export function grantPet(p: PlayerState, petId: string): boolean {
+  const pet = PETS.find((x) => x.id === petId);
+  if (!pet || p.pets.includes(pet.id)) return false;
+  p.pets.push(pet.id);
+  return true;
 }
 
 /**

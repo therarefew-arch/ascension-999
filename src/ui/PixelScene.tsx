@@ -2,7 +2,8 @@
 // Our own art — no image files needed. Each scene is the same every time (seeded).
 import { useEffect, useRef, useState } from 'react';
 
-export type SceneName = 'forest' | 'town' | 'mine' | 'forge' | 'river' | 'camp' | 'kitchen' | 'workshop' | 'tower' | 'altar' | 'ironmoor' | 'coalhaven' | 'bluecliff';
+export type SceneName = 'forest' | 'town' | 'mine' | 'forge' | 'river' | 'camp' | 'kitchen' | 'workshop' | 'tower' | 'altar' | 'ironmoor' | 'coalhaven' | 'bluecliff'
+  | 'lunaria' | 'lunaria_restored';
 
 const W = 72;
 const H = 128;
@@ -326,15 +327,61 @@ function drawBluecliff(px: Px, r: () => number) {
   for (const x of [8, 16, 24]) { px(x, 70 + (x % 3), 3, 2, '#b45309'); px(x + 1, 69 + (x % 3), 1, 1, '#f59e0b'); }
 }
 
+/** Lunaria: a misty island town. Dark and ghostly — or, once the bell rings, warm and lit. */
+function drawLunaria(px: Px, r: () => number, restored: boolean) {
+  // night-blue sky with a huge low moon
+  const sky = restored ? ['#3b4a7a', '#4d5c8c', '#66709c', '#8a86a8'] : ['#1c2238', '#252c46', '#323a56', '#454b66'];
+  for (let y = 0; y < 60; y++) px(0, y, W, 1, sky[Math.min(3, Math.floor(y / 15))]);
+  for (let i = 0; i < 26; i++) px(Math.floor(r() * W), Math.floor(r() * 36), 1, 1, '#e0e7ff');
+  px(46, 10, 16, 16, '#eef2ff'); px(44, 12, 20, 12, '#eef2ff'); px(48, 8, 12, 20, '#eef2ff');
+  px(50, 14, 3, 3, '#c7d2fe'); px(56, 19, 2, 2, '#c7d2fe');
+  // the bell tower
+  px(8, 22, 10, 40, '#2b2f45'); px(7, 20, 12, 3, '#1e2135'); px(10, 14, 6, 6, '#2b2f45'); px(12, 10, 2, 4, '#1e2135');
+  px(11, 26, 4, 5, restored ? '#fbbf24' : '#565b78'); // the bell
+  // houses, windows dark or warm
+  const house = (x: number, y: number, w: number) => {
+    px(x, y, w, 10, '#3a3f5c'); px(x, y, w, 1, '#1e2135');
+    for (let i = 0; i < Math.ceil(w / 2) + 1; i++) px(x - 1 + i, y - 1 - i, w + 2 - i * 2, 1, '#262a40');
+    px(x + 2, y + 3, 2, 2, restored ? '#fcd34d' : '#14172a'); px(x + w - 4, y + 3, 2, 2, restored ? '#fcd34d' : '#14172a');
+    px(x + Math.floor(w / 2) - 1, y + 6, 2, 4, restored ? '#7c4a24' : '#14172a');
+  };
+  house(22, 50, 10); house(36, 47, 12); house(52, 51, 11);
+  // the shore and the still silver sea
+  px(0, 62, W, 6, '#4a4e66');
+  for (let y = 68; y < 104; y++) px(0, y, W, 1, y % 4 === 0 ? '#3d4a70' : '#33405f');
+  for (let i = 0; i < 30; i++) px(Math.floor(r() * W), 70 + Math.floor(r() * 32), 3 + Math.floor(r() * 4), 1, '#8b94c9');
+  px(44, 72, 22, 1, '#c7d2fe'); px(47, 76, 16, 1, '#a5b4fc'); px(50, 80, 10, 1, '#8b94c9'); // moon path
+  // the seven Moonlanterns along the shore
+  for (let k = 0; k < 7; k++) {
+    const x = 4 + k * 10;
+    px(x, 54, 1, 8, '#1e2135'); px(x - 1, 52, 3, 3, restored ? '#fde68a' : '#4b5070');
+    if (restored) { px(x - 3, 50, 7, 7, 'rgba(253,230,138,0.18)'); for (let y = 70; y < 84; y += 3) px(x - 1, y, 2, 1, 'rgba(253,230,138,0.35)'); }
+  }
+  // the townsfolk on the shore: pale and see-through, or warm and solid
+  for (const x of [14, 28, 41, 58, 66]) {
+    const c = restored ? ['#b45309', '#1d4ed8', '#be123c', '#15803d', '#7c3aed'][x % 5] : 'rgba(224,231,255,0.45)';
+    px(x, 57, 2, 2, restored ? '#f5d0a9' : 'rgba(224,231,255,0.55)'); px(x - 1, 59, 4, 4, c);
+  }
+  // a little boat with a silver sail (the Silver Willow, once she's home)
+  if (restored) { px(30, 86, 14, 3, '#5b3d22'); px(36, 76, 1, 10, '#3b2a1c'); px(37, 77, 5, 8, '#e2e8f0'); }
+  // fog: thick before, thin after
+  const fog = restored ? 0.08 : 0.32;
+  for (let i = 0; i < 9; i++) px(Math.floor(r() * W) - 12, 40 + Math.floor(r() * 60), 26 + Math.floor(r() * 20), 3, `rgba(203,213,225,${fog})`);
+  px(0, 104, W, H - 104, '#3a3d52');
+  for (let i = 0; i < 40; i++) px(Math.floor(r() * W), 104 + Math.floor(r() * 24), 2, 1, ['#4b4f66', '#2e3145'][Math.floor(r() * 2)]);
+}
+
 export const DRAW: Record<SceneName, (px: Px, r: () => number) => void> = {
   forest: drawForest, town: drawTown, mine: drawMine, forge: drawForge,
   river: drawRiver, camp: drawCamp, kitchen: drawKitchen, workshop: drawWorkshop, tower: drawTower, altar: drawAltar, ironmoor: drawIronmoor, coalhaven: drawCoalhaven, bluecliff: drawBluecliff,
+  lunaria: (px, r) => drawLunaria(px, r, false), lunaria_restored: (px, r) => drawLunaria(px, r, true),
 };
 
 /** Where the interesting part of each scene is (0% = top, 100% = bottom), for short banners. */
-const FOCUS: Partial<Record<SceneName, number>> = { bluecliff: 22, coalhaven: 46, ironmoor: 50, town: 50 };
+const FOCUS: Partial<Record<SceneName, number>> = { bluecliff: 22, coalhaven: 46, ironmoor: 50, town: 50, lunaria: 40, lunaria_restored: 40 };
 
 /** Outdoor scenes follow the real clock on your phone. Indoor ones stay cosy all day. */
+// (Lunaria is always under its own moon, so it skips the day/night tint.)
 const OUTDOOR: SceneName[] = ['forest', 'town', 'river', 'ironmoor', 'coalhaven', 'bluecliff'];
 
 export type DayPhase = 'dawn' | 'day' | 'dusk' | 'night';
