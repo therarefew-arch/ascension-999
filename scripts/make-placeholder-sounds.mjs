@@ -540,14 +540,15 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
       b++;
     }
   }
-  // Soft waves washing in and out (low-passed noise, ~7 s swells).
+  // A faint hush of waves far below the quay (owner: the first version was too much).
+  // Quieter, lower and slower: an occasional soft swell every ~13 s with near-silence between.
   let y = 0;
-  const a = 1 - Math.exp((-2 * Math.PI * 350) / MR);
+  const a = 1 - Math.exp((-2 * Math.PI * 200) / MR);
   for (let i = 0; i < total; i++) {
     y += a * ((rnd() * 2 - 1) - y);
     const t = i / MR;
-    const swell = 0.5 + 0.5 * Math.sin((2 * Math.PI * t) / 7 - Math.PI / 2);
-    out[i] += y * 0.06 * swell * Math.min(1, t / 3, (total / MR - t) / 3);
+    const swell = (0.5 + 0.5 * Math.sin((2 * Math.PI * t) / 13 - Math.PI / 2)) ** 2;
+    out[i] += y * 0.022 * swell * Math.min(1, t / 3, (total / MR - t) / 3);
   }
   // A far-off foghorn twice in the song.
   for (const at of [24, 70]) {

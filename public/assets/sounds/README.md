@@ -44,4 +44,4 @@ as `.mp3`, `.ogg` or `.m4a` (for example `mine.mp3`). The game uses it instead o
 | music_ironmoor | Ironmoor's theme: a miners' work song with pickaxe tinks and a whistled tune (loops) |
 | music_lunaria | Saved for Lunaria: deep, slow and foggy, with distant chimes (loops) |
 | music_kitchen | Pantry Prep (Cooking): cosy café tune with a bubbling pot (loops) |
-| music_coalhaven | Coalhaven's theme: harbour waltz with waves and a foghorn (loops) |
+| music_coalhaven | Coalhaven's theme: harbour waltz with a faint hush of waves and a foghorn (loops) — owner found loud waves annoying, keep them subtle |
