@@ -308,6 +308,11 @@ Based on the owner's reference screenshots:
 - **Lore** (towards Lunaria): the lighthouse log shows Lunaria's lights went out all at once one autumn night; Galewing's nest holds a brass key stamped LUNARIA BELL TOWER; a message in a bottle in silver ink: "we are not gone… please do not ring the bell. — L."
 - Town banners now focus on the best part of each scene. **Version number** shown on the title screen and in Settings (`src/version.ts`).
 
+### Phase 7.1 — built · v0.0.1.4
+- **Pantry Prep** (Cooking, next to the Stove): a calm 4×4 sliding puzzle on a cutting board (2048 rules). Two of the same ingredient combine: 🌿 Herbs → 🧄 Garlic → 🧅 Onion → 🥕 Carrots → 🍄 Mushrooms → 🐟 Fillet → 🍲 Fish Stew → 🥧 Fish Pie → 🍱 Harvest Platter → 👑 Royal Feast. Every combine gives Cooking XP (bigger dishes more; about the same rate as idle cooking). Your first Fish Stew each board cooks one of your fish for real (if the fire is lit); Fish Pie or better makes it Great. Swipe, arrow keys or buttons; no timer, nothing to lose; a full board is just "tidy". Rules in `src/core/pantry.ts`.
+- Minigames named to fit their skill: **Sort the Catch** (Fishing, was Tile Match), **Pantry Prep** (Cooking).
+- Music: Pantry Prep has a cosy café tune (electric-piano chords, walking bass, brushes, a bubbling pot). **Ironmoor** has a new miners' work song (boots-on-stone drum, pickaxe tinks, walking bass, mallet chords, whistled tune, miners' hum). Ironmoor's first song is saved as **`music_lunaria`** for the foggy island ghost town.
+
 ### Owner's notes for later
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.

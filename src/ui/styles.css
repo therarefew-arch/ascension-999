@@ -859,6 +859,32 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .version-tag { font-size: 0.75rem; color: var(--muted); margin: 4px 0 calc(var(--sab, 0px) + 12px); }
 .version-tag b { color: var(--gold); font-family: var(--mono); }
 
+/* 🔪 Pantry Prep (Cooking sliding puzzle) */
+.pp-wrap { position: relative; display: flex; justify-content: center; padding: 6px 0 2px; }
+.pp-board {
+  position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px;
+  width: min(100%, 330px); aspect-ratio: 1; padding: 9px; border-radius: 16px;
+  background: linear-gradient(135deg, #8a5a32, #6b4423); border: 3px solid #4a2e17;
+  box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.25), 0 8px 18px rgba(0, 0, 0, 0.5);
+  touch-action: none; user-select: none;
+}
+.pp-board::before { content: ''; position: absolute; inset: 0; border-radius: 13px; background: repeating-linear-gradient(90deg, transparent 0 22px, rgba(0, 0, 0, 0.05) 22px 24px); pointer-events: none; }
+.pp-cell { border-radius: 11px; background: rgba(40, 24, 10, 0.28); display: flex; align-items: center; justify-content: center; position: relative; }
+.pp-cell[class*='pp-lv'] { background: #f5e6c8; box-shadow: 0 3px 0 #b08a5a, inset 0 -2px 0 rgba(0, 0, 0, 0.06); }
+.pp-emoji { font-size: clamp(1.6rem, 9vw, 2.3rem); filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.25)); }
+.pp-lv5, .pp-lv6 { background: #fde7b0 !important; }
+.pp-lv7, .pp-lv8 { background: #fed7aa !important; box-shadow: 0 3px 0 #c2410c, 0 0 12px rgba(251, 146, 60, 0.45) !important; }
+.pp-lv9 { background: #fde68a !important; box-shadow: 0 3px 0 #b45309, 0 0 16px rgba(251, 191, 36, 0.6) !important; }
+.pp-lv10 { background: linear-gradient(180deg, #fff7d6, #fbbf24) !important; box-shadow: 0 3px 0 #92400e, 0 0 22px rgba(251, 191, 36, 0.9) !important; }
+.pp-cell.pop { animation: ppPop 0.22s ease-out; }
+@keyframes ppPop { 0% { transform: scale(0.7); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
+.pp-done { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; border-radius: 13px; background: rgba(30, 18, 8, 0.55); color: #fde68a; font-weight: 900; font-size: 1.3rem; text-shadow: 0 2px 0 #000; }
+.pp-ladder { display: flex; justify-content: space-between; gap: 2px; padding: 6px 4px; background: var(--bg2); border-radius: 10px; margin: 6px 0; }
+.pp-step { font-size: 1.15rem; opacity: 0.25; filter: grayscale(1); transition: opacity 0.3s; }
+.pp-step.got { opacity: 1; filter: none; }
+.pp-pad { display: grid; grid-template-columns: repeat(4, 44px) 1fr; gap: 6px; }
+.pp-pad .btn { min-height: 42px; padding: 0; }
+
 /* 📜 Tales */
 .tale-town { margin: 14px 0; }
 .tale-town h3 { margin: 0; color: var(--gold); }

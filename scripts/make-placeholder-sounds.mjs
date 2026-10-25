@@ -314,7 +314,8 @@ function seeded(seed) { let s = seed; return () => { s = (s * 16807) % 214748364
 /** Adds fn(t) into out from `start` (samples) for `len` samples. */
 function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out.length; i++) out[start + i] += fn(i / MR); }
 
-// Ironmoor: deep, slow, minor. Low pad with a soft fifth, a drone, and distant anvil chimes echoing in the mine.
+// Lunaria (saved for later): deep, slow, minor. Low pad with a soft fifth, a drone, and distant chimes.
+// (This was Ironmoor's first theme — the owner felt it suits a foggy sea-cliff town, so it's kept for Lunaria.)
 {
   const CH = 4.5;
   const N = {
@@ -357,7 +358,134 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
       }
     }
   }));
+  writeFileSync(join(OUT, 'music_lunaria.wav'), wav(Array.from(out), MR));
+}
+
+// Ironmoor: a warm, steady miners' work song. Pickaxe "tinks" on the off-beats, a soft drum like boots
+// on a mine floor, a plucky walking bass, woody mallet chords, a whistled tune and a low miners' hum.
+{
+  const bpm = 96;
+  const beat = 60 / bpm;
+  const BAR = 4 * beat;
+  const N = {
+    Am: [110, 130.8, 164.8], G: [98, 123.5, 146.8], Em: [82.4, 98, 123.5], F: [87.3, 110, 130.8],
+    C: [130.8 / 2 * 2, 164.8, 196], D: [146.8 / 2, 92.5 * 2, 110 * 2], E: [82.4, 103.8, 123.5],
+  };
+  // A dorian work-song progression, 4 bars a line.
+  const lines = [
+    { bars: ['Am', 'G', 'Am', 'Em'], whistle: false, hum: false },
+    { bars: ['F', 'G', 'Am', 'Am'], whistle: false, hum: true },
+    { bars: ['Am', 'G', 'Am', 'Em'], whistle: true, hum: false },
+    { bars: ['F', 'G', 'E', 'Am'], whistle: true, hum: true },
+    { bars: ['C', 'G', 'D', 'Am'], whistle: true, hum: false },
+    { bars: ['F', 'G', 'Am', 'Em'], whistle: true, hum: true },
+    { bars: ['Am', 'D', 'Am', 'G'], whistle: false, hum: true },
+    { bars: ['F', 'G', 'E', 'Am'], whistle: true, hum: true },
+    { bars: ['Am', 'G', 'Am', 'Em'], whistle: false, hum: false },
+  ];
+  const rnd = seeded(31);
+  const SCALE = [440, 493.9, 523.3, 587.3, 659.3, 740, 784, 880]; // A dorian
+  const totalBars = lines.length * 4;
+  const total = Math.floor(totalBars * BAR * MR);
+  const out = new Float32Array(total);
+  const mallet = (f, t) => (Math.sin(2 * Math.PI * f * t) + 0.25 * Math.sin(2 * Math.PI * f * 4 * t) * Math.exp(-20 * t)) * Math.exp(-5 * t) * Math.min(1, t / 0.003);
+  let b = 0;
+  let lastNote = 3;
+  for (const line of lines) {
+    for (const name of line.bars) {
+      const chord = N[name];
+      const start = Math.floor(b * BAR * MR);
+      for (let k = 0; k < 4; k++) {
+        const at = start + Math.floor(k * beat * MR);
+        // Boots on the mine floor: soft low drum on 1 and 3.
+        if (k % 2 === 0) addTo(out, at, Math.floor(0.25 * MR), (t) => Math.sin(2 * Math.PI * (75 - 35 * t) * t) * Math.exp(-14 * t) * 0.09);
+        // Pickaxe "tink" on 2 and 4 (far away, echoing a little).
+        else {
+          for (const [d, amp] of [[0, 0.016], [0.18, 0.006]]) {
+            addTo(out, at + Math.floor(d * MR), Math.floor(0.5 * MR), (t) =>
+              (Math.sin(2 * Math.PI * 1850 * t) + 0.5 * Math.sin(2 * Math.PI * 1850 * 2.7 * t)) * Math.exp(-14 * t) * Math.min(1, t / 0.002) * amp);
+          }
+        }
+        // Walking bass: root, fifth, root, a step.
+        const bassF = [chord[0], chord[2] / 2 * 2 > 200 ? chord[2] / 2 : chord[2], chord[0], chord[1]][k] / (chord[0] > 100 ? 2 : 1);
+        addTo(out, at, Math.floor(beat * 0.95 * MR), (t) => (Math.sin(2 * Math.PI * bassF * t) + 0.3 * Math.sin(4 * Math.PI * bassF * t)) * Math.exp(-4 * t) * Math.min(1, t / 0.005) * 0.06);
+        // Woody mallet chords on the off-beats ("and").
+        addTo(out, at + Math.floor((beat / 2) * MR), Math.floor(0.6 * MR), (t) => {
+          let v = 0;
+          for (const f of chord) v += mallet(f * 2, t);
+          return (v / chord.length) * 0.03;
+        });
+      }
+      // A low miners' hum holding the root through the bar.
+      if (line.hum) addTo(out, start, Math.floor(BAR * MR), (t) =>
+        (Math.sin(2 * Math.PI * chord[0] * t) + 0.4 * Math.sin(2 * Math.PI * chord[0] * 2 * t) + 0.2 * Math.sin(2 * Math.PI * chord[0] * 3 * t))
+        * Math.sin(Math.PI * (t / BAR)) ** 2 * 0.022);
+      // Whistled tune: steps around the scale, landing on chord notes.
+      if (line.whistle) {
+        for (const k of [0, 1, 2, 3]) {
+          if (rnd() < 0.25) continue;
+          lastNote = Math.max(0, Math.min(SCALE.length - 1, lastNote + [-2, -1, -1, 1, 1, 2][Math.floor(rnd() * 6)]));
+          const f = SCALE[lastNote];
+          const len = k === 3 ? beat * 1.6 : beat * 0.95;
+          addTo(out, start + Math.floor(k * beat * MR), Math.floor(len * MR), (t) =>
+            Math.sin(2 * Math.PI * f * t + 0.006 * f * Math.sin(2 * Math.PI * 6 * t)) * Math.min(1, t / 0.03, (len - t) / 0.06) * 0.02);
+        }
+      }
+      b++;
+    }
+  }
+  const f = Math.floor(0.3 * MR);
+  for (let i = 0; i < f; i++) { out[i] *= i / f; out[total - 1 - i] *= i / f; }
   writeFileSync(join(OUT, 'music_ironmoor.wav'), wav(Array.from(out), MR));
+}
+
+// Kitchen (Pantry Prep): a cosy café tune — soft electric-piano chords with tremolo, a walking upright bass,
+// brushed snare, and a pot gently bubbling now and then.
+{
+  const bpm = 84;
+  const beat = 60 / bpm;
+  const BAR = 4 * beat;
+  const N = {
+    Fmaj7: [174.6, 220, 261.6, 329.6], Em7: [164.8, 196, 246.9, 293.7], Dm7: [146.8, 174.6, 220, 261.6],
+    G7: [196, 246.9, 293.7, 349.2], Cmaj7: [130.8, 164.8, 196, 246.9], Am7: [110, 130.8, 164.8, 196],
+  };
+  const prog = ['Fmaj7', 'Em7', 'Dm7', 'G7', 'Cmaj7', 'Am7', 'Dm7', 'G7'];
+  const loops = 6; // 6 × 8 bars ≈ 2 min 17 s
+  const rnd = seeded(5);
+  const total = Math.floor(loops * prog.length * BAR * MR);
+  const out = new Float32Array(total);
+  const keys = (f, t) => (Math.sin(2 * Math.PI * f * t) + 0.35 * Math.sin(4 * Math.PI * f * t) * Math.exp(-3 * t)) * (0.85 + 0.15 * Math.sin(2 * Math.PI * 4.5 * t));
+  for (let l = 0; l < loops; l++) {
+    prog.forEach((name, bi) => {
+      const chord = N[name];
+      const start = Math.floor((l * prog.length + bi) * BAR * MR);
+      // Soft chords on beat 1 and the "and" of 2 (a little swing).
+      for (const at of [0, 1.66]) {
+        addTo(out, start + Math.floor(at * beat * MR), Math.floor(beat * 2.2 * MR), (t) => {
+          let v = 0;
+          for (const f of chord) v += keys(f * 2, t);
+          return (v / chord.length) * Math.exp(-1.6 * t) * Math.min(1, t / 0.01) * (at ? 0.022 : 0.03);
+        });
+      }
+      // Walking bass, one note per beat.
+      for (let k = 0; k < 4; k++) {
+        const f = [chord[0], chord[1], chord[2], chord[1] * 1.06][k] / 2;
+        addTo(out, start + Math.floor(k * beat * MR), Math.floor(beat * 0.9 * MR), (t) => Math.sin(2 * Math.PI * f * t) * Math.exp(-3.2 * t) * Math.min(1, t / 0.008) * 0.065);
+        // Brushed snare: soft swish on 2 and 4, light tap on 1 and 3.
+        addTo(out, start + Math.floor(k * beat * MR), Math.floor(0.2 * MR), (t) => (rnd() * 2 - 1) * Math.exp(-(k % 2 ? 16 : 40) * t) * (k % 2 ? 0.022 : 0.01));
+      }
+      // Now and then, the pot bubbles (little rising blips).
+      if (rnd() < 0.3) {
+        for (let n = 0; n < 4; n++) {
+          const f0 = 500 + rnd() * 400;
+          addTo(out, start + Math.floor((1 + rnd() * 2.5) * beat * MR), Math.floor(0.06 * MR), (t) => Math.sin(2 * Math.PI * (f0 + 3000 * t) * t) * Math.exp(-50 * t) * 0.01);
+        }
+      }
+    });
+  }
+  const f = Math.floor(0.3 * MR);
+  for (let i = 0; i < f; i++) { out[i] *= i / f; out[total - 1 - i] *= i / f; }
+  writeFileSync(join(OUT, 'music_kitchen.wav'), wav(Array.from(out), MR));
 }
 
 // Coalhaven: a gentle harbour waltz (3/4). Reedy accordion-like chords, soft waves, a far-off foghorn.

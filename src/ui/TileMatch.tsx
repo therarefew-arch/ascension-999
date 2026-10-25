@@ -1,4 +1,4 @@
-// Fishing: Reel It In, or the relaxing tile-matching game (mahjong solitaire). Both give Fishing XP.
+// Fishing: Reel It In, or "Sort the Catch" — a relaxing pair-matching game (mahjong solitaire rules). Both give Fishing XP.
 import { useEffect, useState } from 'react';
 import { sound } from '../audio/sound';
 import { musicFor } from '../audio/soundList';
@@ -68,30 +68,30 @@ export function TileMatch({ action }: { action: ActionDef }) {
               <button key={t.id} data-silent
                 className={`mj-tile ${free ? 'free' : ''} ${picked === t.id ? 'picked' : ''}`}
                 style={{ left: t.x * TILE_W + 2 * LIFT - t.z * LIFT, top: t.y * TILE_H + 2 * LIFT - t.z * LIFT, width: TILE_W - 2, height: TILE_H - 2, zIndex: t.z * 10 + t.y }}
-                onClick={() => tap(t)} aria-label={`Tile ${FACES[t.face]}${free ? '' : ' (blocked)'}`}>
+                onClick={() => tap(t)} aria-label={`Catch ${FACES[t.face]}${free ? '' : ' (blocked)'}`}>
                 <span>{FACES[t.face]}</span>
               </button>
             );
           })}
-          {tiles.length === 0 && <div className="mj-done">🎣 All clear!</div>}
+          {tiles.length === 0 && <div className="mj-done">🧺 All sorted!</div>}
         </div>
         <FeedbackLayer items={items} />
       </div>
       <div className="mg-panel">
         <div className="mg-row">
-          <span className="mg-label">Tile Match</span>
-          <span className="mg-hint">{blocked ?? `Match free tiles · +${action.xp} XP each · ${pairs} pairs`}</span>
+          <span className="mg-label">Sort the Catch</span>
+          <span className="mg-hint">{blocked ?? `Pair up free fish · +${action.xp} XP each · ${pairs} pairs`}</span>
         </div>
-        {stuck && <div className="warn">No matches left — shuffle the board (it's free).</div>}
+        {stuck && <div className="warn">No pairs left — give the crates a shake (it's free).</div>}
         <div className="btn-pair">
           <button className="btn btn-lg" onClick={() => { setTiles(shuffle(tiles)); setPicked(null); }} disabled={tiles.length === 0}>
-            <UiIcon name="refresh" size={18} /> Shuffle
+            <UiIcon name="refresh" size={18} /> Shake crates
           </button>
           <button className="btn btn-hero btn-lg" onClick={() => { setTiles(newBoard()); setPicked(null); setPairs(0); }}>
-            <UiIcon name="play" size={18} /> New board
+            <UiIcon name="play" size={18} /> Fresh catch
           </button>
         </div>
-        <p className="mg-foot">A tile is free when nothing is on top of it and its left or right side is open. Clear the board for bonus fish.</p>
+        <p className="mg-foot">Sort the day's catch into pairs. A piece is free when nothing sits on top of it and its left or right side is open. Sort everything for bonus fish.</p>
       </div>
     </div>
   );
@@ -103,7 +103,7 @@ export function FishingGames({ action }: { action: ActionDef }) {
     <>
       <div className="tab-row small-tabs">
         <button className={`tab-pill ${mode === 'reel' ? 'on' : ''}`} onClick={() => setMode('reel')}><UiIcon name="fishing" size={16} /> REEL</button>
-        <button className={`tab-pill ${mode === 'tiles' ? 'on' : ''}`} onClick={() => setMode('tiles')}>🀄 TILE MATCH</button>
+        <button className={`tab-pill ${mode === 'tiles' ? 'on' : ''}`} onClick={() => setMode('tiles')}>🧺 SORT THE CATCH</button>
       </div>
       {mode === 'reel' ? <ReelItIn action={action} /> : <TileMatch action={action} />}
     </>
