@@ -44,11 +44,18 @@ export function skillLevel(p: PlayerState, skill: SkillId): number {
   return levelForXp(p.skills[skill].xp);
 }
 
-/** How long one action takes for this player (tools can speed it up). */
+/** 🪓 Seasoned tools: +1% speed for every 2,500 actions in a tool skill, up to +10%. */
+export const SEASONED = { perPercent: 2500, maxPercent: 10 };
+export function seasonedPercent(p: PlayerState, skill: SkillId): number {
+  if (!TOOL_SLOT_FOR[skill]) return 0;
+  return Math.min(SEASONED.maxPercent, Math.floor((p.toolUses[skill] ?? 0) / SEASONED.perPercent));
+}
+
+/** How long one action takes for this player (tools, and how seasoned they are, speed it up). */
 export function actionDuration(p: PlayerState, action: ActionDef): number {
   const statKey = `${action.skill}Speed` as keyof ItemStats;
   const speed = statKey in STAT_LABELS ? equipmentStats(p)[statKey] ?? 0 : 0;
-  return Math.max(500, Math.round(action.durationMs * (1 - speed / 100)));
+  return Math.max(500, Math.round(action.durationMs * (1 - speed / 100) * (1 - seasonedPercent(p, action.skill) / 100)));
 }
 
 // ---------------------------------------------------------------------------
@@ -278,6 +285,8 @@ export function completeAction(
       if (st.qty - lost > 0) report.gained[st.id] = (report.gained[st.id] ?? 0) + st.qty - lost;
     }
   }
+  // 🪓 Your tools get a little more seasoned with every use.
+  if (TOOL_SLOT_FOR[action.skill]) p.toolUses[action.skill] = (p.toolUses[action.skill] ?? 0) + 1;
   // 🎁 A rare find now and then while gathering (bird nests, geodes, bottles).
   if (!action.kind && action.skill in FIND_ITEM) {
     const find = rollLoot(`find_${action.skill}`);

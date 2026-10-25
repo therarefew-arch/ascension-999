@@ -20,6 +20,7 @@ import type { LoreNote } from '../data/lore';
 import { LANTERNS, lightLantern, ringBell, whyCantLight, whyCantRing } from './lunaria';
 import { openFinds } from './finds';
 import { claimStep, trackTutorial, TUTORIAL } from './tutorial';
+import { claimBounty, ensureBounties, rerollBounty, trackBounties } from './bounties';
 import { FIND_ITEM } from '../data/lootTables';
 import type { Region } from '../data/tiers';
 import type { SkillId } from '../data/items';
@@ -181,9 +182,11 @@ function tick(now = Date.now()) {
       endFight(p);
     }
     const hadIdle = runningSlots(p).length > 0;
+    const awayFight = p.fight?.monsterId;
     const report = advanceIdle(p, counted, now);
     trackRequests(p, report);
     trackTutorial(p, report);
+    trackBounties(p, report, awayFight);
     if (!p.fight) regenHp(p, counted);
     p.lastActiveAt = now;
     if (hadIdle) {
@@ -222,7 +225,9 @@ function tick(now = Date.now()) {
   const action = running.map((r) => ACTIONS[r.slot.actionId]).find(Boolean);
   const fightLogBefore = p.fight?.log.length ?? 0;
   const lastLog = p.fight?.log[p.fight.log.length - 1];
+  const fightingNow = p.fight?.monsterId;
   const report = advanceIdle(p, gap, now);
+  trackBounties(p, report, fightingNow);
   if (report.actions > 0 && action) play(report.failed > 0 ? 'fail' : action.sound);
   if (report.failed > 0) toast('Enhance didn’t take this time — item kept safe', 'info');
   // Combat sounds
@@ -763,6 +768,28 @@ export const game = {
     play('block');
     emit();
     return 'blocked';
+  },
+  /** 📋 Bounty Board */
+  ensureBounties() {
+    const before = snap.player.bounties.day;
+    ensureBounties(snap.player);
+    if (before !== snap.player.bounties.day) { save(); emit(); }
+  },
+  claimBounty(i: number) {
+    const reward = claimBounty(snap.player, i);
+    if (!reward) return;
+    play('coin');
+    buzz(20);
+    toast(`📋 Bounty done! +${reward[0].qty.toLocaleString()} coins · ${getItem(reward[1].id).emoji} ${getItem(reward[1].id).name}`, 'good');
+    if (snap.player.bounties.list.every((b) => b.claimed)) { celebrate(); toast('📋 All three bounties done today — nice hunting!', 'level'); }
+    save();
+    emit();
+  },
+  rerollBounty(i: number) {
+    if (!rerollBounty(snap.player, i)) return fail('You can swap one bounty a day');
+    play('click');
+    save();
+    emit();
   },
   /** 📖 Claim the current "Settling In" step. */
   claimTutorialStep() {

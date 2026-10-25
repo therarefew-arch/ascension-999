@@ -20,6 +20,7 @@ Full game vision: `docs/design.md`. Build only the phase that is asked for.
 
 - Inventory full while idling → idling **stops** (owner's choice). The offline summary must say when and why it stopped. **Exception (v0.0.1.11): the 🎒 Satchel** (Trading Post → Upgrades, needs any skill 110 + 25,000 coins, can be toggled) sends whatever doesn't fit to the bank instead (`satchelOn` in `core/loot.ts`).
 - **Rare finds** while gathering (~1 in 250 actions, `find_*` loot tables): 🪺 bird's nest (Woodcutting), 🪨 geode (Mining), 🍶 corked bottle (Fishing). Opened from the bag (`core/finds.ts`) for coins/resources of your best reached area + a small chance of a treasure (golden egg, starlit crystal, sea pearl — sell high). Never gems. Bottles can hold the 5 "Messages in Bottles" tales (hints of Frontier towns).
+- **Bounty Board** (`core/bounties.ts`, Combat screen): 3 daily monster bounties + 1 free swap; reward coins + a rare find. **Seasoned tools** (`seasonedPercent` in `core/idle.ts`): +1% speed per 2,500 actions per tool skill, max +10%.
 - **"Settling In"** (`core/tutorial.ts`): 9-step starter questline on the Town screen for new players (skipped for saves already past the start).
 - Offline progress counts up to **24 hours** away.
 - XP curve: see **Pacing** above (the old "800–1,000 hours to 500" target is replaced).

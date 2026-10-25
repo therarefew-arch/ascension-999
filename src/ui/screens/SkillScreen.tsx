@@ -4,7 +4,7 @@ import type { SkillId } from '../../data/items';
 import { ACTIONS, actionsForSkill, SKILL_ORDER, SKILLS, tabsForSkill, type ActionDef } from '../../data/skills';
 import { getItem } from '../../data/items';
 import { LOCAL_SKILLS, regionOpen } from '../../data/tiers';
-import { skillLevel, slotOf, whyCantDo } from '../../core/idle';
+import { SEASONED, seasonedPercent, skillLevel, slotOf, whyCantDo } from '../../core/idle';
 import { countInBag } from '../../core/inventory';
 import type { PlayerState } from '../../core/player';
 import { bestAction, timeToLevel, timeToNextLevel, visibleActions } from '../../core/rates';
@@ -36,10 +36,18 @@ export function shortTime(ms: number) {
 function BoostRow({ skill }: { skill: SkillId }) {
   const { player } = useGame();
   const b = xpBoost(player, skill);
-  if (b.total <= 1.001) return null;
+  const seasoned = seasonedPercent(player, skill);
+  const uses = player.toolUses[skill] ?? 0;
+  const toNext = seasoned < SEASONED.maxPercent ? SEASONED.perPercent - (uses % SEASONED.perPercent) : 0;
+  if (b.total <= 1.001 && seasoned === 0 && uses === 0) return null;
   const pct = (m: number) => `+${Math.round((m - 1) * 100)}%`;
   return (
     <div className="boost-row">
+      {(seasoned > 0 || uses > 0) && (
+        <span className="boost-chip seasoned" title={`Your tools get faster with use: +1% speed every ${SEASONED.perPercent.toLocaleString()} actions, up to +${SEASONED.maxPercent}%`}>
+          🪓 Seasoned +{seasoned}% speed{toNext ? ` · next in ${toNext.toLocaleString()}` : ' · max'}
+        </span>
+      )}
       {b.zeal > 1.001 && <span className="boost-chip zeal" title="Early levels are faster: ×3 below 90, fading to normal by 180">🌱 ×{b.zeal.toFixed(1).replace('.0', '')} early levels</span>}
       {b.catchUp > 1.001 && b.highestSkill && <span className="boost-chip catch" title="Skills behind your highest skill get +10% XP per 10 levels behind (up to +100%)">🧭 {pct(b.catchUp)} catching up to {SKILLS[b.highestSkill].name}</span>}
       {b.zeal * b.catchUp > b.total + 0.001 && <span className="small dim">(max ×{b.total})</span>}

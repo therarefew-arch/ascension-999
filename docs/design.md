@@ -342,6 +342,10 @@ Based on the owner's reference screenshots:
 - **🎁 Rare finds** while gathering (~1 in 250 actions): 🪺 bird's nests, 🪨 geodes, 🍶 corked bottles. Open them from the bag for coins and resources from the best area you've reached, with a ~5% chance of a treasure (🥚 golden egg, 🔮 starlit crystal, 🦪 sea pearl — about 1,600 coins each). Bottles can also hold one of 5 **Messages in Bottles** (Tales page): notes that hint at Cinderpeak, Frosthold, Starfall Crater and the Primordial Rift.
 - **📖 Settling In**: a 9-step starter questline for new players (copper for the bell, tin, first bronze, the inn's woodpile, shrimp for supper, cooking, a stone pickaxe, rats in the grain, and the road east at level 50). Each step has a Go button and a small reward. Saves already past the start skip it. Save version 16.
 
+### Release 3a — built · v0.0.1.12
+- **📋 Bounty Board** (Combat screen, `core/bounties.ts`): three bounties a day on regular monsters from towns you've discovered, up to ~10 levels above your best combat skill. Each pays coins (about 60% of the monster's coin drops for that many kills, plus level × 10) and a rare find (nest, geode or bottle). One free swap a day. Progress counts while idling and offline.
+- **🪓 Seasoned tools**: every tool skill gets +1% speed per 2,500 actions, up to +10% (shown on the skill screen). Applies to idling and minigames and is included in time estimates. Save version 17.
+
 ### Owner's notes for later
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.

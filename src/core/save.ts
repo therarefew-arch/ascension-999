@@ -328,6 +328,17 @@ function repair(raw: any): PlayerState {
     }
   }
   p.starsCaught = Math.max(0, Number(raw?.starsCaught) || 0);
+  // Bounty Board + seasoned tools (v17)
+  if (raw?.bounties && typeof raw.bounties.day === 'string' && Array.isArray(raw.bounties.list)) {
+    p.bounties = {
+      day: raw.bounties.day,
+      rerolled: !!raw.bounties.rerolled,
+      list: raw.bounties.list.filter((b: { monster?: string; goal?: number; find?: string }) => b && MONSTER_MAP[b.monster ?? ''] && typeof b.goal === 'number' && ITEMS[b.find ?? '']),
+    };
+  }
+  if (raw?.toolUses && typeof raw.toolUses === 'object') {
+    for (const [s, n] of Object.entries(raw.toolUses)) if (s in p.skills && typeof n === 'number' && n > 0) p.toolUses[s as SkillId] = Math.floor(n);
+  }
   // Settling In (v16): older saves that are already past the start skip it.
   if (raw?.tutorial && typeof raw.tutorial === 'object') {
     p.tutorial = { step: Math.max(0, Math.floor(Number(raw.tutorial.step) || 0)), progress: Math.max(0, Number(raw.tutorial.progress) || 0), done: !!raw.tutorial.done };

@@ -4,6 +4,7 @@ import type { EquipSlot, SkillId } from '../data/items';
 import type { FightState } from './combat';
 import type { Region } from '../data/tiers';
 import type { TownRequest } from './cozy';
+import type { Bounty } from './bounties';
 
 /**
  * v2: added 6 skills; the old "tool" gear slot became "pickaxe".
@@ -21,8 +22,9 @@ import type { TownRequest } from './cozy';
  * v14: towns front-loaded (1, 50, 110, 175 …). Levels don't change; towns just open sooner.
  * v15: Lunaria's mystery (lanterns relit, town restored).
  * v16: the Satchel, rare finds, "Settling In" starter questline.
+ * v17: Bounty Board, seasoned tools.
  */
-export const SAVE_VERSION = 16;
+export const SAVE_VERSION = 17;
 /** Starting bag size. Can be upgraded with coins up to MAX_BAG_SLOTS. */
 export const INVENTORY_SLOTS = 30;
 export const MAX_BAG_SLOTS = 50;
@@ -105,6 +107,10 @@ export interface PlayerState {
   satchel: { owned: boolean; on: boolean };
   /** 📖 "Settling In" starter questline. */
   tutorial: { step: number; progress: number; done: boolean };
+  /** 📋 Today's three combat bounties. */
+  bounties: { day: string; list: Bounty[]; rerolled: boolean };
+  /** 🪓 Seasoned tools: actions done per skill (tools get a little faster with use). */
+  toolUses: Partial<Record<SkillId, number>>;
 }
 
 export interface Loadout {
@@ -163,6 +169,8 @@ export function newPlayer(now = Date.now()): PlayerState {
     lunaria: { lanterns: 0, restored: false },
     satchel: { owned: false, on: false },
     tutorial: { step: 0, progress: 0, done: false },
+    bounties: { day: '', list: [], rerolled: false },
+    toolUses: {},
   };
 }
 

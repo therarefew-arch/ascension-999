@@ -234,6 +234,45 @@ function Fight({ onItem }: { onItem: (id: string) => void }) {
   );
 }
 
+/** 📋 Today's three bounties. */
+function BountyBoard() {
+  const { player } = useGame();
+  useEffect(() => { game.ensureBounties(); }, []);
+  const list = player.bounties.list;
+  if (!list.length) return null;
+  return (
+    <section className="card bounty-board">
+      <div className="row-between">
+        <h3>📋 Bounty Board</h3>
+        <span className="small muted">{list.filter((b) => b.claimed).length}/{list.length} done · new each day</span>
+      </div>
+      {list.map((b, i) => {
+        const m = MONSTER_MAP[b.monster];
+        const done = b.progress >= b.goal;
+        const here = m.region === player.location;
+        return (
+          <div key={i} className={`bounty ${b.claimed ? 'claimed' : ''}`}>
+            <MonsterArt monster={m} size={36} />
+            <div className="grow">
+              <div className="small"><b>{b.claimed ? '✅ ' : ''}Defeat {b.goal} {m.name}</b> <span className="muted">{here ? '' : `· in ${m.region}`}</span></div>
+              {!b.claimed && <div className="bar bar-thin"><div className="bar-fill tone-gold" style={{ width: `${(b.progress / b.goal) * 100}%` }} /></div>}
+              <div className="small muted">Reward {fmtNum(b.coins)} coins + {getItem(b.find).emoji}</div>
+            </div>
+            {b.claimed ? null : done ? (
+              <button className="btn btn-primary btn-sm" onClick={() => game.claimBounty(i)}>Claim</button>
+            ) : (
+              <div className="bounty-side">
+                <span className="mono small muted">{b.progress}/{b.goal}</span>
+                {!player.bounties.rerolled && <button className="link-btn small" onClick={() => game.rerollBounty(i)} title="Swap this bounty (once a day)">swap</button>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
 export function CombatScreen({ onItem }: { onItem: (id: string) => void }) {
   const { player } = useGame();
   const fighting = !!player.fight && fightSlot(player) >= 0;
@@ -257,6 +296,7 @@ export function CombatScreen({ onItem }: { onItem: (id: string) => void }) {
               <HpBar hp={player.hp} max={max} tone="green" />
               <p className="small muted">Triangle: Melee beats Ranged · Ranged beats Magic · Magic beats Melee. Your weapon sets your style. You heal slowly out of combat, and eat food automatically when low.</p>
             </div>
+            <BountyBoard />
             {player.location === WEEKLY_BOSS.region && <WeeklyBoss />}
             <h2 className="section-title">{player.location.toUpperCase()}</h2>
             {MONSTERS.filter((m) => m.region === player.location).map((m) => <MonsterCard key={m.id} m={m} />)}
