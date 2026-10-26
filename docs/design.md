@@ -368,6 +368,10 @@ Based on the owner's reference screenshots:
 - **Anvil Rhythm (Smithing): every tap counts.** Three taps always finish the item; mistimed taps are "a bit rough" (grey pip, no bonus) instead of wasted. Clean taps add bonus XP; 3 perfect = masterwork (bonus item).
 - **🧩 Joinery** (Crafting's second minigame, next to the Workbench): a resource-free wood-joining puzzle — tap pieces to turn them until every joint meets another (`core/joinery.ts`, always solvable). 4×4 / 5×5 / 6×6 boards give 16× / 26× / 38× the selected recipe's XP. Plays the calm café tune.
 
+### v0.0.1.17 — sickle & trowel
+- **Sickle (Herblore) and trowel (Farming)**, made in Crafting like every other tool and upgradable +1..+10. Tier N herbs (forage and dry) need a tier N sickle; tier N seeds need a tier N trowel to plant. Tier 0 needs none. Sickles speed up herb work; trowels make crops grow a little faster.
+- **Town kit** (`docs/town-kit.md`): the checklist every new town is built against.
+
 ### Owner's notes for later
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.

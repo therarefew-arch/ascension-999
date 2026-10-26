@@ -9,10 +9,10 @@ export type GemType = 'ruby' | 'sapphire' | 'emerald';
 export type GemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 export type EquipSlot =
   | 'head' | 'body' | 'legs' | 'weapon' | 'shield'
-  | 'pickaxe' | 'axe' | 'rod' | 'tinderbox' | 'skillet' | 'hammer' | 'knife';
+  | 'pickaxe' | 'axe' | 'rod' | 'tinderbox' | 'skillet' | 'hammer' | 'knife' | 'sickle' | 'trowel';
 export type IconKind =
   | 'ore' | 'rock' | 'bar' | 'log' | 'fish' | 'cooked' | 'shrimp' | 'cooked_shrimp' | 'gem'
-  | 'pickaxe' | 'axe' | 'rod' | 'tinderbox' | 'skillet' | 'hammer' | 'knife'
+  | 'pickaxe' | 'axe' | 'rod' | 'tinderbox' | 'skillet' | 'hammer' | 'knife' | 'sickle' | 'trowel'
   | 'sword' | 'shield' | 'helmet' | 'chest' | 'legs'
   | 'bow' | 'staff' | 'arrows' | 'rune' | 'coins' | 'talisman';
 export type SkillId =
@@ -78,6 +78,8 @@ export interface ItemStats {
   cookingSpeed?: number;
   smithingSpeed?: number;
   craftingSpeed?: number;
+  herbloreSpeed?: number;
+  farmingSpeed?: number;
 }
 
 export const STAT_LABELS: Record<keyof ItemStats, string> = {
@@ -91,6 +93,8 @@ export const STAT_LABELS: Record<keyof ItemStats, string> = {
   cookingSpeed: 'Cooking speed %',
   smithingSpeed: 'Smithing speed %',
   craftingSpeed: 'Crafting speed %',
+  herbloreSpeed: 'Herblore speed %',
+  farmingSpeed: 'Farming growth %',
 };
 
 export type Element = 'air' | 'water' | 'earth' | 'fire' | 'nature' | 'frost' | 'shadow' | 'light';
@@ -403,6 +407,8 @@ export const CRAFTED_TOOLS = [
   { key: 'hammer', name: 'hammer', icon: 'hammer', slot: 'hammer', skill: 'smithing', stat: 'smithingSpeed', logs: 1, hard: 2, levelOffset: 8 },
   { key: 'tinderbox', name: 'tinderbox', icon: 'tinderbox', slot: 'tinderbox', skill: 'firemaking', stat: 'firemakingSpeed', logs: 1, hard: 2, levelOffset: 10 },
   { key: 'skillet', name: 'skillet', icon: 'skillet', slot: 'skillet', skill: 'cooking', stat: 'cookingSpeed', logs: 1, hard: 3, levelOffset: 15 },
+  { key: 'sickle', name: 'sickle', icon: 'sickle', slot: 'sickle', skill: 'herblore', stat: 'herbloreSpeed', logs: 1, hard: 2, levelOffset: 0 },
+  { key: 'trowel', name: 'trowel', icon: 'trowel', slot: 'trowel', skill: 'farming', stat: 'farmingSpeed', logs: 1, hard: 2, levelOffset: 0 },
 ] as const;
 
 /** Tool tiers: 0 = Stone (pine + stone), k ≥ 1 = made from tier k-1 bars and logs (Bronze, Iron, Steel, …). */
@@ -543,7 +549,8 @@ export function getItem(id: string): ItemDef {
 export const SLOT_LABELS: Record<EquipSlot, string> = {
   head: 'Head', body: 'Body', legs: 'Legs', weapon: 'Weapon', shield: 'Shield',
   pickaxe: 'Pickaxe', axe: 'Axe', rod: 'Rod', tinderbox: 'Tinderbox', skillet: 'Skillet', hammer: 'Hammer', knife: 'Knife',
+  sickle: 'Sickle', trowel: 'Trowel',
 };
 export const ARMOUR_SLOTS: EquipSlot[] = ['head', 'weapon', 'body', 'shield', 'legs'];
-export const TOOL_SLOTS: EquipSlot[] = ['pickaxe', 'axe', 'rod', 'hammer', 'knife', 'tinderbox', 'skillet'];
+export const TOOL_SLOTS: EquipSlot[] = ['pickaxe', 'axe', 'rod', 'hammer', 'knife', 'tinderbox', 'skillet', 'sickle', 'trowel'];
 export const SLOT_ORDER: EquipSlot[] = [...ARMOUR_SLOTS, ...TOOL_SLOTS];

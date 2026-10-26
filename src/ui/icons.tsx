@@ -234,6 +234,25 @@ function ItemShape({ kind, c }: { kind: IconKind; c: Palette }): JSX.Element {
           <path d="M23 11 L35 6.5" stroke={c.light} strokeWidth="1.6" />
         </g>
       );
+    case 'sickle':
+      return (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 42 L20 32" stroke={WOOD.dark} strokeWidth="7" />
+          <path d="M14 42 L20 32" stroke={WOOD.main} strokeWidth="4.4" />
+          <path d="M19 33 Q10 16 24 8 Q38 4 42 16 Q34 10 26 14 Q20 20 24 30 Z" fill={c.light} stroke={c.dark} strokeWidth="2" />
+          <path d="M26 12 Q34 9 39 14" stroke={c.main} strokeWidth="1.4" fill="none" />
+        </g>
+      );
+    case 'trowel':
+      return (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10 42 L18 32" stroke={WOOD.dark} strokeWidth="7" />
+          <path d="M10 42 L18 32" stroke={WOOD.main} strokeWidth="4.4" />
+          <path d="M18 32 L22 28" stroke={c.dark} strokeWidth="3" />
+          <path d="M22 28 Q22 14 36 6 Q44 16 32 28 Q26 32 22 28 Z" fill={c.light} stroke={c.dark} strokeWidth="2" />
+          <path d="M25 26 L35 12" stroke={c.main} strokeWidth="1.4" />
+        </g>
+      );
     case 'knife':
       return (
         <g strokeLinecap="round" strokeLinejoin="round">

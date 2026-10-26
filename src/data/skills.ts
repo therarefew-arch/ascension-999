@@ -147,11 +147,11 @@ for (const m of MEALS) {
 // ----- 🌿 Herblore: forage wild herbs on location (sometimes a seed too), then dry them for brews -----
 for (let t = 0; t < TIER_COUNT; t++) {
   const h = HERBS[t];
-  add({ id: `forage_${h.key}`, skill: 'herblore', name: h.name, tab: 'Forage', level: tierLevel(t), durationMs: gatherMs(t), xp: gatherXp(t), inputs: [], output: { item: h.key, qty: 1 }, iconItem: h.key, sound: 'carve', region: tierRegion(t) });
+  add({ id: `forage_${h.key}`, skill: 'herblore', name: h.name, tab: 'Forage', level: tierLevel(t), needsTool: tool(t), durationMs: gatherMs(t), xp: gatherXp(t), inputs: [], output: { item: h.key, qty: 1 }, iconItem: h.key, sound: 'carve', region: tierRegion(t) });
 }
 for (let t = 0; t < TIER_COUNT; t++) {
   const h = HERBS[t];
-  add({ id: `dry_${h.key}`, skill: 'herblore', name: `Dry ${h.name.toLowerCase()}`, tab: 'Dry', level: tierLevel(t) + 2, durationMs: gatherMs(t), xp: Math.round(gatherXp(t) * 1.6), inputs: [{ item: h.key, qty: 2 }], output: { item: `dried_${h.key}`, qty: 1 }, iconItem: `dried_${h.key}`, sound: 'crackle', region: tierRegion(t) });
+  add({ id: `dry_${h.key}`, skill: 'herblore', name: `Dry ${h.name.toLowerCase()}`, tab: 'Dry', level: tierLevel(t) + 2, needsTool: tool(t), durationMs: gatherMs(t), xp: Math.round(gatherXp(t) * 1.6), inputs: [{ item: h.key, qty: 2 }], output: { item: `dried_${h.key}`, qty: 1 }, iconItem: `dried_${h.key}`, sound: 'crackle', region: tierRegion(t) });
 }
 
 // ----- Crafting: a tool for every skill, then upgrades (always succeed) -----

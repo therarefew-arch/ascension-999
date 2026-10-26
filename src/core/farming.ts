@@ -4,7 +4,9 @@
 import { CROPS, regionOpen, tierLevel, tierRegion, tierXp } from '../data/tiers';
 import { getItem } from '../data/items';
 import type { ProgressReport } from './idle';
-import { addXp, skillLevel } from './idle';
+import { addXp, equippedToolTier, skillLevel } from './idle';
+import { equipmentStats } from './equipment';
+import { TOOL_TIERS } from '../data/items';
 import { countInBag, removeFromBag } from './inventory';
 import { giveLoot, rollLoot, rollPet } from './loot';
 import type { PlayerState } from './player';
@@ -46,6 +48,7 @@ export function whyCantPlant(p: PlayerState, i: number, seedId: string): string 
   const region = tierRegion(t);
   if (!regionOpen(region) || !p.regions.includes(region)) return `Discover ${region} to grow ${CROPS[t].name.toLowerCase()}`;
   if (skillLevel(p, 'farming') < tierLevel(t)) return `Needs Farming ${tierLevel(t)}`;
+  if (t > 0 && equippedToolTier(p, 'farming') < t) return `Equip a ${TOOL_TIERS[t].name} trowel (or better) to plant this`;
   if (countInBag(p.inventory, seedId) < 1) return `No ${seed.name} in your bag`;
   return null;
 }
@@ -55,7 +58,9 @@ export function plant(p: PlayerState, i: number, seedId: string, report: Progres
   if (why) return why;
   const t = getItem(seedId).seedOf!;
   removeFromBag(p.inventory, seedId, 1);
-  p.farm.plots[i] = { crop: t, plantedAt: now, readyAt: now + growMs(t), tendedMs: 0 };
+  // A better trowel makes crops grow a little faster.
+  const speed = equipmentStats(p).farmingSpeed ?? 0;
+  p.farm.plots[i] = { crop: t, plantedAt: now, readyAt: now + Math.round(growMs(t) * (1 - speed / 100)), tendedMs: 0 };
   addXp(p, { skill: 'farming' }, report, plantXp(t));
   return null;
 }
