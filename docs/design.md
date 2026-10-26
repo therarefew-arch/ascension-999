@@ -397,6 +397,7 @@ Based on the owner's reference screenshots:
 - **App icon** for Ascension 999: a lantern-lit path winding up a mountain to a glowing summit star, "999" in gold. `public/icon-full.svg` is the master art; `icon.svg` (rounded, browser tab), `apple-touch-icon.png` (180, iPhone home screen — iPhones can't use SVG icons), `icon-192/512.png` and `icon-maskable-512.png` (Android round masks). To redraw it later, replace these files. The emblem also shows above the title screen logo.
 
 ### Owner's notes for later
+- **NEXT SESSION (locked in 2026-10-26): The Ascension endgame (750 → 999).** The owner wants it to feel like **goals to chase**: big endgame bosses and rare "Ascended" crafts to work toward, more than small passive mastery bonuses. Start by brainstorming the bosses and Ascended crafts with the owner before building.
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.
 - **Fishing journal**: only worth doing if there are *many different random fish* to catch (rare/odd catches), not just one fish per tier — otherwise your level already shows them all.
