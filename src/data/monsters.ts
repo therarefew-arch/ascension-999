@@ -25,7 +25,7 @@ export interface MonsterDef {
   pet?: string;
   /** Colours for its portrait. */
   colors: { body: string; dark: string; accent: string };
-  art: 'rat' | 'sprite' | 'bandit' | 'boar' | 'bear' | 'treant' | 'crab' | 'bird' | 'ghost';
+  art: 'rat' | 'sprite' | 'bandit' | 'boar' | 'bear' | 'treant' | 'crab' | 'bird' | 'ghost' | 'goat' | 'lizard' | 'tortoise' | 'wyrm';
   blurb: string;
 }
 
@@ -201,6 +201,41 @@ MONSTERS.push(
     miniboss: { respawnMs: 5 * 60 * 1000 }, pet: 'pet_mote',
     colors: { body: '#1e1b4b', dark: '#020617', accent: '#c7d2fe' }, art: 'ghost',
     blurb: 'Mini boss. The silence that swallowed every light in Lunaria. Drops gems.',
+  },
+);
+
+// ----- Cinderpeak (tier 5) — the volcano village. Nothing here is truly mean, just very warm. -----
+MONSTERS.push(
+  {
+    id: 'ash_goat', name: 'Ash Goat', region: 'Cinderpeak', level: 455, style: 'melee',
+    hp: 780, attack: 445, defense: 390, maxHit: 64, speedMs: 2000, lootTable: 'mon_ash_goat',
+    colors: { body: '#78716c', dark: '#292524', accent: '#fb923c' }, art: 'goat',
+    blurb: 'Its horns glow like coals. Headbutts anyone standing on its favourite warm rock.',
+  },
+  {
+    id: 'fire_salamander', name: 'Fire Salamander', region: 'Cinderpeak', level: 470, style: 'magic',
+    hp: 740, attack: 460, defense: 395, maxHit: 64, speedMs: 2000, lootTable: 'mon_fire_salamander',
+    colors: { body: '#ea580c', dark: '#7c2d12', accent: '#fde047' }, art: 'lizard',
+    blurb: 'Basks in the lava pools and spits little fireballs when you block its sun.',
+  },
+  {
+    id: 'sooty_imp', name: 'Sooty Imp', region: 'Cinderpeak', level: 490, style: 'ranged',
+    hp: 860, attack: 485, defense: 420, maxHit: 70, speedMs: 1900, lootTable: 'mon_sooty_imp',
+    colors: { body: '#44403c', dark: '#1c1917', accent: '#f97316' }, art: 'sprite',
+    blurb: 'Lives in the chimneys of the Ash Market and lobs hot coals for fun.',
+  },
+  {
+    id: 'magma_tortoise', name: 'Magma Tortoise', region: 'Cinderpeak', level: 515, style: 'melee',
+    hp: 1000, attack: 505, defense: 470, maxHit: 74, speedMs: 2200, lootTable: 'mon_magma_tortoise',
+    colors: { body: '#3f3f46', dark: '#18181b', accent: '#f97316' }, art: 'tortoise',
+    blurb: 'Takes a hundred years to cross the lava field. Very hard to hurry, very hard to dent.',
+  },
+  {
+    id: 'kiln_wyrm', name: 'The Kiln Wyrm', region: 'Cinderpeak', level: 535, style: 'melee',
+    hp: 3500, attack: 535, defense: 480, maxHit: 98, speedMs: 2200, lootTable: 'boss_kiln_wyrm',
+    miniboss: { respawnMs: 5 * 60 * 1000 }, pet: 'pet_kindle',
+    colors: { body: '#b91c1c', dark: '#450a0a', accent: '#fbbf24' }, art: 'wyrm',
+    blurb: 'Mini boss. A sleepy lava dragon curled inside the old kiln. Grumpy when woken. Drops gems.',
   },
 );
 

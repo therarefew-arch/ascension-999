@@ -4,7 +4,7 @@
 import type { Region } from './tiers';
 
 /** How a note is found: arriving in town, beating its mini boss, by chance while skilling there, or by bringing Lunaria back. */
-export type LoreTrigger = 'arrive' | 'boss' | 'find' | 'restore' | 'bottle';
+export type LoreTrigger = 'arrive' | 'boss' | 'find' | 'restore' | 'bottle' | 'gift';
 
 export interface LoreNote {
   id: string;
@@ -25,6 +25,7 @@ export const TOWN_VIBE: Partial<Record<Region, string>> = {
   Coalhaven: 'Foghorns, lantern-light on black water, and a question nobody likes to ask.',
   Bluecliff: 'Salt wind, red maples and a lighthouse that watches the one island nobody visits.',
   Lunaria: 'Fog, silver moonlight, and a whole town holding its breath.',
+  Cinderpeak: 'Warm stones, spiced bread, hand drums in the Ash Market — and a mountain that snores.',
 };
 
 export const LORE: LoreNote[] = [
@@ -108,6 +109,23 @@ export const LORE: LoreNote[] = [
   {
     id: 'lu_moonwake', region: 'Lunaria', trigger: 'restore', title: 'The Moonwake',
     text: 'Seven lanterns burn. The key turns, and the bell rings out, warm and round, across the water. The fog lifts like a curtain. Colour floods back into faces — the baker, the lamplighter, the children on the steps — and down at the quay, the crew of the Silver Willow blink awake, still holding their ropes. Lune runs to the end of the pier with a letter in her hand. Across the water, Coalhaven\'s lights flicker in answer. Her brother is coming. Lunaria is home.',
+  },
+  // ----- Cinderpeak: the volcano village, and the start of the Traveller's trail -----
+  {
+    id: 'cp_market', region: 'Cinderpeak', trigger: 'arrive', title: 'The Ash Market',
+    text: 'Stalls cling to the warm slope under awnings grey with ash. Bread bakes on flat stones by the lava vents, a goat with glowing horns naps on a pile of peppers, and somewhere a hand drum keeps time. A spice-seller grins: "First time up the mountain? Don\'t mind the rumbling. She\'s only snoring."',
+  },
+  {
+    id: 'cp_wyrm', region: 'Cinderpeak', trigger: 'boss', boss: 'kiln_wyrm', title: 'The Kiln Keeper',
+    text: 'Inside the old kiln, behind where the Wyrm sleeps, the walls are lined with clay pots — hundreds, every one fired perfectly. A chalk sign reads: "KILN WYRM — PLEASE DO NOT WAKE. Fires our pots for free." Underneath, newer: "Sorry about the noise. — Cinderpeak Potters\' Guild."',
+  },
+  {
+    id: 'cp_ledger', region: 'Cinderpeak', trigger: 'find', title: "A Spice-Seller's Ledger",
+    text: 'Pepper sales, goat feed, a note to fix the awning. Then, underlined twice: "Traveller came through again. Bought nothing, paid for everyone\'s bread anyway. Asked which road goes highest. I told them Frosthold. They smiled like they already knew." In the margin, a tiny drawing of a compass.',
+  },
+  {
+    id: 'cp_well', region: 'Cinderpeak', trigger: 'gift', title: 'Left at the Well',
+    text: 'Tucked behind the well bucket, wrapped in a faded travelling cloak: a little parcel and a card. "For whoever comes next. The springs are warmer than they look, and the goats are friendlier. I\'ve gone on ahead to Frosthold — keep up! — T."',
   },
   // ----- 🍶 Messages in bottles (found in corked bottles while fishing, in order). Little hints of the Frontier. -----
   // (Not tied to a town — the Tales page shows them in their own section.)

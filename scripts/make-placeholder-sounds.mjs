@@ -9,6 +9,9 @@ import { Mp3Encoder } from '@breezystack/lamejs';
 
 const RATE = 22050;
 const OUT = join(process.cwd(), 'public', 'assets', 'sounds');
+// `npm run sounds -- music_cinderpeak` remakes just that one file (so the others stay exactly as they are).
+const ONLY = process.argv[2];
+const want = (name) => !ONLY || name === ONLY;
 mkdirSync(OUT, { recursive: true });
 
 function wav(samples, rate = RATE) {
@@ -23,6 +26,7 @@ function wav(samples, rate = RATE) {
 
 /** Saves a song as a mono MP3 (and removes an old .wav copy so the game uses the small file). */
 function writeMusic(name, samples, rate = RATE) {
+  if (!want(name)) return;
   const kbps = rate <= 12000 ? 40 : 56;
   const enc = new Mp3Encoder(1, rate, kbps);
   const pcm = new Int16Array(samples.length);
@@ -252,14 +256,14 @@ const sounds = {
   welcome: mix(['', tone([392], 0.5, 0.08, 4)], ['', tone([523], 0.5, 0.08, 4), 0.15], ['', tone([659], 0.8, 0.08, 3), 0.3]),
 };
 
-for (const [name, s] of Object.entries(sounds)) writeFileSync(join(OUT, `${name}.wav`), wav(Array.from(s)));
+for (const [name, s] of Object.entries(sounds)) if (want(name)) writeFileSync(join(OUT, `${name}.wav`), wav(Array.from(s)));
 
 // Cozy fire ambience (loops quietly in the kitchen while the fire is lit): low rumble + crackles.
 {
   const len = 6;
   const rumble = lowpass(noise(len, 1, 0), 220);
   const out = mix(['', norm(rumble, 0.05)], ['', norm(pops(len, 40, 1, 5), 0.12)]);
-  writeFileSync(join(OUT, 'fire_loop.wav'), wav(Array.from(loopFade(out, 0.15))));
+  if (want('fire_loop')) writeFileSync(join(OUT, 'fire_loop.wav'), wav(Array.from(loopFade(out, 0.15))));
 }
 
 // Town music: the same soft swelling chords the owner likes, grown into a ~2-minute song
@@ -677,6 +681,88 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
   const f = Math.floor(0.4 * MR);
   for (let i = 0; i < f; i++) { out[i] *= i / f; out[total - 1 - i] *= i / f; }
   writeMusic('music_bluecliff', out, MR);
+}
+
+// Cinderpeak: a warm market song on the volcano. Hand drums (a deep "dum" and a bright "tek" in a
+// lilting market rhythm), a low drone like a bowed string, a plucked lute melody in a warm, spicy
+// scale, a soft shaker, and the odd crackle of embers.
+{
+  const bpm = 100;
+  const beat = 60 / bpm;
+  const BAR = 4 * beat;
+  const E8 = beat / 2;
+  // E "hijaz" — the bright, spicy market scale.
+  const SCALE = [329.6, 349.2, 415.3, 440, 493.9, 523.3, 587.3, 659.3];
+  const ROOTS = { E: 82.4, F: 87.3, Dm: 73.4, G: 98, A: 110 };
+  const lines = [
+    { bars: ['E', 'E', 'F', 'E'], lute: false, shaker: false },
+    { bars: ['E', 'F', 'E', 'E'], lute: true, shaker: false },
+    { bars: ['Dm', 'E', 'F', 'E'], lute: true, shaker: true },
+    { bars: ['A', 'G', 'F', 'E'], lute: true, shaker: true },
+    { bars: ['E', 'F', 'E', 'E'], lute: false, shaker: true },
+    { bars: ['Dm', 'E', 'G', 'F'], lute: true, shaker: true },
+    { bars: ['A', 'G', 'F', 'E'], lute: true, shaker: false },
+    { bars: ['E', 'F', 'E', 'E'], lute: false, shaker: false },
+  ];
+  const rnd = seeded(77);
+  const totalBars = lines.length * 4;
+  const total = Math.floor(totalBars * BAR * MR);
+  const out = new Float32Array(total);
+  // Market rhythm (in eighths): DUM tek . tek DUM . tek .
+  const PATTERN = ['D', 'T', '', 'T', 'D', '', 'T', ''];
+  const pluck = (f, t) => {
+    let v = 0;
+    for (let h = 1; h <= 5; h++) v += Math.sin(2 * Math.PI * f * h * t) * Math.exp(-(3 + h * 2.5) * t) / h;
+    return v * Math.min(1, t / 0.002);
+  };
+  let b = 0;
+  let note = 4;
+  for (const line of lines) {
+    for (const name of line.bars) {
+      const root = ROOTS[name];
+      const start = Math.floor(b * BAR * MR);
+      // Hand drums.
+      PATTERN.forEach((hit, k) => {
+        const at = start + Math.floor(k * E8 * MR);
+        if (hit === 'D') addTo(out, at, Math.floor(0.35 * MR), (t) => Math.sin(2 * Math.PI * (120 - 55 * Math.min(1, t * 8)) * t) * Math.exp(-11 * t) * 0.11);
+        if (hit === 'T') {
+          const r2 = seeded(1000 + k);
+          addTo(out, at, Math.floor(0.09 * MR), (t) => ((r2() * 2 - 1) * 0.6 + Math.sin(2 * Math.PI * 1300 * t) * 0.4) * Math.exp(-45 * t) * 0.035);
+        }
+        // A soft shaker on every eighth.
+        if (line.shaker) {
+          const r3 = seeded(2000 + k + b);
+          addTo(out, at + Math.floor(0.01 * MR), Math.floor(0.06 * MR), (t) => (r3() * 2 - 1) * Math.exp(-60 * t) * (k % 2 ? 0.008 : 0.012));
+        }
+      });
+      // Low drone: root + fifth, swelling through the bar.
+      addTo(out, start, Math.floor(BAR * MR), (t) =>
+        (Math.sin(2 * Math.PI * root * t) + 0.5 * Math.sin(2 * Math.PI * root * 1.5 * t) + 0.25 * Math.sin(2 * Math.PI * root * 2 * t))
+        * Math.sin(Math.PI * (t / BAR)) ** 2 * 0.03);
+      // Plucked lute: a little run of eighths that steps around the scale.
+      if (line.lute) {
+        for (let k = 0; k < 8; k++) {
+          if (rnd() < (k % 2 ? 0.45 : 0.15)) continue;
+          note = Math.max(0, Math.min(SCALE.length - 1, note + [-2, -1, -1, 0, 1, 1, 2][Math.floor(rnd() * 7)]));
+          const f = SCALE[note] / 2;
+          addTo(out, start + Math.floor(k * E8 * MR), Math.floor(0.9 * MR), (t) => pluck(f, t) * 0.035);
+        }
+      }
+      // Ember crackle: a few tiny pops now and then.
+      for (let i = 0; i < 3; i++) {
+        if (rnd() < 0.5) continue;
+        const at = start + Math.floor(rnd() * BAR * MR);
+        const amp = 0.01 + rnd() * 0.015;
+        const r4 = seeded(3000 + b * 7 + i);
+        addTo(out, at, Math.floor(0.012 * MR), (t) => (r4() * 2 - 1) * Math.exp(-300 * t) * amp);
+      }
+      b++;
+    }
+  }
+  // Start and end in silence.
+  const f = Math.floor(0.4 * MR);
+  for (let i = 0; i < f; i++) { out[i] *= i / f; out[total - 1 - i] *= i / f; }
+  writeMusic('music_cinderpeak', out, MR);
 }
 
 // Calm lofi loop for the Mahjong tile game: 72 bpm, jazzy 7th chords, soft kick + brush, vinyl crackle. 4 bars × 2 = ~26.7s.

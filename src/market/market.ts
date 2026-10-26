@@ -99,6 +99,8 @@ export const BUY_LISTS: Partial<Record<Region, string[]>> = {
   Bluecliff: ['cobalt_ore', 'maple_logs', 'raw_lobster', 'cobalt_bar', 'cobalt_arrows', 'cooked_lobster', 'coal', 'stone', 'rune_essence', 'potato_seed'],
   // Lunaria's market only reopens once the town is brought home (the Silent Bell).
   Lunaria: ['moonsilver_ore', 'moonwood_logs', 'raw_moonfin', 'moonsilver_bar', 'moonsilver_arrows', 'cooked_moonfin', 'cobalt_ore', 'stone', 'rune_essence', 'moonmelon_seed'],
+  // The Ash Market.
+  Cinderpeak: ['emberite_ore', 'emberbark_logs', 'raw_emberfin', 'emberite_bar', 'emberite_arrows', 'cooked_emberfin', 'moonsilver_ore', 'stone', 'rune_essence', 'emberpepper_seed', 'emberpepper'],
 };
 /** 🎒 The Satchel: sends whatever doesn't fit in your bag to the bank. Needs any skill at 110 (Coalhaven). */
 export const SATCHEL = { level: 110, coins: 25_000 };

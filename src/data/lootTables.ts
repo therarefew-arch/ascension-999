@@ -105,6 +105,27 @@ tables.push(
   },
 );
 
+// ----- Monsters (Cinderpeak) -----
+tables.push(
+  { id: 'mon_ash_goat', source: 'monster', entries: [e('coins', 820, 1400, 1), e('emberite_ore', 3, 8, 0.4), e('emberpepper', 1, 3, 0.25), e('stone', 10, 20, 0.2)] },
+  { id: 'mon_fire_salamander', source: 'monster', entries: [e('coins', 880, 1500, 1), e('fire_rune', 50, 100, 0.45), e('raw_emberfin', 2, 5, 0.35), e('emberbark_logs', 3, 7, 0.3)] },
+  { id: 'mon_sooty_imp', source: 'monster', entries: [e('coins', 980, 1700, 1), e('emberite_arrows', 20, 45, 0.45), e('emberite_bar', 1, 3, 0.25), e('cooked_emberfin', 1, 3, 0.3)] },
+  { id: 'mon_magma_tortoise', source: 'monster', entries: [e('coins', 1100, 1900, 1), e('emberite_ore', 5, 11, 0.45), e('emberbark_logs', 4, 10, 0.35), e('fire_rune', 40, 80, 0.3)] },
+  {
+    id: 'boss_kiln_wyrm', source: 'miniboss',
+    entries: [e('coins', 4200, 7600, 1), e('emberite_bar', 8, 18, 0.6), e('great_emberfin', 3, 8, 0.5), e('emberbark_logs', 20, 40, 0.5), e('fire_rune', 80, 160, 0.5), e('heartfire_ember', 1, 1, 0.1)],
+    groups: [{ chance: 0, items: [] }], // replaced below with the gem group
+  },
+);
+
+// ----- 🌋 The Mountain Stirs: ember geodes (much likelier than plain finds) and what's inside. Never gems. -----
+tables.push(
+  { id: 'find_ember_geode', source: 'skilling', entries: [e('ember_geode', 1, 1, 1 / 40)] },
+  { id: 'open_ember_geode', source: 'skilling', entries: [e('coins', 300, 900, 1), e('emberite_ore', 6, 14, 0.9), e('fire_rune', 20, 60, 0.5), e('heartfire_ember', 1, 1, 0.06), e('starlit_crystal', 1, 1, 0.05)] },
+  // 🎒 The Traveller's gift at Cinderpeak's well.
+  { id: 'gift_cinderpeak', source: 'skilling', entries: [e('coins', 5000, 5000, 1), e('travellers_compass', 1, 1, 1), e('emberpepper_seed', 3, 3, 1), e('ember_geode', 2, 2, 1)] },
+);
+
 // ----- 🌿 Foraging: the herb, and sometimes a seed for your garden (replaces the plain herb table) -----
 for (let t = 0; t < TIER_COUNT; t++) {
   tables.push({ id: `forage_${HERBS[t].key}`, source: 'skilling', entries: [e(HERBS[t].key, 1, 1, 1), e(`${CROPS[t].key}_seed`, 1, 1, 0.12)] });
@@ -165,6 +186,9 @@ tables.find((t) => t.id === 'boss_old_galewing')!.groups = [gemGroup(0.88, { com
 
 // The Hush: a gem 90% of the time, rarities a step better again.
 tables.find((t) => t.id === 'boss_the_hush')!.groups = [gemGroup(0.9, { common: 18, uncommon: 29, rare: 27, epic: 17, legendary: 7, mythic: 2 })];
+
+// The Kiln Wyrm: a gem 92% of the time, rarities a step better again.
+tables.find((t) => t.id === 'boss_kiln_wyrm')!.groups = [gemGroup(0.92, { common: 14, uncommon: 28, rare: 29, epic: 19, legendary: 8, mythic: 2 })];
 
 // ----- Weekly boss: 2 guaranteed gems with better rarity odds -----
 const WEEKLY_GEM_WEIGHTS: Record<GemRarity, number> = { common: 20, uncommon: 30, rare: 25, epic: 15, legendary: 7, mythic: 3 };

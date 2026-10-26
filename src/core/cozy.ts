@@ -216,6 +216,7 @@ export function syncLore(p: PlayerState): LoreNote[] {
     if (n.trigger === 'arrive' && p.regions.includes(n.region)) learn(p, n, found);
     if (n.trigger === 'boss' && n.boss && p.bossReadyAt[n.boss] !== undefined) learn(p, n, found);
     if (n.trigger === 'restore' && n.region === 'Lunaria' && p.lunaria.restored) learn(p, n, found);
+    if (n.trigger === 'gift' && p.travellerGifts.includes(n.region)) learn(p, n, found);
   }
   return found;
 }

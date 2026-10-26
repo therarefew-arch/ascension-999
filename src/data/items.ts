@@ -149,6 +149,8 @@ export interface ItemDef {
   value?: number;
   /** Rare finds: which gathering skill's open table it uses when opened. */
   opens?: 'woodcutting' | 'mining' | 'fishing';
+  /** A find that always opens with this loot table (instead of the best-area one). */
+  opensTable?: string;
   /** Meals and brews: the timed bonus you get when you eat or drink it. */
   buff?: Buff;
   /** Seeds: the crop (tier index into CROPS) it grows into. */
@@ -467,6 +469,13 @@ items.push(
     description: 'Found inside a geode. Tiny stars drift inside it. Worth a lot at the Trading Post.' },
   { id: 'sea_pearl', name: 'Sea pearl', category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🦪', stackable: true, value: 1600,
     description: 'A perfect pearl that rolled out of a bottle. Traders love these.' },
+  // 🌋 Cinderpeak
+  { id: 'ember_geode', name: 'Ember geode', category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🌋', stackable: true,
+    description: 'Shaken loose when the mountain stirs. Still warm, and it glows through the cracks. Crack it open!', opens: 'mining', opensTable: 'open_ember_geode' },
+  { id: 'heartfire_ember', name: 'Heartfire ember', category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🔥', stackable: true, value: 4000,
+    description: 'A coal from the heart of the mountain that never goes out. Traders in Cinderpeak treasure these.' },
+  { id: 'travellers_compass', name: "Traveller's compass", category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🧭', stackable: true, value: 2500,
+    description: 'Left at a well by someone always one town ahead. The needle doesn\'t point north. It points further.' },
 );
 
 // ----- 🌿 Herblore: herbs and dried herbs · 🌱 Farming: seeds and crops (one of each per town) -----
@@ -531,6 +540,13 @@ export const MEALS: MealDef[] = [
   { id: 'moonpetal_tea', name: 'Moonpetal tea', emoji: '🫖', tab: 'Brews', level: 248, tierNum: 4,
     inputs: [{ item: 'dried_moonpetal', qty: 3 }, { item: 'moonmelon', qty: 1 }], buff: { skill: 'all', kind: 'xp', pct: 4, minutes: 30 },
     description: 'Silver and sweet. Everything feels a little easier.' },
+  // 🌋 Cinderpeak
+  { id: 'firepepper_chili', name: 'Fire-pepper chili', emoji: '🥘', tab: 'Meals', level: 325, tierNum: 5,
+    inputs: [{ item: 'cooked_emberfin', qty: 2 }, { item: 'emberpepper', qty: 2 }], buff: { skill: 'all', kind: 'speed', pct: 4, minutes: 30 },
+    description: 'So spicy your hands move faster just to fan your mouth. Everything goes a little quicker.' },
+  { id: 'emberleaf_chai', name: 'Emberleaf chai', emoji: '🍵', tab: 'Brews', level: 322, tierNum: 5,
+    inputs: [{ item: 'dried_emberleaf', qty: 3 }, { item: 'emberpepper', qty: 1 }], buff: { skill: 'smithing', kind: 'xp', pct: 10, minutes: 30 },
+    description: 'Warm, peppery and sweet. Cinderpeak smiths drink it by the kettle.' },
 ];
 for (const m of MEALS) {
   items.push({ id: m.id, name: m.name, category: 'meal', tier: 'oak', icon: 'log', emoji: m.emoji, stackable: true, tierNum: m.tierNum,

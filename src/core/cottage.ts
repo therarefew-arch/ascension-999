@@ -68,6 +68,13 @@ export const FURNITURE: Furniture[] = [
   // ----- Lunaria -----
   { id: 'moon_chandelier', name: 'Moonsilver chandelier', emoji: '🕯️', x: 52, y: 8, skill: 'smithing', level: 250, tier: 4, needsLunaria: true,
     cost: [{ id: 'moonsilver_bar', qty: 20 }, { id: 'moonwood_logs', qty: 20 }], perk: { kind: 'xp', skill: 'all', pct: 2 }, blurb: 'A gift of light from a town you brought home.' },
+  // ----- Cinderpeak -----
+  { id: 'kiln_vase', name: 'Kiln-fired vase', emoji: '🏺', x: 6, y: 80, skill: 'crafting', level: 325, tier: 5,
+    cost: [{ id: 'emberbark_logs', qty: 30 }, { id: 'stone', qty: 60 }, { id: 'fire_rune', qty: 100 }], perk: { kind: 'xp', skill: 'firemaking', pct: 3 }, blurb: 'Fired in the Kiln Wyrm\'s kiln (while it snored).' },
+  { id: 'spice_shelf', name: 'Spice shelf', emoji: '🌶️', x: 58, y: 82, skill: 'cooking', level: 330, tier: 5,
+    cost: [{ id: 'emberpepper', qty: 30 }, { id: 'dried_emberleaf', qty: 20 }, { id: 'emberbark_logs', qty: 10 }], perk: { kind: 'xp', skill: 'cooking', pct: 3 }, blurb: 'Jars of Ash Market spices. The whole cottage smells wonderful.' },
+  { id: 'ember_brazier', name: 'Emberite brazier', emoji: '🪔', x: 36, y: 48, skill: 'smithing', level: 335, tier: 5,
+    cost: [{ id: 'emberite_bar', qty: 20 }, { id: 'emberbark_logs', qty: 20 }], perk: { kind: 'fire', pct: 25 }, blurb: 'Glows all night. Your cooking fire burns even longer.' },
 ];
 export const FURNITURE_MAP: Record<string, Furniture> = Object.fromEntries(FURNITURE.map((f) => [f.id, f]));
 

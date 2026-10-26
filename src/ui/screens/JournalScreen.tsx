@@ -118,6 +118,7 @@ const HOW_FOUND: Record<LoreTrigger, string> = {
   find: 'Found by chance while skilling here',
   restore: 'Found by bringing Lunaria home',
   bottle: 'Found in a corked bottle',
+  gift: 'Found at the town well',
 };
 
 /** 📜 Tales: short notes found in each town. */

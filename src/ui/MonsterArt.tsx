@@ -149,6 +149,69 @@ export function MonsterArt({ monster, size = 96, hurt = false }: { monster: Mons
         </g>
       );
       break;
+    case 'goat':
+      art = (
+        <g>
+          <ellipse cx="56" cy="58" rx="28" ry="18" fill={body} stroke={dark} strokeWidth="3" />
+          <path d="M36 72 V88 M48 74 V88 M66 74 V88 M78 70 V86" stroke={dark} strokeWidth="5" strokeLinecap="round" />
+          <path d="M84 52 Q92 48 90 58" stroke={body} strokeWidth="5" fill="none" strokeLinecap="round" />
+          <ellipse cx="28" cy="46" rx="13" ry="15" fill={body} stroke={dark} strokeWidth="3" />
+          {/* glowing curled horns */}
+          <path d="M26 33 Q30 14 44 18 Q50 24 42 28" stroke={accent} strokeWidth="5" fill="none" strokeLinecap="round" />
+          <path d="M20 34 Q14 18 4 24" stroke={accent} strokeWidth="4" fill="none" strokeLinecap="round" />
+          <path d="M22 58 Q24 70 30 60" fill="#e7e5e4" stroke={dark} strokeWidth="2" />
+          <g transform="translate(26 44)">{eye}</g>
+          <circle cx="17" cy="51" r="2" fill={dark} />
+        </g>
+      );
+      break;
+    case 'lizard':
+      art = (
+        <g>
+          <path d="M70 62 Q92 60 88 44 Q86 36 80 40" stroke={body} strokeWidth="8" fill="none" strokeLinecap="round" />
+          <ellipse cx="52" cy="62" rx="24" ry="13" fill={body} stroke={dark} strokeWidth="3" />
+          <path d="M36 72 L30 84 M48 74 L46 86 M60 74 L64 86 M70 70 L76 82" stroke={dark} strokeWidth="4" strokeLinecap="round" />
+          <ellipse cx="26" cy="54" rx="15" ry="11" fill={body} stroke={dark} strokeWidth="3" />
+          <circle cx="44" cy="58" r="3" fill={accent} /><circle cx="56" cy="56" r="3.5" fill={accent} /><circle cx="66" cy="62" r="2.5" fill={accent} />
+          <g transform="translate(24 50)">{eye}</g>
+          <path d="M12 58 Q18 61 24 59" stroke={dark} strokeWidth="2" fill="none" strokeLinecap="round" />
+          {/* little flame on its back */}
+          <path d="M50 49 Q52 38 58 44 Q60 36 64 46 Z" fill={accent} opacity="0.9" />
+        </g>
+      );
+      break;
+    case 'tortoise':
+      art = (
+        <g>
+          <path d="M28 76 V86 M44 78 V88 M60 78 V88 M74 74 V84" stroke={dark} strokeWidth="7" strokeLinecap="round" />
+          <path d="M18 72 Q20 32 52 30 Q84 32 86 72 Z" fill={body} stroke={dark} strokeWidth="3" />
+          {/* glowing cracks in the shell */}
+          <path d="M34 46 L44 54 L40 66 M52 36 L56 50 L66 56 M70 48 L76 62" stroke={accent} strokeWidth="3" fill="none" strokeLinecap="round" />
+          <ellipse cx="14" cy="64" rx="11" ry="9" fill={dark} stroke={dark} strokeWidth="2" />
+          <ellipse cx="13" cy="63" rx="9" ry="7" fill="#78716c" />
+          <g transform="translate(10 61)">{eye}</g>
+        </g>
+      );
+      break;
+    case 'wyrm':
+      art = (
+        <g>
+          {/* curled-up sleepy dragon */}
+          <path d="M30 30 Q14 18 18 40 M66 30 Q82 18 78 40" fill={accent} opacity="0.55" stroke={dark} strokeWidth="2" />
+          <ellipse cx="50" cy="66" rx="34" ry="22" fill={body} stroke={dark} strokeWidth="3" />
+          <path d="M80 70 Q92 80 78 86 Q70 88 66 82" stroke={body} strokeWidth="8" fill="none" strokeLinecap="round" />
+          <path d="M28 56 Q50 46 72 56" stroke={accent} strokeWidth="4" fill="none" strokeLinecap="round" />
+          <ellipse cx="38" cy="44" rx="20" ry="14" fill={body} stroke={dark} strokeWidth="3" />
+          <path d="M30 32 L26 22 M44 31 L46 21" stroke={dark} strokeWidth="3" strokeLinecap="round" />
+          {/* closed sleepy eyes */}
+          <path d="M28 42 Q32 45 36 42 M42 42 Q46 45 50 42" stroke="#1a1410" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <circle cx="22" cy="50" r="2" fill={dark} />
+          {/* smoke puff and a Z */}
+          <circle cx="14" cy="40" r="3" fill="#a8a29e" opacity="0.6" /><circle cx="8" cy="32" r="4" fill="#a8a29e" opacity="0.45" />
+          <path d="M60 16 H68 L60 24 H68" stroke={accent} strokeWidth="2" fill="none" />
+        </g>
+      );
+      break;
     case 'bear':
       art = (
         <g>

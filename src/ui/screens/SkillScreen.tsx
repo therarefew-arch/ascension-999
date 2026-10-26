@@ -11,6 +11,7 @@ import { bestAction, timeToLevel, timeToNextLevel, visibleActions } from '../../
 import { goalChoices } from '../../core/cozy';
 import { xpBoost } from '../../core/boosts';
 import { activeBuffs, buffText } from '../../core/buffs';
+import { mountainStirs, STIR_XP_MULT } from '../../core/cinderpeak';
 import { RipePicking } from '../HerbloreGame';
 import { game, useGame } from '../../core/store';
 import { levelProgress, MAX_LEVEL } from '../../core/xp';
@@ -44,10 +45,12 @@ export function BoostRow({ skill }: { skill: SkillId }) {
   const toNext = seasoned < SEASONED.maxPercent ? SEASONED.perPercent - (uses % SEASONED.perPercent) : 0;
   const now = Date.now();
   const meals = activeBuffs(player, now).filter((a) => a.buff.skill === skill || a.buff.skill === 'all' || (a.buff.skill === 'combat' && COMBAT_SKILLS.includes(skill)));
-  if (b.total <= 1.001 && seasoned === 0 && uses === 0 && !meals.length) return null;
+  const stirring = skill === 'mining' && player.location === 'Cinderpeak' && mountainStirs(now).active;
+  if (b.total <= 1.001 && seasoned === 0 && uses === 0 && !meals.length && !stirring) return null;
   const pct = (m: number) => `+${Math.round((m - 1) * 100)}%`;
   return (
     <div className="boost-row">
+      {stirring && <span className="boost-chip stir" title="Every 3 hours the volcano stirs for 15 minutes">🌋 The mountain stirs! Emberite ×{STIR_XP_MULT} XP + ember geodes</span>}
       {meals.map((m) => (
         <span key={m.item} className="boost-chip meal" title={getItem(m.item).name}>
           {getItem(m.item).emoji} {buffText(m.buff)} · {Math.ceil((m.until - now) / 60000)}m

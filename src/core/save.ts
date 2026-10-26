@@ -331,6 +331,8 @@ function repair(raw: any): PlayerState {
   p.starsCaught = Math.max(0, Number(raw?.starsCaught) || 0);
   // Cottage (v19)
   if (Array.isArray(raw?.cottage)) p.cottage = Array.from(new Set(raw.cottage.filter((id: unknown) => typeof id === 'string' && !!FURNITURE_MAP[id as string])));
+  // The Traveller's gifts (v20)
+  if (Array.isArray(raw?.travellerGifts)) p.travellerGifts = Array.from(new Set(raw.travellerGifts.filter((r: unknown) => typeof r === 'string')));
   // Buffs + garden (v18)
   if (raw?.buffs && typeof raw.buffs === 'object') {
     for (const [k, b] of Object.entries(raw.buffs as Record<string, { item?: string; until?: number }>)) {

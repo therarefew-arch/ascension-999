@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 export type SceneName = 'forest' | 'town' | 'mine' | 'forge' | 'river' | 'camp' | 'kitchen' | 'workshop' | 'tower' | 'altar' | 'ironmoor' | 'coalhaven' | 'bluecliff'
-  | 'lunaria' | 'lunaria_restored';
+  | 'lunaria' | 'lunaria_restored' | 'cinderpeak' | 'cinderpeak_stirring';
 
 const W = 72;
 const H = 128;
@@ -371,18 +371,71 @@ function drawLunaria(px: Px, r: () => number, restored: boolean) {
   for (let i = 0; i < 40; i++) px(Math.floor(r() * W), 104 + Math.floor(r() * 24), 2, 1, ['#4b4f66', '#2e3145'][Math.floor(r() * 2)]);
 }
 
+/** Cinderpeak: a warm village on the slopes of a sleepy volcano, with hot springs. When the mountain stirs, it glows. */
+function drawCinderpeak(px: Px, r: () => number, stirring: boolean) {
+  // warm, hazy amber sky
+  const sky = ['#7c3a2a', '#a14f30', '#c96a3a', '#e09a5a'];
+  for (let y = 0; y < 56; y++) px(0, y, W, 1, sky[Math.min(3, Math.floor(y / 14))]);
+  // the volcano: a big dark cone with a glowing crater
+  for (let y = 14; y < 70; y++) {
+    const half = Math.round((y - 14) * 0.75) + 4;
+    px(36 - half, y, half * 2, 1, (y % 5 === 0) ? '#3b2a26' : '#4a332d');
+  }
+  px(32, 13, 8, 2, stirring ? '#fde047' : '#f97316'); px(30, 15, 12, 1, '#7c2d12');
+  // lava streams down the sides (brighter when stirring)
+  const lava = stirring ? '#fb923c' : '#c2410c';
+  for (let y = 16; y < 60; y++) { px(34 - Math.floor((y - 16) * 0.35), y, 1, 1, lava); if (y > 24) px(39 + Math.floor((y - 24) * 0.4), y, 1, 1, lava); }
+  // smoke plume — tall and glowing when the mountain stirs
+  const puffs = stirring ? 9 : 5;
+  for (let i = 0; i < puffs; i++) {
+    const s = 3 + i;
+    px(34 + Math.round(Math.sin(i * 1.3) * 3) - Math.floor(s / 2) + i, 11 - i * 2, s, 2, stirring && i < 3 ? 'rgba(253,186,116,0.7)' : 'rgba(168,162,158,0.6)');
+  }
+  if (stirring) for (let i = 0; i < 12; i++) px(28 + Math.floor(r() * 18), 2 + Math.floor(r() * 12), 1, 1, '#fde047');
+  // terraced slope
+  for (let x = 0; x < W; x++) { const top = 60 + Math.round(Math.sin(x / 7) * 2); px(x, top, 1, H - top, '#5b4038'); }
+  for (let y = 70; y < 104; y += 8) px(0, y, W, 1, '#6e4f43');
+  // Ash Market stalls with striped awnings
+  const stall = (x: number, y: number, c: string) => {
+    px(x, y, 9, 5, '#8a6a52'); px(x - 1, y - 3, 11, 3, c);
+    for (let i = 0; i < 11; i += 2) px(x - 1 + i, y - 3, 1, 3, '#f5e6d3');
+    px(x + 2, y + 1, 2, 2, '#ef4444'); px(x + 5, y + 1, 2, 2, '#f59e0b');
+  };
+  stall(6, 66, '#b45309'); stall(24, 67, '#9a3412');
+  // stone houses with glowing windows
+  for (const [x, y] of [[44, 62], [56, 64], [64, 60]] as const) {
+    px(x, y, 7, 7, '#7c6a5e'); px(x - 1, y - 2, 9, 2, '#3f2f2a'); px(x + 2, y + 2, 2, 2, '#fdba74'); px(x + 3, y + 4, 2, 3, '#3f2f2a');
+  }
+  // emberbark trees
+  for (const x of [2, 16, 60]) { px(x + 2, 78, 1, 6, '#3b2a1c'); for (let k = 0; k < 7; k++) px(x + Math.floor(r() * 5), 73 + Math.floor(r() * 5), 2, 2, ['#9a3412', '#c2410c', '#ea580c'][Math.floor(r() * 3)]); }
+  // glowing-horned goats on the slope
+  for (const [x, y] of [[38, 82], [50, 80]] as const) {
+    px(x, y, 5, 3, '#d6d3d1'); px(x - 2, y - 1, 3, 3, '#d6d3d1'); px(x - 2, y - 3, 1, 2, '#fb923c'); px(x, y - 3, 1, 2, '#fb923c');
+    px(x, y + 3, 1, 2, '#57534e'); px(x + 4, y + 3, 1, 2, '#57534e');
+  }
+  // the hot springs: a turquoise pool ringed with stones, with steam
+  px(8, 98, 40, 12, '#6b5a50');
+  px(10, 100, 36, 8, '#4fb3b0'); px(12, 101, 32, 2, '#7dd3cf');
+  for (let i = 0; i < 14; i++) px(8 + Math.floor(r() * 40), 97 + (i % 2) * 12, 2, 1, '#8a7a6e');
+  for (let i = 0; i < 8; i++) px(12 + i * 4, 92 - (i % 3) * 2, 2, 3, 'rgba(245,245,244,0.35)');
+  // warm ground
+  px(0, 112, W, H - 112, '#4a3530');
+  for (let i = 0; i < 40; i++) px(Math.floor(r() * W), 112 + Math.floor(r() * 16), 2, 1, ['#5b4038', '#3b2a26', stirring ? '#f97316' : '#7c2d12'][Math.floor(r() * 3)]);
+}
+
 export const DRAW: Record<SceneName, (px: Px, r: () => number) => void> = {
+  cinderpeak: (px, r) => drawCinderpeak(px, r, false), cinderpeak_stirring: (px, r) => drawCinderpeak(px, r, true),
   forest: drawForest, town: drawTown, mine: drawMine, forge: drawForge,
   river: drawRiver, camp: drawCamp, kitchen: drawKitchen, workshop: drawWorkshop, tower: drawTower, altar: drawAltar, ironmoor: drawIronmoor, coalhaven: drawCoalhaven, bluecliff: drawBluecliff,
   lunaria: (px, r) => drawLunaria(px, r, false), lunaria_restored: (px, r) => drawLunaria(px, r, true),
 };
 
 /** Where the interesting part of each scene is (0% = top, 100% = bottom), for short banners. */
-const FOCUS: Partial<Record<SceneName, number>> = { bluecliff: 22, coalhaven: 46, ironmoor: 50, town: 50, lunaria: 40, lunaria_restored: 40 };
+const FOCUS: Partial<Record<SceneName, number>> = { bluecliff: 22, coalhaven: 46, ironmoor: 50, town: 50, lunaria: 40, lunaria_restored: 40, cinderpeak: 40, cinderpeak_stirring: 40 };
 
 /** Outdoor scenes follow the real clock on your phone. Indoor ones stay cosy all day. */
 // (Lunaria is always under its own moon, so it skips the day/night tint.)
-const OUTDOOR: SceneName[] = ['forest', 'town', 'river', 'ironmoor', 'coalhaven', 'bluecliff'];
+const OUTDOOR: SceneName[] = ['forest', 'town', 'river', 'ironmoor', 'coalhaven', 'bluecliff', 'cinderpeak', 'cinderpeak_stirring'];
 
 export type DayPhase = 'dawn' | 'day' | 'dusk' | 'night';
 

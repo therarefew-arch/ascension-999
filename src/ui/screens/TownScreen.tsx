@@ -11,6 +11,8 @@ import { PET_MAP } from '../../data/pets';
 import { fmtDuration } from '../format';
 import { PettablePet, TodayCard } from '../Cozy';
 import { SilentBell } from '../SilentBell';
+import { CinderpeakCard } from '../Cinderpeak';
+import { mountainStirs } from '../../core/cinderpeak';
 import { SaveSafetyHint } from '../Backup';
 import { SettlingIn } from '../SettlingIn';
 import { dayPhase } from '../PixelScene';
@@ -114,7 +116,7 @@ export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, o
   return (
     <div className="screen">
       <div className="town-hero compact">
-        <PixelScene scene={here === 'Lunaria' && player.lunaria.restored ? 'lunaria_restored' : info?.scene ?? 'town'} dim={0} />
+        <PixelScene scene={here === 'Lunaria' && player.lunaria.restored ? 'lunaria_restored' : here === 'Cinderpeak' && mountainStirs().active ? 'cinderpeak_stirring' : info?.scene ?? 'town'} dim={0} />
         <div className="town-title">
           <h1>{here.toUpperCase()}</h1>
           <p>{here === 'Lunaria' && player.lunaria.restored ? 'Lanterns lit, bell ringing — a town come home' : `${greeting()} · ${info?.blurb}`}</p>
@@ -129,6 +131,7 @@ export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, o
       <SaveSafetyHint onSettings={onSettings} />
 
       {here === 'Lunaria' && <SilentBell onJournal={onJournal} onCombat={onCombat} />}
+      {here === 'Cinderpeak' && <CinderpeakCard onMining={() => onSkill('mining')} />}
 
       <TodayCard onGo={goTo} />
 

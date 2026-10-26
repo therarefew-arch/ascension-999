@@ -28,7 +28,7 @@ export function openFinds(p: PlayerState, id: string, qty = 1, rng: () => number
   if (!item.opens) return "That can't be opened";
   const n = Math.min(qty, countInBag(p.inventory, id));
   if (n <= 0) return `No ${item.name} in your bag`;
-  const table = `open_${item.opens}_${bestTier(p, item.opens)}`;
+  const table = item.opensTable ?? `open_${item.opens}_${bestTier(p, item.opens)}`;
   const total: Record<string, number> = {};
   const tales: LoreNote[] = [];
   for (let i = 0; i < n; i++) {

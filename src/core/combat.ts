@@ -9,6 +9,7 @@ import { countInBag, removeFromBag } from './inventory';
 import { giveLoot, rollLoot, rollPet } from './loot';
 import type { PlayerState } from './player';
 import { levelForXp } from './xp';
+import { HOT_SPRING_MULT, inHotSprings } from './cinderpeak';
 
 export const FIGHT_PREFIX = 'fight:';
 export const isFightId = (actionId: string | undefined | null) => !!actionId && actionId.startsWith(FIGHT_PREFIX);
@@ -285,7 +286,8 @@ export function advanceFight(
 export function regenHp(p: PlayerState, ms: number) {
   const max = maxHp(p);
   if (p.hp >= max) { p.hp = max; p.regenMs = 0; return; }
-  p.regenMs += ms;
+  // ♨️ Cinderpeak's hot springs: resting there heals much faster.
+  p.regenMs += inHotSprings(p) ? ms * HOT_SPRING_MULT : ms;
   const gained = Math.floor(p.regenMs / REGEN_MS);
   if (gained > 0) {
     p.hp = Math.min(max, p.hp + gained);

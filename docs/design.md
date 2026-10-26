@@ -372,6 +372,15 @@ Based on the owner's reference screenshots:
 - **Sickle (Herblore) and trowel (Farming)**, made in Crafting like every other tool and upgradable +1..+10. Tier N herbs (forage and dry) need a tier N sickle; tier N seeds need a tier N trowel to plant. Tier 0 needs none. Sickles speed up herb work; trowels make crops grow a little faster.
 - **Town kit** (`docs/town-kit.md`): the checklist every new town is built against.
 
+### v0.0.1.18 — Cinderpeak (town 6, level 320, Frontier)
+- **The volcano village**: hot springs, the Ash Market, goats with glowing horns. Warm market music (hand drums, a plucked lute over a drone, ember crackle). Built against `docs/town-kit.md`.
+- **🌋 The Mountain Stirs** (`core/cinderpeak.ts`): every 3 hours on the phone's clock (1:30, 4:30, 7:30 …) the volcano rumbles for 15 minutes. Mining Emberite in Cinderpeak gives ×2 XP and drops **ember geodes** (~1 in 40; open into emberite, fire runes, coins, sometimes a Heartfire ember — never gems). The town backdrop glows while it stirs; a chip shows on the Mining screen. Offline time uses the real time of each action, so it can't be gamed by coming back during an eruption.
+- **♨️ Hot springs**: in Cinderpeak and not fighting, you heal 10× faster.
+- **Monsters**: Ash Goat, Fire Salamander, Sooty Imp, Magma Tortoise; mini boss **The Kiln Wyrm** (a sleepy lava dragon) with the combat pet **Kindle** 🐉. New simple portraits (goat, lizard, tortoise, wyrm). Balance simulated: same feel as Lunaria.
+- **The Traveller** (new Frontier lore thread): someone always one town ahead, heading for the Primordial Rift. Leaves a gift at Cinderpeak's well (once: coins, a Traveller's compass, ember pepper seeds, 2 ember geodes) and a card ("Left at the Well", lore trigger `gift`). Saved in `player.travellerGifts` (save v20).
+- **Ember pepper** seeds in the Ash Market; **Fire-pepper chili** (+4% speed, all skills) and **Emberleaf chai** (+10% Smithing XP); Cottage pieces: Kiln-fired vase, Spice shelf, Emberite brazier.
+- `npm run sounds -- <name>` now remakes just one sound file.
+
 ### Owner's notes for later
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.

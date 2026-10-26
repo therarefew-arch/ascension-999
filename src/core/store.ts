@@ -18,6 +18,7 @@ import { checkArrival, fastTravel, startWalk } from './travel';
 import { catchStar, claimGift, claimRequest, claimRequestBonus, ensureRequests, nextStarDelay, rollLoreFind, STAR, syncLore, trackRequests } from './cozy';
 import type { LoreNote } from '../data/lore';
 import { LANTERNS, lightLantern, ringBell, whyCantLight, whyCantRing } from './lunaria';
+import { takeTravellerGift } from './cinderpeak';
 import { openFinds } from './finds';
 import { claimStep, trackTutorial, TUTORIAL } from './tutorial';
 import { claimBounty, ensureBounties, rerollBounty, trackBounties } from './bounties';
@@ -253,7 +254,7 @@ function tick(now = Date.now()) {
   bagWarnings(p);
   if (report.stops.some((s) => s.reason.endsWith('defeated!'))) announceLore(syncLore(p));
   // 🎁 Found something while gathering?
-  for (const id of Object.values(FIND_ITEM)) {
+  for (const id of [...Object.values(FIND_ITEM), 'ember_geode']) {
     if (report.gained[id]) { play('rune'); toast(`${getItem(id).emoji} You found a ${getItem(id).name}! Open it from your bag.`, 'good'); }
   }
   const found = rollLoreFind(p, report.actions);
@@ -542,6 +543,17 @@ export const game = {
     toast('🔔 The bell rings out across the water… Lunaria is home!', 'level');
     announceLore(syncLore(snap.player));
     toast('🕯️ Wick the lantern spirit joined you · the market reopens', 'good');
+    save();
+    emit();
+  },
+  /** 🎁 Pick up the Traveller's gift at this town's well. */
+  takeTravellerGift() {
+    const got = takeTravellerGift(snap.player);
+    if (typeof got === 'string') return fail(got);
+    play('welcome');
+    buzz([20, 40, 20]);
+    toast(`🎁 The Traveller left you: ${got.map((s) => `${s.qty > 1 ? `${s.qty.toLocaleString()} ` : ''}${getItem(s.id).name}`).join(', ')}`, 'level');
+    announceLore(syncLore(snap.player));
     save();
     emit();
   },

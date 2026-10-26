@@ -19,6 +19,7 @@ import { buffSpeedPct, buffXpMult } from './buffs';
 import { cottageFirePct, cottageXpMult } from './cottage';
 import { equipmentStats } from './equipment';
 import { advanceFight, isFightId, type CombatReport } from './combat';
+import { STIR_XP_MULT, stirBoosts } from './cinderpeak';
 
 export interface ProgressReport {
   /** The first running activity (kept for simple screens). */
@@ -250,8 +251,10 @@ export function completeAction(
   p: PlayerState,
   action: ActionDef,
   report: ProgressReport,
-  opts: { xpMult?: number; bonusRolls?: number; lootTable?: string; chanceBonus?: number } = {},
+  opts: { xpMult?: number; bonusRolls?: number; lootTable?: string; chanceBonus?: number; at?: number } = {},
 ): boolean {
+  // 🌋 The Mountain Stirs: Emberite mining in Cinderpeak gives double XP and more ember geodes.
+  const stirring = stirBoosts(p, action, opts.at ?? Date.now());
   const fromSlot = upgradeSource(p, action);
   // Enhancing can fail: then only the materials are used, the item itself stays.
   const success = action.kind !== 'enhance' || Math.random() < enhanceChance(p, action, opts.chanceBonus ?? 0);
@@ -293,13 +296,13 @@ export function completeAction(
   if (TOOL_SLOT_FOR[action.skill]) p.toolUses[action.skill] = (p.toolUses[action.skill] ?? 0) + 1;
   // 🎁 A rare find now and then while gathering (bird nests, geodes, bottles).
   if (!action.kind && action.skill in FIND_ITEM) {
-    const find = rollLoot(`find_${action.skill}`);
+    const find = rollLoot(stirring ? 'find_ember_geode' : `find_${action.skill}`);
     if (find.length) {
       giveLoot(p, find);
       for (const st of find) report.gained[st.id] = (report.gained[st.id] ?? 0) + st.qty;
     }
   }
-  addXp(p, action, report, Math.round(action.xp * (opts.xpMult ?? 1)));
+  addXp(p, action, report, Math.round(action.xp * (opts.xpMult ?? 1) * (stirring ? STIR_XP_MULT : 1)));
   report.actions++;
   const pet = rollPet(p, action.skill);
   if (pet) report.pets.push(pet);
@@ -397,7 +400,7 @@ function advanceSlot(p: PlayerState, i: number, ms: number, startAt: number, rep
       drainFire(p, duration);
     }
 
-    completeAction(p, action, report);
+    completeAction(p, action, report, { at: startAt + elapsed });
 
     // Stop straight away if the next one can't happen (bag full, out of ore...)
     const next = whyCantDo(p, action);
