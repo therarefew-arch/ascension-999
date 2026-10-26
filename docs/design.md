@@ -361,6 +361,9 @@ Based on the owner's reference screenshots:
   - Lunaria: Moonsilver chandelier (+2% all XP; needs Lunaria brought home).
 - Links to your Garden (Farming). Save version 19.
 
+### v0.0.1.15 — attack splashes
+- Every attack in a fight plays a splash over the monster (`ui/AttackFx.tsx`): melee = sword slash (crit = double gold slash), ranged = an arrow flying in with an impact burst, magic = a bolt in the staff's element — air (whirling wind bolt), water (orb + droplets), earth (rock + chunks), fire (fireball + embers), nature (leaves), frost (ice shards), shadow (purple), light (gold rays). Misses get a faint grey whoosh; when a monster hits you the screen edges flash red.
+
 ### Owner's notes for later
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.

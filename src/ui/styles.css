@@ -555,7 +555,32 @@ p { margin: 8px 0; }
 .monster-why { width: 100%; }
 .fight { display: flex; flex-direction: column; gap: 12px; }
 .fight-stage { position: relative; border-radius: 22px; padding: 14px; background: radial-gradient(circle at 50% 35%, rgba(124, 63, 14, 0.45), rgba(20, 18, 16, 0.94) 70%); border: 2px solid #3a332b; }
-.fight-monster { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.fight-monster { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+/* ⚔️ Attack splashes (slash / arrow / spell bolt by element) */
+.fx-layer { position: absolute; left: 50%; top: -10px; width: 160px; height: 150px; transform: translateX(-50%); pointer-events: none; z-index: 3; }
+.fx { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.fx.crit { transform: scale(1.18); }
+.fx-stroke { stroke-dasharray: 160; stroke-dashoffset: 160; animation: fxDraw 0.6s ease-out forwards; }
+.fx-stroke.second { animation-delay: 0.12s; }
+@keyframes fxDraw { 0% { stroke-dashoffset: 160; opacity: 1; } 30% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+.fx-fly { animation: fxFly 0.24s ease-in forwards; }
+@keyframes fxFly { 0% { transform: translate(-56px, 46px) scale(0.7); opacity: 0.9; } 92% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(0, 0) scale(1.1); opacity: 0; } }
+.fx-impact { opacity: 0; animation: fxShow 0.55s 0.2s forwards; }
+@keyframes fxShow { 0% { opacity: 1; } 100% { opacity: 1; } }
+.fx-p { animation: fxBurst 0.48s 0.08s ease-out forwards; opacity: 0; }
+.fx-impact .fx-p { animation-delay: 0.22s; }
+@keyframes fxBurst { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(0.4); opacity: 0; } }
+.fx-ring { transform-box: fill-box; transform-origin: center; animation: fxRing 0.45s 0.2s ease-out forwards; opacity: 0; }
+@keyframes fxRing { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(3.2); opacity: 0; } }
+.fx-trail { animation: fxTrail 0.24s linear forwards; }
+@keyframes fxTrail { 0% { opacity: 0.5; } 100% { opacity: 0; } }
+.fx .spin { transform-box: fill-box; transform-origin: center; animation: fxSpin 0.4s linear infinite; }
+.fx .spin-fast { transform-box: fill-box; transform-origin: center; animation: fxSpin 0.22s linear infinite; }
+@keyframes fxSpin { to { transform: rotate(360deg); } }
+.fx-whiff { opacity: 0.8; }
+.ouch-flash { position: fixed; inset: 0; pointer-events: none; z-index: 30; background: radial-gradient(ellipse at center, transparent 55%, rgba(239, 68, 68, 0.35)); animation: fxOuch 0.4s ease-out forwards; }
+@keyframes fxOuch { from { opacity: 1; } to { opacity: 0; } }
 .fight-name { font-weight: 900; font-size: 1.1rem; }
 .fight-monster .hp-bar { width: 100%; }
 .respawn { height: 120px; display: flex; align-items: center; }

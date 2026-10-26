@@ -15,6 +15,7 @@ import { useAnimationTime, useFeedback, FeedbackLayer } from '../Minigames';
 import { PixelScene } from '../PixelScene';
 import { TRAINING } from '../../data/places';
 import { sound } from '../../audio/sound';
+import { AttackFxLayer, type Fx } from '../AttackFx';
 
 const STYLE_ICON = { melee: 'melee', ranged: 'ranged', magic: 'magic' } as const;
 const STYLE_NAME: Record<CombatStyle, string> = { melee: 'Melee', ranged: 'Ranged', magic: 'Magic' };
@@ -148,12 +149,21 @@ function Fight({ onItem }: { onItem: (id: string) => void }) {
   const [zone, setZone] = useState(0.5);
   const lastLog = useRef(0);
   const [hurt, setHurt] = useState(0);
+  const [fx, setFx] = useState<Fx[]>([]);
+  const [ouch, setOuch] = useState(0);
+  const element = player.equipment.weapon ? getItem(player.equipment.weapon).equip?.element : undefined;
 
-  // Float the newest combat events.
+  // Float the newest combat events (and play an attack splash).
   useEffect(() => {
     const newest = f.log[f.log.length - 1];
     if (!newest || newest.at === lastLog.current) return;
     lastLog.current = newest.at;
+    if (newest.kind === 'you') {
+      const id = Date.now() + Math.random();
+      setFx((list) => [...list.slice(-2), { id, style: s.style, element, crit: newest.text.startsWith('CRIT'), miss: newest.text === 'You missed' }]);
+      setTimeout(() => setFx((list) => list.filter((e) => e.id !== id)), 750);
+    }
+    if (newest.kind === 'them' && !/miss|block/i.test(newest.text)) setOuch((o) => o + 1);
     if (newest.kind === 'you' && newest.text !== 'You missed') setHurt((h) => h + 1);
     push(newest.text, newest.kind === 'you' ? (newest.text.startsWith('CRIT') ? 'perfect' : 'good') : newest.kind === 'loot' ? 'combo' : 'miss');
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -183,9 +193,11 @@ function Fight({ onItem }: { onItem: (id: string) => void }) {
 
   return (
     <div className="fight">
+      {ouch > 0 && <div key={ouch} className="ouch-flash" aria-hidden="true" />}
       <div className="fight-stage">
         <div className="fight-monster">
           {f.respawn > 0 ? <div className="respawn muted">Another {m.name} is coming…</div> : <div key={hurt} className="hit-wobble"><MonsterArt monster={m} size={120} hurt={hurt > 0} /></div>}
+          {f.respawn <= 0 && <AttackFxLayer fx={fx} />}
           <div className="fight-name">{m.name} <span className="mono small muted">Lv {m.level}</span></div>
           <HpBar hp={f.respawn > 0 ? m.hp : f.monsterHp} max={m.hp} tone="red" />
           <div className={`windup ${windup > 0 ? 'on' : ''}`}>
