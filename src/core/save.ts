@@ -1,6 +1,6 @@
 // Saving and loading. Saves live in the browser's storage on the device.
 // Every save has a version number; old saves are upgraded by MIGRATIONS so they never break.
-import { ITEMS, type SkillId } from '../data/items';
+import { ITEM_LIST, ITEMS, type SkillId } from '../data/items';
 import { ACTIONS } from '../data/skills';
 import { INVENTORY_SLOTS, MAX_BAG_SLOTS, MAX_IDLE_SLOTS, SAVE_VERSION, newPlayer, type ItemStack, type Loadout, type PlayerState } from './player';
 import { PET_MAP } from '../data/pets';
@@ -172,6 +172,15 @@ const MIGRATIONS: Record<number, (player: any) => any> = {
     delete player.idle;
     return player;
   },
+  // v21 → v22: the bank used to always show in the game's order. Now it keeps your own order,
+  // so start it off in that same order (nothing looks different until you sort or drag).
+  21: (player) => {
+    if (Array.isArray(player?.bank)) {
+      const order = Object.fromEntries(ITEM_LIST.map((it, i) => [it.id, i]));
+      player.bank = [...player.bank].sort((a, b) => (order[a?.id] ?? 1e9) - (order[b?.id] ?? 1e9));
+    }
+    return player;
+  },
 };
 
 export function saveGame(slot: SlotId, player: PlayerState): boolean {
@@ -332,6 +341,8 @@ function repair(raw: any): PlayerState {
   p.starsCaught = Math.max(0, Number(raw?.starsCaught) || 0);
   // Cottage (v19)
   if (Array.isArray(raw?.cottage)) p.cottage = Array.from(new Set(raw.cottage.filter((id: unknown) => typeof id === 'string' && !!FURNITURE_MAP[id as string])));
+  // 📌 Kept-in-bag items (v22)
+  if (Array.isArray(raw?.keep)) p.keep = Array.from(new Set(raw.keep.filter((id: unknown) => typeof id === 'string' && !!ITEMS[id as string])));
   // Fishing Journal + festivals (v21)
   if (raw?.fishJournal && typeof raw.fishJournal === 'object') {
     for (const [id, e] of Object.entries(raw.fishJournal as Record<string, { n?: unknown; best?: unknown }>)) {

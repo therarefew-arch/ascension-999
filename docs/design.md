@@ -385,6 +385,14 @@ Based on the owner's reference screenshots:
 - **🎪 Seasonal festivals** on the real calendar (`data/festivals.ts`, `core/festivals.ts`): Blossom Fair (Mar 20–Apr 15, Herblore), Midsummer Lanterns (Jun 15–Jul 10, Fishing), Harvest Festival (Oct 1–Nov 10, Farming), Winter Lights (Dec 10–Jan 6, Firemaking). While one is on: that skill gets +10% XP; every skilling action has a 1-in-60 chance of a festival token (kills 1-in-30, a garden harvest rolls 5 times); bunting over the town banner; a welcome toast + confetti once per festival each year (`player.festivalsSeen`). The **festival stall** (Town screen, any town) trades tokens: a treat (6, +5% XP to all for 30 min), a Cottage keepsake (80, +1% XP to all, forever) and a festival pet (150; Petal 🐇, Glimmer 🐞, Gourdie 🎃, Flurry ⛄). Tokens keep for next year.
 - **🐟 Rare fish** (`data/rareFish.ts`): 3 per town, about 1 in 200 casts in that town's water (uncommon / rare / legendary), each with a random size. They're treasures to sell. The **Fishing Journal** (Journal → 🐟 FISH) shows how many you've caught and your biggest; toasts for a first catch or a new record. Saved in `player.fishJournal` (save v21).
 
+### v0.0.1.20 — bag & bank quality of life
+- **✋ Drag and drop** (`ui/useItemDrag.tsx`): on a phone, press and hold an item, then drag (a quick tap still opens it; a swipe still scrolls); with a mouse, just drag. Bag: swap slots, or drop on the same item to join stacks. Bank: move an item anywhere. A little pop + buzz on pick-up, a glow on the slot you're over.
+- **Sorting** (`core/inventory.ts`): Bag → 🧹 Tidy (joins half stacks, 📌 kept items first, sorted by type, gaps at the end). Bank → ⇅ Sort: by type, A → Z, most first, total worth. **↶ Undo** shows for 8 seconds after a sort.
+- The bank now **keeps your own order** (save v22 starts it in the old order, so nothing looks different until you sort or drag). A new kind of item lands next to items of the same kind.
+- **📌 Keep in bag**: pin an item from its details; "Deposit all" leaves it in the bag (food, runes, arrows…). Pinned items show a 📌.
+- Bank **filter chips** (Resources · Food & farm · Gear · Treasures) and the bank's **total worth** in coins.
+- **✨ New-item dot** in the bag on things you didn't have the last time you opened it (remembered on this device only).
+
 ### Owner's notes for later
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.

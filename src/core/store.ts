@@ -32,8 +32,13 @@ import { FIND_ITEM } from '../data/lootTables';
 import type { Region } from '../data/tiers';
 import type { SkillId } from '../data/items';
 import { levelForXp } from './xp';
-import { bagUpgradeCost, buy as marketBuy, buyDeal, buySatchel, sell as marketSell, SLOT_UNLOCKS } from '../market/market';
-import { deposit, depositAll, withdraw } from './inventory';
+import { bagUpgradeCost, baseValue, buy as marketBuy, buyDeal, buySatchel, sell as marketSell, SLOT_UNLOCKS } from '../market/market';
+import { deposit, depositAll, moveBagSlot, moveBankItem, restoreBagLayout, restoreBankOrder, sortBag, sortBank, toggleKeep, withdraw, type BankSort } from './inventory';
+import type { ItemStack } from './player';
+
+/** What the bag/bank looked like before the last sort (for ↶ Undo). Not saved. */
+let lastBagLayout: (ItemStack | null)[] | null = null;
+let lastBankOrder: string[] | null = null;
 import { giveLoot, lootFits, rollGemReroll, satchelOn, validateLootTables } from './loot';
 import { BLOCK_WINDOW_MS, eatFood, endFight, fightSlot, maxHp, regenHp, startFight } from './combat';
 import { REROLL_COST, socketGem, unsocketGem } from './equipment';
@@ -1024,6 +1029,60 @@ export const game = {
   withdraw(id: string, qty: number) {
     const n = withdraw(snap.player, id, qty);
     if (n === 0) return fail('Your bag is full');
+    emit();
+  },
+  /** A little buzz + pop when you pick an item up to drag it. */
+  pickUp() {
+    buzz(12);
+    sound.play('tile', { rate: 1.45, volume: 0.5 });
+  },
+  /** 🧹 Tidy the bag: join stacks, kept items first, sorted by type. */
+  sortBag() {
+    lastBagLayout = snap.player.inventory.map((s) => (s ? { ...s } : null));
+    sortBag(snap.player);
+    sound.play('tile', { rate: 1.1 });
+    buzz(15);
+    save();
+    emit();
+  },
+  sortBank(mode: BankSort) {
+    lastBankOrder = snap.player.bank.map((s) => s.id);
+    sortBank(snap.player, mode, (id) => baseValue(getItem(id)));
+    sound.play('tile', { rate: 0.95 });
+    buzz(15);
+    save();
+    emit();
+  },
+  /** ↶ Undo the last sort of the bag or bank. */
+  undoSort(where: 'bag' | 'bank') {
+    if (where === 'bank' && lastBankOrder) restoreBankOrder(snap.player, lastBankOrder);
+    else if (where === 'bag' && lastBagLayout) { if (!restoreBagLayout(snap.player, lastBagLayout)) return fail('Your bag changed since — too late to undo'); }
+    else return;
+    if (where === 'bank') lastBankOrder = null; else lastBagLayout = null;
+    sound.play('tile', { rate: 0.85 });
+    save();
+    emit();
+  },
+  /** Drag and drop in the bag (swap, or join matching stacks). */
+  moveBagSlot(from: number, to: number) {
+    moveBagSlot(snap.player, from, to);
+    sound.play('tile', { rate: 1.2, volume: 0.7 });
+    save();
+    emit();
+  },
+  /** Drag and drop in the bank. */
+  moveBankItem(fromId: string, toId: string) {
+    moveBankItem(snap.player, fromId, toId);
+    sound.play('tile', { rate: 1.2, volume: 0.7 });
+    save();
+    emit();
+  },
+  /** 📌 Keep an item in the bag when depositing everything. */
+  toggleKeep(id: string) {
+    const on = toggleKeep(snap.player, id);
+    play('click');
+    toast(on ? `📌 ${getItem(id).name} stays in your bag on "Deposit all"` : `${getItem(id).name} will be deposited with everything else`, 'info');
+    save();
     emit();
   },
 

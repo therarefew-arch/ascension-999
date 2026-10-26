@@ -29,8 +29,9 @@ import type { Plot } from './farming';
  * v19: the Cottage (furniture built).
  * v20: Cinderpeak — the Traveller's gifts picked up.
  * v21: Fishing Journal (rare fish caught), seasonal festivals seen.
+ * v22: the bank keeps your own order (drag & drop, sort); 📌 items kept in the bag.
  */
-export const SAVE_VERSION = 21;
+export const SAVE_VERSION = 22;
 /** Starting bag size. Can be upgraded with coins up to MAX_BAG_SLOTS. */
 export const INVENTORY_SLOTS = 30;
 export const MAX_BAG_SLOTS = 50;
@@ -129,6 +130,8 @@ export interface PlayerState {
   fishJournal: Record<string, { n: number; best: number }>;
   /** 🎪 Seasonal festivals you've been welcomed to (e.g. "harvest-2026"). */
   festivalsSeen: string[];
+  /** 📌 Items "Deposit all" leaves in the bag. */
+  keep: string[];
 }
 
 export interface Loadout {
@@ -196,6 +199,7 @@ export function newPlayer(now = Date.now()): PlayerState {
     travellerGifts: [],
     fishJournal: {},
     festivalsSeen: [],
+    keep: [],
   };
 }
 

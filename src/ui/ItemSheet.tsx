@@ -108,6 +108,11 @@ export function ItemSheet({ id, from, onClose, onReroll }: { id: string; from: I
           <button className="btn btn-lg" onClick={() => { game.unequip(slot); onClose(); }}>Unequip</button>
         )}
 
+        {from !== 'worn' && (
+          <button className={`btn keep-btn ${player.keep.includes(id) ? 'on' : ''}`} onClick={() => game.toggleKeep(id)}>
+            {player.keep.includes(id) ? '📌 Kept in bag on “Deposit all” — tap to stop' : '📌 Keep in bag on “Deposit all”'}
+          </button>
+        )}
         {from === 'bag' && (
           <div className="amount-row">
             <span className="amount-label">Deposit</span>

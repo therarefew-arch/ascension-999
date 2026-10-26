@@ -69,13 +69,22 @@ export function Sheet({ title, onClose, children, footer }: { title: ReactNode; 
   );
 }
 
-export function ItemSlot({ id, qty, onClick, empty, label }: { id?: string; qty?: number; onClick?: () => void; empty?: boolean; label?: string }) {
-  if (empty || !id) return <div className="slot slot-empty" aria-hidden="true">{label && <span className="slot-label">{label}</span>}</div>;
+/** Extra props for drag and drop (from useItemDrag). */
+type SlotDragProps = { 'data-drop': string; className: string } & Record<string, unknown>;
+
+export function ItemSlot({ id, qty, onClick, empty, label, drag, pinned, isNew }: {
+  id?: string; qty?: number; onClick?: () => void; empty?: boolean; label?: string;
+  drag?: SlotDragProps; pinned?: boolean; isNew?: boolean;
+}) {
+  const { className: dragClass = '', ...dragRest } = drag ?? { className: '' };
+  if (empty || !id) return <div className={`slot slot-empty ${dragClass}`} aria-hidden="true" {...dragRest}>{label && <span className="slot-label">{label}</span>}</div>;
   const item = getItem(id);
   return (
-    <button className="slot" onClick={onClick} aria-label={`${item.name}${qty && qty > 1 ? `, ${qty}` : ''}`}>
+    <button className={`slot ${dragClass} ${isNew ? 'slot-new' : ''}`} onClick={onClick} aria-label={`${item.name}${qty && qty > 1 ? `, ${qty}` : ''}${pinned ? ', kept in bag' : ''}`} {...dragRest}>
       <ItemIcon id={id} size={38} />
       {qty !== undefined && qty > 1 && <span className="slot-qty">{fmtQty(qty)}</span>}
+      {pinned && <span className="slot-pin" aria-hidden="true">📌</span>}
+      {isNew && <span className="slot-new-dot" aria-hidden="true" />}
     </button>
   );
 }
