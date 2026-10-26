@@ -5,6 +5,7 @@ import { PETS, PET_XP_BONUS } from '../../data/pets';
 import { OPEN_REGIONS, regionOpen } from '../../data/tiers';
 import { LORE, TOWN_VIBE, type LoreTrigger } from '../../data/lore';
 import { MONSTER_MAP } from '../../data/monsters';
+import { RARE_FISH, RARE_FISH_CHANCE, rareFishIn } from '../../data/rareFish';
 import { SKILLS } from '../../data/skills';
 import { trackerGains } from '../../core/qol';
 import { game, useGame } from '../../core/store';
@@ -12,7 +13,7 @@ import { ItemIcon, UiIcon } from '../icons';
 import { fmtDuration, fmtNum } from '../format';
 import { PixelScene } from '../PixelScene';
 
-type JournalTab = 'tracker' | 'collection' | 'pets' | 'tales';
+type JournalTab = 'tracker' | 'collection' | 'pets' | 'tales' | 'fish';
 
 function Tracker() {
   const { player } = useGame();
@@ -179,6 +180,45 @@ function Tales() {
   );
 }
 
+/** 🐟 Fishing Journal: the rare fish of every town. */
+function FishBook() {
+  const { player } = useGame();
+  const towns = OPEN_REGIONS.filter((r) => rareFishIn(r).length);
+  const caught = RARE_FISH.filter((f) => player.fishJournal[f.id]).length;
+  return (
+    <>
+      <p className="small muted">Every town's water hides a few rare fish (about 1 in {Math.round(1 / RARE_FISH_CHANCE)} casts). {caught}/{RARE_FISH.filter((f) => regionOpen(f.region)).length} caught.</p>
+      {towns.map((r) => (
+        <section key={r} className="tale-town">
+          <div className="row-between">
+            <h3>{r}</h3>
+            <span className="small mono muted">{rareFishIn(r).filter((f) => player.fishJournal[f.id]).length}/{rareFishIn(r).length}</span>
+          </div>
+          {rareFishIn(r).map((f) => {
+            const e = player.fishJournal[f.id];
+            const rarity = f.weight >= 60 ? 'Uncommon' : f.weight >= 30 ? 'Rare' : 'Legendary';
+            return e ? (
+              <div key={f.id} className="fish-entry">
+                <span className="fish-emoji">{f.emoji}</span>
+                <div className="grow">
+                  <div><b>{f.name}</b> <span className={`small fish-rarity r-${rarity.toLowerCase()}`}>{rarity}</span></div>
+                  <div className="small muted">{f.blurb}</div>
+                </div>
+                <div className="mono small right"><div className="gold">{e.best} cm</div><div className="muted">×{fmtNum(e.n)}</div></div>
+              </div>
+            ) : (
+              <div key={f.id} className="fish-entry locked">
+                <span className="fish-emoji">❔</span>
+                <div className="grow"><b>???</b><div className="small dim">{rarity} · fish in {r} to find it</div></div>
+              </div>
+            );
+          })}
+        </section>
+      ))}
+    </>
+  );
+}
+
 export function JournalScreen() {
   const [tab, setTab] = useState<JournalTab>('tracker');
   return (
@@ -191,11 +231,13 @@ export function JournalScreen() {
           <button className={`tab-pill ${tab === 'collection' ? 'on' : ''}`} onClick={() => setTab('collection')}><UiIcon name="bank" size={14} /> COLLECTION</button>
           <button className={`tab-pill ${tab === 'pets' ? 'on' : ''}`} onClick={() => setTab('pets')}><UiIcon name="heart" size={14} /> PETS</button>
           <button className={`tab-pill ${tab === 'tales' ? 'on' : ''}`} onClick={() => setTab('tales')}>📜 TALES</button>
+          <button className={`tab-pill ${tab === 'fish' ? 'on' : ''}`} onClick={() => setTab('fish')}>🐟 FISH</button>
         </div>
         {tab === 'tracker' && <Tracker />}
         {tab === 'collection' && <Collection />}
         {tab === 'pets' && <Pets />}
         {tab === 'tales' && <Tales />}
+        {tab === 'fish' && <FishBook />}
       </div>
     </div>
   );

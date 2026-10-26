@@ -1,7 +1,7 @@
 // 🏡 Your Cottage: a cozy room you fill with furniture made from every skill. Each piece gives a small perk.
 import { SKILLS } from '../data/skills';
 import { PET_MAP } from '../data/pets';
-import { buildXp, cottageFirePct, cottageStarPct, FURNITURE, furnitureRegion, haveTotal, perkText, whyCantBuild } from '../core/cottage';
+import { ALL_FURNITURE, buildXp, cottageFirePct, cottageStarPct, FESTIVAL_FURNITURE, FURNITURE, furnitureRegion, haveTotal, perkText, whyCantBuild } from '../core/cottage';
 import { game, useGame } from '../core/store';
 import { fmtNum } from './format';
 import { ItemIcon } from './icons';
@@ -12,7 +12,8 @@ export function CottageScreen({ onGarden }: { onGarden: () => void }) {
   const built = new Set(player.cottage);
   const phase = dayPhase();
   const towns = Array.from(new Set(FURNITURE.map((f) => furnitureRegion(f))));
-  const allXp = FURNITURE.filter((f) => built.has(f.id) && f.perk.kind === 'xp' && f.perk.skill === 'all')
+  const keepsakes = FESTIVAL_FURNITURE.filter((f) => built.has(f.id));
+  const allXp = ALL_FURNITURE.filter((f) => built.has(f.id) && f.perk.kind === 'xp' && f.perk.skill === 'all')
     .reduce((s, f) => s + (f.perk.kind === 'xp' ? f.perk.pct : 0), 0);
   return (
     <div className="screen">
@@ -20,7 +21,7 @@ export function CottageScreen({ onGarden }: { onGarden: () => void }) {
       <div className={`cottage-room sky-${phase}`}>
         <div className="cottage-window"><span>{phase === 'night' ? '🌙' : phase === 'dusk' ? '🌇' : '☀️'}</span></div>
         <div className="cottage-floor" />
-        {FURNITURE.filter((f) => built.has(f.id)).map((f) => (
+        {ALL_FURNITURE.filter((f) => built.has(f.id)).map((f) => (
           <span key={f.id} className="cottage-piece" style={{ left: `${f.x}%`, top: `${f.y}%` }} title={f.name}>{f.emoji}</span>
         ))}
         {player.activePet && PET_MAP[player.activePet] && <span className="cottage-pet bob">{PET_MAP[player.activePet].emoji}</span>}
@@ -28,7 +29,7 @@ export function CottageScreen({ onGarden }: { onGarden: () => void }) {
       </div>
 
       <div className="card cottage-perks">
-        <div className="row-between"><b>🏡 {built.size}/{FURNITURE.length} pieces</b><button className="btn btn-sm" onClick={onGarden}>🌱 Garden</button></div>
+        <div className="row-between"><b>🏡 {built.size - keepsakes.length}/{FURNITURE.length} pieces{keepsakes.length ? ` · ${keepsakes.length} keepsake${keepsakes.length > 1 ? 's' : ''}` : ''}</b><button className="btn btn-sm" onClick={onGarden}>🌱 Garden</button></div>
         {built.size > 0 ? (
           <p className="small muted">
             {allXp > 0 ? `+${allXp}% XP to everything · ` : ''}
@@ -74,6 +75,17 @@ export function CottageScreen({ onGarden }: { onGarden: () => void }) {
           })}
         </section>
       ))}
+      {keepsakes.length > 0 && (
+        <section>
+          <h2 className="section-title">🎪 FESTIVAL KEEPSAKES</h2>
+          {keepsakes.map((f) => (
+            <div key={f.id} className="furniture built">
+              <span className="furniture-emoji">{f.emoji}</span>
+              <div className="grow"><div><b>{f.name}</b></div><div className="small gold">{perkText(f.perk)}</div><div className="small muted">{f.blurb}</div></div>
+            </div>
+          ))}
+        </section>
+      )}
       <p className="small dim center">Materials come from your bag first, then your bank.</p>
     </div>
   );

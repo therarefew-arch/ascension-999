@@ -12,6 +12,7 @@ import { fmtDuration } from '../format';
 import { PettablePet, TodayCard } from '../Cozy';
 import { SilentBell } from '../SilentBell';
 import { CinderpeakCard } from '../Cinderpeak';
+import { FestivalBunting, FestivalStall } from '../Festival';
 import { mountainStirs } from '../../core/cinderpeak';
 import { SaveSafetyHint } from '../Backup';
 import { SettlingIn } from '../SettlingIn';
@@ -121,6 +122,7 @@ export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, o
           <h1>{here.toUpperCase()}</h1>
           <p>{here === 'Lunaria' && player.lunaria.restored ? 'Lanterns lit, bell ringing — a town come home' : `${greeting()} · ${info?.blurb}`}</p>
         </div>
+        <FestivalBunting />
         {player.activePet && PET_MAP[player.activePet] && (
           <PettablePet emoji={PET_MAP[player.activePet].emoji} name={PET_MAP[player.activePet].name} />
         )}
@@ -132,6 +134,8 @@ export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, o
 
       {here === 'Lunaria' && <SilentBell onJournal={onJournal} onCombat={onCombat} />}
       {here === 'Cinderpeak' && <CinderpeakCard onMining={() => onSkill('mining')} />}
+
+      <FestivalStall />
 
       <TodayCard onGo={goTo} />
 

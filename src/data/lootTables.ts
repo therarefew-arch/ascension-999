@@ -3,6 +3,8 @@
 import { ACTION_LIST, GREAT_FOOD } from './skills';
 import { GEM_RANGES, GEM_TYPES, gemId, RARITIES, type GemRarity, type GemType } from './items';
 import { CROPS, FISH, HERBS, METALS, TIER_COUNT, WOODS } from './tiers';
+import { RARE_FISH, RARE_FISH_CHANCE, rareFishIn } from './rareFish';
+import { FESTIVALS, TOKEN_CHANCE, TOKEN_CHANCE_KILL } from './festivals';
 
 /** Where a loot table is used. Gems may only appear in 'boss' and 'miniboss' tables. */
 export type LootSource = 'skilling' | 'monster' | 'miniboss' | 'boss';
@@ -125,6 +127,20 @@ tables.push(
   // 🎒 The Traveller's gift at Cinderpeak's well.
   { id: 'gift_cinderpeak', source: 'skilling', entries: [e('coins', 5000, 5000, 1), e('travellers_compass', 1, 1, 1), e('emberpepper_seed', 3, 3, 1), e('ember_geode', 2, 2, 1)] },
 );
+
+// ----- 🐟 Rare fish: one roll per fishing action, then one fish of that water picked by weight -----
+for (const region of new Set(RARE_FISH.map((f) => f.region))) {
+  tables.push({ id: `rare_fish_${region}`, source: 'skilling', entries: [], groups: [{ chance: RARE_FISH_CHANCE, items: rareFishIn(region).map((f) => ({ item: f.id, weight: f.weight })) }] });
+}
+
+// ----- 🎪 Festivals: tokens while skilling or fighting, and the stall's treats -----
+for (const f of FESTIVALS) {
+  tables.push(
+    { id: `festival_token_${f.id}`, source: 'skilling', entries: [e(f.token.id, 1, 1, TOKEN_CHANCE)] },
+    { id: `festival_kill_${f.id}`, source: 'monster', entries: [e(f.token.id, 1, 1, TOKEN_CHANCE_KILL)] },
+    { id: `festival_treat_${f.id}`, source: 'skilling', entries: [e(f.treat.id, 1, 1, 1)] },
+  );
+}
 
 // ----- 🌿 Foraging: the herb, and sometimes a seed for your garden (replaces the plain herb table) -----
 for (let t = 0; t < TIER_COUNT; t++) {

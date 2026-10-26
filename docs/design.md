@@ -381,6 +381,10 @@ Based on the owner's reference screenshots:
 - **Ember pepper** seeds in the Ash Market; **Fire-pepper chili** (+4% speed, all skills) and **Emberleaf chai** (+10% Smithing XP); Cottage pieces: Kiln-fired vase, Spice shelf, Emberite brazier.
 - `npm run sounds -- <name>` now remakes just one sound file.
 
+### v0.0.1.19 — festivals & rare fish
+- **🎪 Seasonal festivals** on the real calendar (`data/festivals.ts`, `core/festivals.ts`): Blossom Fair (Mar 20–Apr 15, Herblore), Midsummer Lanterns (Jun 15–Jul 10, Fishing), Harvest Festival (Oct 1–Nov 10, Farming), Winter Lights (Dec 10–Jan 6, Firemaking). While one is on: that skill gets +10% XP; every skilling action has a 1-in-60 chance of a festival token (kills 1-in-30, a garden harvest rolls 5 times); bunting over the town banner; a welcome toast + confetti once per festival each year (`player.festivalsSeen`). The **festival stall** (Town screen, any town) trades tokens: a treat (6, +5% XP to all for 30 min), a Cottage keepsake (80, +1% XP to all, forever) and a festival pet (150; Petal 🐇, Glimmer 🐞, Gourdie 🎃, Flurry ⛄). Tokens keep for next year.
+- **🐟 Rare fish** (`data/rareFish.ts`): 3 per town, about 1 in 200 casts in that town's water (uncommon / rare / legendary), each with a random size. They're treasures to sell. The **Fishing Journal** (Journal → 🐟 FISH) shows how many you've caught and your biggest; toasts for a first catch or a new record. Saved in `player.fishJournal` (save v21).
+
 ### Owner's notes for later
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.

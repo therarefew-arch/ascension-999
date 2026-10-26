@@ -8,6 +8,7 @@ import type { ProgressReport } from './idle';
 import { addXp, skillLevel } from './idle';
 import { countInBag, countInBank, removeFromBag, removeFromBank } from './inventory';
 import type { ItemStack, PlayerState } from './player';
+import { FESTIVALS, type FestivalId } from '../data/festivals';
 
 export type Perk =
   | { kind: 'xp'; skill: SkillId | 'all' | 'combat'; pct: number }
@@ -29,6 +30,8 @@ export interface Furniture {
   perk: Perk;
   /** Needs Lunaria brought home first. */
   needsLunaria?: boolean;
+  /** Festival keepsakes come from the festival stall instead of being built. */
+  festival?: FestivalId;
   blurb: string;
 }
 
@@ -76,7 +79,14 @@ export const FURNITURE: Furniture[] = [
   { id: 'ember_brazier', name: 'Emberite brazier', emoji: '🪔', x: 36, y: 48, skill: 'smithing', level: 335, tier: 5,
     cost: [{ id: 'emberite_bar', qty: 20 }, { id: 'emberbark_logs', qty: 20 }], perk: { kind: 'fire', pct: 25 }, blurb: 'Glows all night. Your cooking fire burns even longer.' },
 ];
-export const FURNITURE_MAP: Record<string, Furniture> = Object.fromEntries(FURNITURE.map((f) => [f.id, f]));
+/** 🎪 Festival keepsakes: traded for tokens at a festival stall (not built). +1% XP to everything each. */
+const FESTIVAL_SPOTS: Record<string, [number, number]> = { blossom: [22, 44], midsummer: [64, 4], harvest: [80, 82], winter: [92, 44] };
+export const FESTIVAL_FURNITURE: Furniture[] = FESTIVALS.map((fe) => ({
+  id: fe.decoration.id, name: fe.decoration.name, emoji: fe.decoration.emoji, x: FESTIVAL_SPOTS[fe.id][0], y: FESTIVAL_SPOTS[fe.id][1],
+  skill: 'crafting', level: 1, tier: 0, cost: [], perk: { kind: 'xp', skill: 'all', pct: 1 }, festival: fe.id, blurb: fe.decoration.blurb,
+}));
+export const ALL_FURNITURE = [...FURNITURE, ...FESTIVAL_FURNITURE];
+export const FURNITURE_MAP: Record<string, Furniture> = Object.fromEntries(ALL_FURNITURE.map((f) => [f.id, f]));
 
 const baseXp = (t: number) => (t === 0 ? 8 : t === 1 ? 12 : tierXp(t));
 export const buildXp = (f: Furniture) => Math.round(baseXp(f.tier) * 25);
@@ -89,6 +99,7 @@ export function whyCantBuild(p: PlayerState, id: string): string | null {
   const f = FURNITURE_MAP[id];
   if (!f) return 'Unknown furniture';
   if (p.cottage.includes(id)) return 'Already built';
+  if (f.festival) return 'Find it at the festival stall';
   const region = furnitureRegion(f);
   if (!regionOpen(region) || !p.regions.includes(region)) return `Discover ${region} first`;
   if (f.needsLunaria && !p.lunaria.restored) return 'Bring Lunaria home first';

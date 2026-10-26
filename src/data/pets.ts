@@ -1,5 +1,6 @@
 // Skilling pets: rare, cozy companions. One follows you at a time for +2% XP in its skill.
 import type { SkillId } from './items';
+import { FESTIVALS } from './festivals';
 
 export interface PetDef {
   id: string;
@@ -32,6 +33,9 @@ export const PETS: PetDef[] = [
   { id: 'pet_wick', name: 'Wick', emoji: '🕯️', skill: 'firemaking', odds: 0, blurb: "Lunaria's lantern spirit. A thank-you from the whole town for bringing the light back." },
   { id: 'pet_sprout', name: 'Sprout', emoji: '🌱', skill: 'combat', odds: 20, blurb: "A seedling from Grumbleroot's crown. Grows a little every week." },
 ];
+
+// 🎪 Festival pets: from the festival stall (rewards, never random drops).
+for (const f of FESTIVALS) PETS.push({ id: f.pet.id, name: f.pet.name, emoji: f.pet.emoji, skill: f.skill, odds: 0, blurb: `${f.pet.blurb} (${f.name})` });
 
 export const PET_MAP: Record<string, PetDef> = Object.fromEntries(PETS.map((p) => [p.id, p]));
 export const PET_XP_BONUS = 0.02;

@@ -1,6 +1,8 @@
 // Static item definitions. No player data lives here.
 // Tiered items (ores, bars, logs, fish, gear, tools, ammo) are generated for all 20 tiers from data/tiers.ts.
 import { CROPS, FISH, HERBS, METALS, TIER_COUNT, WOODS, tierForLevel, tierLevel, tierPalette, tierRegion, tierXp, type Region } from './tiers';
+import { RARE_FISH } from './rareFish';
+import { FESTIVALS, TREAT_BUFF } from './festivals';
 
 export type ItemCategory = 'ore' | 'bar' | 'log' | 'material' | 'fish' | 'food' | 'weapon' | 'armour' | 'tool' | 'gem' | 'ammo' | 'currency' | 'treasure'
   | 'herb' | 'crop' | 'seed' | 'meal';
@@ -474,6 +476,15 @@ items.push(
     description: 'Shaken loose when the mountain stirs. Still warm, and it glows through the cracks. Crack it open!', opens: 'mining', opensTable: 'open_ember_geode' },
   { id: 'heartfire_ember', name: 'Heartfire ember', category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🔥', stackable: true, value: 4000,
     description: 'A coal from the heart of the mountain that never goes out. Traders in Cinderpeak treasure these.' },
+  ...RARE_FISH.map((f): ItemDef => ({ id: f.id, name: f.name, category: 'treasure', tier: 'trout', icon: 'coins', emoji: f.emoji, stackable: true, value: f.value,
+    region: f.region, description: `A rare fish from ${f.region}. ${f.blurb} Recorded in your Fishing Journal.` })),
+  // 🎪 Seasonal festival tokens (spend them at the festival stall) and treats (+5% XP to everything for 30 min).
+  ...FESTIVALS.flatMap((f): ItemDef[] => [
+    { id: f.token.id, name: f.token.name, category: 'treasure', tier: 'gold', icon: 'coins', emoji: f.token.emoji, stackable: true, value: 20,
+      description: `A keepsake from the ${f.name}. Trade them at the festival stall while the festival is on.` },
+    { id: f.treat.id, name: f.treat.name, category: 'meal', tier: 'oak', icon: 'log', emoji: f.treat.emoji, stackable: true, tierNum: 0,
+      buff: TREAT_BUFF, description: `${f.treat.description} (${f.name} treat)` },
+  ]),
   { id: 'travellers_compass', name: "Traveller's compass", category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🧭', stackable: true, value: 2500,
     description: 'Left at a well by someone always one town ahead. The needle doesn\'t point north. It points further.' },
 );

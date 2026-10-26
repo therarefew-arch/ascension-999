@@ -14,12 +14,14 @@ import { LOCAL_SKILLS, regionOpen, WOODS } from '../data/tiers';
 import type { IdleSlot, PlayerState } from './player';
 import { MAX_XP, levelForXp } from './xp';
 import { xpBoost } from './boosts';
-import { FIND_ITEM } from '../data/lootTables';
+import { FIND_ITEM, LOOT_TABLES } from '../data/lootTables';
 import { buffSpeedPct, buffXpMult } from './buffs';
 import { cottageFirePct, cottageXpMult } from './cottage';
 import { equipmentStats } from './equipment';
 import { advanceFight, isFightId, type CombatReport } from './combat';
 import { STIR_XP_MULT, stirBoosts } from './cinderpeak';
+import { festivalXpMult, rollFestivalToken } from './festivals';
+import { recordRareFish, type RareCatch } from './fishJournal';
 
 export interface ProgressReport {
   /** The first running activity (kept for simple screens). */
@@ -38,6 +40,8 @@ export interface ProgressReport {
   stopped: { reason: string; afterMs: number } | null;
   /** Enhancing tries that didn't succeed (the item was kept). */
   failed: number;
+  /** 🐟 Rare fish caught (size, first catch, new record). */
+  rareFish?: RareCatch[];
   combat?: CombatReport;
   /** Pets found. */
   pets: string[];
@@ -302,6 +306,20 @@ export function completeAction(
       for (const st of find) report.gained[st.id] = (report.gained[st.id] ?? 0) + st.qty;
     }
   }
+  // 🐟 A rare fish now and then — recorded in the Fishing Journal.
+  if (!action.kind && action.skill === 'fishing' && action.region && LOOT_TABLES[`rare_fish_${action.region}`]) {
+    const rare = rollLoot(`rare_fish_${action.region}`);
+    if (rare.length) {
+      giveLoot(p, rare);
+      for (const st of rare) {
+        report.gained[st.id] = (report.gained[st.id] ?? 0) + st.qty;
+        const c = recordRareFish(p, st.id);
+        if (c) (report.rareFish ??= []).push(c);
+      }
+    }
+  }
+  // 🎪 Festival tokens.
+  rollFestivalToken(p, report, opts.at ?? Date.now());
   addXp(p, action, report, Math.round(action.xp * (opts.xpMult ?? 1) * (stirring ? STIR_XP_MULT : 1)));
   report.actions++;
   const pet = rollPet(p, action.skill);
@@ -319,6 +337,8 @@ export function addXp(p: PlayerState, action: { skill: SkillId }, report: Progre
   if (p.bonfire && p.bonfire.until > Date.now()) xp = xp * 1.05;
   // 🍵 Brews from Cooking, and 🏡 Cottage furniture.
   xp = xp * buffXpMult(p, action.skill) * cottageXpMult(p, action.skill);
+  // 🎪 The season's festival skill gets +10%.
+  xp = xp * festivalXpMult(action.skill);
   const skill = p.skills[action.skill];
   const before = levelForXp(skill.xp);
   skill.xp = Math.min(MAX_XP, skill.xp + xp);

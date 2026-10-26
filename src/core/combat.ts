@@ -10,6 +10,7 @@ import { giveLoot, rollLoot, rollPet } from './loot';
 import type { PlayerState } from './player';
 import { levelForXp } from './xp';
 import { HOT_SPRING_MULT, inHotSprings } from './cinderpeak';
+import { rollFestivalToken } from './festivals';
 
 export const FIGHT_PREFIX = 'fight:';
 export const isFightId = (actionId: string | undefined | null) => !!actionId && actionId.startsWith(FIGHT_PREFIX);
@@ -238,6 +239,7 @@ export function advanceFight(
         giveLoot(p, loot);
         for (const st of loot) report.gained[st.id] = (report.gained[st.id] ?? 0) + st.qty;
         log(f, now, `${monster.name} defeated!`, 'loot');
+        rollFestivalToken(p, report, now, true);
         if (monster.miniboss) {
           p.bossReadyAt[monster.id] = monster.weekly ? nextWeeklyReset(now) : now + monster.miniboss.respawnMs;
           const petId = monster.weekly ? 'pet_sprout' : monster.pet ?? null;

@@ -19,6 +19,8 @@ import { catchStar, claimGift, claimRequest, claimRequestBonus, ensureRequests, 
 import type { LoreNote } from '../data/lore';
 import { LANTERNS, lightLantern, ringBell, whyCantLight, whyCantRing } from './lunaria';
 import { takeTravellerGift } from './cinderpeak';
+import { activeFestival, buyAtStall, welcomeFestival, type StallItem } from './festivals';
+import { RARE_FISH_MAP } from '../data/rareFish';
 import { openFinds } from './finds';
 import { claimStep, trackTutorial, TUTORIAL } from './tutorial';
 import { claimBounty, ensureBounties, rerollBounty, trackBounties } from './bounties';
@@ -206,6 +208,9 @@ function tick(now = Date.now()) {
 
   p.lastActiveAt = now;
   checkGarden(p, now);
+  // 🎪 A festival just started (or this is the first visit during one)? Say hello once.
+  const fest = welcomeFestival(p, now);
+  if (fest) setTimeout(() => { play('levelup'); celebrate(); toast(`${fest.emoji} The ${fest.name} has begun! Festival stall in town · ${SKILLS[fest.skill].name} +10% XP`, 'level'); emit(); }, 1200);
   // Lucky Stars: appear every few minutes while you're playing, and drift away if not caught.
   if (snap.star && now > snap.star.until) { snap.star = null; emit(); }
   // (The Cottage telescope makes them come more often.)
@@ -256,6 +261,12 @@ function tick(now = Date.now()) {
   // 🎁 Found something while gathering?
   for (const id of [...Object.values(FIND_ITEM), 'ember_geode']) {
     if (report.gained[id]) { play('rune'); toast(`${getItem(id).emoji} You found a ${getItem(id).name}! Open it from your bag.`, 'good'); }
+  }
+  // 🐟 Rare fish!
+  for (const c of report.rareFish ?? []) {
+    const f = RARE_FISH_MAP[c.id];
+    play('match');
+    toast(c.first ? `${f.emoji} New in your Fishing Journal: ${f.name}! (${c.cm} cm)` : c.record ? `${f.emoji} A record ${f.name.toLowerCase()}: ${c.cm} cm!` : `${f.emoji} You caught a ${f.name.toLowerCase()} (${c.cm} cm)`, c.first || c.record ? 'level' : 'good');
   }
   const found = rollLoreFind(p, report.actions);
   if (found) announceLore([found]);
@@ -543,6 +554,19 @@ export const game = {
     toast('🔔 The bell rings out across the water… Lunaria is home!', 'level');
     announceLore(syncLore(snap.player));
     toast('🕯️ Wick the lantern spirit joined you · the market reopens', 'good');
+    save();
+    emit();
+  },
+  /** 🎪 Trade festival tokens at the stall. */
+  buyAtStall(what: StallItem) {
+    const why = buyAtStall(snap.player, what);
+    if (why) return fail(why);
+    const f = activeFestival()!;
+    play('coin');
+    buzz(20);
+    if (what === 'treat') toast(`${f.treat.emoji} ${f.treat.name} — eat it from your bag for +5% XP`, 'good');
+    if (what === 'decoration') { celebrate(); toast(`${f.decoration.emoji} ${f.decoration.name} added to your Cottage!`, 'level'); }
+    if (what === 'pet') { celebrate(); play('levelup'); toast(`🎉 ${f.pet.emoji} ${f.pet.name} joined you!`, 'level'); }
     save();
     emit();
   },

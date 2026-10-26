@@ -11,6 +11,7 @@ import { MONSTER_MAP } from '../data/monsters';
 import { LORE_MAP } from '../data/lore';
 import { alreadySettled, TUTORIAL } from './tutorial';
 import { FURNITURE_MAP } from './cottage';
+import { RARE_FISH_MAP } from '../data/rareFish';
 import { isFightId, maxHp } from './combat';
 
 export const SAVE_SLOTS = [1, 2, 3] as const;
@@ -331,6 +332,15 @@ function repair(raw: any): PlayerState {
   p.starsCaught = Math.max(0, Number(raw?.starsCaught) || 0);
   // Cottage (v19)
   if (Array.isArray(raw?.cottage)) p.cottage = Array.from(new Set(raw.cottage.filter((id: unknown) => typeof id === 'string' && !!FURNITURE_MAP[id as string])));
+  // Fishing Journal + festivals (v21)
+  if (raw?.fishJournal && typeof raw.fishJournal === 'object') {
+    for (const [id, e] of Object.entries(raw.fishJournal as Record<string, { n?: unknown; best?: unknown }>)) {
+      if (!RARE_FISH_MAP[id] || !e) continue;
+      const n = Math.max(0, Math.floor(Number(e.n) || 0));
+      if (n > 0) p.fishJournal[id] = { n, best: Math.max(0, Number(e.best) || 0) };
+    }
+  }
+  if (Array.isArray(raw?.festivalsSeen)) p.festivalsSeen = raw.festivalsSeen.filter((s: unknown) => typeof s === 'string').slice(-20);
   // The Traveller's gifts (v20)
   if (Array.isArray(raw?.travellerGifts)) p.travellerGifts = Array.from(new Set(raw.travellerGifts.filter((r: unknown) => typeof r === 'string')));
   // Buffs + garden (v18)
