@@ -20,8 +20,9 @@ import { ProgressBar, Sheet } from '../components';
 import { ItemIcon, UiIcon, type UiIconName } from '../icons';
 import { fmtDuration, fmtNum } from '../format';
 import { AnvilRhythm, StrikeVein } from '../Minigames';
-import { Chop, RuneAlign, RuneTrace } from '../Minigames2';
+import { Chop, RuneTrace } from '../Minigames2';
 import { CraftingGames } from '../Joinery';
+import { EnhancingGames } from '../Runesong';
 import { FiremakingGames } from '../Wildfire';
 import { FishingGames } from '../TileMatch';
 import { CookingGames } from '../PantryPrep';
@@ -140,7 +141,7 @@ const SCENES: Partial<Record<SkillId, SceneName>> = {
 
 const MINIGAMES: Partial<Record<SkillId, (p: { action: ActionDef }) => JSX.Element>> = {
   mining: StrikeVein, smithing: AnvilRhythm, woodcutting: Chop, firemaking: FiremakingGames,
-  fishing: FishingGames, cooking: CookingGames, crafting: CraftingGames, enhancing: RuneAlign, runecrafting: RuneTrace,
+  fishing: FishingGames, cooking: CookingGames, crafting: CraftingGames, enhancing: EnhancingGames, runecrafting: RuneTrace,
   herblore: RipePicking,
 };
 
@@ -315,11 +316,12 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
           {tabRow}
           <div className="empty">
             {skill === 'enhancing'
-              ? 'Nothing to enhance right now. Smith weapons or armour at the Forge, then improve them here from +1 up to +10 — even while you wear them.'
+              ? 'Nothing to enhance right now. Smith weapons or armour at the Forge, then improve them here from +1 up to +10 — even while you wear them. Meanwhile, Runesong below still trains Enhancing (and Magic).'
               : tab === 'Upgrades'
                 ? 'Craft a tool first — then upgrade it here, even while it’s equipped. Your +1 replaces the old one.'
                 : 'Nothing here yet.'}
           </div>
+          {skill === 'enhancing' && <EnhancingGames />}
         </div>
       </div>
     );
@@ -377,6 +379,8 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
 
       {unlocked ? (
         <Minigame key={skill} action={action} />
+      ) : skill === 'enhancing' ? (
+        <EnhancingGames key="locked" />
       ) : (
         <div className="mg">
           <div className="mg-stage">

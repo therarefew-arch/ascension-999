@@ -965,6 +965,50 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .satchel-toggle.on { border-style: solid; border-color: #92610f; background: #241a08; color: var(--gold); }
 
 /* 🧩 Joinery (Crafting) */
+/* 🃏 Spellcards (Enhancing) */
+.sc-intro, .sc-shop { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: var(--radius); background: linear-gradient(180deg, #1d1733, #120f22); border: 1.5px solid #3b2f5c; }
+.sc-intro h3, .sc-shop h3 { margin: 0; color: #ddd6fe; }
+.sc-shop h4 { margin: 6px 0 0; font-size: 0.85rem; color: #c4b5fd; }
+.sc-intro p, .sc-shop p { margin: 0; }
+.sc-intro-cards { display: flex; justify-content: center; gap: 6px; }
+.sc-intro-cards .sc-card { width: 52px; cursor: default; transform: rotate(-4deg); }
+.sc-intro-cards .sc-card:nth-child(2n) { transform: rotate(4deg) translateY(-4px); }
+.sc-sparks { font-family: var(--mono); font-weight: 900; color: var(--gold); }
+.sc-top { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 14px; background: rgba(18, 15, 34, 0.92); border: 1.5px solid #3b2f5c; }
+.sc-quirk { color: #fca5a5; }
+.sc-charms { display: flex; flex-wrap: wrap; gap: 6px; }
+.sc-charm { display: inline-flex; align-items: center; gap: 4px; min-height: 38px; padding: 4px 10px; border-radius: 12px; border: 1.5px solid #4c3d75; background: #1d1733; color: inherit; font: inherit; font-size: 1.1rem; cursor: pointer; }
+.sc-charm.scroll { border-color: #a16207; background: #2a1e0b; }
+.sc-charm:disabled { opacity: 0.5; cursor: default; }
+.sc-info { margin: 0; padding: 6px 10px; border-radius: 10px; background: rgba(76, 61, 117, 0.35); }
+.sc-preview { position: relative; min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); text-align: center; }
+.sc-hand { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.sc-card { position: relative; aspect-ratio: 4 / 5; border-radius: 10px; border: 2px solid var(--el); background: linear-gradient(160deg, #fdf8ee, #efe3c8); color: #2a1d12; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0; cursor: pointer; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35); transition: transform 0.12s ease, box-shadow 0.12s ease; -webkit-touch-callout: none; user-select: none; }
+.sc-card .sc-v { font-family: var(--mono); font-weight: 900; font-size: clamp(1.2rem, 6vw, 1.6rem); line-height: 1; }
+.sc-card .sc-el { font-size: clamp(0.9rem, 4.5vw, 1.2rem); }
+.sc-card::before { content: ''; position: absolute; inset: 3px; border-radius: 7px; border: 1px solid color-mix(in srgb, var(--el) 45%, transparent); pointer-events: none; }
+.sc-card .sc-ench { position: absolute; top: 2px; right: 3px; font-size: 0.8rem; }
+.sc-card.picked { transform: translateY(-10px); box-shadow: 0 0 0 2px var(--gold), 0 8px 16px rgba(245, 158, 11, 0.35); }
+.sc-card.dim { opacity: 0.6; }
+.sc-tools { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.sc-spells { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; background: rgba(18, 15, 34, 0.92); border: 1px solid #3b2f5c; }
+.sc-offer { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.3); }
+.sc-offer-emoji { font-size: 1.5rem; width: 32px; text-align: center; flex: none; }
+@media (prefers-reduced-motion: reduce) { .sc-card { transition: none; } }
+
+/* 🎶 Runesong (Enhancing) */
+.mg-stage.rs-stage { width: min(280px, 78vw); height: min(280px, 78vw); border-radius: 50%; background: radial-gradient(circle at 50% 45%, rgba(76, 29, 149, 0.55), rgba(15, 12, 30, 0.95) 70%); border-color: #3b2f5c; box-shadow: 0 0 40px rgba(139, 92, 246, 0.2), inset 0 0 30px rgba(0, 0, 0, 0.6); }
+.rs-circle { position: absolute; inset: 0; }
+.rs-rune { position: absolute; width: 23%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; border: 2px solid color-mix(in srgb, var(--rune) 60%, #000); background: radial-gradient(circle at 40% 35%, color-mix(in srgb, var(--rune) 35%, #1a1530), #120f22 75%); display: grid; place-items: center; font-size: clamp(20px, 6vw, 28px); cursor: pointer; transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.18s ease; padding: 0; }
+.rs-rune:disabled { cursor: default; opacity: 1; }
+.rs-circle.echo .rs-rune { box-shadow: 0 0 10px color-mix(in srgb, var(--rune) 35%, transparent); }
+.rs-rune.lit { transform: translate(-50%, -50%) scale(1.18); background: radial-gradient(circle, #fff 0%, var(--rune) 45%, color-mix(in srgb, var(--rune) 40%, #120f22) 100%); box-shadow: 0 0 26px var(--rune), 0 0 50px color-mix(in srgb, var(--rune) 50%, transparent); }
+.rs-core { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 34%; aspect-ratio: 1; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: rgba(10, 8, 22, 0.7); border: 1.5px solid #3b2f5c; color: #ddd6fe; }
+.rs-core b { font-size: 1.15rem; font-family: var(--mono); }
+.rs-core span { font-size: 0.68rem; color: #a78bfa; text-transform: uppercase; letter-spacing: 1px; }
+.rs-circle.done .rs-core { border-color: #a78bfa; box-shadow: 0 0 20px rgba(167, 139, 250, 0.5); }
+.rs-circle.fizzle .rs-core { opacity: 0.7; }
+@media (prefers-reduced-motion: reduce) { .rs-rune { transition: none; } }
 .jn-wrap { position: relative; display: flex; justify-content: center; padding: 6px 0 2px; }
 .jn-board { position: relative; display: grid; gap: 3px; width: min(100%, 330px); aspect-ratio: 1; padding: 8px; border-radius: 14px;
   background: repeating-linear-gradient(0deg, #6b4423 0 10px, #5e3b1e 10px 20px); border: 3px solid #3d2612; box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.15); }

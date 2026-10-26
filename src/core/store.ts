@@ -7,7 +7,7 @@ import { getItem, type EquipSlot } from '../data/items';
 import { ACTIONS, SKILLS } from '../data/skills';
 import { equip, unequip } from './equipment';
 import {
-  addXp, advanceIdle, chooseSlot, completeAction, drainFire, emptyReport, runningSlots, slotOf, startIdle, stokeFire, stopIdle,
+  addXp, advanceIdle, chooseSlot, completeAction, drainFire, emptyReport, runningSlots, skillLevel, slotOf, startIdle, stokeFire, stopIdle,
   whyCantDo, type ProgressReport,
 } from './idle';
 import { ALL_SKILLS } from '../data/skills';
@@ -21,6 +21,8 @@ import { LANTERNS, lightLantern, ringBell, whyCantLight, whyCantRing } from './l
 import { takeTravellerGift } from './cinderpeak';
 import { disablePush, enablePush, hasPushSubscription, sendNotes } from './push';
 import { predictNotes } from './notifySchedule';
+import { MAX_LENGTH, MIN_LENGTH, runesongXp } from './runesong';
+import { wardXp } from './spellcards';
 import { activeFestival, buyAtStall, welcomeFestival, type StallItem } from './festivals';
 import { RARE_FISH_MAP } from '../data/rareFish';
 import { openFinds } from './finds';
@@ -814,6 +816,34 @@ export const game = {
     trackTutorial(snap.player, report);
     announceLevels(report);
     emit();
+  },
+
+  /** 🎶 Runesong: an echoed spell gives Enhancing XP and some Magic XP. Returns what was given. */
+  runesongCast(length: number): { enhancing: number; magic: number } {
+    const len = Math.max(MIN_LENGTH, Math.min(MAX_LENGTH, Math.floor(length)));
+    const xp = runesongXp(skillLevel(snap.player, 'enhancing'), len);
+    const report = emptyReport(null);
+    addXp(snap.player, { skill: 'enhancing' }, report, xp.enhancing);
+    addXp(snap.player, { skill: 'magic' }, report, xp.magic);
+    trackRequests(snap.player, report, 1);
+    trackTutorial(snap.player, report);
+    announceLevels(report);
+    emit();
+    return xp;
+  },
+
+  /** 🃏 Spellcards: beating ward `w` (0–5) gives Enhancing XP and half as much Magic XP. */
+  spellcardsWard(w: number): { enhancing: number; magic: number } {
+    const xp = wardXp(skillLevel(snap.player, 'enhancing'), Math.max(0, Math.min(5, Math.floor(w))));
+    const report = emptyReport(null);
+    addXp(snap.player, { skill: 'enhancing' }, report, xp.enhancing);
+    addXp(snap.player, { skill: 'magic' }, report, xp.magic);
+    trackRequests(snap.player, report, 1);
+    trackTutorial(snap.player, report);
+    announceLevels(report);
+    save();
+    emit();
+    return xp;
   },
 
   // ----- Combat -----
