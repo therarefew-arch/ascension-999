@@ -19,6 +19,8 @@ import { catchStar, claimGift, claimRequest, claimRequestBonus, ensureRequests, 
 import type { LoreNote } from '../data/lore';
 import { LANTERNS, lightLantern, ringBell, whyCantLight, whyCantRing } from './lunaria';
 import { takeTravellerGift } from './cinderpeak';
+import { disablePush, enablePush, hasPushSubscription, sendNotes } from './push';
+import { predictNotes } from './notifySchedule';
 import { activeFestival, buyAtStall, welcomeFestival, type StallItem } from './festivals';
 import { RARE_FISH_MAP } from '../data/rareFish';
 import { openFinds } from './finds';
@@ -329,6 +331,17 @@ function checkGoals() {
   }
 }
 
+/** 🔔 Leaving the game: tell the notification server what's coming up (idle stopping, crops ready). */
+function scheduleNotes() {
+  const n = snap.settings.notify;
+  if (!n.on || snap.slot === null || !hasPushSubscription()) return;
+  try { sendNotes(predictNotes(snap.player, Date.now(), { idle: n.idle, farm: n.farm })); } catch { /* never block closing the game */ }
+}
+/** Back in the game: nothing needs sending any more. */
+function cancelNotes() {
+  if (snap.settings.notify.on && hasPushSubscription()) sendNotes([]);
+}
+
 /** Starts the app on the title screen, with the clock and auto-save ready. */
 export function startGame() {
   if (started) return;
@@ -344,10 +357,10 @@ export function startGame() {
 
   // Save the moment the app is hidden or closed, and catch up when it comes back.
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { tick(); save(); sound.suspend(); }
-    else { tick(); }
+    if (document.hidden) { tick(); save(); sound.suspend(); scheduleNotes(); }
+    else { tick(); cancelNotes(); }
   });
-  window.addEventListener('pagehide', () => { tick(); save(); });
+  window.addEventListener('pagehide', () => { tick(); save(); scheduleNotes(); });
 
   // Test helper, only in development builds: pocketvaleDebug.skipTime(hours)
   if (import.meta.env.DEV) {
@@ -1112,6 +1125,19 @@ export const game = {
     sound.setVolumes(next);
     saveSettings(next);
     emit();
+  },
+  /** 🔔 Turn notifications on/off on this device. Returns a message if it couldn't be turned on. */
+  async setNotifications(on: boolean): Promise<string | null> {
+    if (on) {
+      const why = await enablePush();
+      if (why) { play('error'); return why; }
+      play('levelup');
+      toast('🔔 Notifications on — we’ll let you know when idling stops or crops are ready', 'good');
+    } else {
+      await disablePush();
+    }
+    game.setSettings({ ...snap.settings, notify: { ...snap.settings.notify, on } });
+    return null;
   },
   clearLastStop() {
     snap.player.lastStop = null;

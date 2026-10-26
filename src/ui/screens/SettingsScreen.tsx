@@ -5,12 +5,53 @@ import { UiIcon } from '../icons';
 import { fmtDuration } from '../format';
 import { GAME_VERSION } from '../../version';
 import { BackupCard } from '../Backup';
+import { pushStatus } from '../../core/push';
 
 const SLIDERS: { key: 'master' | 'effects' | 'music'; label: string; icon: 'sound' | 'music' }[] = [
   { key: 'master', label: 'Master volume', icon: 'sound' },
   { key: 'effects', label: 'Effects volume', icon: 'sound' },
   { key: 'music', label: 'Music volume', icon: 'music' },
 ];
+
+/** 🔔 Notifications while the game is closed (per device). */
+function NotificationsCard() {
+  const { settings } = useGame();
+  const n = settings.notify;
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const status = pushStatus();
+  const toggle = async (on: boolean) => {
+    setBusy(true);
+    setMsg(await game.setNotifications(on));
+    setBusy(false);
+  };
+  const setPart = (part: 'idle' | 'farm', v: boolean) => game.setSettings({ ...settings, notify: { ...n, [part]: v } });
+  return (
+    <div className="card">
+      <h3>🔔 Notifications</h3>
+      <label className="toggle-row">
+        <span><b>Notify me while the game is closed</b><span className="small muted"> — on this device</span></span>
+        <input type="checkbox" checked={n.on} disabled={busy} onChange={(e) => toggle(e.target.checked)} />
+      </label>
+      {n.on && (
+        <>
+          <label className="toggle-row sub">
+            <span><b>Idling stops</b><span className="small muted"> — and why (bag full, out of ore…)</span></span>
+            <input type="checkbox" checked={n.idle} onChange={(e) => setPart('idle', e.target.checked)} />
+          </label>
+          <label className="toggle-row sub">
+            <span><b>Crops are ready</b><span className="small muted"> — your garden is ready to harvest</span></span>
+            <input type="checkbox" checked={n.farm} onChange={(e) => setPart('farm', e.target.checked)} />
+          </label>
+        </>
+      )}
+      {msg && <p className="small red">{msg}</p>}
+      {!n.on && status === 'ios-home-screen' && <p className="small muted">On iPhone, notifications only work after you add the game to your Home Screen (Share → Add to Home Screen) and open it from there.</p>}
+      {!n.on && status === 'blocked' && <p className="small muted">Notifications are blocked for this game — allow them in your phone or browser settings first.</p>}
+      <p className="small muted">You only get notified about things that happen after you leave the game. Opening the game cancels anything not sent yet.</p>
+    </div>
+  );
+}
 
 export function SettingsScreen() {
   const { settings, lastSavedAt, slot } = useGame();
@@ -36,6 +77,8 @@ export function SettingsScreen() {
         <button className="btn" onClick={() => sound.play('levelup')}>Play a test sound</button>
         <p className="small muted">Sounds are quiet placeholders for now. Real sounds go in the assets/sounds folder.</p>
       </div>
+
+      <NotificationsCard />
 
       <div className="card">
         <h3>Saving</h3>

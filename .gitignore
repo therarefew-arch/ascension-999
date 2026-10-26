@@ -3,3 +3,8 @@ dist
 *.local
 .DS_Store
 Thumbs.db
+
+# Notification server: private key and local build files never go to GitHub
+push-server/.vapid-private.json
+push-server/node_modules
+push-server/.wrangler

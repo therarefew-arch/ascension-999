@@ -1,0 +1,18 @@
+# Ascension 999 notification server. Deploy with: npx wrangler deploy (from this folder)
+name = "ascension-999-push"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Check for due notifications every minute.
+[triggers]
+crons = ["* * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ascension-999-push"
+database_id = "f3d5860b-b5c3-4483-8593-960a7bd12d1e"
+
+[vars]
+VAPID_PUBLIC = "BAFKw6uDLzETHFFqSKx2euv83rctLVU6ISpeVinYreZOBpJ6VLvGAxrKv1HS86kB9NDG1GUlYP5HIwKLo2ibxf4"
+VAPID_SUBJECT = "https://therarefew-arch.github.io/ascension-999/"
+# VAPID_PRIVATE is a secret: npx wrangler secret put VAPID_PRIVATE  (value: contents of .vapid-private.json)

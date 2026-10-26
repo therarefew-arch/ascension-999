@@ -448,7 +448,7 @@ export function saveSettings(s: Settings): void {
 export function loadSettings(): Settings {
   try {
     const raw = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null');
-    if (raw) return { ...DEFAULT_SETTINGS, ...raw };
+    if (raw) return { ...DEFAULT_SETTINGS, ...raw, notify: { ...DEFAULT_SETTINGS.notify, ...(raw.notify ?? {}) } };
   } catch { /* ignore */ }
   return { ...DEFAULT_SETTINGS };
 }

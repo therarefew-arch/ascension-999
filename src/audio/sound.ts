@@ -1,7 +1,7 @@
 // Sound system. Uses the Web Audio API so volume works on iPhones too.
 // Volume chain: each sound → effects or music volume → master volume → speakers.
 import { EFFECT_SOUNDS, SOUND_EXTENSIONS, type MusicKey, type SoundKey } from './soundList';
-import type { Settings } from '../core/settings';
+import { DEFAULT_SETTINGS, type Settings } from '../core/settings';
 
 /** How many copies of one sound may overlap. */
 const MAX_VOICES = 3;
@@ -19,7 +19,7 @@ class SoundSystem {
   private musicGain: GainNode | null = null;
   private musicKey: MusicKey | null = null;
   private wantedMusic: MusicKey | null = null;
-  private volumes: Settings = { master: 0.8, effects: 0.7, music: 0.4, vibrate: true };
+  private volumes: Settings = { ...DEFAULT_SETTINGS };
   private lastPlayed = new Map<SoundKey, number>();
   private voices = new Map<SoundKey, { src: AudioBufferSourceNode; gain: GainNode }[]>();
 

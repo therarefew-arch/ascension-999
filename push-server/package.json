@@ -1,0 +1,12 @@
+{
+  "name": "ascension-999-push",
+  "private": true,
+  "description": "Sends Ascension 999 notifications while the game is closed (Cloudflare Worker).",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

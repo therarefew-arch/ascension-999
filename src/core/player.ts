@@ -37,7 +37,7 @@ export const INVENTORY_SLOTS = 30;
 export const MAX_BAG_SLOTS = 50;
 export const MAX_IDLE_SLOTS = 3;
 /** Max of one stackable item in a single bag slot. */
-export const STACK_LIMIT = 500;
+export const STACK_LIMIT = 999;
 /** Offline progress counts up to this long. */
 export const OFFLINE_CAP_MS = 24 * 60 * 60 * 1000;
 

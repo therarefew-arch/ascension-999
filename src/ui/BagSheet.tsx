@@ -59,7 +59,7 @@ export function BagSheet({ onClose, onItem }: { onClose: () => void; onItem: (id
         )}
       </div>
       {ghost}
-      <p className="small muted center">Ores and bars stack up to 500 per slot. Gear takes one slot each. Drop an item on the same item to join the stacks.</p>
+      <p className="small muted center">Ores and bars stack up to 999 per slot. Gear takes one slot each. Drop an item on the same item to join the stacks.</p>
     </Sheet>
   );
 }
