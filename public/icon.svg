@@ -1,9 +1,58 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="110" fill="#2c251e"/>
-  <path d="M0 360 Q130 280 256 330 T512 320 V512 H0 Z" fill="#7c9a5c"/>
-  <g stroke-linecap="round" stroke-linejoin="round">
-    <path d="M150 420 L330 160" stroke="#5e3d1f" stroke-width="44"/>
-    <path d="M150 420 L330 160" stroke="#9a6a3c" stroke-width="24"/>
-    <path d="M110 150 Q250 30 430 170 Q320 110 330 160 Q230 90 110 150 Z" fill="#c99248" stroke="#7a5320" stroke-width="16"/>
+  <!-- Browser-tab icon: the same art as icon-full.svg, with rounded corners. -->
+  <clipPath id="round"><rect width="512" height="512" rx="110"/></clipPath>
+  <g clip-path="url(#round)">
+  <!-- Ascension 999: a mountain with steps climbing to a glowing star. Square, full-bleed (phones round the corners). -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1c1633"/>
+      <stop offset="0.6" stop-color="#2b1d24"/>
+      <stop offset="1" stop-color="#1b1310"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="256" cy="120" r="170" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fbbf24" stop-opacity="0.55"/>
+      <stop offset="0.45" stop-color="#f97316" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#f97316" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rock" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4a3a52"/>
+      <stop offset="1" stop-color="#241b26"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fde68a"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <rect width="512" height="512" fill="url(#glow)"/>
+  <!-- little stars -->
+  <g fill="#e9e2ff" opacity="0.8">
+    <circle cx="96" cy="104" r="3"/><circle cx="140" cy="62" r="2"/><circle cx="402" cy="88" r="3"/>
+    <circle cx="440" cy="150" r="2"/><circle cx="78" cy="190" r="2"/><circle cx="372" cy="46" r="2"/>
   </g>
+<g transform="translate(0 -18)">
+  <!-- distant peaks -->
+  <path d="M0 420 L0 300 L70 250 L130 320 Z" fill="#2a2036"/>
+  <path d="M512 420 L512 280 L430 230 L360 320 Z" fill="#2a2036"/>
+  <!-- the mountain -->
+  <path d="M40 420 L200 222 L238 196 L256 172 L274 196 L312 222 L472 420 Z" fill="url(#rock)"/>
+  <!-- warm rim light on the left face, and a glowing cap -->
+  <path d="M40 420 L200 222 L238 196 L256 172 L256 196 L214 236 Z" fill="#f59e0b" opacity="0.22"/>
+  <path d="M226 210 L256 172 L286 210 L270 204 L256 214 L242 202 Z" fill="#fde68a" opacity="0.85"/>
+  <!-- the path winding up to the summit, lit by lanterns -->
+  <path d="M120 420 C190 400 250 392 224 360 C200 334 290 326 268 296 C250 272 214 270 246 246 C262 234 262 222 256 208"
+    fill="none" stroke="#fbbf24" stroke-width="10" stroke-linecap="round" stroke-dasharray="2 18" opacity="0.95"/>
+  <path d="M120 420 C190 400 250 392 224 360 C200 334 290 326 268 296 C250 272 214 270 246 246 C262 234 262 222 256 208"
+    fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" opacity="0.45"/>
+</g>
+  <!-- the star at the summit -->
+  <g transform="translate(256 114)">
+    <circle r="34" fill="#fbbf24" opacity="0.25"/>
+    <path d="M0 -46 C6 -12 12 -6 46 0 C12 6 6 12 0 46 C-6 12 -12 6 -46 0 C-12 -6 -6 -12 0 -46 Z" fill="url(#gold)"/>
+    <circle r="7" fill="#fff7d6"/>
+  </g>
+  <!-- 999 -->
+  <rect x="0" y="402" width="512" height="110" fill="#1b1310"/>
+  <text x="256" y="462" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="76" letter-spacing="10" fill="url(#gold)" stroke="#7c3a0a" stroke-width="3" paint-order="stroke">999</text>
+</g>
 </svg>

@@ -17,6 +17,7 @@ export function TitleScreen() {
     <div className="title-screen">
       <PixelScene scene="forest" dim={0.35} className="screen-bg" />
       <div className="title-inner">
+        <img className="title-emblem" src={`${import.meta.env.BASE_URL}icon.svg`} width={84} height={84} alt="" aria-hidden="true" />
         <h1 className="game-title">ASCENSION <span className="title-999">999</span></h1>
         <div className="game-sub">✦ CHOOSE YOUR SAGA ✦</div>
 

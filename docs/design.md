@@ -393,6 +393,9 @@ Based on the owner's reference screenshots:
 - Bank **filter chips** (Resources · Food & farm · Gear · Treasures) and the bank's **total worth** in coins.
 - **✨ New-item dot** in the bag on things you didn't have the last time you opened it (remembered on this device only).
 
+### v0.0.1.21 — new icon
+- **App icon** for Ascension 999: a lantern-lit path winding up a mountain to a glowing summit star, "999" in gold. `public/icon-full.svg` is the master art; `icon.svg` (rounded, browser tab), `apple-touch-icon.png` (180, iPhone home screen — iPhones can't use SVG icons), `icon-192/512.png` and `icon-maskable-512.png` (Android round masks). To redraw it later, replace these files. The emblem also shows above the title screen logo.
+
 ### Owner's notes for later
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.
