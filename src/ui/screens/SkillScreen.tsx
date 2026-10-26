@@ -1,9 +1,10 @@
 // One skill: pick a resource, play its minigame, or set it to idle.
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { SkillId } from '../../data/items';
 import { ACTIONS, actionsForSkill, COMBAT_SKILLS, SKILL_ORDER, SKILLS, tabsForSkill, type ActionDef } from '../../data/skills';
 import { getItem } from '../../data/items';
-import { LOCAL_SKILLS, regionOpen } from '../../data/tiers';
+import { LOCAL_SKILLS, REGIONS, regionOpen } from '../../data/tiers';
 import { SEASONED, seasonedPercent, skillLevel, slotOf, whyCantDo } from '../../core/idle';
 import { countInBag } from '../../core/inventory';
 import type { PlayerState } from '../../core/player';
@@ -15,7 +16,7 @@ import { mountainStirs, STIR_XP_MULT } from '../../core/cinderpeak';
 import { RipePicking } from '../HerbloreGame';
 import { game, useGame } from '../../core/store';
 import { levelProgress, MAX_LEVEL } from '../../core/xp';
-import { ProgressBar } from '../components';
+import { ProgressBar, Sheet } from '../components';
 import { ItemIcon, UiIcon, type UiIconName } from '../icons';
 import { fmtDuration, fmtNum } from '../format';
 import { AnvilRhythm, StrikeVein } from '../Minigames';
@@ -148,44 +149,111 @@ const TAB_ICONS: Record<string, UiIconName> = {
   Ammo: 'ammo', Talismans: 'gem', Runes: 'runecrafting', Staffs: 'magic',
 };
 
-/** A list of recipes with what you have vs. what you need (Smithing, Crafting). */
-function RecipeList({ player, actions, selected, onSelect }: {
-  player: PlayerState; actions: ActionDef[]; selected: string; onSelect: (id: string) => void;
-}) {
-  const lvl = actions[0] ? skillLevel(player, actions[0].skill) : 0;
+/** Everything a recipe row needs to know: is it locked, do you have the materials, the right tool… */
+function recipeInfo(player: PlayerState, a: ActionDef) {
+  const lvl = skillLevel(player, a.skill);
+  const tag = regionTag(player, a);
+  const regionLocked = !!tag && !tag.startsWith('📍');
+  const locked = lvl < a.level || regionLocked;
+  // The input that limits how many you can make.
+  const needs = a.inputs.filter((i) => i.item !== a.upgrades);
+  const limiting = needs.reduce<{ have: number; qty: number; n: number } | null>((best, i) => {
+    const have = countInBag(player.inventory, i.item);
+    const n = Math.floor(have / i.qty);
+    return !best || n < best.n ? { have, qty: i.qty, n } : best;
+  }, null);
+  const enough = !limiting || limiting.n > 0;
+  const toolProblem = !locked ? !!whyCantDo(player, a)?.startsWith('Equip a') : false;
+  return { lvl, tag, locked, needs, limiting, enough, toolProblem, canMake: !locked && enough && !toolProblem };
+}
+
+/** One recipe: what it makes, what it needs, and what you have. */
+function RecipeRow({ player, a, on, onClick, picker }: { player: PlayerState; a: ActionDef; on?: boolean; onClick: () => void; picker?: boolean }) {
+  const r = recipeInfo(player, a);
   return (
-    <div className="recipe-list">
-      {actions.map((a) => {
-        const tag = regionTag(player, a);
-        const regionLocked = !!tag && !tag.startsWith('📍');
-        const locked = lvl < a.level || regionLocked;
-        // The input that limits how many you can make.
-        const needs = a.inputs.filter((i) => i.item !== a.upgrades);
-        const limiting = needs.reduce<{ have: number; qty: number; n: number } | null>((best, i) => {
-          const have = countInBag(player.inventory, i.item);
-          const n = Math.floor(have / i.qty);
-          return !best || n < best.n ? { have, qty: i.qty, n } : best;
-        }, null);
-        const enough = !limiting || limiting.n > 0;
-        const toolProblem = !locked ? whyCantDo(player, a)?.startsWith('Equip a') : false;
-        return (
-          <button key={a.id} className={`recipe ${a.id === selected ? 'on' : ''} ${locked ? 'locked' : ''}`} onClick={() => onSelect(a.id)}>
-            <ItemIcon id={a.iconItem} size={36} />
-            <div className="grow">
-              <div className="recipe-name">{a.name}{slotOf(player, a.id) >= 0 && <span className="chip-idle"> <UiIcon name="clock" size={12} /></span>}</div>
-              <div className="recipe-sub">{needs.map((i) => `${i.qty}× ${getItem(i.item).name}`).join(' + ')}</div>
-            </div>
-            <div className="recipe-right mono">
-              {limiting && <span className={enough ? 'green' : 'red'}>{fmtNum(limiting.have)}/{limiting.qty}</span>}
-              {tag && <span className="dim small">{tag}</span>}
-              {lvl < a.level && <span className="dim small">Lv {a.level}</span>}
-              {!locked && toolProblem && <span className="red small">needs tool</span>}
-            </div>
-          </button>
-        );
-      })}
-    </div>
+    <button className={`recipe ${on ? 'on' : ''} ${r.locked ? 'locked' : ''} ${picker ? 'recipe-picker' : ''}`} onClick={onClick}
+      aria-label={picker ? `${a.name} — tap to choose a different recipe` : undefined}>
+      <ItemIcon id={a.iconItem} size={36} />
+      <div className="grow">
+        <div className="recipe-name">{a.name}{slotOf(player, a.id) >= 0 && <span className="chip-idle"> <UiIcon name="clock" size={12} /></span>}</div>
+        <div className="recipe-sub">{r.needs.map((i) => `${i.qty}× ${getItem(i.item).name}`).join(' + ')}</div>
+      </div>
+      <div className="recipe-right mono">
+        {r.limiting && <span className={r.enough ? 'green' : 'red'}>{fmtNum(r.limiting.have)}/{r.limiting.qty}</span>}
+        {r.tag && <span className="dim small">{r.tag}</span>}
+        {r.lvl < a.level && <span className="dim small">Lv {a.level}</span>}
+        {!r.locked && r.toolProblem && <span className="red small">needs tool</span>}
+      </div>
+      {picker && <span className="picker-change" aria-hidden="true">⇅</span>}
+    </button>
   );
+}
+
+/** Remembered while the app is open: "Can make now" or everything. */
+let pickerFilter: 'all' | 'make' = 'all';
+
+/** 📜 The recipe picker: every recipe in this tab, grouped by town, with a "Can make now" filter. */
+function RecipeSheet({ player, actions, selected, onSelect, onClose, title }: {
+  player: PlayerState; actions: ActionDef[]; selected: string; onSelect: (id: string) => void; onClose: () => void; title: string;
+}) {
+  const [filter, setFilter] = useState(pickerFilter);
+  const [openTowns, setOpenTowns] = useState<string[]>([]);
+  const setF = (f: 'all' | 'make') => { pickerFilter = f; setFilter(f); };
+  const info = new Map(actions.map((a) => [a.id, recipeInfo(player, a)]));
+  const makeable = actions.filter((a) => info.get(a.id)!.canMake);
+  const shown = filter === 'make' ? makeable : actions;
+  // Group by town: where you are first, then the other towns you know, then ones still to discover.
+  const townOf = (a: ActionDef) => a.region ?? player.location;
+  const towns = Array.from(new Set(shown.map(townOf)));
+  const rank = (t: string) => (t === player.location ? 0 : player.regions.includes(t as never) ? 1 : 2);
+  towns.sort((x, y) => rank(x) - rank(y) || REGIONS.indexOf(x as never) - REGIONS.indexOf(y as never));
+  useEffect(() => { document.querySelector('.recipe-sheet .recipe.on')?.scrollIntoView({ block: 'center' }); }, []);
+  // Drawn at the top level of the page so it always sits above the minigame.
+  return createPortal(
+    <Sheet title={title} onClose={onClose}>
+      <div className="tab-row no-pad picker-filters">
+        <button className={`tab-pill ${filter === 'all' ? 'on' : ''}`} onClick={() => setF('all')}>All ({actions.length})</button>
+        <button className={`tab-pill ${filter === 'make' ? 'on' : ''}`} onClick={() => setF('make')}>✅ Can make now ({makeable.length})</button>
+      </div>
+      <div className="recipe-sheet">
+        {shown.length === 0 && <div className="empty">Nothing you can make right now — check your bag for materials, or switch to All.</div>}
+        {towns.map((town) => {
+          const list = shown.filter((a) => townOf(a) === town);
+          const known = player.regions.includes(town as never);
+          const folded = !known && !openTowns.includes(town) && !list.some((a) => a.id === selected);
+          // Towns you haven't reached yet: one short line each (tap to peek).
+          if (folded) {
+            return (
+              <button key={town} className="picker-fold" onClick={() => setOpenTowns((o) => [...o, town])}>
+                <span>{regionOpen(town as never) ? '🧭' : '🔒'} <b>{town}</b> · {list.length} recipe{list.length > 1 ? 's' : ''}</span>
+                <span className="dim">{regionOpen(town as never) ? 'not discovered' : 'coming soon'} ▾</span>
+              </button>
+            );
+          }
+          return (
+            <section key={town}>
+              <h3 className="picker-town">
+                {town === player.location ? `📍 ${town} · you are here` : known ? town : `${regionOpen(town as never) ? '🧭' : '🔒'} ${town}`}
+              </h3>
+              {(
+                <div className="recipe-list no-pad">
+                  {list.map((a) => <RecipeRow key={a.id} player={player} a={a} on={a.id === selected} onClick={() => { onSelect(a.id); onClose(); }} />)}
+                </div>
+              )}
+            </section>
+          );
+        })}
+      </div>
+    </Sheet>,
+    document.body,
+  );
+}
+
+/** Which recipe a tab opens on: the best one you can make now, else the best one you've unlocked. */
+function bestInTab(player: PlayerState, list: ActionDef[]): ActionDef | undefined {
+  const withInfo = list.map((a) => ({ a, r: recipeInfo(player, a) }));
+  const pick = (xs: typeof withInfo) => xs.sort((x, y) => y.a.level - x.a.level)[0]?.a;
+  return pick(withInfo.filter((x) => x.r.canMake)) ?? pick(withInfo.filter((x) => !x.r.locked)) ?? list[0];
 }
 
 export function SkillScreen({ skill }: { skill: SkillId }) {
@@ -197,10 +265,11 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
   const eta = timeToNextLevel(player, skill);
   // Skills with tabs open on their first tab; others on the best resource you can do.
   const defaultId = () => (tabs.length
-    ? (allActions.find((a) => a.tab === tabs[0] && a.level <= skillLevel(player, skill)) ?? allActions.find((a) => a.tab === tabs[0]))
+    ? bestInTab(player, allActions.filter((a) => a.tab === tabs[0]))
     : (bestAction(player, skill) ?? allActions[0]))?.id ?? '';
   const [selectedId, setSelectedId] = useState<string>(defaultId);
   const [tab, setTab] = useState<string>(() => ACTIONS[defaultId()]?.tab ?? tabs[0] ?? '');
+  const [picking, setPicking] = useState(false);
 
   useEffect(() => {
     const idleHere = player.slots.find((sl) => sl && allActions.some((a) => a.id === sl.actionId))?.actionId ?? null;
@@ -230,7 +299,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
     <div className="tab-row" role="tablist">
       {tabs.map((t) => (
         <button key={t} role="tab" aria-selected={t === tab} className={`tab-pill ${t === tab ? 'on' : ''}`}
-          onClick={() => { setTab(t); const first = allActions.find((a) => a.tab === t && a.level <= lvl) ?? allActions.find((a) => a.tab === t); if (first) setSelectedId(first.id); }}>
+          onClick={() => { setTab(t); setPicking(false); const first = bestInTab(player, allActions.filter((a) => a.tab === t)); if (first) setSelectedId(first.id); }}>
           <UiIcon name={TAB_ICONS[t] ?? 'skills'} size={16} /> {t.toUpperCase()}
         </button>
       ))}
@@ -281,7 +350,11 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
 
       {tabRow}
       {tabs.length > 0 ? (
-        <RecipeList player={player} actions={actions} selected={action.id} onSelect={setSelectedId} />
+        <div className="recipe-list">
+          <RecipeRow player={player} a={action} on picker onClick={() => setPicking(true)} />
+          {picking && <RecipeSheet player={player} actions={actions} selected={action.id} onSelect={setSelectedId} onClose={() => setPicking(false)}
+            title={`${SKILLS[skill].name} · ${tab}`} />}
+        </div>
       ) : (
       <div className="chip-row" role="tablist" aria-label="Resources">
         {actions.map((a: ActionDef) => {

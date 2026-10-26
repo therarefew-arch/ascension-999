@@ -382,6 +382,16 @@ p { margin: 8px 0; }
 .recipe.on .recipe-name { color: var(--gold); }
 .recipe-sub { font-size: 0.8rem; color: var(--muted); }
 .recipe-right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-weight: 800; flex-shrink: 0; }
+/* 📜 Recipe picker: one bar on the skill screen, the full list in a sheet */
+.recipe-picker { position: relative; padding-right: 44px; }
+.picker-change { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; background: rgba(245, 158, 11, 0.18); color: var(--gold); font-weight: 900; }
+.recipe-list.no-pad { padding: 0; }
+.picker-filters { margin-bottom: 10px; }
+.picker-filters .tab-pill { min-height: 36px; font-size: 0.8rem; }
+.recipe-sheet section + section { margin-top: 12px; }
+.picker-town { margin: 4px 2px 8px; font-size: 0.85rem; letter-spacing: 0.5px; color: var(--muted); }
+.picker-fold { display: flex; justify-content: space-between; gap: 8px; width: 100%; margin-top: 6px; text-align: left; padding: 9px 12px; border-radius: 12px; border: 1.5px dashed var(--line); background: transparent; color: var(--muted); font: inherit; font-size: 0.82rem; cursor: pointer; }
+.recipe-sheet section + .picker-fold { margin-top: 14px; }
 
 /* Woodcutting tap */
 .tree-trunk.chopped { animation: thunk 0.22s ease-out; }
