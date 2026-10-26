@@ -750,11 +750,12 @@ export const game = {
   },
 
   /** XP-only reward (the fishing tile game). */
-  minigameXp(actionId: string, xp: number) {
+  /** XP-only minigames (Sort the Catch, Pantry Prep, Joinery). Capped at `maxMult` × the recipe's XP. */
+  minigameXp(actionId: string, xp: number, maxMult = 3) {
     const action = ACTIONS[actionId];
     if (!action || xp <= 0) return;
     const report = emptyReport(actionId);
-    addXp(snap.player, action, report, Math.round(Math.min(xp, action.xp * 3)));
+    addXp(snap.player, action, report, Math.round(Math.min(xp, action.xp * maxMult)));
     trackRequests(snap.player, report, 1);
     trackTutorial(snap.player, report);
     announceLevels(report);

@@ -155,14 +155,11 @@ export function AnvilRhythm({ action }: { action: ActionDef }) {
     clock.reset();
     // Hammer on anvil every swing: a perfect hit rings bright, a mistimed one is a dull tap.
     sound.play('anvil', grade === 'miss' ? { rate: 0.82, volume: 0.45 } : { rate: grade === 'perfect' ? 1.1 : 1 });
-    if (grade === 'miss') {
-      push('Easy does it… wait for the glow', 'miss');
-      return;
-    }
+    // Every tap counts (owner's wish) — a mistimed one is just a bit rough, not wasted.
     const next = [...hits, grade];
     if (next.length < ANVIL_RHYTHM.hitsNeeded) {
       setHits(next);
-      push(grade === 'perfect' ? 'Perfect clang!' : 'Clang!', grade);
+      push(grade === 'perfect' ? 'Perfect clang!' : grade === 'good' ? 'Clang!' : 'A bit rough — still counts', grade);
       return;
     }
     const perfects = next.filter((g) => g === 'perfect').length;
@@ -203,7 +200,7 @@ export function AnvilRhythm({ action }: { action: ActionDef }) {
         <button className="btn btn-hero btn-xl" onClick={hammer} disabled={!!blocked} data-silent>
           <UiIcon name="smithing" size={24} /> {blocked ?? 'HAMMER'}
         </button>
-        <p className="mg-foot">3 hits finish the item. All perfect = masterwork bonus. Misses cost nothing.</p>
+        <p className="mg-foot">Every tap counts — 3 taps finish the item. Tap as the ring glows for clean hits: 3 perfect = a masterwork bonus.</p>
       </div>
     </div>
   );

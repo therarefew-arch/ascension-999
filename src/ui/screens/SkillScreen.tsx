@@ -18,7 +18,8 @@ import { ProgressBar } from '../components';
 import { ItemIcon, UiIcon, type UiIconName } from '../icons';
 import { fmtDuration, fmtNum } from '../format';
 import { AnvilRhythm, StrikeVein } from '../Minigames';
-import { Chop, RuneAlign, RuneTrace, SteadyHands } from '../Minigames2';
+import { Chop, RuneAlign, RuneTrace } from '../Minigames2';
+import { CraftingGames } from '../Joinery';
 import { FiremakingGames } from '../Wildfire';
 import { FishingGames } from '../TileMatch';
 import { CookingGames } from '../PantryPrep';
@@ -135,7 +136,7 @@ const SCENES: Partial<Record<SkillId, SceneName>> = {
 
 const MINIGAMES: Partial<Record<SkillId, (p: { action: ActionDef }) => JSX.Element>> = {
   mining: StrikeVein, smithing: AnvilRhythm, woodcutting: Chop, firemaking: FiremakingGames,
-  fishing: FishingGames, cooking: CookingGames, crafting: SteadyHands, enhancing: RuneAlign, runecrafting: RuneTrace,
+  fishing: FishingGames, cooking: CookingGames, crafting: CraftingGames, enhancing: RuneAlign, runecrafting: RuneTrace,
   herblore: RipePicking,
 };
 

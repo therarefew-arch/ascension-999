@@ -364,6 +364,10 @@ Based on the owner's reference screenshots:
 ### v0.0.1.15 — attack splashes
 - Every attack in a fight plays a splash over the monster (`ui/AttackFx.tsx`): melee = sword slash (crit = double gold slash), ranged = an arrow flying in with an impact burst, magic = a bolt in the staff's element — air (whirling wind bolt), water (orb + droplets), earth (rock + chunks), fire (fireball + embers), nature (leaves), frost (ice shards), shadow (purple), light (gold rays). Misses get a faint grey whoosh; when a monster hits you the screen edges flash red.
 
+### v0.0.1.16 — smithing & crafting
+- **Anvil Rhythm (Smithing): every tap counts.** Three taps always finish the item; mistimed taps are "a bit rough" (grey pip, no bonus) instead of wasted. Clean taps add bonus XP; 3 perfect = masterwork (bonus item).
+- **🧩 Joinery** (Crafting's second minigame, next to the Workbench): a resource-free wood-joining puzzle — tap pieces to turn them until every joint meets another (`core/joinery.ts`, always solvable). 4×4 / 5×5 / 6×6 boards give 16× / 26× / 38× the selected recipe's XP. Plays the calm café tune.
+
 ### Owner's notes for later
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.

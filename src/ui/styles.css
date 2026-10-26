@@ -321,6 +321,7 @@ p { margin: 8px 0; }
 .pip { width: 14px; height: 14px; border-radius: 50%; background: #0a0a0a; border: 2px solid #3f382f; }
 .pip.good { background: var(--orange); border-color: var(--gold); }
 .pip.perfect { background: #fde68a; border-color: #fff; box-shadow: 0 0 8px var(--gold); }
+.pip.miss { background: #78716c; border-color: #a8a29e; }
 
 .idle-cta { padding: 0 14px 14px; }
 
@@ -925,6 +926,16 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 
 .satchel-toggle { width: 100%; margin-bottom: 8px; padding: 8px 10px; border-radius: 10px; border: 1.5px dashed var(--line); background: var(--bg2); color: var(--muted); font-weight: 800; font-size: 0.82rem; cursor: pointer; text-align: left; }
 .satchel-toggle.on { border-style: solid; border-color: #92610f; background: #241a08; color: var(--gold); }
+
+/* 🧩 Joinery (Crafting) */
+.jn-wrap { position: relative; display: flex; justify-content: center; padding: 6px 0 2px; }
+.jn-board { position: relative; display: grid; gap: 3px; width: min(100%, 330px); aspect-ratio: 1; padding: 8px; border-radius: 14px;
+  background: repeating-linear-gradient(0deg, #6b4423 0 10px, #5e3b1e 10px 20px); border: 3px solid #3d2612; box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.15); }
+.jn-cell { padding: 0; border: 0; border-radius: 8px; background: rgba(245, 230, 200, 0.12); cursor: pointer; aspect-ratio: 1; }
+.jn-cell:active { transform: scale(0.94); }
+.jn-svg { width: 100%; height: 100%; display: block; transition: transform 0.12s; }
+.jn-board.done { box-shadow: 0 0 22px rgba(251, 191, 36, 0.6); border-color: #b45309; }
+.jn-done { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; border-radius: 12px; background: rgba(30, 18, 8, 0.45); color: #fde68a; font-weight: 900; font-size: 1.2rem; text-shadow: 0 2px 0 #000; pointer-events: none; }
 
 /* 🏡 The Cottage */
 .service-wide { grid-column: 1 / -1; }
