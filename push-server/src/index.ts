@@ -56,7 +56,8 @@ function parseSchedule(raw: string, now: number): { sub: PushSub; notes: Note[] 
 // ----- Web push (VAPID) -----
 let signingKey: CryptoKey | null = null;
 async function vapidJwt(env: Env, audience: string): Promise<string> {
-  signingKey ??= await crypto.subtle.importKey('jwk', JSON.parse(env.VAPID_PRIVATE), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+  // The secret may carry an invisible "byte order mark" from Windows — strip it before reading.
+  signingKey ??= await crypto.subtle.importKey('jwk', JSON.parse(env.VAPID_PRIVATE.replace(/^﻿/, '').trim()), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
   const enc = (o: unknown) => b64url(new TextEncoder().encode(JSON.stringify(o)));
   const unsigned = `${enc({ typ: 'JWT', alg: 'ES256' })}.${enc({ aud: audience, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: env.VAPID_SUBJECT })}`;
   const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, signingKey, new TextEncoder().encode(unsigned));
@@ -70,6 +71,7 @@ async function wakePhone(env: Env, sub: PushSub): Promise<number> {
     method: 'POST',
     headers: { TTL: '3600', Urgency: 'normal', Authorization: `vapid t=${jwt}, k=${env.VAPID_PUBLIC}` },
   });
+  if (res.status >= 300) console.log('push failed', res.status, new URL(sub.endpoint).host, (await res.text()).slice(0, 300));
   return res.status;
 }
 
@@ -80,7 +82,7 @@ async function sendDue(env: Env): Promise<void> {
     const row = await env.DB.prepare('SELECT sub FROM devices WHERE id = ?').bind(device).first<{ sub: string }>();
     if (!row) { await env.DB.prepare('DELETE FROM notes WHERE device = ?').bind(device).run(); continue; }
     let status = 0;
-    try { status = await wakePhone(env, JSON.parse(row.sub)); } catch { status = 0; }
+    try { status = await wakePhone(env, JSON.parse(row.sub)); } catch (e) { status = 0; console.log('push error', (e as Error).message); }
     if (status >= 200 && status < 300) {
       await env.DB.prepare('UPDATE notes SET sent = 1 WHERE device = ? AND sent = 0 AND at <= ?').bind(device, now).run();
     } else if (status === 404 || status === 410) {
