@@ -947,6 +947,28 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .pp-ladder { display: flex; justify-content: space-between; gap: 2px; padding: 6px 4px; background: var(--bg2); border-radius: 10px; margin: 6px 0; }
 .pp-step { font-size: 1.15rem; opacity: 0.25; filter: grayscale(1); transition: opacity 0.3s; }
 .pp-step.got { opacity: 1; filter: none; }
+.pp-lv11 { background: linear-gradient(180deg, #ffe4f1, #f472b6) !important; box-shadow: 0 3px 0 #9d174d, 0 0 22px rgba(244, 114, 182, 0.85) !important; }
+.pp-lv12 { background: linear-gradient(180deg, #ede9fe, #a78bfa) !important; box-shadow: 0 3px 0 #5b21b6, 0 0 26px rgba(167, 139, 250, 0.95) !important; animation: ppRoyal 2s ease-in-out infinite; }
+@keyframes ppRoyal { 50% { filter: brightness(1.15); } }
+.pp-board.pp-n5 { gap: 6px; padding: 8px; width: min(100%, 350px); }
+.pp-n5 .pp-emoji { font-size: clamp(1.25rem, 7vw, 1.85rem); }
+.pp-board.tooling { box-shadow: 0 0 0 3px var(--gold), 0 8px 18px rgba(0, 0, 0, 0.5); }
+.pp-board.tooling .pp-cell[class*='pp-lv'] { cursor: pointer; }
+.pp-cell.picked { outline: 3px solid var(--gold); outline-offset: -3px; transform: scale(0.94); }
+.pp-rail { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 12px; background: rgba(30, 20, 12, 0.92); border: 1.5px solid #5c3d22; }
+.pp-rail-label { font-size: 0.72rem; font-weight: 800; color: #d6b98c; text-transform: uppercase; letter-spacing: 0.05em; }
+.pp-ticket { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 4px; border-radius: 8px;
+  background: #fdf3dc; color: #3b2412; box-shadow: 0 2px 0 #b08a5a; transform: rotate(-1.5deg); transition: transform 0.2s; }
+.pp-ticket:nth-child(odd) { transform: rotate(1.5deg); }
+.pp-ticket.filled { animation: ppTicket 0.6s ease; }
+@keyframes ppTicket { 0% { transform: scale(1); background: #bbf7d0; } 40% { transform: scale(1.18) rotate(-4deg); background: #86efac; } 100% { transform: scale(1); } }
+.pp-ticket-emoji { font-size: 1.15rem; }
+.pp-ticket-tip { font-size: 0.7rem; font-weight: 800; white-space: nowrap; }
+.pp-tips { font-weight: 900; color: var(--gold); white-space: nowrap; }
+.pp-score { margin-top: 2px; }
+.pp-tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 6px; }
+.pp-tool { padding: 4px 2px; font-size: clamp(0.68rem, 3.4vw, 0.78rem); white-space: nowrap; overflow: hidden; }
+.pp-tool.on { border-color: var(--gold); box-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
 .pp-pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .pp-pad > .btn:nth-child(n + 5) { grid-column: span 2; padding: 0 8px; }
 .pp-pad .btn { min-height: 42px; padding: 0; }

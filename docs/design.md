@@ -422,6 +422,13 @@ Enhancing now has three minigames (tabs): **Rune Align** (the original, enhances
 - **🧵 Tinker's Tray** (Crafting's third minigame, `core/tinkersTray.ts`, `ui/TinkersTray.tsx`): a cozy match-3 on a 7×7 workbench tray with six scraps (wood, thread, buttons, feathers, rivets, yarn). Tap a scrap then a neighbour, or swipe. Match 4 → 🔨 Mallet (clears its row/column), L or T → 🧰 Toolbox (clears around it), 5 in a row → ✨ Master's Touch (swap it to clear every scrap of that kind; two together clear the tray). Cascades chain with rising chimes. Each round is a townsperson's **order** (two scraps, 10–24 each) in 20 moves; filling it gives Crafting XP from the selected recipe (~38–48× its XP), running out of moves still pays for what you gathered (no loss). A hint glows after 7 s idle; a stuck tray reshuffles for free. Saved on the device. Bot test: a greedy bot fills ~55% of orders (avg 93% progress).
 - **Pantry Prep:** ↶ Undo (one slide back; XP already earned stays, the fish still cooks only once per board), the board is saved on the device, and swiping no longer scrolls the page on iPhone (`ui/useNoScroll.ts`).
 
+### v0.0.1.29 — Pantry Prep for long sessions (owner: "someone who will play it for an hour")
+- **Two boards**, each saved separately: 🔪 4×4 Board and 🍽️ 5×5 Banquet (bot: ~220 vs ~900 moves per board, about 5 vs 20 minutes).
+- **Dish ladder to 12:** 🎂 Festival Cake and 🏰 King's Banquet (only realistic on the banquet table; the 4×4 ladder shows 10).
+- **Kitchen orders:** 3 tickets on a rail, each a dish near your best; making it pays bonus Cooking XP and 🪙 **Chef's Tips** (1 / 2 / 3 for dishes below 7 / 7–8 / 9+). Orders avoid repeats.
+- **Kitchen tools** bought with tips (kept across boards): 🔪 Chop 8 (clear one ingredient), 🥄 Stir 10 (swap two), 🧂 Season 15 (raise one a step). They can rescue a full board. Tuned so a 4×4 board earns ~23 tips (2–3 tools). Tools can't be undone.
+- **Score** (2^level per combine) and best score per board. Cooking remembers the last minigame tab while the app is open.
+
 ### Owner's notes for later
 - **NEXT SESSION (locked in 2026-10-26): The Ascension endgame (750 → 999).** The owner wants it to feel like **goals to chase**: big endgame bosses and rare "Ascended" crafts to work toward, more than small passive mastery bonuses. Start by brainstorming the bosses and Ascended crafts with the owner before building.
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
