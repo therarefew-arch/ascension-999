@@ -55,6 +55,7 @@ Full game vision: `docs/design.md`. Build only the phase that is asked for.
 - **Every minigame tap makes a sound** (owner's request): use `sound.play(key, { rate, volume })` for per-tap feedback and `sound.loop(key)` for held/ambient sounds. Good hits sound brighter (higher rate); misses use the soft `whoosh`. New sounds go in `soundList.ts` + the generator script.
 - When testing in the browser pane, only run scripts on `localhost` — never on the live site (it holds real saves).
 - Combat skills (Melee, Ranged, Magic, Defense, Health) are the next update.
+- **🏮 Lantern Watch** (v0.0.1.31): survivor mode from the Combat screen — `core/lanternWatch.ts` (engine, no drawing) + `ui/LanternWatch.tsx` (canvas). **A power-up choice on every level-up** (owner's wish). Rewards only through `game.lanternWatchEnd` (combat XP, coins, the town's monster loot tables — never gems; reward pet `pet_lumen` on the first dawn).
 - **3 save slots** with a title screen. Big Bag button stays centred in the bottom nav.
 - Visual style follows the "Visual style guide" in `docs/design.md` (dark, gold/orange glow, monospace numbers, pixel-art backdrops).
 

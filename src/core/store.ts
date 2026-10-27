@@ -43,11 +43,12 @@ import type { ItemStack } from './player';
 /** What the bag/bank looked like before the last sort (for ↶ Undo). Not saved. */
 let lastBagLayout: (ItemStack | null)[] | null = null;
 let lastBankOrder: string[] | null = null;
-import { giveLoot, lootFits, rollGemReroll, satchelOn, validateLootTables } from './loot';
-import { BLOCK_WINDOW_MS, eatFood, endFight, fightSlot, maxHp, regenHp, startFight } from './combat';
+import { giveLoot, grantPet, lootFits, rollGemReroll, rollLoot, satchelOn, validateLootTables } from './loot';
+import { BLOCK_WINDOW_MS, eatFood, endFight, fightSlot, maxHp, regenHp, startFight, weaponStyle } from './combat';
+import { lootRolls, nightXp } from './lanternWatch';
 import { REROLL_COST, socketGem, unsocketGem } from './equipment';
 import { countInBag, removeFromBag } from './inventory';
-import { MONSTER_MAP } from '../data/monsters';
+import { MONSTER_MAP, MONSTERS } from '../data/monsters';
 import { clampReward } from './minigames';
 import { newPlayer, OFFLINE_CAP_MS, type PlayerState } from './player';
 import {
@@ -846,6 +847,44 @@ export const game = {
     save();
     emit();
     return xp;
+  },
+
+  /** A short buzz (respects the vibration setting). */
+  vibrate(ms: number) { buzz(ms); },
+
+  /**
+   * 🏮 Lantern Watch: the night is over. Combat XP for the time held and monsters beaten, coins, a few
+   * rolls of the town's monster loot (through the loot system — never gems), and Lumen on your first dawn.
+   */
+  lanternWatchEnd(r: { seconds: number; kills: number; won: boolean; coins: number }) {
+    const p = snap.player;
+    const style = weaponStyle(p);
+    const xp = nightXp(skillLevel(p, style), r.seconds, r.kills, r.won);
+    const report = emptyReport(null);
+    addXp(p, { skill: style }, report, xp.style);
+    addXp(p, { skill: 'health' }, report, xp.health);
+    addXp(p, { skill: 'defense' }, report, xp.defense);
+    const mobs = MONSTERS.filter((m) => m.region === p.location && !m.miniboss && !m.weekly);
+    const loot: ItemStack[] = [];
+    const rolls = lootRolls(r.kills) + (r.won ? 3 : 0);
+    for (let i = 0; i < rolls && mobs.length; i++) loot.push(...rollLoot(mobs[Math.floor(Math.random() * mobs.length)].lootTable));
+    const coins = Math.max(0, Math.min(5000, Math.floor(r.coins)));
+    if (coins) loot.push({ id: 'coins', qty: coins });
+    // Merge the same items together for a tidy summary.
+    const merged: ItemStack[] = [];
+    for (const s of loot) { const m = merged.find((x) => x.id === s.id); if (m) m.qty += s.qty; else merged.push({ ...s }); }
+    const leftover = giveLoot(p, merged);
+    const pet = r.won && grantPet(p, 'pet_lumen');
+    if (r.won) celebrate();
+    trackRequests(p, report, 1);
+    trackTutorial(p, report);
+    announceLevels(report);
+    save();
+    emit();
+    return {
+      won: r.won, xp, coins: merged.find((s) => s.id === 'coins')?.qty ?? 0,
+      items: merged.filter((s) => s.id !== 'coins'), leftover: leftover.reduce((s, x) => s + x.qty, 0), pet,
+    };
   },
 
   // ----- Combat -----

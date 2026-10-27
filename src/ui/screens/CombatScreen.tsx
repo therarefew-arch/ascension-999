@@ -16,6 +16,7 @@ import { PixelScene } from '../PixelScene';
 import { TRAINING } from '../../data/places';
 import { sound } from '../../audio/sound';
 import { AttackFxLayer, type Fx } from '../AttackFx';
+import { LanternWatch } from '../LanternWatch';
 
 const STYLE_ICON = { melee: 'melee', ranged: 'ranged', magic: 'magic' } as const;
 const STYLE_NAME: Record<CombatStyle, string> = { melee: 'Melee', ranged: 'Ranged', magic: 'Magic' };
@@ -290,6 +291,7 @@ export function CombatScreen({ onItem }: { onItem: (id: string) => void }) {
   const fighting = !!player.fight && fightSlot(player) >= 0;
   const style = weaponStyle(player);
   const max = maxHp(player);
+  const [watch, setWatch] = useState(false);
   return (
     <div className="skill-screen">
       <PixelScene scene="forest" dim={0.65} className="screen-bg" />
@@ -308,6 +310,12 @@ export function CombatScreen({ onItem }: { onItem: (id: string) => void }) {
               <HpBar hp={player.hp} max={max} tone="green" />
               <p className="small muted">Triangle: Melee beats Ranged · Ranged beats Magic · Magic beats Melee. Your weapon sets your style. You heal slowly out of combat, and eat food automatically when low.</p>
             </div>
+            <button className="lw-launch" onClick={() => setWatch(true)}>
+              <span className="lw-launch-emoji">🏮</span>
+              <span className="grow"><b>Lantern Watch</b><span className="small muted">Survive the night in {player.location} — dodge the swarm, pick a power-up every level, face the dawn beast.</span></span>
+              <span className="lw-launch-go">▶</span>
+            </button>
+            {watch && <LanternWatch onClose={() => setWatch(false)} />}
             <BountyBoard />
             {player.location === WEEKLY_BOSS.region && <WeeklyBoss />}
             <h2 className="section-title">{player.location.toUpperCase()}</h2>

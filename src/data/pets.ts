@@ -31,6 +31,7 @@ export const PETS: PetDef[] = [
   { id: 'pet_mote', name: 'Mote', emoji: '🌙', skill: 'combat', odds: 50, blurb: 'A crumb of moonlight that slipped out of the Hush. It glows when you smile.' },
   { id: 'pet_kindle', name: 'Kindle', emoji: '🐉', skill: 'combat', odds: 50, blurb: "A pocket-sized lava dragon from the Kiln Wyrm's nest. Snores little smoke rings." },
   { id: 'pet_wick', name: 'Wick', emoji: '🕯️', skill: 'firemaking', odds: 0, blurb: "Lunaria's lantern spirit. A thank-you from the whole town for bringing the light back." },
+  { id: 'pet_lumen', name: 'Lumen', emoji: '🦋', skill: 'combat', odds: 0, blurb: 'A lantern moth who followed your light home after your first dawn on Lantern Watch.' },
   { id: 'pet_sprout', name: 'Sprout', emoji: '🌱', skill: 'combat', odds: 20, blurb: "A seedling from Grumbleroot's crown. Grows a little every week." },
 ];
 

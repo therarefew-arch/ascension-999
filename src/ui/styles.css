@@ -1017,6 +1017,55 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .sc-spells { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; background: rgba(18, 15, 34, 0.92); border: 1px solid #3b2f5c; }
 .sc-offer { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.3); }
 .sc-offer-emoji { font-size: 1.5rem; width: 32px; text-align: center; flex: none; }
+/* 🏮 Lantern Watch (survivor mode, full screen) */
+.lw-launch { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; border-radius: var(--radius); text-align: left; color: inherit; font: inherit; cursor: pointer;
+  border: 1.5px solid #f59e0b; background: radial-gradient(circle at 12% 50%, rgba(251, 191, 36, 0.28), transparent 45%), linear-gradient(160deg, #1b1830, #0e0d1a);
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.2); }
+.lw-launch b { display: block; color: var(--gold); font-size: 1.05rem; }
+.lw-launch .small { display: block; }
+.lw-launch-emoji { font-size: 2rem; animation: travellerBob 2.4s ease-in-out infinite; }
+.lw-launch-go { font-size: 1.2rem; color: var(--gold); }
+.lw-root { position: fixed; inset: 0; z-index: 80; background: #06081a; color: #f5f0e6; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+.lw-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.lw-intro { position: absolute; inset: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center;
+  padding: max(20px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom));
+  background: radial-gradient(circle at 50% 38%, rgba(251, 191, 36, 0.22), transparent 42%), radial-gradient(circle at 50% 120%, #1b2440, #06081a 70%); }
+.lw-title { font-size: clamp(1.6rem, 8vw, 2.2rem); font-weight: 900; letter-spacing: 0.08em; color: #fbbf24; text-shadow: 0 0 18px rgba(251, 191, 36, 0.6); }
+.lw-sub { margin: 0; }
+.lw-mobs { display: flex; gap: 10px; font-size: 1.9rem; }
+.lw-mobs .lw-boss { font-size: 2.5rem; filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.7)); }
+.lw-rules { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; text-align: left; max-width: 420px; }
+.lw-btns { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; width: 100%; max-width: 420px; }
+.lw-hud { position: absolute; left: 0; right: 0; top: 0; padding: max(8px, env(safe-area-inset-top)) 12px 0; display: flex; flex-direction: column; gap: 5px; pointer-events: none; }
+.lw-hud-row { display: flex; align-items: center; gap: 10px; }
+.lw-time { font-weight: 900; font-size: 1.1rem; color: #fde68a; text-shadow: 0 1px 3px #000; }
+.lw-kills { flex: 1; text-align: right; font-weight: 800; text-shadow: 0 1px 3px #000; }
+.lw-pause { pointer-events: auto; width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(0, 0, 0, 0.45); color: #fff; font-size: 1rem; }
+.lw-bar { position: relative; height: 14px; border-radius: 7px; background: rgba(0, 0, 0, 0.55); overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.15); }
+.lw-bar > div { position: absolute; inset: 0 auto 0 0; transition: width 0.15s; }
+.lw-bar.hp > div { background: linear-gradient(90deg, #dc2626, #f87171); }
+.lw-bar.xp { height: 10px; }
+.lw-bar.xp > div { background: linear-gradient(90deg, #f59e0b, #fde047); }
+.lw-bar span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.66rem; font-weight: 800; text-shadow: 0 1px 2px #000; }
+.lw-kit { display: flex; flex-wrap: wrap; gap: 4px; font-size: 1.05rem; }
+.lw-kit span { display: inline-flex; align-items: flex-end; padding: 1px 4px; border-radius: 8px; background: rgba(0, 0, 0, 0.45); }
+.lw-kit span.pas { background: rgba(30, 64, 175, 0.35); }
+.lw-kit sub { font-size: 0.6rem; font-weight: 900; color: #fde68a; margin-left: 1px; }
+.lw-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(4, 6, 18, 0.72); animation: scDeal 0.25s ease both; }
+.lw-panel { width: min(100%, 420px); max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 9px; padding: 16px; border-radius: 18px;
+  border: 1.5px solid #f59e0b; background: linear-gradient(170deg, #221c35, #110f1f); box-shadow: 0 0 30px rgba(245, 158, 11, 0.3); }
+.lw-level { text-align: center; font-weight: 900; font-size: 1.25rem; letter-spacing: 0.06em; color: #fbbf24; }
+.lw-choice { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 14px; text-align: left; color: inherit; font: inherit; cursor: pointer;
+  border: 1.5px solid #4c3d75; background: #1d1733; transition: transform 0.1s, border-color 0.1s; animation: scDeal 0.3s ease both; }
+.lw-choice:nth-child(4) { animation-delay: 0.06s; }
+.lw-choice:nth-child(5) { animation-delay: 0.12s; }
+.lw-choice:active { transform: scale(0.97); border-color: #fbbf24; }
+.lw-choice .small { display: block; }
+.lw-choice-emoji { font-size: 1.9rem; width: 40px; text-align: center; flex: none; }
+.lw-tag { font-size: 0.62rem; font-weight: 900; padding: 1px 6px; border-radius: 6px; background: rgba(251, 191, 36, 0.2); color: #fde68a; vertical-align: 2px; }
+.lw-rewards { display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.3); text-align: center; }
+.lw-pet { margin-top: 4px; color: #f9a8d4; }
+
 /* 🧵 Tinker's Tray (Crafting match-3) */
 .tt-order { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 14px; background: rgba(30, 20, 12, 0.92); border: 1.5px solid #5c3d22; }
 .tt-moves { font-weight: 900; color: var(--gold); }
