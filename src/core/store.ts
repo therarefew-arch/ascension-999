@@ -19,7 +19,7 @@ import { catchStar, claimGift, claimRequest, claimRequestBonus, ensureRequests, 
 import type { LoreNote } from '../data/lore';
 import { LANTERNS, lightLantern, ringBell, whyCantLight, whyCantRing } from './lunaria';
 import { takeTravellerGift } from './cinderpeak';
-import { disablePush, enablePush, hasPushSubscription, sendNotes } from './push';
+import { disablePush, enablePush, hasPushSubscription, refreshPush, sendNotes } from './push';
 import { predictNotes } from './notifySchedule';
 import { MAX_LENGTH, MIN_LENGTH, runesongXp } from './runesong';
 import { wardXp } from './spellcards';
@@ -354,6 +354,7 @@ export function startGame() {
   snap = { slot: null, player: newPlayer(), settings, away: null, toasts: [], lastSavedAt: 0, celebrate: 0, star: null };
   sound.setVolumes(settings);
   requestPersistentStorage();
+  if (settings.notify.on) void refreshPush();
 
   setInterval(() => { if (!document.hidden) tick(); }, TICK_MS);
   setInterval(() => { if (!document.hidden) save(); }, AUTOSAVE_MS);

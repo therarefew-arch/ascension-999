@@ -47,6 +47,7 @@ export async function enablePush(): Promise<string | null> {
     const sub = (await reg.pushManager.getSubscription())
       ?? await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC) as BufferSource });
     localStorage.setItem(SUB_KEY, JSON.stringify(sub.toJSON()));
+    sendNotes([]); // introduces this device to the server straight away
     return null;
   } catch (e) {
     return `Couldn't turn on notifications (${(e as Error).message || 'unknown error'}).`;
@@ -74,4 +75,46 @@ export function sendNotes(notes: Note[]): void {
   if (!sent) fetch(`${PUSH_SERVER}/schedule`, { method: 'POST', body, keepalive: true, headers: { 'Content-Type': 'text/plain' } }).catch(() => {});
 }
 
-export const hasPushSubscription = () => { try { return !!localStorage.getItem(SUB_KEY); } catch { return false; } };
+/** Opening the game: make sure the stored sign-up matches the phone's current one (phones sometimes renew it). */
+export async function refreshPush(): Promise<void> {
+  try {
+    if (pushStatus() !== 'ok' || Notification.permission !== 'granted') return;
+    const reg = await worker();
+    const sub = (await reg.pushManager.getSubscription())
+      ?? await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC) as BufferSource });
+    localStorage.setItem(SUB_KEY, JSON.stringify(sub.toJSON()));
+  } catch { /* try again next time */ }
+}
+
+/** Which push service this device signed up with (shown in Settings to help with problems). */
+export function pushService(): string | null {
+  try {
+    const raw = localStorage.getItem(SUB_KEY);
+    if (!raw) return null;
+    const host = new URL(JSON.parse(raw).endpoint).host;
+    if (host.includes('apple')) return 'Apple';
+    if (host.includes('google')) return 'Google';
+    if (host.includes('mozilla')) return 'Firefox';
+    if (host.includes('windows')) return 'Windows';
+    return host;
+  } catch { return null; }
+}
+
+/** Sends a notification right now. Returns a friendly message about what happened. */
+export async function sendTestPush(): Promise<{ ok: boolean; msg: string }> {
+  await refreshPush();
+  let sub: string | null = null;
+  try { sub = localStorage.getItem(SUB_KEY); } catch { /* ignore */ }
+  if (!sub) return { ok: false, msg: 'This device isn’t signed up yet — turn notifications off and on again.' };
+  try {
+    const res = await fetch(`${PUSH_SERVER}/test`, { method: 'POST', body: JSON.stringify({ sub: JSON.parse(sub) }), headers: { 'Content-Type': 'text/plain' } });
+    const { status } = (await res.json()) as { status: number };
+    if (status >= 200 && status < 300) return { ok: true, msg: 'Test sent! It should pop up within a few seconds. If it doesn’t, check your phone’s settings: notifications must be allowed for this app/browser, and Focus / Do Not Disturb / battery saver can hide them.' };
+    if (status === 404 || status === 410) return { ok: false, msg: 'This device’s sign-up has expired — turn notifications off and on again.' };
+    return { ok: false, msg: `The ${pushService() ?? 'push'} service refused the test (code ${status}). Try turning notifications off and on again.` };
+  } catch {
+    return { ok: false, msg: 'Couldn’t reach the notification server — check your internet connection.' };
+  }
+}
+
+export const hasPushSubscription =() => { try { return !!localStorage.getItem(SUB_KEY); } catch { return false; } };

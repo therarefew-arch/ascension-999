@@ -5,7 +5,7 @@ import { UiIcon } from '../icons';
 import { fmtDuration } from '../format';
 import { GAME_VERSION } from '../../version';
 import { BackupCard } from '../Backup';
-import { pushStatus } from '../../core/push';
+import { pushService, pushStatus, sendTestPush } from '../../core/push';
 
 const SLIDERS: { key: 'master' | 'effects' | 'music'; label: string; icon: 'sound' | 'music' }[] = [
   { key: 'master', label: 'Master volume', icon: 'sound' },
@@ -19,7 +19,9 @@ function NotificationsCard() {
   const n = settings.notify;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [test, setTest] = useState<{ ok: boolean; msg: string } | null>(null);
   const status = pushStatus();
+  const service = pushService();
   const toggle = async (on: boolean) => {
     setBusy(true);
     setMsg(await game.setNotifications(on));
@@ -45,6 +47,15 @@ function NotificationsCard() {
           </label>
         </>
       )}
+      {n.on && (
+        <button className="btn" disabled={busy} onClick={async () => {
+          setBusy(true); setTest(null);
+          setTest(await sendTestPush());
+          setBusy(false);
+        }}>🔔 Send a test notification</button>
+      )}
+      {test && <p className={`small ${test.ok ? 'green' : 'red'}`}>{test.msg}</p>}
+      {n.on && service && <p className="small muted">Signed up through {service}'s push service.</p>}
       {msg && <p className="small red">{msg}</p>}
       {!n.on && status === 'ios-home-screen' && <p className="small muted">On iPhone, notifications only work after you add the game to your Home Screen (Share → Add to Home Screen) and open it from there.</p>}
       {!n.on && status === 'blocked' && <p className="small muted">Notifications are blocked for this game — allow them in your phone or browser settings first.</p>}

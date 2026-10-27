@@ -69,7 +69,7 @@ async function wakePhone(env: Env, sub: PushSub): Promise<number> {
   const jwt = await vapidJwt(env, new URL(sub.endpoint).origin);
   const res = await fetch(sub.endpoint, {
     method: 'POST',
-    headers: { TTL: '3600', Urgency: 'normal', Authorization: `vapid t=${jwt}, k=${env.VAPID_PUBLIC}` },
+    headers: { TTL: '3600', Urgency: 'high', Authorization: `vapid t=${jwt}, k=${env.VAPID_PUBLIC}` },
   });
   if (res.status >= 300) console.log('push failed', res.status, new URL(sub.endpoint).host, (await res.text()).slice(0, 300));
   return res.status;
@@ -118,6 +118,28 @@ export default {
         ...data.notes.map((n) => env.DB.prepare('INSERT INTO notes (device, at, title, body, tag) VALUES (?, ?, ?, ?, ?)').bind(device, n.at, n.title, n.body, n.tag)),
       ]);
       return empty();
+    }
+
+    // Settings → "Send a test": wakes the phone right now with a test message. Only real push services.
+    if (req.method === 'POST' && url.pathname === '/test') {
+      const raw = await req.text();
+      if (raw.length > 5_000) return empty(413);
+      const now = Date.now();
+      let parsed: { sub?: unknown } = {};
+      try { parsed = JSON.parse(raw); } catch { /* checked below */ }
+      const data = parseSchedule(JSON.stringify({ sub: parsed.sub, notes: [] }), now);
+      if (!data) return empty(400);
+      const host = new URL(data.sub.endpoint).host;
+      if (!/(^|\.)(googleapis\.com|push\.apple\.com|push\.services\.mozilla\.com|notify\.windows\.com)$/.test(host)) return empty(400);
+      const device = await sha256hex(data.sub.endpoint);
+      await env.DB.batch([
+        env.DB.prepare('INSERT OR REPLACE INTO devices (id, sub, updated) VALUES (?, ?, ?)').bind(device, JSON.stringify(data.sub), now),
+        env.DB.prepare("DELETE FROM notes WHERE device = ? AND tag = 'a999test'").bind(device),
+        env.DB.prepare("INSERT INTO notes (device, at, title, body, tag, sent) VALUES (?, ?, '🔔 Notifications work!', 'This is a test from Ascension 999.', 'a999test', 1)").bind(device, now),
+      ]);
+      let status = 0;
+      try { status = await wakePhone(env, data.sub); } catch (e) { console.log('test push error', (e as Error).message); }
+      return json({ status });
     }
 
     if (req.method === 'GET' && url.pathname === '/inbox') {
