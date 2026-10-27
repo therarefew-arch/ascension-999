@@ -677,16 +677,67 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
       b++;
     }
   }
-  // Sea wind: band-passed noise that swells slowly.
-  let lo = 0; let lo2 = 0;
-  const a1 = 1 - Math.exp((-2 * Math.PI * 900) / MR);
-  const a2 = 1 - Math.exp((-2 * Math.PI * 250) / MR);
-  for (let i = 0; i < total; i++) {
-    const n = rnd() * 2 - 1;
-    lo += a1 * (n - lo); lo2 += a2 * (n - lo2);
-    const t = i / MR;
-    const swell = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin((2 * Math.PI * t) / 11));
-    out[i] += (lo - lo2) * 0.08 * swell * Math.min(1, t / 3, (total / MR - t) / 3);
+  // Sea sounds: no constant noise any more (owner: it drowned the music). Instead, five separate
+  // moments in the ~100 s song — three different waves and two different wind gusts — all kept
+  // softer than the harp, with quiet music-only stretches in between.
+  {
+    const wr = seeded(91);
+    /** Smoothed noise source: a one-pole low-pass at `cutoff` Hz. */
+    const lowNoise = (cutoff) => { let y = 0; const a = 1 - Math.exp((-2 * Math.PI * cutoff) / MR); return () => { y += a * ((wr() * 2 - 1) - y); return y; }; };
+    /** Band of noise between lo and hi Hz. */
+    const bandNoise = (lo, hi) => { const a = lowNoise(hi); const b = lowNoise(lo); return () => a() - b(); };
+    // Wave 1 (~6 s): one long, slow swell rolling in and sliding back out over the shingle.
+    {
+      const body = lowNoise(300); const hiss = bandNoise(900, 2600);
+      const len = 7;
+      addTo(out, Math.floor(6 * MR), Math.floor(len * MR), (t) => {
+        const rise = Math.min(1, t / 2.6) ** 2;
+        const fall = Math.max(0, 1 - Math.max(0, t - 2.8) / (len - 2.8));
+        return (body() * 0.045 + hiss() * 0.03 * fall * fall) * rise * fall;
+      });
+    }
+    // Wind 1 (~30 s): a low, breathy gust that swells up and dies away.
+    {
+      const gust = bandNoise(220, 800);
+      const len = 6;
+      addTo(out, Math.floor(30 * MR), Math.floor(len * MR), (t) => {
+        const env = Math.sin(Math.PI * (t / len)) ** 2;
+        const flutter = 0.75 + 0.25 * Math.sin(2 * Math.PI * 0.7 * t);
+        return gust() * 0.05 * env * flutter;
+      });
+    }
+    // Wave 2 (~44 s): small waves lapping at the rocks — a few short, gentle splashes.
+    {
+      [0, 1.1, 2.0, 3.3].forEach((at, k) => {
+        const n = bandNoise(500, 1800 + k * 150); const thud = lowNoise(170);
+        const amp = 0.03 * (1 - k * 0.15);
+        addTo(out, Math.floor((44 + at) * MR), Math.floor(1 * MR), (t) => {
+          const env = Math.min(1, t / 0.05) * Math.exp(-5 * t);
+          return (n() * amp + thud() * amp * 1.6 * Math.exp(-12 * t)) * env;
+        });
+      });
+    }
+    // Wind 2 (~74 s): a thin, high whistle over the cliff top, rising and falling in pitch.
+    {
+      const len = 5;
+      let ph = 0;
+      const air = bandNoise(1500, 3500);
+      addTo(out, Math.floor(74 * MR), Math.floor(len * MR), (t) => {
+        const env = Math.sin(Math.PI * (t / len)) ** 3;
+        ph += (2 * Math.PI * (620 + 140 * Math.sin(2 * Math.PI * 0.35 * t))) / MR;
+        return (Math.sin(ph) * 0.006 + air() * 0.022) * env;
+      });
+    }
+    // Wave 3 (~84 s): a wave breaking further out — a soft distant crash, then foam fizzing away.
+    {
+      const crash = lowNoise(450); const foam = bandNoise(2000, 5000);
+      const len = 5;
+      addTo(out, Math.floor(84 * MR), Math.floor(len * MR), (t) => {
+        const hit = Math.min(1, t / 0.6) * Math.exp(-1.6 * Math.max(0, t - 0.6));
+        const fizz = Math.min(1, Math.max(0, t - 0.5) / 0.8) * Math.exp(-0.9 * Math.max(0, t - 1.3));
+        return crash() * 0.05 * hit + foam() * 0.018 * fizz * (0.7 + 0.3 * wr());
+      });
+    }
   }
   // A bell buoy far out on the water, rocking with the waves (rings twice, softly).
   for (const at of [18, 62, 96]) {

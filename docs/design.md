@@ -413,6 +413,9 @@ Enhancing now has three minigames (tabs): **Rune Align** (the original, enhances
 - **Tally animation:** after a cast, the cards fly up and the score adds up beat by beat — the spell's base, then each scoring card (+Essence / +Power pops, a `tick` that rises in pitch), then each charm that fires (it glows and bounces; `coin` for +Power, a magical `boom` for ×Power), then Essence × Power rolls up to the total and the ward bar fills. Breaking a ward glows gold. Tap to skip. New sounds: `card` (flick when picking/dealing), `tick`, `boom`. Cards deal in with a little animation.
 - **Deep Wards:** after ward 6 you choose **Finish** or **🌀 Into the Deep Wards** — endless wards, each needing ~55% more score (5,000 / 7,700 / 11,900 / 18,500…), a twist every third (9, 12, 15…), and **15% more XP than the one before** (ward 6 doubles as before). Charms, scrolls and enchanted cards carry on. Breaking ward 6 and every Deep Ward gives confetti.
 
+### v0.0.1.26 — Bluecliff's song
+- The constant sea-wind noise drowned the music (owner). Now the ~100 s song has five separate sea moments, all softer than the harp: a long rolling swell (~6 s), a low breathy gust (~30 s), small waves lapping at the rocks (~44 s), a thin high whistle over the cliffs (~74 s) and a distant breaking wave with fizzing foam (~84 s). The bell buoy stays.
+
 ### Owner's notes for later
 - **NEXT SESSION (locked in 2026-10-26): The Ascension endgame (750 → 999).** The owner wants it to feel like **goals to chase**: big endgame bosses and rare "Ascended" crafts to work toward, more than small passive mastery bonuses. Start by brainstorming the bosses and Ascended crafts with the owner before building.
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
