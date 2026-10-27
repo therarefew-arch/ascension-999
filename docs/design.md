@@ -415,6 +415,7 @@ Enhancing now has three minigames (tabs): **Rune Align** (the original, enhances
 
 ### v0.0.1.26 — Bluecliff's song
 - The constant sea-wind noise drowned the music (owner). Now the ~100 s song has five separate sea moments, all softer than the harp: a long rolling swell (~6 s), a low breathy gust (~30 s), small waves lapping at the rocks (~44 s), a thin high whistle over the cliffs (~74 s) and a distant breaking wave with fizzing foam (~84 s). The bell buoy stays.
+- **v0.0.1.27:** still too many waves (owner). The song is now ~3½ minutes (8 more sections of the same chords, new melody), so the same five sea moments come ~40 s apart (8 s, 48 s, 88 s, 128 s, 168 s; bell buoy at 28 / 108 / 188 s). The sea is 30% softer (`S` in the script) and the music 40% louder (`M`).
 
 ### Owner's notes for later
 - **NEXT SESSION (locked in 2026-10-26): The Ascension endgame (750 → 999).** The owner wants it to feel like **goals to chase**: big endgame bosses and rare "Ascended" crafts to work toward, more than small passive mastery bonuses. Start by brainstorming the bosses and Ascended crafts with the owner before building.

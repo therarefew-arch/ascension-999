@@ -641,8 +641,19 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
     { bars: ['G', 'D', 'Em', 'Asus'], harp: true, pad: true, mel: false },
     { bars: ['D', 'A', 'Bm', 'G'], harp: true, pad: false, mel: true },
     { bars: ['D', 'A', 'G', 'D'], harp: true, pad: true, mel: false },
+    // Second half (owner: space the sea sounds out — a longer song lets them come ~40 s apart).
+    { bars: ['Bm', 'G', 'D', 'A'], harp: true, pad: false, mel: true },
+    { bars: ['G', 'D', 'Em', 'Asus'], harp: true, pad: true, mel: true },
+    { bars: ['Gmaj7', 'D', 'Fsm', 'Bm'], harp: true, pad: true, mel: false },
+    { bars: ['D', 'A', 'Bm', 'G'], harp: false, pad: true, mel: true },
+    { bars: ['G', 'D', 'Em', 'Asus'], harp: true, pad: true, mel: true },
+    { bars: ['Bm', 'G', 'D', 'A'], harp: true, pad: true, mel: false },
+    { bars: ['D', 'A', 'Bm', 'G'], harp: true, pad: false, mel: true },
+    { bars: ['D', 'A', 'G', 'D'], harp: true, pad: true, mel: false },
   ];
   const rnd = seeded(23);
+  /** The music itself, a little louder than before (owner: turn the music up). */
+  const M = 1.4;
   const SCALE = [587.3, 659.3, 740, 880, 987.8, 1174.7]; // D major pentatonic, up high
   const totalBars = sections.reduce((n, s) => n + s.bars.length, 0);
   const total = Math.floor(totalBars * BAR * MR);
@@ -657,31 +668,35 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
       if (sec.harp) {
         const up = [...chord.map((f) => f * 2), ...chord.map((f) => f * 4)];
         const pattern = [0, 1, 2, 3, 4, 3, 2, 1].map((k) => up[Math.min(k, up.length - 1)]);
-        pattern.forEach((f, k) => addTo(out, start + Math.floor(k * (beat / 2) * MR), Math.floor(1.6 * MR), (t) => pluck(f, t) * 0.02));
+        pattern.forEach((f, k) => addTo(out, start + Math.floor(k * (beat / 2) * MR), Math.floor(1.6 * MR), (t) => pluck(f, t) * 0.02 * M));
       }
       // Low root, gently.
-      addTo(out, start, Math.floor(BAR * MR), (t) => Math.sin(2 * Math.PI * (chord[0] / 2 < 60 ? chord[0] : chord[0] / 2) * t) * Math.sin(Math.PI * (t / BAR)) ** 2 * 0.04);
+      addTo(out, start, Math.floor(BAR * MR), (t) => Math.sin(2 * Math.PI * (chord[0] / 2 < 60 ? chord[0] : chord[0] / 2) * t) * Math.sin(Math.PI * (t / BAR)) ** 2 * 0.04 * M);
       // Soft high pad that breathes with the bar.
       if (sec.pad) addTo(out, start, Math.floor(BAR * MR), (t) => {
         let v = 0;
         for (const f of chord) v += Math.sin(2 * Math.PI * f * 2 * t) + 0.25 * Math.sin(2 * Math.PI * f * 3 * t);
-        return (v / chord.length) * Math.sin(Math.PI * (t / BAR)) ** 1.6 * 0.03;
+        return (v / chord.length) * Math.sin(Math.PI * (t / BAR)) ** 1.6 * 0.03 * M;
       });
       // A few long, singing melody notes.
       if (sec.mel && rnd() < 0.85) {
         const near = SCALE.filter((f) => chord.some((c) => Math.abs(Math.log2(f / c) - Math.round(Math.log2(f / c))) < 0.02));
         const f = (near.length ? near : SCALE)[Math.floor(rnd() * (near.length || SCALE.length))];
         addTo(out, start + Math.floor(beat * MR * (rnd() < 0.5 ? 0 : 2)), Math.floor(2.4 * MR), (t) =>
-          Math.sin(2 * Math.PI * f * t + 0.004 * Math.sin(2 * Math.PI * 5 * t) * f) * Math.min(1, t / 0.08) * Math.exp(-1.1 * t) * 0.018);
+          Math.sin(2 * Math.PI * f * t + 0.004 * Math.sin(2 * Math.PI * 5 * t) * f) * Math.min(1, t / 0.08) * Math.exp(-1.1 * t) * 0.018 * M);
       }
       b++;
     }
   }
   // Sea sounds: no constant noise any more (owner: it drowned the music). Instead, five separate
-  // moments in the ~100 s song — three different waves and two different wind gusts — all kept
-  // softer than the harp, with quiet music-only stretches in between.
+  // moments in the ~200 s song, about 40 s apart — three different waves and two different wind
+  // gusts — all kept well under the music, with long music-only stretches in between.
   {
     const wr = seeded(91);
+    /** Overall sea volume (owner: fewer, softer waves). */
+    const S = 0.7;
+    /** When each sea moment starts (s). */
+    const AT = { wave1: 8, wind1: 48, wave2: 88, wind2: 128, wave3: 168 };
     /** Smoothed noise source: a one-pole low-pass at `cutoff` Hz. */
     const lowNoise = (cutoff) => { let y = 0; const a = 1 - Math.exp((-2 * Math.PI * cutoff) / MR); return () => { y += a * ((wr() * 2 - 1) - y); return y; }; };
     /** Band of noise between lo and hi Hz. */
@@ -690,28 +705,28 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
     {
       const body = lowNoise(300); const hiss = bandNoise(900, 2600);
       const len = 7;
-      addTo(out, Math.floor(6 * MR), Math.floor(len * MR), (t) => {
+      addTo(out, Math.floor(AT.wave1 * MR), Math.floor(len * MR), (t) => {
         const rise = Math.min(1, t / 2.6) ** 2;
         const fall = Math.max(0, 1 - Math.max(0, t - 2.8) / (len - 2.8));
-        return (body() * 0.045 + hiss() * 0.03 * fall * fall) * rise * fall;
+        return (body() * 0.045 + hiss() * 0.03 * fall * fall) * rise * fall * S;
       });
     }
     // Wind 1 (~30 s): a low, breathy gust that swells up and dies away.
     {
       const gust = bandNoise(220, 800);
       const len = 6;
-      addTo(out, Math.floor(30 * MR), Math.floor(len * MR), (t) => {
+      addTo(out, Math.floor(AT.wind1 * MR), Math.floor(len * MR), (t) => {
         const env = Math.sin(Math.PI * (t / len)) ** 2;
         const flutter = 0.75 + 0.25 * Math.sin(2 * Math.PI * 0.7 * t);
-        return gust() * 0.05 * env * flutter;
+        return gust() * 0.05 * env * flutter * S;
       });
     }
     // Wave 2 (~44 s): small waves lapping at the rocks — a few short, gentle splashes.
     {
       [0, 1.1, 2.0, 3.3].forEach((at, k) => {
         const n = bandNoise(500, 1800 + k * 150); const thud = lowNoise(170);
-        const amp = 0.03 * (1 - k * 0.15);
-        addTo(out, Math.floor((44 + at) * MR), Math.floor(1 * MR), (t) => {
+        const amp = 0.03 * (1 - k * 0.15) * S;
+        addTo(out, Math.floor((AT.wave2 + at) * MR), Math.floor(1 * MR), (t) => {
           const env = Math.min(1, t / 0.05) * Math.exp(-5 * t);
           return (n() * amp + thud() * amp * 1.6 * Math.exp(-12 * t)) * env;
         });
@@ -722,25 +737,25 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
       const len = 5;
       let ph = 0;
       const air = bandNoise(1500, 3500);
-      addTo(out, Math.floor(74 * MR), Math.floor(len * MR), (t) => {
+      addTo(out, Math.floor(AT.wind2 * MR), Math.floor(len * MR), (t) => {
         const env = Math.sin(Math.PI * (t / len)) ** 3;
         ph += (2 * Math.PI * (620 + 140 * Math.sin(2 * Math.PI * 0.35 * t))) / MR;
-        return (Math.sin(ph) * 0.006 + air() * 0.022) * env;
+        return (Math.sin(ph) * 0.006 + air() * 0.022) * env * S;
       });
     }
     // Wave 3 (~84 s): a wave breaking further out — a soft distant crash, then foam fizzing away.
     {
       const crash = lowNoise(450); const foam = bandNoise(2000, 5000);
       const len = 5;
-      addTo(out, Math.floor(84 * MR), Math.floor(len * MR), (t) => {
+      addTo(out, Math.floor(AT.wave3 * MR), Math.floor(len * MR), (t) => {
         const hit = Math.min(1, t / 0.6) * Math.exp(-1.6 * Math.max(0, t - 0.6));
         const fizz = Math.min(1, Math.max(0, t - 0.5) / 0.8) * Math.exp(-0.9 * Math.max(0, t - 1.3));
-        return crash() * 0.05 * hit + foam() * 0.018 * fizz * (0.7 + 0.3 * wr());
+        return (crash() * 0.05 * hit + foam() * 0.018 * fizz * (0.7 + 0.3 * wr())) * S;
       });
     }
   }
   // A bell buoy far out on the water, rocking with the waves (rings twice, softly).
-  for (const at of [18, 62, 96]) {
+  for (const at of [28, 108, 188]) {
     for (const [d, amp] of [[0, 0.02], [1.6, 0.012]]) {
       addTo(out, Math.floor((at + d) * MR), Math.floor(4 * MR), (t) =>
         (Math.sin(2 * Math.PI * 392 * t) + 0.6 * Math.sin(2 * Math.PI * 392 * 2.4 * t) * Math.exp(-3 * t) + 0.3 * Math.sin(2 * Math.PI * 392 * 0.5 * t)) * Math.exp(-1.2 * t) * Math.min(1, t / 0.004) * amp);
