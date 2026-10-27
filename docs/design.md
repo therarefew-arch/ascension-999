@@ -429,6 +429,11 @@ Enhancing now has three minigames (tabs): **Rune Align** (the original, enhances
 - **Kitchen tools** bought with tips (kept across boards): 🔪 Chop 8 (clear one ingredient), 🥄 Stir 10 (swap two), 🧂 Season 15 (raise one a step). They can rescue a full board. Tuned so a 4×4 board earns ~23 tips (2–3 tools). Tools can't be undone.
 - **Score** (2^level per combine) and best score per board. Cooking remembers the last minigame tab while the app is open.
 
+### v0.0.1.30 — The Traveller is easier to find
+- `travellerWhereabouts(p)` (core/cinderpeak.ts): the first town in road order whose well gift you haven't taken (gift waiting), else the next town down the road after the last gift (they've moved on).
+- **Travel card:** a dashed gold sighting line under 🗺️ TRAVEL ("The Traveller was seen in Cinderpeak — a gift waits by the well", or "has taken the road toward Frosthold"); tapping it opens the map. That town's row gets a 🎒 badge and a gold stripe.
+- **In their town:** the gift is its own glowing "THE TRAVELLER WAS HERE" card near the top of the Town screen (`TravellerCard`, works for any future town in `TRAVELLER_GIFTS`), instead of the bottom of Cinderpeak's card.
+
 ### Owner's notes for later
 - **NEXT SESSION (locked in 2026-10-26): The Ascension endgame (750 → 999).** The owner wants it to feel like **goals to chase**: big endgame bosses and rare "Ascended" crafts to work toward, more than small passive mastery bonuses. Start by brainstorming the bosses and Ascended crafts with the owner before building.
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.

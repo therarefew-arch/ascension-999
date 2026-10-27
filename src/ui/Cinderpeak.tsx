@@ -1,4 +1,4 @@
-// 🌋 Cinderpeak's card on the Town screen: the volcano event, the hot springs, and the Traveller's gift at the well.
+// 🌋 Cinderpeak's card on the Town screen (the volcano event, the hot springs), and the Traveller's gift card.
 import { useEffect, useState } from 'react';
 import { EMBER_GEODE_CHANCE, HOT_SPRING_MULT, mountainStirs, STIR_XP_MULT, travellerGiftWaiting } from '../core/cinderpeak';
 import { maxHp } from '../core/combat';
@@ -16,7 +16,6 @@ export function CinderpeakCard({ onMining }: { onMining: () => void }) {
   const { player } = useGame();
   const now = useClock();
   const stir = mountainStirs(now);
-  const gift = travellerGiftWaiting(player);
   const max = maxHp(player);
   const atTime = new Date(stir.nextAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   return (
@@ -37,12 +36,27 @@ export function CinderpeakCard({ onMining }: { onMining: () => void }) {
           <div className="small muted">While you're in Cinderpeak and not fighting, you heal {HOT_SPRING_MULT}× faster.{player.hp < max ? ` (${player.hp}/${max} HP)` : ' You feel wonderful.'}</div>
         </div>
       </div>
-      {gift && (
-        <button className="cp-gift" onClick={() => game.takeTravellerGift()}>
-          <span className="cp-emoji">🎁</span>
-          <span className="grow"><b>Something is tucked behind the well…</b><span className="small muted">A parcel, wrapped in a faded travelling cloak. Tap to look.</span></span>
-        </button>
-      )}
+    </section>
+  );
+}
+
+/** 🎒 The Traveller was here: a glowing card near the top of the Town screen while their gift waits at this well. */
+export function TravellerCard() {
+  const { player } = useGame();
+  if (!travellerGiftWaiting(player)) return null;
+  return (
+    <section className="traveller-card">
+      <div className="traveller-head">
+        <span className="traveller-emoji">🎒</span>
+        <div className="grow">
+          <h2 className="section-title">THE TRAVELLER WAS HERE</h2>
+          <div className="small muted">Folk say a hooded stranger rested by the well this morning, then took the road on.</div>
+        </div>
+      </div>
+      <button className="cp-gift" onClick={() => game.takeTravellerGift()}>
+        <span className="cp-emoji">🎁</span>
+        <span className="grow"><b>Something is tucked behind the well…</b><span className="small muted">A parcel, wrapped in a faded travelling cloak. Tap to look.</span></span>
+      </button>
     </section>
   );
 }

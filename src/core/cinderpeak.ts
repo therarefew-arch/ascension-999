@@ -4,6 +4,7 @@
 // - ♨️ Hot springs: resting in Cinderpeak (not fighting) heals you much faster.
 // - 🎒 The Traveller: someone always one town ahead of you, who leaves a small gift at each Frontier town's well.
 import type { ActionDef } from '../data/skills';
+import { REGIONS } from '../data/tiers';
 import { giveLoot, rollLoot } from './loot';
 import type { ItemStack, PlayerState } from './player';
 
@@ -44,6 +45,20 @@ export const inHotSprings = (p: PlayerState) => p.location === 'Cinderpeak' && !
 export const TRAVELLER_GIFTS: Record<string, { table: string }> = {
   Cinderpeak: { table: 'gift_cinderpeak' },
 };
+
+/**
+ * Where the Traveller is now: the first town (in road order) whose well gift you haven't taken yet —
+ * `gift: true` means a parcel waits there. Once every gift is taken, they've moved on: `town` is the
+ * next town down the road after the last gift (it may not be built yet), with `gift: false`.
+ */
+export function travellerWhereabouts(p: PlayerState): { town: (typeof REGIONS)[number]; gift: boolean } | null {
+  const towns = REGIONS.filter((r) => TRAVELLER_GIFTS[r]);
+  const waiting = towns.find((t) => !p.travellerGifts.includes(t));
+  if (waiting) return { town: waiting, gift: true };
+  const last = towns[towns.length - 1];
+  const next = last ? REGIONS[REGIONS.indexOf(last) + 1] : undefined;
+  return next ? { town: next, gift: false } : null;
+}
 
 export function travellerGiftWaiting(p: PlayerState, where = p.location): boolean {
   return !!TRAVELLER_GIFTS[where] && p.regions.includes(where) && !p.travellerGifts.includes(where);

@@ -11,9 +11,9 @@ import { PET_MAP } from '../../data/pets';
 import { fmtDuration } from '../format';
 import { PettablePet, TodayCard } from '../Cozy';
 import { SilentBell } from '../SilentBell';
-import { CinderpeakCard } from '../Cinderpeak';
+import { CinderpeakCard, TravellerCard } from '../Cinderpeak';
 import { FestivalBunting, FestivalStall } from '../Festival';
-import { mountainStirs } from '../../core/cinderpeak';
+import { mountainStirs, travellerWhereabouts } from '../../core/cinderpeak';
 import { SaveSafetyHint } from '../Backup';
 import { SettlingIn } from '../SettlingIn';
 import { dayPhase } from '../PixelScene';
@@ -31,12 +31,25 @@ function TravelMap() {
   const best = highestSkill(player);
   const [open, setOpen] = useState(false);
   const next = REGIONS.find((r) => OPEN_REGIONS.includes(r) && r !== player.location);
+  // 🎒 Where the Traveller is (shown on the map so you always know which town to visit).
+  const tr = travellerWhereabouts(player);
+  const trHere = tr?.gift && tr.town === player.location;
   return (
     <section className="block today-card">
       <button className="collapse-head" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         <h2 className="section-title">🗺️ TRAVEL</h2>
         <span className="small muted">{open ? 'Hide ▲' : `${next ? `Walk to ${next}` : 'Open map'} ▼`}</span>
       </button>
+      {tr && !trHere && (
+        <button className="traveller-sighting" onClick={() => setOpen(true)}>
+          <span className="traveller-emoji small-e">🎒</span>
+          <span className="small">
+            {tr.gift
+              ? <>The Traveller was seen in <b>{tr.town}</b> — a gift waits by the well{player.regions.includes(tr.town) ? '' : ' (once you get there)'}.</>
+              : <>The Traveller has taken the road toward <b>{tr.town}</b>{OPEN_REGIONS.includes(tr.town) ? '' : ' — a town not yet open'}.</>}
+          </span>
+        </button>
+      )}
       {player.travel && (
         <div className="travel-card on-road">
           <span className="travel-walker bob">🚶</span>
@@ -66,7 +79,7 @@ function TravelMap() {
                 {heading}
                 <div className="region-row locked">
                   <span className="region-num mono">{level}</span>
-                  <div className="grow"><b>{r}</b><div className="small dim">Coming in a future update</div></div>
+                  <div className="grow"><b>{r}</b> {tr?.town === r && <span className="chip traveller-chip">🎒 Traveller</span>}<div className="small dim">Coming in a future update{tr?.town === r ? ' · the Traveller went this way' : ''}</div></div>
                   <UiIcon name="lock" size={16} />
                 </div>
               </Fragment>
@@ -76,10 +89,10 @@ function TravelMap() {
           return (
             <Fragment key={r}>
             {heading}
-            <div className={`region-row ${here ? 'here' : ''}`}>
+            <div className={`region-row ${here ? 'here' : ''} ${tr?.town === r && tr.gift ? 'traveller' : ''}`}>
               <span className="region-num mono">{level}</span>
               <div className="grow">
-                <b>{r}</b> {here && <span className="chip up">You are here</span>}
+                <b>{r}</b> {here && <span className="chip up">You are here</span>} {tr?.town === r && <span className="chip traveller-chip">🎒 {tr.gift ? 'Traveller · gift' : 'Traveller'}</span>}
                 <div className="small muted">{info?.blurb}{!visited && roadOpen ? ' · not yet discovered' : ''}</div>
                 {!roadOpen && <div className="small red">Road opens when any skill reaches level {info?.unlockLevel}</div>}
               </div>
@@ -131,6 +144,8 @@ export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, o
       <SettlingIn onSkill={onSkill} onCombat={onCombat} />
 
       <SaveSafetyHint onSettings={onSettings} />
+
+      <TravellerCard />
 
       {here === 'Lunaria' && <SilentBell onJournal={onJournal} onCombat={onCombat} />}
       {here === 'Cinderpeak' && <CinderpeakCard onMining={() => onSkill('mining')} />}

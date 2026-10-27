@@ -1217,6 +1217,22 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .cp-gift { display: flex; gap: 10px; align-items: center; text-align: left; padding: 10px; border-radius: 10px; border: 1.5px dashed #fbbf24; background: #2a1d0c; color: inherit; font: inherit; cursor: pointer; }
 .cp-gift b { display: block; color: var(--gold); }
 .cp-gift .small { display: block; }
+
+/* 🎒 The Traveller: gift card in their town, sighting line + badge on the travel map */
+.traveller-card { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: var(--radius); border: 1.5px solid #fbbf24;
+  background: linear-gradient(160deg, #3a2610, #1d140a); box-shadow: 0 0 18px rgba(251, 191, 36, 0.25); animation: travellerGlow 2.6s ease-in-out infinite; }
+@keyframes travellerGlow { 50% { box-shadow: 0 0 26px rgba(251, 191, 36, 0.45); } }
+.traveller-head { display: flex; gap: 10px; align-items: center; }
+.traveller-head .section-title { margin: 0; }
+.traveller-emoji { font-size: 1.9rem; flex: none; animation: travellerBob 2.2s ease-in-out infinite; }
+.traveller-emoji.small-e { font-size: 1.15rem; }
+@keyframes travellerBob { 50% { transform: translateY(-3px) rotate(-4deg); } }
+.traveller-sighting { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 6px; padding: 7px 10px; border-radius: 10px; text-align: left;
+  border: 1px dashed rgba(251, 191, 36, 0.6); background: rgba(251, 191, 36, 0.08); color: inherit; font: inherit; cursor: pointer; }
+.traveller-sighting b { color: var(--gold); }
+.chip.traveller-chip { background: rgba(251, 191, 36, 0.18); color: #fde68a; border: 1px solid rgba(251, 191, 36, 0.6); }
+.region-row.traveller { box-shadow: inset 3px 0 0 #fbbf24; }
+@media (prefers-reduced-motion: reduce) { .traveller-card, .traveller-emoji { animation: none; } }
 /* 🐟 Fishing Journal */
 .fish-entry { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid rgba(255, 255, 255, 0.06); }
 .fish-entry.locked { opacity: 0.8; }
