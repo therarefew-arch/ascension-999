@@ -442,6 +442,13 @@ Enhancing now has three minigames (tabs): **Rune Align** (the original, enhances
 - Balance (bot that kites and picks at random, ~8 nights per style): wins ~60–70% of nights, ~40–50 levels when it wins. Small head start from your real Health level (max HP) and style level (damage, max +25%).
 - Drawing: emoji pre-rendered into sprite canvases, a dark radial "lantern light" overlay that flickers, dawn tint near 10:00. Sounds throttled so swarms never get noisy. Switching apps pauses.
 
+### v0.0.1.32 — Sort the Catch, Mahjong-Blast style (owner's design)
+- Rules in `core/sortCatch.ts` (the old `core/mahjong.ts` pairs game is no longer used). 36 tiles in 3 layers (6×4, 4×2, 2×2), 9 fish per board, built so every tile can be cleared in threes.
+- Most tiles start **face-down** (top layer + ~1 in 5 others face-up). Tap a free face-down tile to flip it, then flip another: a **match** drops both into the basket; otherwise both **flip back** after ~0.85 s. A lone flipped tile can be tapped again to take it; face-up tiles go straight in.
+- **Basket of 7**: three of a fish clear for 1.5× the recipe's Fishing XP; 7 with no three = **bust** (round over, XP kept). Clearing the whole board gives the old bonus (×2 XP + 2 bonus rolls).
+- New sounds: `clack` (crisp tile flip) and `thud` (tile landing in the basket). Bot test: a perfect-memory player clears ~65% of boards; random tapping ~2%.
+- Fishing remembers the last minigame tab while the app is open.
+
 ### Owner's notes for later
 - **NEXT SESSION (locked in 2026-10-26): The Ascension endgame (750 → 999).** The owner wants it to feel like **goals to chase**: big endgame bosses and rare "Ascended" crafts to work toward, more than small passive mastery bonuses. Start by brainstorming the bosses and Ascended crafts with the owner before building.
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.

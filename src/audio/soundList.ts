@@ -8,7 +8,9 @@ export type SoundKey =
   | 'anvil' | 'pickaxe' | 'timber' | 'kindle' | 'ignite' | 'reel' | 'carve' | 'rune' | 'whoosh' | 'douse'
   | 'coin' | 'shing' | 'block' | 'eat' | 'fire_loop'
   // Spellcards: card flick, tally tick, magic "whoomp" when Power multiplies
-  | 'card' | 'tick' | 'boom';
+  | 'card' | 'tick' | 'boom'
+  // Sort the Catch: tile flip clack, basket thud
+  | 'clack' | 'thud';
 export type MusicKey = 'music_town' | 'music_mahjong' | 'music_ironmoor' | 'music_coalhaven' | 'music_bluecliff'
   | 'music_kitchen' | 'music_lunaria' | 'music_cinderpeak';
 
@@ -18,6 +20,7 @@ export const EFFECT_SOUNDS: SoundKey[] = [
   'anvil', 'pickaxe', 'timber', 'kindle', 'ignite', 'reel', 'carve', 'rune', 'whoosh', 'douse',
   'coin', 'shing', 'block', 'eat', 'fire_loop',
   'card', 'tick', 'boom',
+  'clack', 'thud',
 ];
 export const MUSIC_TRACKS: MusicKey[] = ['music_town', 'music_mahjong', 'music_ironmoor', 'music_coalhaven', 'music_bluecliff', 'music_kitchen', 'music_lunaria', 'music_cinderpeak'];
 

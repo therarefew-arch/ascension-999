@@ -416,6 +416,30 @@ p { margin: 8px 0; }
 .mj-tile.picked { background: linear-gradient(160deg, #fff3c4, #fbbf24); border-color: #f59e0b; transform: translateY(-3px); box-shadow: 3px 7px 0 #92610f, 0 0 16px rgba(251, 191, 36, 0.7); }
 .mj-tile span { pointer-events: none; }
 .mj-done { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 900; color: var(--gold); }
+/* Sort the Catch v2: tiles flip (face-down sea pattern ↔ fish), and a 7-slot basket */
+.mj-tile { perspective: 400px; background: none; border: none; box-shadow: none; filter: brightness(0.62) saturate(0.7); }
+.mj-tile.free { filter: none; }
+.mj-flip { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 0.28s cubic-bezier(0.3, 0.9, 0.4, 1.2); transform: rotateY(180deg); }
+.mj-tile.shown .mj-flip { transform: rotateY(0deg); }
+.mj-front, .mj-back { position: absolute; inset: 0; border-radius: 9px; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: flex; align-items: center; justify-content: center;
+  box-shadow: 3px 4px 0 #6b5f4c, 4px 6px 8px rgba(0, 0, 0, 0.5); }
+.mj-front { border: 1.5px solid #8a7f6c; background: linear-gradient(160deg, #fffaf0, #e9dfca); font-size: 1.55rem; }
+.mj-back { transform: rotateY(180deg); border: 1.5px solid #134e4a;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.18) 0 18%, transparent 19%), repeating-radial-gradient(circle at 0 100%, #0f766e 0 6px, #115e59 6px 12px);
+  box-shadow: 3px 4px 0 #0b3b38, 4px 6px 8px rgba(0, 0, 0, 0.5), inset 0 0 0 3px rgba(255, 255, 255, 0.12); }
+.mj-tile.peek .mj-front { background: linear-gradient(160deg, #fff7d6, #fde68a); border-color: #f59e0b; box-shadow: 3px 4px 0 #92610f, 0 0 14px rgba(251, 191, 36, 0.6); }
+.mj-tile:active .mj-flip { transform: rotateY(var(--ry, 180deg)) scale(0.95); }
+.mj-tile.shown:active .mj-flip { --ry: 0deg; }
+.mj-hand { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; width: min(100%, 330px); margin: 6px auto 2px; padding: 7px; border-radius: 14px;
+  background: linear-gradient(180deg, #6b4423, #4a2e17); border: 2px solid #3a2410; box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.45); }
+.mj-hand.danger { border-color: #f59e0b; box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.45), 0 0 12px rgba(245, 158, 11, 0.45); }
+.mj-hand.bust { border-color: #ef4444; animation: ttShake 0.35s ease 2; }
+.mj-slot { aspect-ratio: 4 / 5; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: clamp(1rem, 5.4vw, 1.4rem); background: rgba(0, 0, 0, 0.28); }
+.mj-slot.full { background: linear-gradient(160deg, #fffaf0, #e9dfca); box-shadow: 0 2px 0 #6b5f4c; animation: mjLand 0.22s cubic-bezier(0.3, 0.9, 0.4, 1.3) both; }
+@keyframes mjLand { from { transform: translateY(-18px) scale(0.8); opacity: 0.4; } }
+.mj-slot.glow { box-shadow: 0 0 0 2px var(--gold), 0 0 12px rgba(251, 191, 36, 0.8); }
+.mj-done.bust { flex-direction: column; gap: 4px; color: #fca5a5; background: rgba(20, 10, 6, 0.6); border-radius: 10px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .mj-flip, .mj-slot.full, .mj-hand.bust { transition: none; animation: none; } }
 
 /* Runecrafting — Rune Trace */
 .skill-runecrafting { color: #a5b4fc; background: #161a33; border-color: #4338ca; }

@@ -239,6 +239,18 @@ const sounds = {
     ['', bandpass(noise(0.06, 1, 40), 500, 3000)],
     ['', bandpass(noise(0.06, 0.8, 40), 500, 3000), 0.12],
   ), 0.18),
+  // Sort the Catch: a crisp tile "clack" (flipping a tile — two hard ceramic knocks, very close together)…
+  clack: norm(mix(
+    ['', strike(2300, [1, 2.71, 5.2], [85, 120, 170], [1, 0.45, 0.25], 0.09, 1)],
+    ['', strike(1900, [1, 2.6], [100, 150], [0.55, 0.25], 0.07, 1), 0.014],
+    ['', bandpass(noise(0.01, 1, 500), 2500, 8000)],
+  ), 0.2),
+  // …and a solid wooden "thud" as a tile lands in the basket.
+  thud: norm(mix(
+    ['', strike(150, [1, 2.3, 3.9], [26, 40, 60], [1, 0.4, 0.15], 0.28, 1)],
+    ['', lowpass(noise(0.05, 1, 70), 1200)],
+    ['', strike(640, [1, 2.2], [55, 85], [0.45, 0.2], 0.12, 1), 0.004],
+  ), 0.3),
   // Spellcards: a papery card flick (dealing/picking a card).
   card: norm(mix(
     ['', shape(bandpass(noise(0.05, 1, 0), 1800, 7000), (t) => Math.min(1, t / 0.003) * Math.exp(-70 * t))],
