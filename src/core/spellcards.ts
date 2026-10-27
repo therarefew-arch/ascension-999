@@ -2,6 +2,7 @@
 // A run is 6 wards. Each ward needs a target score: you hold 8 rune cards and cast up to 5 as a "spell"
 // (poker hands). Score = Essence × Power. Between wards the Enchanter sells Charms (always-on modifiers)
 // and Scrolls (enchant cards in your deck for the rest of the run). Beating a ward gives Enhancing + Magic XP.
+// After ward 6 you may carry on into endless Deep Wards (harder targets, more XP each).
 // No bars, no gear; losing a run only ends it.
 import { gatherXpPerHour, tierForLevel } from '../data/tiers';
 
@@ -114,7 +115,14 @@ export const QUIRKS: Record<Quirk, { name: string; text: string }> = {
 };
 /** Score each ward needs. Wards 3 and 6 are the tricky ones (with a quirk). Tuned by simulation. */
 export const WARD_TARGETS = [300, 500, 800, 1300, 2000, 3200];
-export const isBossWard = (w: number) => w === 2 || w === 5;
+/** After ward 6 you can carry on into the Deep Wards: each needs ~55% more than the last, forever. */
+export function wardTarget(w: number): number {
+  if (w < WARDS) return WARD_TARGETS[w];
+  return Math.round((WARD_TARGETS[WARDS - 1] * 1.55 ** (w - WARDS + 1)) / 100) * 100;
+}
+/** Wards 3 and 6 have a quirk, then every third Deep Ward (9, 12, 15…). */
+export const isBossWard = (w: number) => w === 2 || w === 5 || (w > 5 && (w - 5) % 3 === 0);
+export const isDeep = (w: number) => w >= WARDS;
 
 // ---------- The run ----------
 export interface Run {
@@ -171,7 +179,11 @@ function draw(run: Run) {
   while (run.hand.length < HAND_SIZE && run.pile.length) run.hand.push(run.pile.shift()!);
 }
 
-export interface Cast { spell: SpellId; scoring: Card[]; essence: number; power: number; total: number }
+/** One beat of the tally animation: what just added up, and the running Essence/Power after it. */
+export interface TallyStep { kind: 'spell' | 'card' | 'charm'; cardId?: number; charm?: CharmId; text: string; essence: number; power: number; mult?: boolean }
+export interface Cast { spell: SpellId; scoring: Card[]; essence: number; power: number; total: number; steps: TallyStep[] }
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
 
 /** Works out what a spell would score. `rng` only matters for the Lucky Clover. */
 export function scoreSpell(run: Pick<Run, 'charms' | 'quirk' | 'sparks' | 'casts'>, cards: Card[], rng: Rng = Math.random): Cast {
@@ -179,10 +191,14 @@ export function scoreSpell(run: Pick<Run, 'charms' | 'quirk' | 'sparks' | 'casts
   const has = (c: CharmId) => run.charms.includes(c);
   let essence = SPELLS[spell].essence;
   let power = SPELLS[spell].power;
+  const steps: TallyStep[] = [{ kind: 'spell', text: SPELLS[spell].name, essence, power }];
+  const charmStep = (charm: CharmId, text: string, mult = false) => steps.push({ kind: 'charm', charm, text, essence, power: round1(power), mult });
   const dead = (c: Card) => (run.quirk === 'ashen' && c.el === 'fire') || (run.quirk === 'drowned' && c.el === 'water');
   const triggers = scoring.flatMap((c, i) => (i === 0 && has('echo') ? [c, c] : [c]));
   for (const c of triggers) {
-    if (dead(c)) continue;
+    if (dead(c)) { steps.push({ kind: 'card', cardId: c.id, text: 'fizzles', essence, power: round1(power) }); continue; }
+    const e0 = essence;
+    const p0 = power;
     essence += c.el === 'earth' && has('stone') ? c.v * 2 : c.v;
     if (c.ench === 'gilded') essence += 30;
     if (c.ench === 'charged') power += 4;
@@ -192,19 +208,22 @@ export function scoreSpell(run: Pick<Run, 'charms' | 'quirk' | 'sparks' | 'casts
     if (has('gale') && c.el === 'air') power += 3;
     if (has('odd_owl') && c.v % 2 === 1) power += 2;
     if (c.ench === 'radiant') power *= 1.5;
+    const parts = [`+${essence - e0}`];
+    if (power !== p0) parts.push(c.ench === 'radiant' ? '×1.5⚡' : `+${round1(power - p0)}⚡`);
+    steps.push({ kind: 'card', cardId: c.id, text: parts.join(' '), essence, power: round1(power) });
   }
-  if (has('ember') && cards.some((c) => c.el === 'fire' && !dead(c))) power += 5;
-  if (has('ley_seeker') && (spell === 'ley' || spell === 'grand')) power += 12;
-  if (has('purist') && (spell === 'pure' || spell === 'grand')) power += 10;
-  if (has('clover')) power += 1 + Math.floor(rng() * 12);
-  if (has('hoarder')) power += Math.floor(run.sparks / 2);
+  if (has('ember') && cards.some((c) => c.el === 'fire' && !dead(c))) { power += 5; charmStep('ember', '+5 Power'); }
+  if (has('ley_seeker') && (spell === 'ley' || spell === 'grand')) { power += 12; charmStep('ley_seeker', '+12 Power'); }
+  if (has('purist') && (spell === 'pure' || spell === 'grand')) { power += 10; charmStep('purist', '+10 Power'); }
+  if (has('clover')) { const n = 1 + Math.floor(rng() * 12); power += n; charmStep('clover', `+${n} Power`); }
+  if (has('hoarder') && run.sparks >= 2) { const n = Math.floor(run.sparks / 2); power += n; charmStep('hoarder', `+${n} Power`); }
   const values = new Map<number, number>();
   for (const c of cards) values.set(c.v, (values.get(c.v) ?? 0) + 1);
-  if (has('twin_moons') && [...values.values()].some((n) => n >= 2)) power *= 2;
-  if (has('last_light') && run.casts === 1) power *= 3;
-  if (has('wizard_hat')) power *= 1.5;
-  power = Math.round(power * 10) / 10;
-  return { spell, scoring, essence, power, total: Math.floor(essence * power) };
+  if (has('twin_moons') && [...values.values()].some((n) => n >= 2)) { power *= 2; charmStep('twin_moons', '×2 Power', true); }
+  if (has('last_light') && run.casts === 1) { power *= 3; charmStep('last_light', '×3 Power', true); }
+  if (has('wizard_hat')) { power *= 1.5; charmStep('wizard_hat', '×1.5 Power', true); }
+  power = round1(power);
+  return { spell, scoring, essence, power, total: Math.floor(essence * power), steps };
 }
 
 /** Cast the selected cards. Returns the result, or a reason it can't be cast. */
@@ -220,17 +239,19 @@ export function cast(run: Run, ids: number[], rng: Rng = Math.random): Cast | st
   if (!run.best || result.total > run.best.total) run.best = { spell: result.spell, total: result.total };
   run.hand = run.hand.filter((c) => !ids.includes(c.id));
   draw(run);
-  if (run.score >= WARD_TARGETS[run.ward]) wardCleared(run);
+  if (run.score >= wardTarget(run.ward)) wardCleared(run);
   else if (run.casts <= 0) run.phase = 'lost';
   return result;
 }
 
-/** Swap the selected cards for new ones. */
-export function redraw(run: Run, ids: number[]): string | null {
+/** Hold the picked cards and swap all the others for new ones (nothing picked = a whole new hand). */
+export function redraw(run: Run, keepIds: number[]): string | null {
   if (run.phase !== 'play') return 'Not now';
   if (run.redraws <= 0) return 'No redraws left';
-  if (!ids.length || ids.length > MAX_PLAY) return `Pick 1 to ${MAX_PLAY} cards to swap`;
-  run.hand = run.hand.filter((c) => !ids.includes(c.id));
+  if (!run.pile.length) return 'The deck is empty';
+  const keep = run.hand.filter((c) => keepIds.includes(c.id));
+  if (keep.length >= run.hand.length) return 'Leave some cards unpicked to swap them';
+  run.hand = keep;
   run.redraws -= 1;
   draw(run);
   return null;
@@ -243,10 +264,21 @@ export function wardSparks(run: Run): number {
 
 function wardCleared(run: Run) {
   run.sparks += wardSparks(run);
-  if (run.ward >= WARDS - 1) { run.phase = 'won'; return; }
+  // Ward 6 is the end of a normal run: you choose to finish or carry on into the Deep Wards.
+  if (run.ward === WARDS - 1) { run.phase = 'won'; return; }
+  openShop(run);
+}
+
+function openShop(run: Run) {
   run.phase = 'shop';
   run.shop.rerollCost = 2;
   stockShop(run, Math.random);
+}
+
+/** After breaking all 6 wards: carry on into the Deep Wards (the Enchanter's shop first). */
+export function continueRun(run: Run): void {
+  if (run.phase !== 'won') return;
+  openShop(run);
 }
 
 export function stockShop(run: Run, rng: Rng) {
@@ -319,9 +351,11 @@ export function readScrollOn(run: Run, index: number, ids: number[]): string | n
 }
 
 // ---------- XP ----------
-/** XP for beating ward `w` (0–5) at your Enhancing level. Deeper wards give more; the last one doubles. */
+/** XP for beating ward `w` at your Enhancing level. Deeper wards give more; ward 6 doubles, and
+ *  every Deep Ward after it gives 15% more than the one before. */
 export function wardXp(enhancingLevel: number, w: number): { enhancing: number; magic: number } {
   const perSecond = gatherXpPerHour(tierForLevel(enhancingLevel)) / 3600;
-  const enhancing = Math.max(1, Math.round(perSecond * 70 * 3 * (1 + 0.25 * w) * (w === WARDS - 1 ? 2 : 1)));
+  const deep = w >= WARDS - 1 ? 2 * 1.15 ** (w - (WARDS - 1)) : 1;
+  const enhancing = Math.max(1, Math.round(perSecond * 70 * 3 * (1 + 0.25 * Math.min(w, WARDS - 1)) * deep));
   return { enhancing, magic: Math.max(1, Math.round(enhancing / 2)) };
 }

@@ -6,7 +6,9 @@ export type SoundKey =
   | 'chop' | 'splash' | 'sizzle' | 'crackle' | 'craft' | 'enchant' | 'fail' | 'hit' | 'hurt' | 'tile' | 'match'
   // per-tap minigame sounds
   | 'anvil' | 'pickaxe' | 'timber' | 'kindle' | 'ignite' | 'reel' | 'carve' | 'rune' | 'whoosh' | 'douse'
-  | 'coin' | 'shing' | 'block' | 'eat' | 'fire_loop';
+  | 'coin' | 'shing' | 'block' | 'eat' | 'fire_loop'
+  // Spellcards: card flick, tally tick, magic "whoomp" when Power multiplies
+  | 'card' | 'tick' | 'boom';
 export type MusicKey = 'music_town' | 'music_mahjong' | 'music_ironmoor' | 'music_coalhaven' | 'music_bluecliff'
   | 'music_kitchen' | 'music_lunaria' | 'music_cinderpeak';
 
@@ -15,6 +17,7 @@ export const EFFECT_SOUNDS: SoundKey[] = [
   'chop', 'splash', 'sizzle', 'crackle', 'craft', 'enchant', 'fail', 'hit', 'hurt', 'tile', 'match',
   'anvil', 'pickaxe', 'timber', 'kindle', 'ignite', 'reel', 'carve', 'rune', 'whoosh', 'douse',
   'coin', 'shing', 'block', 'eat', 'fire_loop',
+  'card', 'tick', 'boom',
 ];
 export const MUSIC_TRACKS: MusicKey[] = ['music_town', 'music_mahjong', 'music_ironmoor', 'music_coalhaven', 'music_bluecliff', 'music_kitchen', 'music_lunaria', 'music_cinderpeak'];
 

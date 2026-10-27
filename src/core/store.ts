@@ -834,7 +834,9 @@ export const game = {
 
   /** 🃏 Spellcards: beating ward `w` (0–5) gives Enhancing XP and half as much Magic XP. */
   spellcardsWard(w: number): { enhancing: number; magic: number } {
-    const xp = wardXp(skillLevel(snap.player, 'enhancing'), Math.max(0, Math.min(5, Math.floor(w))));
+    const xp = wardXp(skillLevel(snap.player, 'enhancing'), Math.max(0, Math.min(40, Math.floor(w))));
+    // Breaking ward 6, and every Deep Ward after it, gets confetti.
+    if (w >= 5) celebrate();
     const report = emptyReport(null);
     addXp(snap.player, { skill: 'enhancing' }, report, xp.enhancing);
     addXp(snap.player, { skill: 'magic' }, report, xp.magic);

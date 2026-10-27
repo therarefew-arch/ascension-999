@@ -239,6 +239,23 @@ const sounds = {
     ['', bandpass(noise(0.06, 1, 40), 500, 3000)],
     ['', bandpass(noise(0.06, 0.8, 40), 500, 3000), 0.12],
   ), 0.18),
+  // Spellcards: a papery card flick (dealing/picking a card).
+  card: norm(mix(
+    ['', shape(bandpass(noise(0.05, 1, 0), 1800, 7000), (t) => Math.min(1, t / 0.003) * Math.exp(-70 * t))],
+    ['', strike(1400, [1, 2.3], [90, 140], [0.5, 0.2], 0.04, 1), 0.006],
+  ), 0.15),
+  // Tally tick: a small glassy pluck (played higher and higher as the score counts up).
+  tick: norm(mix(
+    ['', strike(1318, [1, 3.01], [22, 40], [1, 0.25], 0.3, 1)],
+    ['', bandpass(noise(0.008, 1, 400), 3000, 8000)],
+  ), 0.13),
+  // Power multiplies: a soft magical whoomp rising into a shimmer.
+  boom: norm(mix(
+    ['', shape(lowpass(noise(0.5, 1, 0), 320), (t) => Math.min(1, t / 0.02) * Math.exp(-7 * t))],
+    ['', sweep(90, 55, 0.45, 1, 6)],
+    ['', sweep(600, 1500, 0.35, 0.35, 5), 0.04],
+    ['', strike(1760, [1, 2], [6, 10], [0.4, 0.15], 0.6, 1), 0.08],
+  ), 0.26),
   levelup: mix(
     ['', tone([523], 0.3, 0.1, 6)], ['', tone([659], 0.3, 0.1, 6), 0.1],
     ['', tone([784], 0.3, 0.1, 6), 0.2], ['', tone([1047], 0.6, 0.1, 4), 0.3],
