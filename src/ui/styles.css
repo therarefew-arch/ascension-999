@@ -947,7 +947,8 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .pp-ladder { display: flex; justify-content: space-between; gap: 2px; padding: 6px 4px; background: var(--bg2); border-radius: 10px; margin: 6px 0; }
 .pp-step { font-size: 1.15rem; opacity: 0.25; filter: grayscale(1); transition: opacity 0.3s; }
 .pp-step.got { opacity: 1; filter: none; }
-.pp-pad { display: grid; grid-template-columns: repeat(4, 44px) 1fr; gap: 6px; }
+.pp-pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.pp-pad > .btn:nth-child(n + 5) { grid-column: span 2; padding: 0 8px; }
 .pp-pad .btn { min-height: 42px; padding: 0; }
 
 /* 📜 Tales */
@@ -994,6 +995,40 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .sc-spells { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; background: rgba(18, 15, 34, 0.92); border: 1px solid #3b2f5c; }
 .sc-offer { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.3); }
 .sc-offer-emoji { font-size: 1.5rem; width: 32px; text-align: center; flex: none; }
+/* 🧵 Tinker's Tray (Crafting match-3) */
+.tt-order { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 14px; background: rgba(30, 20, 12, 0.92); border: 1.5px solid #5c3d22; }
+.tt-moves { font-weight: 900; color: var(--gold); }
+.tt-moves.low { color: #fca5a5; }
+.tt-wants { display: flex; gap: 8px; }
+.tt-want { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 4px 8px; border-radius: 10px; background: color-mix(in srgb, var(--sc) 25%, #1c1209); border: 1.5px solid color-mix(in srgb, var(--sc) 60%, transparent); font-weight: 800; }
+.tt-want.met { border-color: #4ade80; color: #bbf7d0; }
+.tt-want-emoji { font-size: 1.2rem; }
+.tt-wrap { position: relative; display: flex; justify-content: center; padding: 4px 0; }
+.tt-tray { position: relative; width: min(100%, 360px); aspect-ratio: 1; border-radius: 16px; border: 3px solid #4a2e17; overflow: hidden;
+  background: linear-gradient(135deg, #7a4f2c, #5a3a1f); box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.2), 0 8px 18px rgba(0, 0, 0, 0.5);
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.tt-tile { position: absolute; padding: 3px; transition: left 0.16s ease, top 0.24s cubic-bezier(0.3, 0.9, 0.4, 1.15); }
+.tt-face { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative; border-radius: 10px;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--sc) 55%, #fff4e0), color-mix(in srgb, var(--sc) 85%, #000));
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3), 0 2px 3px rgba(0, 0, 0, 0.35); transition: transform 0.12s ease; }
+.tt-emoji { font-size: clamp(1rem, 6vw, 1.55rem); line-height: 1; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4)); pointer-events: none; }
+.tt-tile.sel .tt-face { transform: scale(1.1); box-shadow: 0 0 0 3px var(--gold), 0 0 14px rgba(245, 158, 11, 0.7); }
+.tt-tile.hint .tt-face { animation: ttHint 1s ease-in-out infinite; }
+@keyframes ttHint { 50% { transform: scale(1.1); box-shadow: 0 0 0 2px #fde68a; } }
+.tt-tile.pop .tt-face { animation: ttPop 0.22s ease-in forwards; }
+@keyframes ttPop { 40% { transform: scale(1.25); filter: brightness(1.6); } 100% { transform: scale(0); opacity: 0; } }
+.tt-tile.shake .tt-face { animation: ttShake 0.3s ease; }
+@keyframes ttShake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.tt-face.drop { animation: ttDrop 0.3s cubic-bezier(0.3, 0.9, 0.4, 1.15) both; }
+@keyframes ttDrop { from { transform: translateY(-260%); opacity: 0.2; } }
+.tt-face.sp { box-shadow: 0 0 0 2px #fde68a, 0 0 10px rgba(253, 230, 138, 0.6), inset 0 -3px 0 rgba(0, 0, 0, 0.3); }
+.tt-face.sp-star { background: radial-gradient(circle, #fff7d6, #f59e0b 60%, #b45309); animation: ttGlow 1.4s ease-in-out infinite; }
+@keyframes ttGlow { 50% { box-shadow: 0 0 0 2px #fff, 0 0 18px rgba(253, 230, 138, 0.9); } }
+.tt-badge { position: absolute; right: 1px; bottom: -1px; font-size: 0.75rem; font-weight: 900; color: #fff; text-shadow: 0 1px 2px #000; }
+.tt-done { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 16px; text-align: center; background: rgba(20, 12, 6, 0.82); animation: scDeal 0.3s ease both; z-index: 3; }
+.tt-done b { font-size: 1.2rem; color: var(--gold); }
+@media (prefers-reduced-motion: reduce) { .tt-tile, .tt-face, .tt-tile.hint .tt-face, .tt-face.drop, .tt-face.sp-star { transition: none; animation: none; } }
+
 /* Spellcards polish: dealing, the tally stage, charm pops, Deep Wards */
 .sc-card.dealt { animation: scDeal 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
 @keyframes scDeal { from { opacity: 0; transform: translateY(-26px) rotate(-8deg) scale(0.85); } }

@@ -10,6 +10,7 @@ import { game, useGame } from '../core/store';
 import { UiIcon } from './icons';
 import { FeedbackLayer, useFeedback } from './Minigames';
 import { SteadyHands } from './Minigames2';
+import { TinkersTray } from './TinkersTray';
 
 const ARM: Record<number, string> = { [N]: 'M50 50 L50 0', [E]: 'M50 50 L100 50', [S]: 'M50 50 L50 100', [W]: 'M50 50 L0 50' };
 
@@ -89,15 +90,21 @@ function Joinery({ action }: { action: ActionDef }) {
   );
 }
 
+type CraftMode = 'bench' | 'joinery' | 'tray';
+/** Remembered while the app is open, so Crafting reopens on the game you were playing. */
+let lastCraftMode: CraftMode = 'bench';
+
 export function CraftingGames({ action }: { action: ActionDef }) {
-  const [mode, setMode] = useState<'bench' | 'joinery'>('bench');
+  const [mode, setModeState] = useState<CraftMode>(lastCraftMode);
+  const setMode = (m: CraftMode) => { lastCraftMode = m; setModeState(m); };
   return (
     <>
       <div className="tab-row small-tabs">
         <button className={`tab-pill ${mode === 'bench' ? 'on' : ''}`} onClick={() => setMode('bench')}><UiIcon name="crafting" size={16} /> WORKBENCH</button>
         <button className={`tab-pill ${mode === 'joinery' ? 'on' : ''}`} onClick={() => setMode('joinery')}>🧩 JOINERY</button>
+        <button className={`tab-pill ${mode === 'tray' ? 'on' : ''}`} onClick={() => setMode('tray')}>🧵 TINKER'S TRAY</button>
       </div>
-      {mode === 'bench' ? <SteadyHands action={action} /> : <Joinery action={action} />}
+      {mode === 'bench' ? <SteadyHands action={action} /> : mode === 'joinery' ? <Joinery action={action} /> : <TinkersTray action={action} />}
     </>
   );
 }

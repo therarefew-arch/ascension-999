@@ -2,6 +2,7 @@
 // Volume chain: each sound → effects or music volume → master volume → speakers.
 import { EFFECT_SOUNDS, SOUND_EXTENSIONS, type MusicKey, type SoundKey } from './soundList';
 import { DEFAULT_SETTINGS, type Settings } from '../core/settings';
+import { GAME_VERSION } from '../version';
 
 /** How many copies of one sound may overlap. */
 const MAX_VOICES = 3;
@@ -65,7 +66,9 @@ class SoundSystem {
     const p = (async () => {
       for (const ext of SOUND_EXTENSIONS) {
         try {
-          const res = await fetch(`${SOUND_DIR}${key}.${ext}`);
+          // The version in the address makes phones fetch fresh sounds after every update
+          // (otherwise a changed song could keep playing from the old saved copy).
+          const res = await fetch(`${SOUND_DIR}${key}.${ext}?v=${GAME_VERSION}`);
           if (!res.ok) continue;
           const type = res.headers.get('content-type') ?? '';
           if (type.includes('text/html')) continue; // dev server answers missing files with the page

@@ -11,14 +11,34 @@ import { game, useGame } from '../core/store';
 import { UiIcon } from './icons';
 import { FeedbackLayer, gainText, useFeedback } from './Minigames';
 import { HeatPrecision } from './Minigames2';
+import { useNoScroll } from './useNoScroll';
+
+/** A board in progress, saved on this device per save slot (so leaving the screen or the game keeps it). */
+interface Saved { board: Board; best: number; cooked: boolean; prev: { board: Board; best: number } | null }
+const KEY = (slot: number | null) => `ui.pantry.${slot ?? 0}`;
+function loadSaved(slot: number | null): Saved | null {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY(slot)) ?? 'null') as Saved | null;
+    return s && Array.isArray(s.board) && s.board.length === 16 ? s : null;
+  } catch { return null; }
+}
+function writeSaved(slot: number | null, s: Saved) { try { localStorage.setItem(KEY(slot), JSON.stringify(s)); } catch { /* ignore */ } }
 
 function PantryPrep({ action }: { action: ActionDef }) {
-  const { player } = useGame();
+  const { player, slot } = useGame();
   const { items, push } = useFeedback();
-  const [board, setBoard] = useState<Board>(() => newBoard());
+  const [saved] = useState(() => loadSaved(slot));
+  const [board, setBoard] = useState<Board>(() => saved?.board ?? newBoard());
   const [pops, setPops] = useState<{ cells: number[]; at: number }>({ cells: [], at: 0 });
-  const [best, setBest] = useState(1);
-  const cooked = useRef(false);
+  const [best, setBest] = useState(saved?.best ?? 1);
+  /** One step back: the board before your last slide. */
+  const [prev, setPrev] = useState<Saved['prev']>(saved?.prev ?? null);
+  const cooked = useRef(saved?.cooked ?? false);
+  const boardRef = useRef<HTMLDivElement>(null);
+  useNoScroll(boardRef);
+
+  // Save after every change.
+  useEffect(() => { writeSaved(slot, { board, best, cooked: cooked.current, prev }); }, [slot, board, best, prev]);
   // Prep only needs the level and the town — no fire or fish needed to play.
   const regionOk = regionOpen(action.region) && (!action.region || player.regions.includes(action.region));
   const blocked = skillLevel(player, 'cooking') < action.level ? `Needs Cooking ${action.level}` : !regionOk ? `Travel to ${action.region} first` : null;
@@ -31,13 +51,24 @@ function PantryPrep({ action }: { action: ActionDef }) {
     return () => sound.playMusic(musicFor(town));
   }, [town]);
 
-  const fresh = () => { setBoard(newBoard()); setBest(1); cooked.current = false; sound.play('tile', { volume: 0.6 }); };
+  const fresh = () => { setBoard(newBoard()); setBest(1); setPrev(null); cooked.current = false; sound.play('tile', { volume: 0.6 }); };
+
+  /** Takes back your last slide (one step). XP already earned is kept; the fish only cooks once per board. */
+  const undo = () => {
+    if (!prev) return;
+    setBoard(prev.board);
+    setBest(prev.best);
+    setPrev(null);
+    sound.play('whoosh', { rate: 1.2, volume: 0.6 });
+    sound.play('tile', { rate: 0.8, volume: 0.4 });
+  };
 
   const move = (dir: Dir) => {
     if (blocked || tidy) return;
     const r = slide(board, dir);
     if (!r.moved) { sound.play('tile', { rate: 0.7, volume: 0.35 }); return; }
     const next = spawn(r.board);
+    setPrev({ board, best });
     setBoard(next);
     sound.play('tile', { volume: 0.45 });
     if (r.merges.length) {
@@ -89,7 +120,7 @@ function PantryPrep({ action }: { action: ActionDef }) {
   return (
     <div className="mg">
       <div className="pp-wrap">
-        <div className={`pp-board ${tidy ? 'tidy' : ''}`} onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => { start.current = null; }}
+        <div ref={boardRef} className={`pp-board ${tidy ? 'tidy' : ''}`} onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => { start.current = null; }}
           role="application" aria-label="Pantry Prep board. Swipe or use arrow keys.">
           {board.map((v, i) => (
             <div key={`${i}-${v}-${pops.cells.includes(i) ? pops.at : 0}`} className={`pp-cell ${v ? `pp-lv${v}` : ''} ${pops.cells.includes(i) ? 'pop' : ''}`}>
@@ -115,6 +146,7 @@ function PantryPrep({ action }: { action: ActionDef }) {
           <button className="btn" data-silent onClick={() => move('up')} aria-label="Slide up">▲</button>
           <button className="btn" data-silent onClick={() => move('down')} aria-label="Slide down">▼</button>
           <button className="btn" data-silent onClick={() => move('right')} aria-label="Slide right">▶</button>
+          <button className="btn" onClick={undo} disabled={!prev} aria-label="Undo your last slide">↶ Undo</button>
           <button className="btn btn-hero" onClick={fresh}><UiIcon name="refresh" size={16} /> Fresh board</button>
         </div>
         <p className="mg-foot">

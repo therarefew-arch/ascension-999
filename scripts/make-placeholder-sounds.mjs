@@ -691,7 +691,9 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
   // Sea sounds: no constant noise any more (owner: it drowned the music). Instead, five separate
   // moments in the ~200 s song, about 40 s apart — three different waves and two different wind
   // gusts — all kept well under the music, with long music-only stretches in between.
-  {
+  // v0.0.1.28: owner asked to take the sea sounds out entirely — kept here, switched off.
+  const SEA = false;
+  if (SEA) {
     const wr = seeded(91);
     /** Overall sea volume (owner: fewer, softer waves). */
     const S = 0.7;
