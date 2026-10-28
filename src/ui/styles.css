@@ -324,6 +324,7 @@ p { margin: 8px 0; }
 .pip.miss { background: #78716c; border-color: #a8a29e; }
 
 .idle-cta { padding: 0 14px 14px; }
+.idle-turf { text-align: center; margin: 6px 0 0; }
 
 /* Timber! (woodcutting) */
 .tree-wrap { position: relative; width: 120px; height: 100px; display: flex; align-items: center; justify-content: center; }

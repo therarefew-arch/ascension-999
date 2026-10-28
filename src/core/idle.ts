@@ -58,12 +58,24 @@ export function seasonedPercent(p: PlayerState, skill: SkillId): number {
   return Math.min(SEASONED.maxPercent, Math.floor((p.toolUses[skill] ?? 0) / SEASONED.perPercent));
 }
 
-/** How long one action takes for this player (tools, and how seasoned they are, speed it up). */
+/** Gathering that happens in one town (mining, woodcutting, fishing, foraging there). */
+export function isLocalGather(action: ActionDef): boolean {
+  return !!action.region && action.inputs.length === 0 && (LOCAL_SKILLS as readonly string[]).includes(action.skill);
+}
+
+/** 🏡 Home turf: gathering in the town you're standing in is this much faster (%). */
+export const HOME_TURF_PCT = 10;
+export function homeTurf(p: PlayerState, action: ActionDef): boolean {
+  return isLocalGather(action) && p.location === action.region;
+}
+
+/** How long one action takes for this player (tools, how seasoned they are, meals and home turf speed it up). */
 export function actionDuration(p: PlayerState, action: ActionDef): number {
   const statKey = `${action.skill}Speed` as keyof ItemStats;
   const speed = statKey in STAT_LABELS ? equipmentStats(p)[statKey] ?? 0 : 0;
   const meal = buffSpeedPct(p, action.skill);
-  return Math.max(500, Math.round(action.durationMs * (1 - speed / 100) * (1 - seasonedPercent(p, action.skill) / 100) * (1 - meal / 100)));
+  const turf = homeTurf(p, action) ? HOME_TURF_PCT : 0;
+  return Math.max(500, Math.round(action.durationMs * (1 - speed / 100) * (1 - seasonedPercent(p, action.skill) / 100) * (1 - meal / 100) * (1 - turf / 100)));
 }
 
 // ---------------------------------------------------------------------------
@@ -145,10 +157,10 @@ export function drainFire(p: PlayerState, ms: number) {
 export function whyCantDo(p: PlayerState, action: ActionDef, opts: { manual?: boolean; start?: boolean } = {}): string | null {
   if (!regionOpen(action.region)) return `Found in ${action.region} — coming in a future update`;
   if (action.region && !p.regions.includes(action.region)) return `Travel to ${action.region} to unlock this`;
-  // Gathering happens on location: start it in its region (idle slots keep going if you travel away).
-  // (Only gathering — actions with no inputs. Processing, like drying herbs, works anywhere.)
-  if ((opts.manual || opts.start) && action.region && action.inputs.length === 0 && (LOCAL_SKILLS as readonly string[]).includes(action.skill) && p.location !== action.region) {
-    return `Gather this in ${action.region} (you're in ${p.location})`;
+  // 📨 Send word (v0.0.1.35): idling can be started for any town you've discovered, from anywhere —
+  // a helper gathers there. Playing the minigame by hand still means being there in person.
+  if (opts.manual && isLocalGather(action) && p.location !== action.region) {
+    return `Play this in ${action.region} — you can still idle it from here`;
   }
   if (skillLevel(p, action.skill) < action.level) return `Needs level ${action.level}`;
   if (action.needsTool !== undefined && equippedToolTier(p, action.skill) < action.needsTool) {

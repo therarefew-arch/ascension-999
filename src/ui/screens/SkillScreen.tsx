@@ -5,7 +5,7 @@ import type { SkillId } from '../../data/items';
 import { ACTIONS, actionsForSkill, COMBAT_SKILLS, SKILL_ORDER, SKILLS, tabsForSkill, type ActionDef } from '../../data/skills';
 import { getItem } from '../../data/items';
 import { LOCAL_SKILLS, REGIONS, regionOpen } from '../../data/tiers';
-import { SEASONED, seasonedPercent, skillLevel, slotOf, whyCantDo } from '../../core/idle';
+import { HOME_TURF_PCT, homeTurf, isLocalGather, SEASONED, seasonedPercent, skillLevel, slotOf, whyCantDo } from '../../core/idle';
 import { countInBag } from '../../core/inventory';
 import type { PlayerState } from '../../core/player';
 import { bestAction, timeToLevel, timeToNextLevel, visibleActions } from '../../core/rates';
@@ -404,8 +404,17 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
             </button>
           ) : (
             <button className="btn btn-idle btn-lg btn-wide" onClick={() => game.startAction(action.id)}>
-              <UiIcon name="clock" size={18} /> Idle this — keeps going while you're away
+              <UiIcon name="clock" size={18} /> {isLocalGather(action) && player.location !== action.region
+                ? `Send word — a helper gathers in ${action.region}`
+                : "Idle this — keeps going while you're away"}
             </button>
+          )}
+          {isLocalGather(action) && (
+            <p className="small muted idle-turf">
+              {homeTurf(player, action)
+                ? `🏡 Home turf: +${HOME_TURF_PCT}% speed while you're in ${action.region}`
+                : `📨 Gathering from afar. Be in ${action.region} for +${HOME_TURF_PCT}% speed and the minigame.`}
+            </p>
           )}
         </div>
       )}
