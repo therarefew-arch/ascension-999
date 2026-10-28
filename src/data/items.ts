@@ -29,6 +29,8 @@ export interface Buff {
   kind: 'speed' | 'xp';
   pct: number;
   minutes: number;
+  /** Its own bonus slot, so it stacks with meals/brews instead of replacing them (festival treats). */
+  slot?: string;
 }
 
 /** Colour keys. Each tier/material gets its own tint so icons look unique. */

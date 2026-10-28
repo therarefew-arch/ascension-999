@@ -9,7 +9,7 @@ export const MAX_BUFF_MS = 2 * 60 * 60 * 1000;
 
 export interface ActiveBuff { item: string; until: number }
 
-const keyOf = (b: Buff) => `${b.kind}:${b.skill}`;
+const keyOf = (b: Buff) => b.slot ?? `${b.kind}:${b.skill}`;
 
 function applies(b: Buff, skill: SkillId): boolean {
   return b.skill === skill || b.skill === 'all' || (b.skill === 'combat' && COMBAT_SKILL_IDS.includes(skill));

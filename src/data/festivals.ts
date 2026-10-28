@@ -71,7 +71,7 @@ export const TOKEN_CHANCE = 1 / 60;
 export const TOKEN_CHANCE_KILL = 1 / 30;
 /** The festival skill's bonus XP. */
 export const FESTIVAL_XP_BONUS = 0.1;
-/** Treats: +5% XP to all skills for 30 minutes. */
-export const TREAT_BUFF = { skill: 'all' as const, kind: 'xp' as const, pct: 5, minutes: 30 };
+/** Treats: a small +2% XP to all skills for 30 minutes, in their own slot — they stack with brews, never replace them. */
+export const TREAT_BUFF = { skill: 'all' as const, kind: 'xp' as const, pct: 2, minutes: 30, slot: 'treat' };
 
 export const FESTIVAL_MAP: Record<FestivalId, FestivalDef> = Object.fromEntries(FESTIVALS.map((f) => [f.id, f])) as Record<FestivalId, FestivalDef>;

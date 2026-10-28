@@ -18,7 +18,7 @@ export function FestivalStall() {
   if (!f) return null;
   const have = tokensHave(player, f);
   const rows: { what: StallItem; emoji: string; name: string; detail: string; owned: boolean }[] = [
-    { what: 'treat', emoji: f.treat.emoji, name: f.treat.name, detail: `+${TREAT_BUFF.pct}% XP to everything for ${TREAT_BUFF.minutes} min`, owned: false },
+    { what: 'treat', emoji: f.treat.emoji, name: f.treat.name, detail: `+${TREAT_BUFF.pct}% XP to everything for ${TREAT_BUFF.minutes} min · stacks with brews`, owned: false },
     { what: 'decoration', emoji: f.decoration.emoji, name: f.decoration.name, detail: 'Cottage keepsake · +1% XP to everything, forever', owned: player.cottage.includes(f.decoration.id) },
     { what: 'pet', emoji: f.pet.emoji, name: f.pet.name, detail: `Festival pet · +2% ${SKILLS[f.skill].name} XP while following you`, owned: player.pets.includes(f.pet.id) },
   ];

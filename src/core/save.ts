@@ -357,7 +357,7 @@ function repair(raw: any): PlayerState {
   // Buffs + garden (v18)
   if (raw?.buffs && typeof raw.buffs === 'object') {
     for (const [k, b] of Object.entries(raw.buffs as Record<string, { item?: string; until?: number }>)) {
-      if (b && ITEMS[b.item ?? '']?.buff && typeof b.until === 'number' && b.until > Date.now()) p.buffs[k] = { item: b.item!, until: b.until };
+      if (b && ITEMS[b.item ?? '']?.buff && typeof b.until === 'number' && b.until > Date.now()) p.buffs[ITEMS[b.item!].buff!.slot ?? k] = { item: b.item!, until: b.until };
     }
   }
   if (Array.isArray(raw?.farm?.plots)) {
