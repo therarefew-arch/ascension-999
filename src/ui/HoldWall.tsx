@@ -411,9 +411,9 @@ export function HoldWall({ onClose }: { onClose: () => void }) {
           <canvas ref={canvasRef} className="lw-canvas" onPointerDown={onTap} />
           <div className="lw-hud hw-hud">
             <div className="lw-hud-row">
-              <span className="pp-chip mono">❤️ {r.lives}</span>
-              <span className="pp-chip gold mono">🪙 {r.gold}</span>
-              <span className="pp-chip mono">🌊 {Math.max(1, r.wave)}/{WAVES}</span>
+              <span className="pa-chip mono">❤️ {r.lives}</span>
+              <span className="pa-chip gold mono">🪙 {r.gold}</span>
+              <span className="pa-chip mono">🌊 {Math.max(1, r.wave)}/{WAVES}</span>
               <span className="grow" />
               <button className="lw-pause" onClick={() => { setFast(!fast); sound.play('click', { volume: 0.5 }); }} aria-label="Speed">{fast ? '⏩' : '▶'}</button>
               <button className="lw-pause" onClick={() => { setPaused(true); sound.play('click', { volume: 0.5 }); }} aria-label="Pause">⏸</button>

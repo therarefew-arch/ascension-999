@@ -30,14 +30,14 @@ function Critter({ id, atk, hp, perk, lvl, pips, temp, dead, gold, small }: {
 }) {
   const k = KIND[id];
   return (
-    <span className={`pp-critter ${dead ? 'dead' : ''} ${gold ? 'champ' : ''} ${small ? 'small' : ''}`}>
-      {lvl && lvl > 1 && <span className="pp-lv">Lv{lvl}</span>}
-      {perk && <span className="pp-perk">{PERKS[perk as keyof typeof PERKS]?.emoji}</span>}
-      <span className="pp-emoji">{k?.emoji ?? '❔'}</span>
-      <span className="pp-stats mono">
-        <span className="pp-atk">{atk + (temp?.[0] ?? 0)}</span><span className="pp-hp">{hp + (temp?.[1] ?? 0)}</span>
+    <span className={`pa-critter ${dead ? 'dead' : ''} ${gold ? 'champ' : ''} ${small ? 'small' : ''}`}>
+      {lvl && lvl > 1 && <span className="pa-lv">Lv{lvl}</span>}
+      {perk && <span className="pa-perk">{PERKS[perk as keyof typeof PERKS]?.emoji}</span>}
+      <span className="pa-emoji">{k?.emoji ?? '❔'}</span>
+      <span className="pa-stats mono">
+        <span className="pa-atk">{atk + (temp?.[0] ?? 0)}</span><span className="pa-hp">{hp + (temp?.[1] ?? 0)}</span>
       </span>
-      {pips && pips[1] > 0 && <span className="pp-pips">{Array.from({ length: pips[1] }, (_, i) => <i key={i} className={i < pips[0] ? 'on' : ''} />)}</span>}
+      {pips && pips[1] > 0 && <span className="pa-pips">{Array.from({ length: pips[1] }, (_, i) => <i key={i} className={i < pips[0] ? 'on' : ''} />)}</span>}
     </span>
   );
 }
@@ -180,10 +180,10 @@ export function PetParade({ onClose }: { onClose: () => void }) {
   const canMerge = (id: string) => !!r?.team.some((p) => p && p.id === id && level(p) < 3);
 
   return createPortal(
-    <div className="lw-root pp-root" ref={wrapRef}>
+    <div className="lw-root pa-root" ref={wrapRef}>
       {!r && !reward && (
-        <div className="lw-intro pp-intro">
-          <div className="lw-title pp-title">🎪 PET PARADE</div>
+        <div className="lw-intro pa-intro">
+          <div className="lw-title pa-title">🎪 PET PARADE</div>
           {saved ? (
             <>
               <p className="lw-sub">Your parade is waiting · turn {saved.turn} · 🎀 {saved.wins}/{WINS_NEEDED} · 🧡 {saved.lives}</p>
@@ -203,7 +203,7 @@ export function PetParade({ onClose }: { onClose: () => void }) {
                 <li>❄️ Freeze anything in the stall to keep it for next turn.</li>
                 <li>🎺 Then <b>March!</b> — parades bump heads by themselves. Win {WINS_NEEDED} before you lose {LIVES} 🧡.</li>
               </ul>
-              <div className="pp-champs">
+              <div className="pa-champs">
                 <b className="small">⭐ Your champions in the stall</b>
                 {champions.length
                   ? <span>{champions.map((k) => <span key={k.id} title={k.name}>{k.emoji}</span>)}</span>
@@ -221,31 +221,33 @@ export function PetParade({ onClose }: { onClose: () => void }) {
       )}
 
       {r && !show && !reward && (
-        <div className="pp-shop">
-          <div className="pp-top">
-            <span className="pp-chip gold mono">🪙 {r.gold}</span>
-            <span className="pp-chip mono">{'🧡'.repeat(Math.max(0, r.lives))}<span className="dim">{'🤍'.repeat(Math.max(0, LIVES - r.lives))}</span></span>
-            <span className="pp-chip mono">🎀 {r.wins}/{WINS_NEEDED}</span>
-            <span className="pp-chip dim mono">Turn {r.turn}</span>
+        <div className="pa-shop">
+          <div className="pa-top">
+            <span className="pa-chip gold mono">🪙 {r.gold}</span>
+            <span className="pa-chip mono">{'🧡'.repeat(Math.max(0, r.lives))}<span className="dim">{'🤍'.repeat(Math.max(0, LIVES - r.lives))}</span></span>
+            <span className="pa-chip mono">🎀 {r.wins}/{WINS_NEEDED}</span>
+            <span className="pa-chip dim mono">Turn {r.turn}</span>
             <button className="lw-pause" onClick={onClose} aria-label="Save and leave">✕</button>
           </div>
-          {r.history.length > 0 && <div className="pp-history">{r.history.slice(-12).map((h, i) => <span key={i} title={h.rival}>{RESULT_ICON[h.result]}</span>)}</div>}
+          {r.history.length > 0 && <div className="pa-history">{r.history.slice(-12).map((h, i) => <span key={i} title={h.rival}>{RESULT_ICON[h.result]}</span>)}</div>}
 
-          <div className="pp-label">YOUR PARADE <span className="dim">· front ➜</span></div>
-          <div className="pp-team">
+          <section className="pa-ground">
+          <div className="pa-label">🎪 YOUR PARADE <span className="pa-front">front 🚩➜</span></div>
+          <div className="pa-team">
             {Array.from({ length: TEAM_SIZE }, (_, j) => TEAM_SIZE - 1 - j).map((i) => {
               const p = r.team[i];
               const target = (selPet && (!p || (p.id === selPet.id && level(p) < 3))) || (selFood && p) || (selTeam && sel?.i !== i);
               return (
-                <button key={i} className={`pp-slot ${sel?.kind === 'team' && sel.i === i ? 'sel' : ''} ${target ? 'target' : ''}`} onClick={() => tapTeam(i)}>
-                  {p ? <Critter id={p.id} atk={p.atk} hp={p.hp} perk={p.perk} lvl={level(p)} pips={expPips(p)} temp={[p.tAtk, p.tHp]} gold={!!KIND[p.id].champion} /> : <span className="pp-empty">·</span>}
-                  {p && flash[p.uid] && <span className="pp-pop">{flash[p.uid]}</span>}
+                <button key={i} className={`pa-slot ${i === 0 ? 'front' : ''} ${sel?.kind === 'team' && sel.i === i ? 'sel' : ''} ${target ? 'target' : ''}`} onClick={() => tapTeam(i)}>
+                  {p ? <Critter id={p.id} atk={p.atk} hp={p.hp} perk={p.perk} lvl={level(p)} pips={expPips(p)} temp={[p.tAtk, p.tHp]} gold={!!KIND[p.id].champion} /> : <span className="pa-empty">🐾</span>}
+                  {p && flash[p.uid] && <span className="pa-pop">{flash[p.uid]}</span>}
                 </button>
               );
             })}
           </div>
+          </section>
 
-          <div className="pp-info">
+          <div className="pa-info">
             {selPet && <><b>{KIND[selPet.id].emoji} {KIND[selPet.id].name}</b> <span className="lw-tag">TIER {KIND[selPet.id].tier}{KIND[selPet.id].champion ? ' · ⭐ CHAMPION' : ''}</span><span className="small">{KIND[selPet.id].text(1)}</span><span className="small muted">{canMerge(selPet.id) ? 'Tap the same critter to merge it.' : 'Tap an empty spot to buy it.'}</span></>}
             {selFood && <><b>{FOOD[selFood.id].emoji} {FOOD[selFood.id].name}</b> <span className="lw-tag">{selFood.cost ? `${selFood.cost} 🪙` : 'FREE'}</span><span className="small">{selFood.atk || selFood.hp ? `+${selFood.atk}/+${selFood.hp}. ` : ''}{FOOD[selFood.id].token ? '' : FOOD[selFood.id].text}</span><span className="small muted">Tap a critter to feed it.</span></>}
             {selTeam && <><b>{KIND[selTeam.id].emoji} {KIND[selTeam.id].name}</b> <span className="lw-tag">LEVEL {level(selTeam)}</span><span className="small">{KIND[selTeam.id].text(level(selTeam))}</span>{selTeam.perk && <span className="small">{PERKS[selTeam.perk].emoji} {PERKS[selTeam.perk].text}</span>}<span className="small muted">Tap another spot to move it (or onto the same critter to merge).</span></>}
@@ -253,26 +255,29 @@ export function PetParade({ onClose }: { onClose: () => void }) {
             {sel && msg && <span className="small red">{msg}</span>}
           </div>
 
-          <div className="pp-label">THE STALL</div>
-          <div className="pp-stall">
+          <section className="pa-stallbox">
+          <div className="pa-awning" />
+          <div className="pa-label">🛒 THE STALL <span className="dim">· critters {PET_COST} 🪙</span></div>
+          <div className="pa-stall">
             {r.stall.pets.map((s, i) => s && (
-              <button key={`p${i}`} className={`pp-ware ${sel?.kind === 'stall' && sel.i === i ? 'sel' : ''} ${s.frozen ? 'frozen' : ''} ${s.bonus ? 'bonus' : ''}`} onClick={() => tapStall(i)}>
+              <button key={`p${i}`} className={`pa-ware ${sel?.kind === 'stall' && sel.i === i ? 'sel' : ''} ${s.frozen ? 'frozen' : ''} ${s.bonus ? 'bonus' : ''}`} onClick={() => tapStall(i)}>
                 <Critter id={s.id} atk={s.atk} hp={s.hp} gold={!!KIND[s.id].champion} small />
-                {canMerge(s.id) && <span className="pp-merge">⬆</span>}
-                <span className="pp-cost mono">{PET_COST}</span>
+                {canMerge(s.id) && <span className="pa-merge">⬆</span>}
+                <span className="pa-cost mono">{PET_COST}</span>
               </button>
             ))}
           </div>
-          <div className="pp-stall food">
+          <div className="pa-stall food">
             {r.stall.foods.map((f, i) => f && (
-              <button key={`f${i}`} className={`pp-ware food ${sel?.kind === 'food' && sel.i === i ? 'sel' : ''} ${f.frozen ? 'frozen' : ''}`} onClick={() => tapFood(i)}>
-                <span className="pp-emoji">{FOOD[f.id].emoji}</span>
-                <span className="pp-cost mono">{f.cost || 'FREE'}</span>
+              <button key={`f${i}`} className={`pa-ware food ${sel?.kind === 'food' && sel.i === i ? 'sel' : ''} ${f.frozen ? 'frozen' : ''}`} onClick={() => tapFood(i)}>
+                <span className="pa-emoji">{FOOD[f.id].emoji}</span>
+                <span className="pa-cost mono">{f.cost || 'FREE'}</span>
               </button>
             ))}
           </div>
+          </section>
 
-          <div className="pp-actions">
+          <div className="pa-actions">
             {selTeam
               ? <button className="btn btn-lg" onClick={doSell}>Sell +{sellValue(selTeam)} 🪙</button>
               : <button className="btn btn-lg" disabled={!sel} onClick={doFreeze}>{(selPet?.frozen || selFood?.frozen) ? '🔥 Unfreeze' : '❄️ Freeze'}</button>}
@@ -289,7 +294,7 @@ export function PetParade({ onClose }: { onClose: () => void }) {
           <div className="lw-panel">
             <div className="lw-level">{r.wins >= WINS_NEEDED ? '🏆 WHAT A PARADE!' : '🎪 The parade is over'}</div>
             <p className="small center">{r.wins} win{r.wins === 1 ? '' : 's'} over {r.history.length} parade{r.history.length === 1 ? '' : 's'}.</p>
-            <div className="pp-history center">{r.history.map((h, i) => <span key={i}>{RESULT_ICON[h.result]}</span>)}</div>
+            <div className="pa-history center">{r.history.map((h, i) => <span key={i}>{RESULT_ICON[h.result]}</span>)}</div>
             <div className="lw-rewards">
               {reward.coins > 0 ? <div>🪙 <b className="gold">{reward.coins.toLocaleString()}</b> coins</div> : <div className="small muted">No wins this time — try again!</div>}
               {reward.items.length > 0 && <div className="small">{reward.items.map((s) => getItem(s.id).name).join(', ')}</div>}
@@ -316,28 +321,39 @@ function ParadeView({ show, frame, fast, setFast, skip, done, run }: {
   const last = frame >= frames.length - 1;
   const hit = new Map((f.hits ?? []).map((h) => [h.uid, h.n]));
   const cell = (v: FView, side: 'a' | 'b', i: number) => (
-    <span key={v.uid} className={`pp-cell ${f.attack && i === 0 ? `bump-${side}` : ''} ${f.actor === v.uid ? 'acting' : ''}`}>
+    <span key={v.uid} className={`pa-cell ${f.attack && i === 0 ? `bump-${side}` : ''} ${f.actor === v.uid ? 'acting' : ''}`}>
       <Critter id={v.id} atk={v.atk} hp={v.hp} perk={v.perk} lvl={v.L} dead={v.dead} gold={!!KIND[v.id]?.champion} small />
-      {hit.has(v.uid) && <span className="pp-dmg mono">{hit.get(v.uid) ? `−${hit.get(v.uid)}` : '🛡️'}</span>}
+      {hit.has(v.uid) && <span className="pa-dmg mono">{hit.get(v.uid) ? `−${hit.get(v.uid)}` : '🛡️'}</span>}
     </span>
   );
   return (
-    <div className="pp-parade">
-      <div className="pp-vs"><b>Your parade</b><span className="dim">vs</span><b>{whose(show.rival)} parade</b></div>
-      <div className="pp-lane">
-        <div className="pp-side a">{[...f.a].reverse().map((v, j) => cell(v, 'a', f.a.length - 1 - j))}</div>
-        <div className="pp-mid">⚔️</div>
-        <div className="pp-side b">{f.b.map((v, i) => cell(v, 'b', i))}</div>
+    <div className="pa-parade">
+      {run && (() => {
+        // Show the score from before this parade until it ends, so the result isn't given away.
+        const wins = last ? run.wins : run.wins - (show.result === 'win' ? 1 : 0);
+        const lives = last ? run.lives : run.lives + (show.result === 'loss' ? 1 : 0);
+        return (
+          <div className="pa-top center">
+            <span className="pa-chip mono">{'🧡'.repeat(Math.max(0, lives))}<span className="dim">{'🤍'.repeat(Math.max(0, LIVES - lives))}</span></span>
+            <span className={`pa-chip mono ${last && show.result === 'win' ? 'gold' : ''}`}>🎀 {wins}/{WINS_NEEDED}</span>
+          </div>
+        );
+      })()}
+      <div className="pa-vs"><b>Your parade</b><span className="dim">vs</span><b>{whose(show.rival)} parade</b></div>
+      <div className="pa-lane">
+        <div className="pa-side a">{[...f.a].reverse().map((v, j) => cell(v, 'a', f.a.length - 1 - j))}</div>
+        <div className="pa-mid">⚔️</div>
+        <div className="pa-side b">{f.b.map((v, i) => cell(v, 'b', i))}</div>
       </div>
-      <div className="pp-say">{f.text ?? (f.attack ? 'Bump!' : '')}</div>
+      <div className="pa-say">{f.text ?? (f.attack ? 'Bump!' : '')}</div>
       {last ? (
-        <div className="lw-panel pp-result">
+        <div className="lw-panel pa-result">
           <div className="lw-level">{show.result === 'win' ? '🎀 YOU WIN!' : show.result === 'loss' ? '💔 You lost this one' : '🤝 A draw'}</div>
           {run && <p className="small center muted">🎀 {run.wins}/{WINS_NEEDED} · 🧡 {run.lives} left{run.phase === 'over' ? '' : ` · on to turn ${run.turn}`}</p>}
           <button className="btn btn-hero btn-lg btn-wide" onClick={done}>{run?.phase === 'over' ? 'See how it went' : 'Back to the stall'}</button>
         </div>
       ) : (
-        <div className="pp-actions two">
+        <div className="pa-actions two">
           <button className="btn btn-lg" onClick={() => setFast(!fast)}>{fast ? '🐢 Normal' : '⏩ Faster'}</button>
           <button className="btn btn-lg" onClick={skip}>⏭ Skip</button>
         </div>

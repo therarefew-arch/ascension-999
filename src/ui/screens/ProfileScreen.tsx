@@ -104,7 +104,7 @@ function Pets() {
   const [parade, setParade] = useState(false);
   return (
     <>
-      <button className="lw-launch pp-launch" onClick={() => setParade(true)}>
+      <button className="lw-launch pa-launch" onClick={() => setParade(true)}>
         <span className="lw-launch-emoji">🎪</span>
         <span className="grow"><b>Pet Parade</b><span className="small muted">{hasSavedParade(slot)
           ? '💾 Your parade is waiting — tap to carry on.'
