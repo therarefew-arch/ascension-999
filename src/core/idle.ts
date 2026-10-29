@@ -305,7 +305,10 @@ export function completeAction(
     const asc = ascBonus(p, 'dr', action.skill);
     if (asc && Math.random() < asc / 100) relicRolls++;
     // Only when the result still fits, since the materials stay in the bag.
-    thrifty = action.skill === 'smithing' && action.inputs.length > 0 && relicOn(p, 'hearthsong_hammer') && Math.random() < RELIC.thriftChance
+    // ⚒️ Forge-thrift (Ironmoor town bonus) works the same way for its tool's skill.
+    const thriftChance = (action.skill === 'smithing' && relicOn(p, 'hearthsong_hammer') ? RELIC.thriftChance : 0)
+      + ascBonus(p, 'th', action.skill) / 100;
+    thrifty = action.inputs.length > 0 && thriftChance > 0 && Math.random() < thriftChance
       && (satchelOn(p) || canFitAll(p.inventory, maxLoot(opts.lootTable ?? action.lootTable)));
   }
   for (const input of action.inputs) {
@@ -359,7 +362,8 @@ export function completeAction(
   // 🐟 A rare fish now and then — recorded in the Fishing Journal.
   // ✨ The Tidecaller Rod gives rare fish a second chance to bite.
   const rareTries = !action.kind && action.skill === 'fishing' && action.region && LOOT_TABLES[`rare_fish_${action.region}`]
-    ? (relicOn(p, 'tidecaller_rod') ? 2 : 1) + (ascFinds && Math.random() < ascFinds / 100 ? 1 : 0) : 0;
+    ? (relicOn(p, 'tidecaller_rod') ? 2 : 1) + (ascFinds && Math.random() < ascFinds / 100 ? 1 : 0)
+      + (Math.random() < ascBonus(p, 'td', 'fishing') / 100 ? 1 : 0) : 0; // 🌊 Tidewise (Bluecliff)
   for (let k = 0; k < rareTries; k++) {
     const rare = rollLoot(`rare_fish_${action.region}`);
     if (rare.length) {

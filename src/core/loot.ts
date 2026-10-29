@@ -4,6 +4,7 @@ import { getItem, type GemRarity, type GemType, type SkillId, type EquipSlot } f
 import { PETS } from '../data/pets';
 import { gemRerollTable, LOOT_TABLES, type LootGroup, type LootSource, type LootTable } from '../data/lootTables';
 import { addToBag, addToBank, canFitAll } from './inventory';
+import { ascBonus } from './ascBonus';
 import type { ItemStack, PlayerState } from './player';
 
 const GEM_SOURCES: LootSource[] = ['boss', 'miniboss'];
@@ -113,7 +114,8 @@ export function rollPet(p: PlayerState, source: SkillId | 'combat', rng: () => n
   // Pets with odds 0 are rewards (never random drops).
   const pet = petId ? PETS.find((x) => x.id === petId) : PETS.find((x) => x.skill === source && x.odds > 0);
   if (!pet || pet.odds <= 0 || p.pets.includes(pet.id)) return null;
-  if (rng() >= 1 / pet.odds) return null;
+  // ☁️ Cloudfarer (Celestine Spires town bonus): pets turn up more often.
+  if (rng() >= (1 + ascBonus(p, 'cf') / 100) / pet.odds) return null;
   p.pets.push(pet.id);
   if (!p.activePet) p.activePet = pet.id;
   return pet.id;

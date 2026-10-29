@@ -1,34 +1,29 @@
 // 🌟 The Ascension (levels 750 → 999): Ascended drops and the bonuses on worn Ascended items.
 // Drops are rolled per minute of work (not per action), so every skill and every town is equally good.
-import { ASC_BASES, ASC_DROP_MS, ASCENSION_LEVEL, rollAscended, STARLIGHT_PER_HOUR, type AscBase, type BonusKey } from '../data/ascended';
+import { ASC_BASES, ASC_DROP_MS, ASCENSION_LEVEL, rollAscended, STARLIGHT_PER_HOUR, type AscBase } from '../data/ascended';
 import { ITEMS, type SkillId } from '../data/items';
 import { REGIONS, type Region } from '../data/tiers';
+import { ascBonus } from './ascBonus';
 import { giveLoot } from './loot';
-import type { PlayerState } from './player';
+import { OFFLINE_CAP_MS, type PlayerState } from './player';
 import { levelForXp } from './xp';
 
 const COMBAT: SkillId[] = ['melee', 'ranged', 'magic', 'defense', 'health'];
 const ARMOUR = ASC_BASES.filter((b) => b.kind === 'armour');
 const WEAPONS = ASC_BASES.filter((b) => b.kind === 'weapon');
 
-/** Skill-bound bonuses only count on the tool for that skill. */
-const SKILL_BOUND: BonusKey[] = ['sp', 'dr', 'xp', 'rf'];
+export { ascBonus };
 
-/** Adds up a bonus across worn Ascended items. Skill-bound ones need the matching skill's tool. */
-export function ascBonus(p: PlayerState, key: BonusKey, skill?: SkillId): number {
-  let total = 0;
-  for (const id of Object.values(p.equipment)) {
-    const a = id ? ITEMS[id]?.ascended : undefined;
-    if (!a) continue;
-    if (SKILL_BOUND.includes(key) && a.base.skill !== skill) continue;
-    for (const b of a.bonuses) if (b.key === key) total += b.value;
-  }
-  return total;
+/** How much time away counts: 24 hours, plus 🕳️ Echoing (Voidreach town bonus). */
+export function offlineCapMs(p: PlayerState): number {
+  return OFFLINE_CAP_MS + ascBonus(p, 'ec') * 3_600_000;
 }
 
 /** XP multiplier from Ascended bonuses for one skill. */
 export function ascXpMult(p: PlayerState, skill: SkillId): number {
-  const pct = ascBonus(p, 'xp', skill) + ascBonus(p, 'ax') + (COMBAT.includes(skill) ? ascBonus(p, 'cx') : 0);
+  // 🏡 Homespun (Pocketvale): extra XP for skills still under 750.
+  const homespun = levelForXp(p.skills[skill].xp) < ASCENSION_LEVEL ? ascBonus(p, 'hs') : 0;
+  const pct = ascBonus(p, 'xp', skill) + ascBonus(p, 'ax') + (COMBAT.includes(skill) ? ascBonus(p, 'cx') : 0) + homespun;
   return 1 + pct / 100;
 }
 
@@ -69,13 +64,15 @@ export function rollAscendedDrops(
   const level = levelForXp(p.skills[skill].xp);
   if (level < ASCENSION_LEVEL) return;
   // ✨ A little Starlight drifts down while you work (whole bits, the rest is a chance).
-  const sl = (ms / 3_600_000) * STARLIGHT_PER_HOUR;
+  // 🌠 Starcaught (Starfall Crater): more of it.
+  const sl = (ms / 3_600_000) * STARLIGHT_PER_HOUR * (1 + ascBonus(p, 'sc') / 100);
   const bits = Math.floor(sl) + (rng() < sl - Math.floor(sl) ? 1 : 0);
   if (bits > 0) {
     giveLoot(p, [{ id: 'starlight', qty: bits }]);
     report.gained.starlight = (report.gained.starlight ?? 0) + bits;
   }
-  const n = poisson(ms, ASC_DROP_MS, rng);
+  // 🌳 Primordial (the Rift): Ascended items turn up a little more often.
+  const n = poisson(ms, ASC_DROP_MS / (1 + ascBonus(p, 'pr') / 100), rng);
   const town = Math.max(0, REGIONS.indexOf((where ?? p.location) as Region));
   for (let i = 0; i < n; i++) {
     const id = rollAscended(pickBase(p, skill, rng), level, town, rng);

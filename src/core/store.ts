@@ -53,7 +53,9 @@ import { REROLL_COST, socketGem, unsocketGem } from './equipment';
 import { countInBag, removeFromBag } from './inventory';
 import { MONSTER_MAP, MONSTERS } from '../data/monsters';
 import { clampReward } from './minigames';
-import { newPlayer, OFFLINE_CAP_MS, type PlayerState } from './player';
+import { newPlayer, type PlayerState } from './player';
+import { ascBonus } from './ascBonus';
+import { offlineCapMs } from './ascension';
 import {
   deleteSave, exportSave, importSave, loadedFromVersion, loadGame, loadSettings, markBackedUp, requestPersistentStorage, saveGame, saveSettings, type SlotId,
 } from './save';
@@ -206,7 +208,7 @@ function tick(now = Date.now()) {
   }
 
   if (gap > AWAY_THRESHOLD_MS) {
-    const counted = Math.min(gap, OFFLINE_CAP_MS);
+    const counted = Math.min(gap, offlineCapMs(p));
     // Mini boss fights are by hand only — they pause (end safely) while you're away.
     if (p.fight && MONSTER_MAP[p.fight.monsterId]?.miniboss) {
       const name = MONSTER_MAP[p.fight.monsterId].name;
@@ -239,7 +241,8 @@ function tick(now = Date.now()) {
   // Lucky Stars: appear every few minutes while you're playing, and drift away if not caught.
   if (snap.star && now > snap.star.until) { snap.star = null; emit(); }
   // (The Cottage telescope makes them come more often.)
-  const starGap = () => nextStarDelay() / (1 + cottageStarPct(p) / 100);
+  // 🏮 Lantern-lit (Lunaria town bonus) too.
+  const starGap = () => nextStarDelay() / (1 + (cottageStarPct(p) + ascBonus(p, 'ln')) / 100);
   if (!nextStarAt) nextStarAt = now + starGap();
   if (!snap.star && now >= nextStarAt) {
     snap.star = { id: now, until: now + STAR.visibleMs };

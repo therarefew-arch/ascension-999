@@ -11,7 +11,7 @@ import { ItemIcon } from './icons';
 import { Sheet, StatCompare } from './components';
 import { fmtNum } from './format';
 import { buffText } from '../core/buffs';
-import { BONUSES, BREAK_VALUE, GRADES } from '../data/ascended';
+import { BONUSES, BREAK_VALUE, GRADES, isTownBonus, townBonusFor, townBonusName } from '../data/ascended';
 import { ReforgePanel } from './Starforge';
 import { REGIONS } from '../data/tiers';
 
@@ -66,9 +66,15 @@ export function ItemSheet({ id, from, onClose, onReroll }: { id: string; from: I
             {item.ascended.bonuses.map((b) => {
               const def = BONUSES[b.key];
               const near = b.value >= def.max - Math.max(1, (def.max - def.min) * 0.08);
-              return <li key={b.key} className={near ? 'top' : ''}>{def.text(b.value, SKILLS[item.ascended!.base.skill].name)} <span className="muted small">({def.min}–{def.max})</span></li>;
+              return <li key={b.key} className={`${near ? 'top' : ''} ${isTownBonus(b.key) ? 'town' : ''}`}>{def.text(b.value, SKILLS[item.ascended!.base.skill].name)} <span className="muted small">({def.min}–{def.max})</span></li>;
             })}
           </ul>
+          {(() => {
+            const tb = townBonusFor(item.ascended.base, item.ascended.town);
+            return tb
+              ? <p className="small muted">🗺️ {REGIONS[item.ascended.town]}'s town bonus <b>{townBonusName(tb)}</b> can roll on this (and on a reforge). It only rolls on items found or crafted there.</p>
+              : <p className="small muted">🗺️ {REGIONS[item.ascended.town]}'s town bonus doesn't fit this kind of item.</p>;
+          })()}
           <p className="small muted">Grades: {GRADES.map((g) => g.name).join(' → ')}. Divine can drop from level 850, Godforged from 950.</p>
           {from !== 'worn' && (
             <button className="btn btn-wide" onClick={() => game.breakDown(id, from)}>

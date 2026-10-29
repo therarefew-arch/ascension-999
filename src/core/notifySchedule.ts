@@ -5,7 +5,8 @@ import { ACTIONS } from '../data/skills';
 import { MONSTER_MAP } from '../data/monsters';
 import { advanceIdle, runningSlots } from './idle';
 import { fightMonster, isFightId } from './combat';
-import { clonePlayer, OFFLINE_CAP_MS, type PlayerState } from './player';
+import { clonePlayer, type PlayerState } from './player';
+import { offlineCapMs } from './ascension';
 
 export interface Note {
   /** When to send it (ms since 1970). */
@@ -31,7 +32,8 @@ export function predictNotes(p: PlayerState, now: number, opts: NoteOptions): No
     const bossFight = p.fight && MONSTER_MAP[p.fight.monsterId]?.miniboss;
     if (running.length && !bossFight && !p.travel) {
       const copy = clonePlayer(p);
-      const report = advanceIdle(copy, OFFLINE_CAP_MS, now + OFFLINE_CAP_MS);
+      const cap = offlineCapMs(p);
+      const report = advanceIdle(copy, cap, now + cap);
       for (const s of report.stops.slice(0, 3)) {
         notes.push({
           at: now + s.afterMs,
@@ -43,9 +45,9 @@ export function predictNotes(p: PlayerState, now: number, opts: NoteOptions): No
       // Still going after a full day? Away time only counts up to 24 hours.
       if (report.stops.length < running.length) {
         notes.push({
-          at: now + OFFLINE_CAP_MS,
-          title: '⏳ 24 hours of idling done',
-          body: 'Time away only counts up to 24 hours — pop back in to keep your progress going.',
+          at: now + cap,
+          title: `⏳ ${Math.round(cap / 3_600_000)} hours of idling done`,
+          body: `Time away only counts up to ${Math.round(cap / 3_600_000)} hours — pop back in to keep your progress going.`,
           tag: 'idle-cap',
         });
       }

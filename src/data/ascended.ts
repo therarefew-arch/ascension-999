@@ -45,13 +45,19 @@ export const ASC_BASES: AscBase[] = [
 export const ASC_BASE_MAP: Record<string, AscBase> = Object.fromEntries(ASC_BASES.map((b) => [b.key, b]));
 
 // ----- Bonuses -----
-export type BonusKey = 'sp' | 'dr' | 'xp' | 'rf' | 'ax' | 'at' | 'df' | 'hp' | 'bd' | 'cn' | 'cx' | 'fh';
+export type BonusKey = 'sp' | 'dr' | 'xp' | 'rf' | 'ax' | 'at' | 'df' | 'hp' | 'bd' | 'cn' | 'cx' | 'fh' | TownBonusKey;
+/** 🗺️ Town bonuses (part 3): each town has one that only rolls on items found or crafted there. */
+export type TownBonusKey = 'hs' | 'th' | 'bg' | 'td' | 'ln' | 'mo' | 'hw' | 'ec' | 'sc' | 'cf' | 'pr';
 export interface BonusDef {
   key: BonusKey;
   min: number;
   max: number;
   /** What it says on the item, for a value and the item's skill. */
   text: (v: number, skill: string) => string;
+  /** Town bonuses: the town (index into REGIONS) whose items can roll it… */
+  town?: number;
+  /** …and which bases it can roll on (all of them when left out). */
+  bases?: string[];
 }
 export const BONUSES: Record<BonusKey, BonusDef> = {
   sp: { key: 'sp', min: 5, max: 15, text: (v, s) => `+${v}% ${s} speed` },
@@ -66,15 +72,35 @@ export const BONUSES: Record<BonusKey, BonusDef> = {
   cn: { key: 'cn', min: 5, max: 25, text: (v) => `+${v}% coins from monsters` },
   cx: { key: 'cx', min: 3, max: 8, text: (v) => `+${v}% combat XP` },
   fh: { key: 'fh', min: 10, max: 30, text: (v) => `Food heals ${v}% more` },
+  // ----- 🗺️ Town bonuses: one per town, only on items found or crafted there. Each counts once
+  // (wearing two only gives the stronger one), so they never pile up across slots.
+  hs: { key: 'hs', town: 0, min: 5, max: 15, text: (v) => `🏡 Homespun: +${v}% XP in skills under 750` },
+  th: { key: 'th', town: 1, min: 3, max: 10, bases: ['hammer', 'knife', 'tinderbox', 'skillet', 'sickle'], text: (v, s) => `⚒️ Forge-thrift: ${v}% chance ${s} uses no materials` },
+  bg: { key: 'bg', town: 2, min: 5, max: 15, text: (v) => `⚓ Bargeman's: +${v}% coins when selling` },
+  td: { key: 'td', town: 3, min: 30, max: 90, bases: ['rod'], text: (v) => `🌊 Tidewise: ${v}% chance of an extra rare-fish bite` },
+  ln: { key: 'ln', town: 4, min: 10, max: 40, text: (v) => `🏮 Lantern-lit: Lucky Stars come ${v}% more often` },
+  mo: { key: 'mo', town: 5, min: 3, max: 10, bases: ['sword', 'bow', 'staff'], text: (v) => `🌋 Molten: +${v}% damage` },
+  hw: { key: 'hw', town: 6, min: 20, max: 60, bases: ['helmet', 'chestplate', 'platelegs', 'shield'], text: (v) => `❄️ Hearthwarm: heal ${v}% faster` },
+  ec: { key: 'ec', town: 7, min: 1, max: 6, text: (v) => `🕳️ Echoing: time away counts ${v} h longer` },
+  sc: { key: 'sc', town: 8, min: 10, max: 25, text: (v) => `🌠 Starcaught: +${v}% Starlight from work` },
+  cf: { key: 'cf', town: 9, min: 10, max: 40, text: (v) => `☁️ Cloudfarer: +${v}% chance to find pets` },
+  pr: { key: 'pr', town: 10, min: 5, max: 15, text: (v) => `🌳 Primordial: +${v}% Ascended finds` },
 };
+export const TOWN_BONUS: Record<number, BonusKey> = Object.fromEntries(
+  Object.values(BONUSES).filter((b) => b.town !== undefined).map((b) => [b.town!, b.key]),
+);
+export const isTownBonus = (key: BonusKey) => BONUSES[key].town !== undefined;
 /** Skills with rare finds (bird nests, geodes, bottles, rare fish). */
 const FIND_SKILLS: SkillId[] = ['mining', 'woodcutting', 'fishing'];
 
-/** Which bonuses can roll on a base. */
-export function bonusPool(base: AscBase): BonusKey[] {
-  if (base.kind === 'tool') return FIND_SKILLS.includes(base.skill) ? ['sp', 'dr', 'xp', 'rf', 'ax'] : ['sp', 'dr', 'xp', 'ax'];
-  if (base.kind === 'weapon') return ['at', 'bd', 'cn', 'cx', 'ax'];
-  return ['df', 'hp', 'fh', 'cn', 'cx', 'ax'];
+/** Which bonuses can roll on a base (found or crafted in `town`: plus that town's bonus, if it fits the base). */
+export function bonusPool(base: AscBase, town = -1): BonusKey[] {
+  const pool: BonusKey[] = base.kind === 'tool'
+    ? (FIND_SKILLS.includes(base.skill) ? ['sp', 'dr', 'xp', 'rf', 'ax'] : ['sp', 'dr', 'xp', 'ax'])
+    : base.kind === 'weapon' ? ['at', 'bd', 'cn', 'cx', 'ax'] : ['df', 'hp', 'fh', 'cn', 'cx', 'ax'];
+  const tb = TOWN_BONUS[town];
+  if (tb && (!BONUSES[tb].bases || BONUSES[tb].bases!.includes(base.key))) pool.push(tb);
+  return pool;
 }
 
 // ----- Grades -----
@@ -131,7 +157,7 @@ export function parseAscended(id: string): AscParts | null {
     const key = part.slice(0, 2) as BonusKey;
     const def = BONUSES[key];
     const value = Number(part.slice(2));
-    if (!def || !bonusPool(base).includes(key) || value < 1 || value > def.max) return null;
+    if (!def || !bonusPool(base, town).includes(key) || value < 1 || value > def.max) return null;
     bonuses.push({ key, value });
   }
   return { base, grade, town, bonuses };
@@ -149,7 +175,7 @@ export function rollAscended(base: AscBase, level: number, town: number, rng: ()
   }
   // Your level sets the best grade that can drop: Divine from 850, Godforged from 950.
   while (grade.level > level) grade = GRADES[GRADES.indexOf(grade) - 1];
-  const pool = [...bonusPool(base)];
+  const pool = [...bonusPool(base, town)];
   const bonuses: AscParts['bonuses'] = [];
   for (let i = 0; i < grade.bonuses && pool.length; i++) {
     const key = pool.splice(Math.floor(rng() * pool.length), 1)[0];
@@ -157,7 +183,7 @@ export function rollAscended(base: AscBase, level: number, town: number, rng: ()
     const q = grade.q[0] + rng() * (grade.q[1] - grade.q[0]);
     bonuses.push({ key, value: Math.max(1, Math.round(def.min + q * (def.max - def.min))) });
   }
-  bonuses.sort((a, b) => bonusPool(base).indexOf(a.key) - bonusPool(base).indexOf(b.key));
+  bonuses.sort((a, b) => bonusPool(base, town).indexOf(a.key) - bonusPool(base, town).indexOf(b.key));
   return ascendedId({ base: base.key, grade: grade.key, town, bonuses });
 }
 
@@ -185,7 +211,7 @@ export function reforgeAscended(id: string, locked: BonusKey[], rng: () => numbe
   const a = parseAscended(id);
   if (!a) return null;
   const keep = a.bonuses.filter((b) => locked.includes(b.key));
-  const pool = bonusPool(a.base).filter((k) => !keep.some((b) => b.key === k));
+  const pool = bonusPool(a.base, a.town).filter((k) => !keep.some((b) => b.key === k));
   const bonuses = [...keep];
   for (let i = keep.length; i < a.bonuses.length && pool.length; i++) {
     const key = pool.splice(Math.floor(rng() * pool.length), 1)[0];
@@ -193,6 +219,14 @@ export function reforgeAscended(id: string, locked: BonusKey[], rng: () => numbe
     const q = a.grade.q[0] + rng() * (a.grade.q[1] - a.grade.q[0]);
     bonuses.push({ key, value: Math.max(1, Math.round(def.min + q * (def.max - def.min))) });
   }
-  bonuses.sort((x, y) => bonusPool(a.base).indexOf(x.key) - bonusPool(a.base).indexOf(y.key));
+  bonuses.sort((x, y) => bonusPool(a.base, a.town).indexOf(x.key) - bonusPool(a.base, a.town).indexOf(y.key));
   return ascendedId({ base: a.base.key, grade: a.grade.key, town: a.town, bonuses });
 }
+
+/** The town bonus an item of this base, found or crafted in `town`, can roll (null if none fits). */
+export function townBonusFor(base: AscBase, town: number): BonusKey | null {
+  const tb = TOWN_BONUS[town];
+  return tb && (!BONUSES[tb].bases || BONUSES[tb].bases!.includes(base.key)) ? tb : null;
+}
+/** A town bonus's short name, e.g. "🏡 Homespun". */
+export const townBonusName = (key: BonusKey) => BONUSES[key].text(0, '').split(':')[0];

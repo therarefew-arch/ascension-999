@@ -12,7 +12,7 @@ import { levelForXp } from './xp';
 import { HOT_SPRING_MULT, inHotSprings } from './cinderpeak';
 import { rollFestivalToken } from './festivals';
 import { RELIC, relicOn } from './relics';
-import { ascBonus } from './ascension';
+import { ascBonus } from './ascBonus';
 
 export const FIGHT_PREFIX = 'fight:';
 export const isFightId = (actionId: string | undefined | null) => !!actionId && actionId.startsWith(FIGHT_PREFIX);
@@ -240,6 +240,9 @@ export function advanceFight(
         }
         // 🌟 Ascended: extra damage to mini bosses.
         if (monster.miniboss) dmg = Math.round(dmg * (1 + ascBonus(p, 'bd') / 100));
+        // 🌋 Molten (Cinderpeak town bonus): more damage to everything.
+        const molten = ascBonus(p, 'mo');
+        if (molten) dmg = Math.round(dmg * (1 + molten / 100));
         dmg = Math.min(dmg, f.monsterHp);
         f.monsterHp -= dmg;
         cr.damageDealt += dmg;
@@ -317,7 +320,8 @@ export function regenHp(p: PlayerState, ms: number) {
   const max = maxHp(p);
   if (p.hp >= max) { p.hp = max; p.regenMs = 0; return; }
   // ♨️ Cinderpeak's hot springs: resting there heals much faster.
-  p.regenMs += inHotSprings(p) ? ms * HOT_SPRING_MULT : ms;
+  // ❄️ Hearthwarm (Frosthold town bonus) heals faster everywhere.
+  p.regenMs += (inHotSprings(p) ? ms * HOT_SPRING_MULT : ms) * (1 + ascBonus(p, 'hw') / 100);
   const gained = Math.floor(p.regenMs / REGEN_MS);
   if (gained > 0) {
     p.hp = Math.min(max, p.hp + gained);

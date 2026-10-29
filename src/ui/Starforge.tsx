@@ -1,8 +1,9 @@
 // ✨ The Starforge (Gear screen) and the reforge panel (item details + worn gear).
 import { useState } from 'react';
 import {
-  ASC_BASES, ASCENSION_LEVEL, BONUSES, BREAK_VALUE, CRAFT_COST, reforgeCost, type BonusKey,
+  ASC_BASES, ASCENSION_LEVEL, BONUSES, BREAK_VALUE, CRAFT_COST, reforgeCost, TOWN_BONUS, townBonusFor, townBonusName, type BonusKey,
 } from '../data/ascended';
+import { REGIONS } from '../data/tiers';
 import { getItem } from '../data/items';
 import { SKILLS } from '../data/skills';
 import { game, useGame } from '../core/store';
@@ -34,6 +35,16 @@ export function StarforgeCard() {
         Starlight drifts down while you work at level {ASCENSION_LEVEL}+, and comes from breaking Ascended items down.
         Spend it to craft an Ascended item for the slot you want, or to reforge one (tap an item to reforge it).
       </p>
+      {(() => {
+        const town = Math.max(0, REGIONS.indexOf(player.location));
+        const tb = TOWN_BONUS[town];
+        return tb && (
+          <p className="small sf-town">
+            🗺️ Crafted here in {player.location}, items can roll <b>{townBonusName(tb)}</b>: {BONUSES[tb].text(BONUSES[tb].max, 'that skill').split(': ')[1].replace(String(BONUSES[tb].max), `${BONUSES[tb].min}–${BONUSES[tb].max}`)}
+            {BONUSES[tb].bases ? ` (${ASC_BASES.filter((b) => townBonusFor(b, town)).map((b) => b.name).join(', ')} only)` : ''}. Every town has its own.
+          </p>
+        );
+      })()}
       <div className="sf-actions">
         <button className="btn btn-primary" onClick={() => setCrafting((c) => !c)}>{crafting ? 'Close' : `Craft one · ${CRAFT_COST} ✨`}</button>
         <button className="btn" disabled={fine === 0} onClick={() => game.breakDownAllFine()}>

@@ -1,8 +1,8 @@
 // "Welcome back" summary shown after time away.
 import { getItem } from '../data/items';
 import { ACTIONS, SKILLS } from '../data/skills';
-import { game, type AwayReport } from '../core/store';
-import { OFFLINE_CAP_MS } from '../core/player';
+import { game, useGame, type AwayReport } from '../core/store';
+import { offlineCapMs } from '../core/ascension';
 import { fightMonster, isFightId } from '../core/combat';
 import { PET_MAP } from '../data/pets';
 import { ItemIcon } from './icons';
@@ -13,7 +13,9 @@ export function AwayCard({ away }: { away: AwayReport }) {
   const doing = report.actionIds.map((id) => (isFightId(id) ? `fighting ${fightMonster(id).name}` : ACTIONS[id] ? `${SKILLS[ACTIONS[id].skill].verb.toLowerCase()} ${ACTIONS[id].name}` : '')).filter(Boolean);
   const gained = Object.entries(report.gained).filter(([id]) => !id.startsWith('asc.')); // 🌟 Ascended finds get their own lines below
   const used = Object.entries(report.used);
-  const capped = away.awayMs > OFFLINE_CAP_MS;
+  const { player } = useGame();
+  const cap = offlineCapMs(player);
+  const capped = away.awayMs > cap;
 
   return (
     <div className="modal-backdrop">
@@ -53,7 +55,7 @@ export function AwayCard({ away }: { away: AwayReport }) {
             Stopped after <b>{fmtDuration(s.afterMs)}</b>: {s.reason}.
           </div>
         ))}
-        {capped && <p className="small muted">Offline progress counts up to 24 hours.</p>}
+        {capped && <p className="small muted">Offline progress counts up to {Math.round(cap / 3_600_000)} hours.</p>}
 
         <button className="btn btn-primary btn-lg btn-wide" onClick={() => game.dismissAway()}>Collect</button>
       </div>

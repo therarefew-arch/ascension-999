@@ -4,6 +4,7 @@
 import { getItem, ITEM_LIST, ITEMS, type ItemDef } from '../data/items';
 import { countInBag, countInBank, removeFromBag, removeFromBank, spaceFor } from '../core/inventory';
 import { giveLoot } from '../core/loot';
+import { ascBonus } from '../core/ascBonus';
 import type { PlayerState } from '../core/player';
 import type { Region } from '../data/tiers';
 import { levelForXp } from '../core/xp';
@@ -144,6 +145,9 @@ export function sellable(p: PlayerState): { id: string; qty: number }[] {
     .map((it) => ({ id: it.id, qty: countInBag(p.inventory, it.id) + countInBank(p, it.id) }));
 }
 
+/** ⚓ Bargeman's (Coalhaven town bonus): more coins for everything you sell. */
+export const sellBonus = (p: PlayerState) => 1 + ascBonus(p, 'bg') / 100;
+
 /** Sells from the bag first, then the bank. Returns coins earned. */
 export function sell(p: PlayerState, id: string, qty: number, now = Date.now()): number {
   if (getItem(id).relic) return 0;
@@ -151,7 +155,7 @@ export function sell(p: PlayerState, id: string, qty: number, now = Date.now()):
   left -= removeFromBag(p.inventory, id, left);
   if (left > 0) left -= removeFromBank(p, id, left);
   const sold = qty - left;
-  const coins = sold * sellPrice(id, now);
+  const coins = Math.round(sold * sellPrice(id, now) * sellBonus(p));
   p.coins += coins;
   return coins;
 }
