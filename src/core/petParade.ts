@@ -51,30 +51,30 @@ export const KINDS: Kind[] = [
   K('flamingo', 'Flamingo', '🦩', 2, 3, 2, (L) => `Faint: give the 2 friends behind +${L}/+${L}.`),
   K('spider', 'Spider', '🕷️', 2, 2, 2, (L) => `Faint: summon a random tier 3 critter as a 2/2 at level ${L}.`),
   // Tier 3
-  K('sheep', 'Sheep', '🐑', 3, 2, 2, (L) => `Faint: summon two ${2 * L}/${2 * L} Rams.`),
+  K('sheep', 'Sheep', '🐑', 3, 2, 2, (L) => `Faint: summon two ${L + 1}/${L + 1} Rams.`),
   K('kangaroo', 'Kangaroo', '🦘', 3, 1, 2, (L) => `Friend ahead attacks: gain +${2 * L}/+${2 * L}.`),
   K('ox', 'Ox', '🐂', 3, 1, 3, (L) => `Friend ahead faints: gain 🧄 Garlic and +${2 * L} attack.`),
   K('dog', 'Dog', '🐕', 3, 2, 3, (L) => `Friend joins: gain +${L} attack or +${L} health.`),
   K('badger', 'Badger', '🦡', 3, 5, 3, (L) => `Faint: hit the critters next to it for ${L * 50}% of its attack.`),
   K('giraffe', 'Giraffe', '🦒', 3, 1, 3, (L) => `End turn: give ${L} friend${L > 1 ? 's' : ''} ahead +1/+1.`),
   // Tier 4
-  K('bison', 'Bison', '🦬', 4, 4, 4, (L) => `End turn: if you have a level 3 friend, gain +${2 * L}/+${2 * L}.`),
+  K('bison', 'Bison', '🦬', 4, 4, 4, (L) => `End turn: if you have a level 3 friend, gain +${L}/+${L}.`),
   K('turtle', 'Turtle', '🐢', 4, 1, 2, (L) => `Faint: give ${L} friend${L > 1 ? 's' : ''} behind a 🍵 Tea shield.`),
-  K('skunk', 'Skunk', '🦨', 4, 3, 5, (L) => `Start of parade: cut the healthiest rival's health by ${33 * L}%.`),
+  K('skunk', 'Skunk', '🦨', 4, 3, 5, (L) => `Start of parade: cut the healthiest rival's health by ${25 * L}%.`),
   K('llama', 'Llama', '🦙', 4, 3, 6, (L) => `End turn: if you have 4 or fewer critters, gain +${L}/+${2 * L}.`),
-  K('deer', 'Deer', '🦌', 4, 1, 1, (L) => `Faint: summon a ${5 * L}/${3 * L} Boar with 🌶️ Chilli.`),
+  K('deer', 'Deer', '🦌', 4, 1, 1, (L) => `Faint: summon a ${2 * L + 2}/${2 * L + 1} Boar with 🌶️ Chilli.`),
   // Tier 5
   K('cow', 'Cow', '🐄', 5, 4, 6, (L) => `Buy: fill the snack shelf with 2 free 🥛 Milks (+${L}/+${2 * L}).`),
   K('rhino', 'Rhino', '🦏', 5, 5, 8, (L) => `Knock out: hit the first rival for ${4 * L}.`),
-  K('monkey', 'Monkey', '🐒', 5, 1, 2, (L) => `End turn: give the front friend +${2 * L}/+${3 * L}.`),
+  K('monkey', 'Monkey', '🐒', 5, 1, 2, (L) => `End turn: give the front friend +${L}/+${2 * L}.`),
   K('turkey', 'Turkey', '🦃', 5, 3, 4, (L) => `Friend summoned in a parade: give it +${3 * L}/+${3 * L}.`),
   K('croc', 'Crocodile', '🐊', 5, 8, 4, (L) => `Start of parade: snap the last rival for ${8 * L}.`),
   // Tier 6
   K('mammoth', 'Mammoth', '🦣', 6, 3, 10, (L) => `Faint: give all friends +${2 * L}/+${2 * L}.`),
   K('snake', 'Snake', '🐍', 6, 6, 6, (L) => `Friend ahead attacks: hit a random rival for ${5 * L}.`),
   K('gorilla', 'Gorilla', '🦍', 6, 6, 9, (L) => `Hurt: gain a 🍵 Tea shield (${L} time${L > 1 ? 's' : ''} a parade).`),
-  K('dragon', 'Dragon', '🐲', 6, 6, 8, (L) => `Buy a tier 1 critter: give all friends +${L}/+${L}.`),
-  K('leopard', 'Leopard', '🐆', 6, 10, 4, (L) => `Start of parade: pounce on ${L} random rival${L > 1 ? 's' : ''} for half its attack.`),
+  K('dragon', 'Dragon', '🐲', 6, 6, 8, (L) => `Buy a tier 1 critter: give all friends +1/+1 (${L} time${L > 1 ? 's' : ''} a turn).`),
+  K('leopard', 'Leopard', '🐆', 6, 10, 4, (L) => `Start of parade: pounce on ${L} random rival${L > 1 ? 's' : ''} for 40% of its attack.`),
 
   // ⭐ Champions: your own pets from the main game (only in the stall once you've found them).
   K('c_pebbles', 'Pebbles', '🐹', 1, 2, 2, (L) => `Sell: gain ${L} extra coin${L > 1 ? 's' : ''}.`, 'pet_pebbles'),
@@ -84,24 +84,24 @@ export const KINDS: Kind[] = [
   K('c_acorn', 'Acorn', '🐿️', 1, 2, 3, (L) => `Start of turn: put a free 🌰 Acorn (+${L}/+${L}) on the snack shelf.`, 'pet_acorn'),
   K('c_sparky', 'Sparky', '🦔', 2, 3, 3, (L) => `Start of parade: give the friend ahead +${2 * L} attack (forge-warmed).`, 'pet_sparky'),
   K('c_splash', 'Splash', '🦦', 2, 2, 4, (L) => `Buy: give ${L} random friend${L > 1 ? 's' : ''} +1/+1.`, 'pet_splash'),
-  K('c_muffin', 'Muffin', '🐭', 2, 2, 3, (L) => `Friend eats a snack: give it +${L}/+${L} more.`, 'pet_muffin'),
+  K('c_muffin', 'Muffin', '🐭', 2, 2, 3, (L) => `Friend eats a snack: give it +${Math.ceil(L / 2)}/+${Math.ceil(L / 2)} more.`, 'pet_muffin'),
   K('c_peep', 'Peep', '🐥', 2, 2, 2, (L) => `End turn: give the friend behind +${L}/+${L}.`, 'pet_peep'),
   K('c_petal', 'Petal', '🐇', 2, 2, 3, (L) => `End turn: give 2 random friends +${L} health.`, 'pet_petal'),
-  K('c_ember', 'Ember', '🦊', 3, 4, 3, (L) => `Before attack: flick a spark at a random rival for ${2 * L}.`, 'pet_ember'),
+  K('c_ember', 'Ember', '🦊', 3, 3, 3, (L) => `Before attack: flick a spark at a random rival for ${2 * L}.`, 'pet_ember'),
   K('c_twinkle', 'Twinkle', '🐱', 3, 3, 4, (L) => `End turn: if you kept 2+ coins, gain +${L}/+${L}.`, 'pet_twinkle'),
   K('c_bumble', 'Bumble', '🐝', 3, 2, 4, (L) => `Faint: give all friends +${2 * L} health.`, 'pet_bumble'),
-  K('c_pinch', 'Pinch', '🦀', 3, 3, 2, (L) => `Start of parade: gain ${50 * L}% of the healthiest friend's health.`, 'pet_pinch'),
+  K('c_pinch', 'Pinch', '🦀', 3, 3, 2, (L) => `Start of parade: gain ${25 * L}% of the healthiest friend's health.`, 'pet_pinch'),
   K('c_glimmer', 'Glimmer', '🐞', 3, 2, 3, (L) => `Start of parade: hit the weakest rival for ${2 * L}.`, 'pet_glimmer'),
   K('c_confetti', 'Confetti', '🐩', 3, 3, 3, (L) => `Buy: give all friends +${L} attack.`, 'pet_confetti'),
   K('c_glyph', 'Glyph', '🦉', 4, 4, 5, (L) => `Start of parade: give all friends +${L} attack.`, 'pet_glyph'),
   K('c_wick', 'Wick', '🕯️', 4, 3, 4, (L) => `Faint: give the friends ahead and behind +${2 * L}/+${2 * L}.`, 'pet_wick'),
   K('c_lumen', 'Lumen', '🦋', 4, 2, 5, (L) => `Start of parade: light up the friend behind: +${3 * L} attack.`, 'pet_lumen'),
-  K('c_gourdie', 'Gourdie', '🎃', 4, 3, 5, (L) => `Faint: summon a ${3 * L}/${3 * L} Little Pumpkin.`, 'pet_gourdie'),
+  K('c_gourdie', 'Gourdie', '🎃', 4, 3, 5, (L) => `Faint: summon a ${2 * L + 1}/${2 * L + 1} Little Pumpkin.`, 'pet_gourdie'),
   K('c_lookout', 'Lookout', '🦅', 4, 4, 4, (L) => `Start of parade: dive at the last rival for ${4 * L}.`, 'pet_lookout'),
   K('c_bramble', 'Bramble', '🐻', 5, 6, 6, (L) => `Knock out: gain +${2 * L}/+${2 * L}.`, 'pet_bramble'),
-  K('c_mote', 'Mote', '🌙', 5, 3, 6, (L) => `Start of parade: give the ${L} front friend${L > 1 ? 's' : ''} a 🍵 Tea shield.`, 'pet_mote'),
-  K('c_flurry', 'Flurry', '⛄', 5, 4, 7, (L) => `Start of parade: chill the front rival: −${3 * L} attack.`, 'pet_flurry'),
-  K('c_kindle', 'Kindle', '🐉', 6, 7, 7, (L) => `Start of parade: breathe fire on ALL rivals for ${3 * L}.`, 'pet_kindle'),
+  K('c_mote', 'Mote', '🌙', 5, 3, 6, (L) => `Start of parade: give the ${Math.min(2, L)} front friend${L > 1 ? 's' : ''} a 🍵 Tea shield.`, 'pet_mote'),
+  K('c_flurry', 'Flurry', '⛄', 5, 4, 7, (L) => `Start of parade: chill the front rival: −${2 * L} attack.`, 'pet_flurry'),
+  K('c_kindle', 'Kindle', '🐉', 6, 5, 6, (L) => `Start of parade: breathe fire on ALL rivals for ${L + 1}.`, 'pet_kindle'),
 
   // Summoned helpers
   T('beetle', 'Beetle', '🪲'), T('ram', 'Ram', '🐏'), T('boar', 'Boar', '🐗'), T('bee', 'Bee', '🐝'), T('pumpkin', 'Little Pumpkin', '🎃'),
@@ -137,7 +137,7 @@ export const FOODS: FoodDef[] = [
 export const FOOD: Record<string, FoodDef> = Object.fromEntries(FOODS.map((f) => [f.id, f]));
 
 // ---------- State ----------
-export interface Pet { uid: number; id: string; atk: number; hp: number; exp: number; perk: PerkId | null; tAtk: number; tHp: number }
+export interface Pet { uid: number; id: string; atk: number; hp: number; exp: number; perk: PerkId | null; tAtk: number; tHp: number; /** Ability uses this turn (Dragon). */ uses?: number }
 export interface StallPet { id: string; atk: number; hp: number; frozen: boolean; bonus?: boolean }
 export interface StallFood { id: string; atk: number; hp: number; cost: number; frozen: boolean }
 export type Result = 'win' | 'loss' | 'draw';
@@ -255,7 +255,7 @@ const ABILITIES: Record<string, Ability> = {
   swan: { startTurn: (api, _s, L) => api.gold(L) },
   flamingo: { faint: (api, s, L) => { for (const f of api.behind(s, 2)) api.buff(f, L, L); } },
   spider: { faint: (api, s, L, at) => { const t3 = KINDS.filter((k) => k.tier === 3 && !k.champion && !k.token); api.summon(s, t3[Math.floor(api.rng() * t3.length)].id, 2, 2, posOf(at), L); } },
-  sheep: { faint: (api, s, L, at) => { api.summon(s, 'ram', 2 * L, 2 * L, posOf(at)); api.summon(s, 'ram', 2 * L, 2 * L, posOf(at)); } },
+  sheep: { faint: (api, s, L, at) => { api.summon(s, 'ram', L + 1, L + 1, posOf(at)); api.summon(s, 'ram', L + 1, L + 1, posOf(at)); } },
   kangaroo: { aheadAttacks: (api, s, L) => api.buff(s, 2 * L, 2 * L) },
   ox: { aheadFaints: (api, s, L) => { api.givePerk(s, 'garlic'); api.buff(s, 2 * L, 0); } },
   dog: { summoned: (api, s, L) => (api.rng() < 0.5 ? api.buff(s, L, 0) : api.buff(s, 0, L)) },
@@ -268,21 +268,22 @@ const ABILITIES: Record<string, Ability> = {
     },
   },
   giraffe: { endTurn: (api, s, L) => { for (const f of api.ahead(s, L)) api.buff(f, 1, 1); } },
-  bison: { endTurn: (api, s, L) => { if (api.friends(s).some((f) => lv(f) >= 3)) api.buff(s, 2 * L, 2 * L); } },
+  bison: { endTurn: (api, s, L) => { if (api.friends(s).some((f) => lv(f) >= 3)) api.buff(s, L, L); } },
   turtle: { faint: (api, s, L) => { for (const f of api.behind(s, L)) api.givePerk(f, 'tea'); } },
-  skunk: { sob: (api, s, L) => { const t = [...api.rivals(s)].sort((a, b) => b.hp - a.hp)[0]; if (t) api.hit(t, Math.max(1, Math.floor(t.hp * Math.min(0.99, 0.33 * L))), s); } },
+  skunk: { sob: (api, s, L) => { const t = [...api.rivals(s)].sort((a, b) => b.hp - a.hp)[0]; if (t) api.hit(t, Math.max(1, Math.floor(t.hp * Math.min(0.75, 0.25 * L))), s); } },
   llama: { endTurn: (api, s, L) => { if (api.friends(s, true).length <= 4) api.buff(s, L, 2 * L); } },
-  deer: { faint: (api, s, L, at) => api.summon(s, 'boar', 5 * L, 3 * L, posOf(at), 1, 'chilli') },
+  deer: { faint: (api, s, L, at) => api.summon(s, 'boar', 2 * L + 2, 2 * L + 1, posOf(at), 1, 'chilli') },
   cow: { buy: (api, _s, L) => { api.stockFood({ id: 'milk', atk: L, hp: 2 * L, cost: 0, frozen: false }, true); api.stockFood({ id: 'milk', atk: L, hp: 2 * L, cost: 0, frozen: false }); } },
   rhino: { knockout: (api, s, L) => { const t = api.rivals(s)[0]; if (t) api.hit(t, 4 * L, s); } },
-  monkey: { endTurn: (api, s, L) => { const f = api.friends(s)[0]; if (f) api.buff(f, 2 * L, 3 * L); } },
+  monkey: { endTurn: (api, s, L) => { const f = api.friends(s)[0]; if (f) api.buff(f, L, 2 * L); } },
   turkey: { summoned: (api, _s, L, f) => { if (f && api.inBattle) api.buff(f, 3 * L, 3 * L); } },
   croc: { sob: (api, s, L) => { const r = api.rivals(s); if (r.length) api.hit(r[r.length - 1], 8 * L, s); } },
   mammoth: { faint: (api, s, L) => { for (const f of api.friends(s)) api.buff(f, 2 * L, 2 * L); } },
   snake: { aheadAttacks: (api, s, L) => { const t = randomOf(api, api.rivals(s), 1)[0]; if (t) api.hit(t, 5 * L, s); } },
   gorilla: { hurt: (api, s, L) => { const u = s as Fighter; if ((u.hurts ?? 0) < L && u.perk !== 'tea') { u.hurts = (u.hurts ?? 0) + 1; api.givePerk(s, 'tea'); } } },
-  dragon: { buyOther: (api, s, L, f) => { if (f && KIND[f.id]?.tier === 1) for (const x of api.friends(s)) api.buff(x, L, L); } },
-  leopard: { sob: (api, s, L) => { for (let i = 0; i < L; i++) { const t = randomOf(api, api.rivals(s), 1)[0]; if (t) api.hit(t, Math.max(1, Math.floor(s.atk / 2)), s); } } },
+  // Only a few times a turn (buying and re-selling cheap critters used to pump the whole team endlessly).
+  dragon: { buyOther: (api, s, L, f) => { const p = s as Pet; if (f && KIND[f.id]?.tier === 1 && (p.uses ?? 0) < L) { p.uses = (p.uses ?? 0) + 1; for (const x of api.friends(s)) api.buff(x, 1, 1); } } },
+  leopard: { sob: (api, s, L) => { for (let i = 0; i < L; i++) { const t = randomOf(api, api.rivals(s), 1)[0]; if (t) api.hit(t, Math.max(1, Math.floor(s.atk * 0.4)), s); } } },
   // Champions
   c_pebbles: { sell: (api, _s, L) => api.gold(L) },
   c_whittle: { sell: (api, s, L) => { for (const f of randomOf(api, api.friends(s), 2)) api.buff(f, 0, L); } },
@@ -291,24 +292,24 @@ const ABILITIES: Record<string, Ability> = {
   c_acorn: { startTurn: (api, _s, L) => api.stockFood({ id: 'acorn', atk: L, hp: L, cost: 0, frozen: false }) },
   c_sparky: { sob: (api, s, L) => { for (const f of api.ahead(s, 1)) api.buff(f, 2 * L, 0); } },
   c_splash: { buy: (api, s, L) => { for (const f of randomOf(api, api.friends(s), L)) api.buff(f, 1, 1); } },
-  c_muffin: { friendAte: (api, _s, L, f) => { if (f) api.buff(f, L, L); } },
+  c_muffin: { friendAte: (api, _s, L, f) => { const n = Math.ceil(L / 2); if (f) api.buff(f, n, n); } },
   c_peep: { endTurn: (api, s, L) => { for (const f of api.behind(s, 1)) api.buff(f, L, L); } },
   c_petal: { endTurn: (api, s, L) => { for (const f of randomOf(api, api.friends(s), 2)) api.buff(f, 0, L); } },
   c_ember: { before: (api, s, L) => { const t = randomOf(api, api.rivals(s), 1)[0]; if (t) api.hit(t, 2 * L, s); } },
   c_twinkle: { endTurn: (api, s, L) => { if ((api.run?.gold ?? 0) >= 2) api.buff(s, L, L); } },
   c_bumble: { faint: (api, s, L) => { for (const f of api.friends(s)) api.buff(f, 0, 2 * L); } },
-  c_pinch: { sob: (api, s, L) => { const best = Math.max(0, ...api.friends(s).map((f) => f.hp)); api.buff(s, 0, Math.floor(best * 0.5 * L)); } },
+  c_pinch: { sob: (api, s, L) => { const best = Math.max(0, ...api.friends(s).map((f) => f.hp)); api.buff(s, 0, Math.floor(best * 0.25 * L)); } },
   c_glimmer: { sob: (api, s, L) => { const t = [...api.rivals(s)].sort((a, b) => a.hp - b.hp)[0]; if (t) api.hit(t, 2 * L, s); } },
   c_confetti: { buy: (api, s, L) => { for (const f of api.friends(s)) api.buff(f, L, 0); } },
   c_glyph: { sob: (api, s, L) => { for (const f of api.friends(s)) api.buff(f, L, 0); } },
   c_wick: { faint: (api, s, L) => { for (const f of [...api.ahead(s, 1), ...api.behind(s, 1)]) api.buff(f, 2 * L, 2 * L); } },
   c_lumen: { sob: (api, s, L) => { for (const f of api.behind(s, 1)) api.buff(f, 3 * L, 0); } },
-  c_gourdie: { faint: (api, s, L, at) => api.summon(s, 'pumpkin', 3 * L, 3 * L, posOf(at)) },
+  c_gourdie: { faint: (api, s, L, at) => api.summon(s, 'pumpkin', 2 * L + 1, 2 * L + 1, posOf(at)) },
   c_lookout: { sob: (api, s, L) => { const r = api.rivals(s); if (r.length) api.hit(r[r.length - 1], 4 * L, s); } },
   c_bramble: { knockout: (api, s, L) => api.buff(s, 2 * L, 2 * L) },
-  c_mote: { sob: (api, s, L) => { for (const f of api.friends(s, true).slice(0, L)) api.givePerk(f, 'tea'); } },
-  c_flurry: { sob: (api, s, L) => { const t = api.rivals(s)[0]; if (t) api.buff(t, -3 * L, 0); } },
-  c_kindle: { sob: (api, s, L) => { for (const t of api.rivals(s)) api.hit(t, 3 * L, s); } },
+  c_mote: { sob: (api, s, L) => { for (const f of api.friends(s, true).slice(0, Math.min(2, L))) api.givePerk(f, 'tea'); } },
+  c_flurry: { sob: (api, s, L) => { const t = api.rivals(s)[0]; if (t) api.buff(t, -2 * L, 0); } },
+  c_kindle: { sob: (api, s, L) => { for (const t of api.rivals(s)) api.hit(t, L + 1, s); } },
 };
 /** Faint abilities get told where the critter stood (so summons appear in its place). */
 const posOf = (at: Unit | undefined) => (at as unknown as { i: number } | undefined)?.i ?? 0;
@@ -640,7 +641,7 @@ function endTurnAbilities(r: Run) { fireAll(r, 'endTurn'); }
 function nextTurn(r: Run) {
   r.turn += 1;
   r.gold = TURN_GOLD;
-  for (const p of teamPets(r)) { p.tAtk = 0; p.tHp = 0; }
+  for (const p of teamPets(r)) { p.tAtk = 0; p.tHp = 0; p.uses = 0; }
   restock(r);
   fireAll(r, 'startTurn');
 }
