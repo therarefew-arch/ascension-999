@@ -26,6 +26,11 @@ export const TOWN_VIBE: Partial<Record<Region, string>> = {
   Bluecliff: 'Salt wind, red maples and a lighthouse that watches the one island nobody visits.',
   Lunaria: 'Fog, silver moonlight, and a whole town holding its breath.',
   Cinderpeak: 'Warm stones, spiced bread, hand drums in the Ash Market — and a mountain that snores.',
+  Frosthold: 'Snow to the windowsills, steaming stew, and a whole village singing to keep warm.',
+  Voidreach: 'Rope bridges, ribbons on every post, and a chasm full of stars that answers when you shout.',
+  'Starfall Crater': 'Golden fields, sleepy cows, and a fallen star humming softly in the roots of a tree.',
+  'Celestine Spires': 'Towers above the clouds, wind chimes in every window, and fish swimming through the air.',
+  'Primordial Rift': 'Ferns taller than houses, the very first tree, and a crack in the sky that hums the oldest song.',
 };
 
 export const LORE: LoreNote[] = [
@@ -126,6 +131,91 @@ export const LORE: LoreNote[] = [
   {
     id: 'cp_well', region: 'Cinderpeak', trigger: 'gift', title: 'Left at the Well',
     text: 'Tucked behind the well bucket, wrapped in a faded travelling cloak: a little parcel and a card. "For whoever comes next. The springs are warmer than they look, and the goats are friendlier. I\'ve gone on ahead to Frosthold — keep up! — T."',
+  },
+  // ----- Frosthold: the singing snow village -----
+  {
+    id: 'fh_stewhall', region: 'Frosthold', trigger: 'arrive', title: "Every Pot Gets a Song",
+    text: "Painted over the door of the Stew Hall: \"EVERY POT GETS A SONG.\" Inside, forty people in thick mittens are singing to one enormous pot. Nobody seems to think this is strange. A woman hands you a bowl, a spoon and a song sheet, in that order.",
+  },
+  {
+    id: 'fh_rimeback', region: 'Frosthold', trigger: 'boss', boss: 'old_rimeback', title: "Rimeback's Cave",
+    text: "Deep in the glacier, Old Rimeback's den is lined with singing icicles. When the wind blows through, they play the Frosthold lullaby, note for note. The old bear wasn't hibernating. It was listening.",
+  },
+  {
+    id: 'fh_choir', region: 'Frosthold', trigger: 'find', title: "The Choirmaster's Notebook",
+    text: "\"Visitor in the Stew Hall last night — a hooded sort who knew every verse of the winter songs, even the old ones nobody sings any more. Sang the low part beautifully. Gone before breakfast, down the Dark Stair toward the edge of the world.\"",
+  },
+  {
+    id: 'fh_well', region: 'Frosthold', trigger: 'gift', title: "Left at the Well (Frosthold)",
+    text: "Wrapped in the same faded cloak, with a card: \"Sing to the stew — they mean it, and it works. I've gone down the Dark Stair to Voidreach. Shout something kind into the chasm; it answers tomorrow, right when you need it. Keep up! — T.\"",
+  },
+  // ----- Voidreach: the rope-bridge town at the edge of the world -----
+  {
+    id: 'vr_ribbons', region: 'Voidreach', trigger: 'arrive', title: "The Ribbon Posts",
+    text: "Every post on every rope bridge has ribbons tied to it — hundreds of them, every colour. Folk tie one round their wrist whenever they cross. Below the bridges there is no ground at all. Just stars, all the way down. A little girl waves: \"Don't look down. Well — do. It's lovely.\"",
+  },
+  {
+    id: 'vr_wyrm', region: 'Voidreach', trigger: 'boss', boss: 'hollow_wyrm', title: "Under the Bridges",
+    text: "Where the Hollow Wyrm coiled, the planks are scratched with thousands of little marks. Not days — echoes. Every one it ever heard. Someone has chalked beside them: \"It only wanted something to answer.\"",
+  },
+  {
+    id: 'vr_ledger', region: 'Voidreach', trigger: 'find', title: "The Echo-Keeper's Ledger",
+    text: "Every echo the chasm sends back, with the day it was first shouted. Mostly names, silly songs and one very long sneeze. Yesterday's entry, in careful handwriting: \"Echo heard — a cheerful voice: 'Something fell into the crater to the south. I'm going to go and say hello.'\"",
+  },
+  {
+    id: 'vr_well', region: 'Voidreach', trigger: 'gift', title: "Left at the Well (Voidreach)",
+    text: "\"Did you shout something kind? Good. It'll come back to you tomorrow. Something landed in the crater to the south — a star, they say. I'm going to go and say hello to it. — T.\"",
+  },
+  // ----- Starfall Crater: where the star came down -----
+  {
+    id: 'sf_fields', region: 'Starfall Crater', trigger: 'arrive', title: "The Humming Fields",
+    text: "The whole crater hums one low, warm note. Corn grows in rings around a great tree in the middle, and down in its roots, something glows. The cows lie in the warm grass with their eyes closed. A farmer leans on the gate: \"You get used to the humming. Then you miss it when you leave.\"",
+  },
+  {
+    id: 'sf_elder', region: 'Starfall Crater', trigger: 'boss', boss: 'stargrown_elder', title: "The Heart of the Crater",
+    text: "Inside the Elder's roots lies the fallen star — about the size of a hay bale, warm as fresh bread, and humming. It isn't broken. Up close, the hum sounds almost like the Frosthold lullaby. Almost like it's waiting for someone to sing it back.",
+  },
+  {
+    id: 'sf_almanac', region: 'Starfall Crater', trigger: 'find', title: "A Farmer's Almanac",
+    text: "Planting dates, rainfall, a pressed starbloom. Then, in pencil: \"Stranger sat up all night by the star, humming to it. In the morning they said it came down from the Spires — that's where the stars are kept — and somebody ought to tell them it's safe. Off up the cloud stair, before the cows were even up.\"",
+  },
+  {
+    id: 'sf_well', region: 'Starfall Crater', trigger: 'gift', title: "Left at the Well (Starfall Crater)",
+    text: "\"I sat with the star all night. It isn't lost — it's resting. The Spires are up the cloud stair; they'll want to know it's safe. From up there, they say, you can see every road at once. — T.\"",
+  },
+  // ----- Celestine Spires: towers above the clouds -----
+  {
+    id: 'cs_stair', region: 'Celestine Spires', trigger: 'arrive', title: "Above the Weather",
+    text: "The last step of the cloud stair comes out above the weather. Slender towers rise all around, joined by bridges no wider than a garden path. Wind chimes hang in every window, and a little shoal of fish drifts past your ear as if that's perfectly normal. Up here, it is.",
+  },
+  {
+    id: 'cs_eyrie', region: 'Celestine Spires', trigger: 'boss', boss: 'aurelion', title: "Aurelion's Eyrie",
+    text: "On top of the tallest spire, Aurelion's nest is woven from old star charts. Every chart has the same gap in it — the star that fell. She wasn't guarding the Spires. She was watching the sky for it to come home.",
+  },
+  {
+    id: 'cs_book', region: 'Celestine Spires', trigger: 'find', title: "The Book of Roads",
+    text: "The Spires' library keeps one enormous book with every road ever walked. Most entries are a single line. One goes on for hundreds of pages in a familiar hand — every road there is — and every single one ends in the same place: \"The Primordial Rift. Where it all began. Where I'll wait.\"",
+  },
+  {
+    id: 'cs_well', region: 'Celestine Spires', trigger: 'gift', title: "Left at the Well (Celestine Spires)",
+    text: "\"From up here you can see every road at once, and every one of them ends at the Rift. I'll wait for you there — this time I'll stay put. Bring the compass. — T.\"",
+  },
+  // ----- The Primordial Rift: where the world began, and where you meet the Traveller -----
+  {
+    id: 'pr_morning', region: 'Primordial Rift', trigger: 'arrive', title: "The First Morning",
+    text: "The road ends in a valley of ferns taller than houses. The Worldtree holds up the sky, and above it the sky is cracked open, humming one slow, deep note. It's the same note as the star, and the singing ice, and the Frosthold lullaby. It was always the same song.",
+  },
+  {
+    id: 'pr_wyrm', region: 'Primordial Rift', trigger: 'boss', boss: 'first_wyrm', title: "Around the Roots",
+    text: "The First Wyrm sleeps curled around the Worldtree's roots — the way the Kiln Wyrm curls round its kiln, and the Hollow Wyrm round its bridges. Maybe every wyrm in the world is a little piece of this one, keeping something warm.",
+  },
+  {
+    id: 'pr_shrine', region: 'Primordial Rift', trigger: 'find', title: "A Pocketvale Pebble",
+    text: "At the foot of the Worldtree, someone has built a tiny shrine of smooth pebbles — Pocketvale pebbles, from the river by the well. Tucked under one is a child's drawing, very old and very faded: a bear in a flower crown. It's signed \"Mira, age 7\".",
+  },
+  {
+    id: 'pr_traveller', region: 'Primordial Rift', trigger: 'gift', title: "The Traveller",
+    text: "She's sitting on the edge of the well, hood down at last: an old woman with grass-green eyes and a pocket full of Pocketvale pebbles. \"You kept up!\" she laughs. \"Everyone calls me the Traveller. I was Mira, once. I drew a bear in a flower crown, back home, and then I walked every road there is to find out where they go.\" She waves at the humming sky. \"They all come here. All but one — the road up. The Ascension. My feet are too old for that one now.\" She folds her cloak into your arms and closes your fingers round the compass. \"Yours aren't. Go on. And write to me.\"",
   },
   // ----- 🍶 Messages in bottles (found in corked bottles while fishing, in order). Little hints of the Frontier. -----
   // (Not tied to a town — the Tales page shows them in their own section.)

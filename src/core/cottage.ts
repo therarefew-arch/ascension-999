@@ -78,6 +78,23 @@ export const FURNITURE: Furniture[] = [
     cost: [{ id: 'emberpepper', qty: 30 }, { id: 'dried_emberleaf', qty: 20 }, { id: 'emberbark_logs', qty: 10 }], perk: { kind: 'xp', skill: 'cooking', pct: 3 }, blurb: 'Jars of Ash Market spices. The whole cottage smells wonderful.' },
   { id: 'ember_brazier', name: 'Emberite brazier', emoji: '🪔', x: 36, y: 48, skill: 'smithing', level: 335, tier: 5,
     cost: [{ id: 'emberite_bar', qty: 20 }, { id: 'emberbark_logs', qty: 20 }], perk: { kind: 'fire', pct: 25 }, blurb: 'Glows all night. Your cooking fire burns even longer.' },
+  // ----- Frosthold -----
+  { id: 'frost_quilt', name: 'Frosthold patchwork quilt', emoji: '🧶', x: 76, y: 56, skill: 'crafting', level: 405, tier: 6,
+    cost: [{ id: 'frostpine_logs', qty: 30 }, { id: 'dried_frostmint', qty: 25 }, { id: 'snowcabbage', qty: 20 }], perk: { kind: 'xp', skill: 'defense', pct: 3 }, blurb: 'Sewn while singing, the Frosthold way. Every patch is a verse.' },
+  { id: 'singing_lantern', name: 'Singing ice lantern', emoji: '🧊', x: 40, y: 88, skill: 'firemaking', level: 410, tier: 6,
+    cost: [{ id: 'frostcore_bar', qty: 20 }, { id: 'frostpine_logs', qty: 20 }], perk: { kind: 'fire', pct: 25 }, blurb: 'A candle inside clear ice. It hums softly while it burns, and so does your fire.' },
+  // ----- Voidreach -----
+  { id: 'void_window', name: 'Void-glass window', emoji: '🪟', x: 6, y: 50, skill: 'crafting', level: 490, tier: 7,
+    cost: [{ id: 'voidstone_bar', qty: 20 }, { id: 'voidwood_logs', qty: 30 }], perk: { kind: 'stars', pct: 15 }, blurb: 'Look through it and you see the night sky, even at noon. Lucky Stars find you more often.' },
+  // ----- Starfall Crater -----
+  { id: 'star_orrery', name: 'Starmetal orrery', emoji: '🪐', x: 90, y: 92, skill: 'smithing', level: 575, tier: 8,
+    cost: [{ id: 'starmetal_bar', qty: 25 }, { id: 'starbloom_logs', qty: 20 }, { id: 'starfruit', qty: 10 }], perk: { kind: 'xp', skill: 'combat', pct: 3 }, blurb: 'Little planets that circle a chip of the fallen star. It hums when you walk past.' },
+  // ----- Celestine Spires -----
+  { id: 'wind_chimes', name: 'Celestine wind chimes', emoji: '🎐', x: 22, y: 8, skill: 'crafting', level: 665, tier: 9,
+    cost: [{ id: 'celestium_bar', qty: 20 }, { id: 'celestwood_logs', qty: 30 }], perk: { kind: 'xp', skill: 'all', pct: 2 }, blurb: 'Tuned by the Spires\' chime-makers. Every breeze through the window plays a little tune.' },
+  // ----- The Primordial Rift -----
+  { id: 'worldtree_sapling', name: 'Worldtree sapling', emoji: '🌳', x: 56, y: 54, skill: 'farming', level: 755, tier: 10,
+    cost: [{ id: 'worldtree_logs', qty: 40 }, { id: 'worldpumpkin', qty: 30 }, { id: 'dried_worldroot', qty: 20 }], perk: { kind: 'xp', skill: 'all', pct: 3 }, blurb: 'A cutting of the very first tree, growing in a pot by the window. The whole cottage feels older and kinder.' },
 ];
 /** 🎪 Festival keepsakes: traded for tokens at a festival stall (not built). +1% XP to everything each. */
 const FESTIVAL_SPOTS: Record<string, [number, number]> = { blossom: [22, 44], midsummer: [64, 4], harvest: [80, 82], winter: [92, 44] };

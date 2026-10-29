@@ -54,6 +54,11 @@ const LOOK: Record<string, { g1: string; g2: string; edge: string; road: string;
   Bluecliff: { g1: '#4f8a6a', g2: '#579373', edge: '#7c6a4c', road: '#c9b48a', deco: ['🌴', '🐚', '🌾', '⛵'], gate: '🏰' },
   Lunaria: { g1: '#3d5568', g2: '#445d71', edge: '#3b4a5a', road: '#8a93a3', deco: ['🌫️', '🌲', '🕯️', '🪦'], gate: '🏯' },
   Cinderpeak: { g1: '#6b5338', g2: '#755b3d', edge: '#4a2f22', road: '#9c6b4a', deco: ['🌋', '🪨', '🔥', '🌵'], gate: '🏯' },
+  Frosthold: { g1: '#c9d6e3', g2: '#d6e1eb', edge: '#8aa0b6', road: '#eef3f8', deco: ['🌲', '⛄', '🏔️', '❄️'], gate: '🏰' },
+  Voidreach: { g1: '#2e2648', g2: '#352c52', edge: '#1a1430', road: '#6b5a3a', deco: ['✨', '🎀', '🪨', '🌌'], gate: '🏯' },
+  'Starfall Crater': { g1: '#9c8a3e', g2: '#a89545', edge: '#6b5a2a', road: '#c9a86a', deco: ['🌾', '🐄', '🌟', '🌻'], gate: '🏰' },
+  'Celestine Spires': { g1: '#c7e3f2', g2: '#d5eaf6', edge: '#8fb8cf', road: '#e7e2d6', deco: ['☁️', '🎐', '🕊️', '☁️'], gate: '🏰' },
+  'Primordial Rift': { g1: '#2f5a2a', g2: '#376630', edge: '#1f3a1b', road: '#7a6a48', deco: ['🌿', '🦴', '🌳', '🍄'], gate: '🏯' },
 };
 
 interface View { s: number; ox: number; oy: number; w: number; h: number }

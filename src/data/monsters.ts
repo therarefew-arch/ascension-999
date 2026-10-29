@@ -239,6 +239,181 @@ MONSTERS.push(
   },
 );
 
+// ----- Frosthold (tier 6) — the singing snow village. Cold, but nobody here is unkind. -----
+MONSTERS.push(
+  {
+    id: 'snow_hare', name: "Snowdrift Hare", region: 'Frosthold', level: 545, style: 'melee',
+    hp: 880, attack: 535, defense: 470, maxHit: 72, speedMs: 2000, lootTable: 'mon_snow_hare',
+    colors: { body: '#f1f5f9', dark: '#94a3b8', accent: '#7dd3fc' }, art: 'rat',
+    blurb: "Big as a dog, white as the snow, and it kicks like a mule when you step on its burrow.",
+  },
+  {
+    id: 'frost_wisp', name: "Frost Wisp", region: 'Frosthold', level: 560, style: 'magic',
+    hp: 840, attack: 550, defense: 475, maxHit: 72, speedMs: 2000, lootTable: 'mon_frost_wisp',
+    colors: { body: '#bae6fd', dark: '#0e7490', accent: '#f0f9ff' }, art: 'sprite',
+    blurb: "A little puff of winter that hums along when the village sings — and freezes you when it stops.",
+  },
+  {
+    id: 'snowball_bandit', name: "Snowball Bandit", region: 'Frosthold', level: 580, style: 'ranged',
+    hp: 960, attack: 575, defense: 500, maxHit: 78, speedMs: 1900, lootTable: 'mon_snowball_bandit',
+    colors: { body: '#1e3a8a', dark: '#172554', accent: '#e0f2fe' }, art: 'bandit',
+    blurb: "Hides behind snowdrifts and pelts travellers with snowballs. Some of them have rocks in.",
+  },
+  {
+    id: 'woolly_ram', name: "Woolly Ram", region: 'Frosthold', level: 605, style: 'melee',
+    hp: 1120, attack: 595, defense: 550, maxHit: 82, speedMs: 2200, lootTable: 'mon_woolly_ram',
+    colors: { body: '#e7e5e4', dark: '#57534e', accent: '#a5f3fc' }, art: 'goat',
+    blurb: "So much wool that your arrows just get lost in it. Charges anything that sings off-key.",
+  },
+  {
+    id: 'old_rimeback', name: "Old Rimeback", region: 'Frosthold', level: 625, style: 'melee',
+    hp: 4100, attack: 625, defense: 560, maxHit: 108, speedMs: 2200, lootTable: 'boss_old_rimeback',
+    miniboss: { respawnMs: 5 * 60 * 1000 }, pet: 'pet_snowdrop',
+    colors: { body: '#f8fafc', dark: '#64748b', accent: '#38bdf8' }, art: 'bear',
+    blurb: "Mini boss. A great white bear with icicles in its fur, sleeping off the winter in the glacier caves. Drops gems.",
+  },
+);
+
+// ----- Voidreach (tier 7) — the rope-bridge town at the edge of the starry chasm. Strange, but gentle. -----
+MONSTERS.push(
+  {
+    id: 'gloom_mole', name: "Gloomburrow Mole", region: 'Voidreach', level: 635, style: 'melee',
+    hp: 990, attack: 625, defense: 550, maxHit: 80, speedMs: 2000, lootTable: 'mon_gloom_mole',
+    colors: { body: '#3b0764', dark: '#1e1b4b', accent: '#c4b5fd' }, art: 'rat',
+    blurb: "Digs tunnels that come out somewhere slightly different every time. Grumpy about it.",
+  },
+  {
+    id: 'echo_wisp', name: "Echo Wisp", region: 'Voidreach', level: 650, style: 'magic',
+    hp: 950, attack: 640, defense: 555, maxHit: 80, speedMs: 2000, lootTable: 'mon_echo_wisp',
+    colors: { body: '#a78bfa', dark: '#4c1d95', accent: '#f5f3ff' }, art: 'sprite',
+    blurb: "Repeats the last thing you said — a day late, and much louder.",
+  },
+  {
+    id: 'ribbon_bandit', name: "Ribbon Cutter", region: 'Voidreach', level: 670, style: 'ranged',
+    hp: 1070, attack: 665, defense: 580, maxHit: 86, speedMs: 1900, lootTable: 'mon_ribbon_bandit',
+    colors: { body: '#581c87', dark: '#2e1065', accent: '#f0abfc' }, art: 'bandit',
+    blurb: "Snips the safety ribbons folk tie to the posts, then fires at whoever wobbles.",
+  },
+  {
+    id: 'chasm_crawler', name: "Chasm Crawler", region: 'Voidreach', level: 695, style: 'melee',
+    hp: 1240, attack: 685, defense: 630, maxHit: 90, speedMs: 2200, lootTable: 'mon_chasm_crawler',
+    colors: { body: '#312e81', dark: '#0f0a2e', accent: '#818cf8' }, art: 'crab',
+    blurb: "Climbs up out of the stars at night. Its shell is full of tiny lights.",
+  },
+  {
+    id: 'hollow_wyrm', name: "The Hollow Wyrm", region: 'Voidreach', level: 715, style: 'magic',
+    hp: 4700, attack: 715, defense: 640, maxHit: 118, speedMs: 2200, lootTable: 'boss_hollow_wyrm',
+    miniboss: { respawnMs: 5 * 60 * 1000 }, pet: 'pet_nib',
+    colors: { body: '#1e1b4b', dark: '#020617', accent: '#e9d5ff' }, art: 'wyrm',
+    blurb: "Mini boss. A long, starry serpent that coils under the bridges. You can see the night sky through it. Drops gems.",
+  },
+);
+
+// ----- Starfall Crater (tier 8) — the farming village where a star came down. It hums. -----
+MONSTERS.push(
+  {
+    id: 'crater_boar', name: "Crater Boar", region: 'Starfall Crater', level: 725, style: 'melee',
+    hp: 1100, attack: 715, defense: 630, maxHit: 88, speedMs: 2000, lootTable: 'mon_crater_boar',
+    colors: { body: '#a16207', dark: '#422006', accent: '#fde047' }, art: 'boar',
+    blurb: "Has been rooting for starmetal in the fields so long its tusks have gone golden.",
+  },
+  {
+    id: 'star_sprite', name: "Stardust Sprite", region: 'Starfall Crater', level: 740, style: 'magic',
+    hp: 1060, attack: 730, defense: 635, maxHit: 88, speedMs: 2000, lootTable: 'mon_star_sprite',
+    colors: { body: '#fef08a', dark: '#a16207', accent: '#ffffff' }, art: 'sprite',
+    blurb: "A crumb that broke off the fallen star. Very excited about everything. Fizzes when cross.",
+  },
+  {
+    id: 'comet_hawk', name: "Comet Hawk", region: 'Starfall Crater', level: 760, style: 'ranged',
+    hp: 1180, attack: 755, defense: 660, maxHit: 94, speedMs: 1900, lootTable: 'mon_comet_hawk',
+    colors: { body: '#c2410c', dark: '#431407', accent: '#fde68a' }, art: 'bird',
+    blurb: "Dives out of the sky trailing sparks. Steals starfruit from the orchards.",
+  },
+  {
+    id: 'stardust_treant', name: "Starbloom Treant", region: 'Starfall Crater', level: 785, style: 'melee',
+    hp: 1360, attack: 775, defense: 710, maxHit: 98, speedMs: 2200, lootTable: 'mon_stardust_treant',
+    colors: { body: '#65a30d', dark: '#1a2e05', accent: '#fde047' }, art: 'treant',
+    blurb: "An orchard tree that drank too much starlight and wandered off. Its blossoms glow.",
+  },
+  {
+    id: 'stargrown_elder', name: "The Stargrown Elder", region: 'Starfall Crater', level: 805, style: 'magic',
+    hp: 5300, attack: 805, defense: 720, maxHit: 128, speedMs: 2200, lootTable: 'boss_stargrown_elder',
+    miniboss: { respawnMs: 5 * 60 * 1000 }, pet: 'pet_nova',
+    colors: { body: '#4d7c0f', dark: '#14280a', accent: '#fef08a' }, art: 'treant',
+    blurb: "Mini boss. A great tree that grew up around the fallen star to keep it safe. Hums the same note. Drops gems.",
+  },
+);
+
+// ----- Celestine Spires (tier 9) — towers above the clouds. Breezy, bright and a little proud. -----
+MONSTERS.push(
+  {
+    id: 'cloud_ram', name: "Cloud Ram", region: 'Celestine Spires', level: 815, style: 'melee',
+    hp: 1210, attack: 805, defense: 710, maxHit: 96, speedMs: 2000, lootTable: 'mon_cloud_ram',
+    colors: { body: '#f8fafc', dark: '#94a3b8', accent: '#bae6fd' }, art: 'goat',
+    blurb: "Leaps from spire to spire on wool so light it floats. Lands on people. On purpose.",
+  },
+  {
+    id: 'chime_sprite', name: "Chime Sprite", region: 'Celestine Spires', level: 830, style: 'magic',
+    hp: 1170, attack: 820, defense: 715, maxHit: 96, speedMs: 2000, lootTable: 'mon_chime_sprite',
+    colors: { body: '#99f6e4', dark: '#0f766e', accent: '#ffffff' }, art: 'sprite',
+    blurb: "Lives inside the wind chimes. Rings a wrong note at you, very loudly.",
+  },
+  {
+    id: 'sky_pirate', name: "Sky Pirate", region: 'Celestine Spires', level: 850, style: 'ranged',
+    hp: 1290, attack: 845, defense: 740, maxHit: 102, speedMs: 1900, lootTable: 'mon_sky_pirate',
+    colors: { body: '#0f766e', dark: '#042f2e', accent: '#fcd34d' }, art: 'bandit',
+    blurb: "Sails a little cloud-skiff between the towers, firing a crossbow and stealing hats.",
+  },
+  {
+    id: 'storm_gryphon', name: "Storm Gryphon", region: 'Celestine Spires', level: 875, style: 'melee',
+    hp: 1480, attack: 865, defense: 790, maxHit: 106, speedMs: 2200, lootTable: 'mon_storm_gryphon',
+    colors: { body: '#ca8a04', dark: '#422006', accent: '#e0f2fe' }, art: 'bird',
+    blurb: "Nests on the tallest spire and guards it from everyone, including the people who live there.",
+  },
+  {
+    id: 'aurelion', name: "Aurelion, the Sky Sovereign", region: 'Celestine Spires', level: 895, style: 'magic',
+    hp: 5900, attack: 895, defense: 800, maxHit: 138, speedMs: 2200, lootTable: 'boss_aurelion',
+    miniboss: { respawnMs: 5 * 60 * 1000 }, pet: 'pet_cirrus',
+    colors: { body: '#fbbf24', dark: '#78350f', accent: '#f0fdfa' }, art: 'bird',
+    blurb: "Mini boss. A golden eagle as big as a house, who thinks the Spires were built for her. Drops gems.",
+  },
+);
+
+// ----- The Primordial Rift (tier 10) — where the world began. Ancient, wild and wonderful. -----
+MONSTERS.push(
+  {
+    id: 'fern_raptor', name: "Fern Raptor", region: 'Primordial Rift', level: 905, style: 'melee',
+    hp: 1320, attack: 895, defense: 790, maxHit: 104, speedMs: 2000, lootTable: 'mon_fern_raptor',
+    colors: { body: '#15803d', dark: '#052e16', accent: '#fbbf24' }, art: 'lizard',
+    blurb: "Quick, clever and curious. Hunts in the giant ferns and is very interested in your snacks.",
+  },
+  {
+    id: 'first_light', name: "First Light", region: 'Primordial Rift', level: 920, style: 'magic',
+    hp: 1280, attack: 910, defense: 795, maxHit: 104, speedMs: 2000, lootTable: 'mon_first_light',
+    colors: { body: '#d9f99d', dark: '#3f6212', accent: '#ffffff' }, art: 'sprite',
+    blurb: "One of the very first lights in the world. Older than the stars, and a bit cross about being woken.",
+  },
+  {
+    id: 'thornback', name: "Thornback", region: 'Primordial Rift', level: 940, style: 'ranged',
+    hp: 1400, attack: 935, defense: 820, maxHit: 110, speedMs: 1900, lootTable: 'mon_thornback',
+    colors: { body: '#4d7c0f', dark: '#1a2e05', accent: '#f87171' }, art: 'tortoise',
+    blurb: "An ancient tortoise that flicks thorns off its shell. It has been here since before the Rift opened.",
+  },
+  {
+    id: 'moss_colossus', name: "Moss Colossus", region: 'Primordial Rift', level: 965, style: 'melee',
+    hp: 1600, attack: 955, defense: 870, maxHit: 114, speedMs: 2200, lootTable: 'mon_moss_colossus',
+    colors: { body: '#166534', dark: '#052e16', accent: '#a3e635' }, art: 'treant',
+    blurb: "A walking hill. Birds nest in it. It does not notice you until you hit it.",
+  },
+  {
+    id: 'first_wyrm', name: "The First Wyrm", region: 'Primordial Rift', level: 985, style: 'melee',
+    hp: 6500, attack: 985, defense: 880, maxHit: 148, speedMs: 2200, lootTable: 'boss_first_wyrm',
+    miniboss: { respawnMs: 5 * 60 * 1000 }, pet: 'pet_pip',
+    colors: { body: '#064e3b', dark: '#022c22', accent: '#fde047' }, art: 'wyrm',
+    blurb: "Mini boss. The oldest creature in the world, curled around the roots of the Worldtree. Drops gems.",
+  },
+);
+
 // Monsters above are written for the first town spacing (a town every 90 levels).
 // Towns now open at TIER_LEVELS (1, 50, 110, 175 …), so each monster is moved to the same spot
 // inside its town's new level band, and its stats scale with its level — same feel, earlier.

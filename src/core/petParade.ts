@@ -102,6 +102,11 @@ export const KINDS: Kind[] = [
   K('c_mote', 'Mote', '🌙', 5, 3, 6, (L) => `Start of parade: give the ${Math.min(2, L)} front friend${L > 1 ? 's' : ''} a 🍵 Tea shield.`, 'pet_mote'),
   K('c_flurry', 'Flurry', '⛄', 5, 4, 7, (L) => `Start of parade: chill the front rival: −${2 * L} attack.`, 'pet_flurry'),
   K('c_kindle', 'Kindle', '🐉', 6, 5, 6, (L) => `Start of parade: breathe fire on ALL rivals for ${L + 1}.`, 'pet_kindle'),
+  K('c_snowdrop', 'Snowdrop', '🐻‍❄️', 5, 3, 6, (L) => `Start of parade: tuck everyone in — all friends get +${Math.min(2, L)} health.`, 'pet_snowdrop'),
+  K('c_nib', 'Nib', '🦇', 5, 5, 4, (L) => `Faint: an echo! Hit the 2 front rivals for ${3 * L}.`, 'pet_nib'),
+  K('c_nova', 'Nova', '🌠', 6, 5, 6, (L) => `Start of parade: give a random friend +${2 * L}/+${2 * L}.`, 'pet_nova'),
+  K('c_cirrus', 'Cirrus', '🕊️', 5, 4, 6, (L) => `Before attack: lift the friend behind: +${L}/+${L}.`, 'pet_cirrus'),
+  K('c_pip', 'Pip', '🦕', 6, 4, 9, (L) => `Faint: give the friend behind +${L} attack and +${3 * L} health.`, 'pet_pip'),
 
   // Summoned helpers
   T('beetle', 'Beetle', '🪲'), T('ram', 'Ram', '🐏'), T('boar', 'Boar', '🐗'), T('bee', 'Bee', '🐝'), T('pumpkin', 'Little Pumpkin', '🎃'),
@@ -310,6 +315,11 @@ const ABILITIES: Record<string, Ability> = {
   c_mote: { sob: (api, s, L) => { for (const f of api.friends(s, true).slice(0, Math.min(2, L))) api.givePerk(f, 'tea'); } },
   c_flurry: { sob: (api, s, L) => { const t = api.rivals(s)[0]; if (t) api.buff(t, -2 * L, 0); } },
   c_kindle: { sob: (api, s, L) => { for (const t of api.rivals(s)) api.hit(t, L + 1, s); } },
+  c_snowdrop: { sob: (api, s, L) => { for (const f of api.friends(s, true)) api.buff(f, 0, Math.min(2, L)); } },
+  c_nib: { faint: (api, s, L) => { for (const t of api.rivals(s).slice(0, 2)) api.hit(t, 3 * L, s); } },
+  c_nova: { sob: (api, s, L) => { const f = randomOf(api, api.friends(s), 1)[0]; if (f) api.buff(f, 2 * L, 2 * L); } },
+  c_cirrus: { before: (api, s, L) => { for (const f of api.behind(s, 1)) api.buff(f, L, L); } },
+  c_pip: { faint: (api, s, L) => { for (const f of api.behind(s, 1)) api.buff(f, L, 3 * L); } },
 };
 /** Faint abilities get told where the critter stood (so summons appear in its place). */
 const posOf = (at: Unit | undefined) => (at as unknown as { i: number } | undefined)?.i ?? 0;

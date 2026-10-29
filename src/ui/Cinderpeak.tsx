@@ -44,6 +44,24 @@ export function CinderpeakCard({ onMining }: { onMining: () => void }) {
 export function TravellerCard() {
   const { player } = useGame();
   if (!travellerGiftWaiting(player)) return null;
+  // 🌀 At the end of every road, the Traveller is waiting in person.
+  if (player.location === 'Primordial Rift') {
+    return (
+      <section className="traveller-card">
+        <div className="traveller-head">
+          <span className="traveller-emoji">🎒</span>
+          <div className="grow">
+            <h2 className="section-title">SOMEONE IS WAITING BY THE WELL</h2>
+            <div className="small muted">A hooded figure sits on the well's edge, as if they've been waiting a very long time. They look up when you arrive, and smile.</div>
+          </div>
+        </div>
+        <button className="cp-gift" onClick={() => game.takeTravellerGift()}>
+          <span className="cp-emoji">🧭</span>
+          <span className="grow"><b>Sit down beside them</b><span className="small muted">You kept up. Tap to say hello.</span></span>
+        </button>
+      </section>
+    );
+  }
   return (
     <section className="traveller-card">
       <div className="traveller-head">

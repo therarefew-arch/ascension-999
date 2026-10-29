@@ -44,6 +44,12 @@ export const inHotSprings = (p: PlayerState) => p.location === 'Cinderpeak' && !
 /** (Each town's card from the Traveller is a 'gift' lore note in data/lore.ts.) */
 export const TRAVELLER_GIFTS: Record<string, { table: string }> = {
   Cinderpeak: { table: 'gift_cinderpeak' },
+  Frosthold: { table: 'gift_frosthold' },
+  Voidreach: { table: 'gift_voidreach' },
+  'Starfall Crater': { table: 'gift_starfall_crater' },
+  'Celestine Spires': { table: 'gift_celestine_spires' },
+  // At the end of every road, the Traveller herself is waiting.
+  'Primordial Rift': { table: 'gift_primordial_rift' },
 };
 
 /**

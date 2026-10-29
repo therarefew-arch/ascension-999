@@ -169,6 +169,35 @@ for (let t = 0; t < TIER_COUNT; t++) {
   );
 }
 
+// ----- The Frontier beyond Cinderpeak (tiers 6–10): Frosthold, Voidreach, Starfall Crater, Celestine Spires, the Primordial Rift -----
+// Coins grow about ×1.6 a town. Each town drops its own metal, wood, fish, crop and a rune that suits it.
+{
+  const town = (tier: number, ids: [string, string, string, string, string], rune: string, treasure: string, gift: { id: string; extra: [string, number][] }) => {
+    const m = METALS[tier].key, w = WOODS[tier].key, f = FISH[tier].key, c = CROPS[tier].key;
+    const k = Math.pow(1.6, tier - 5);
+    const coins = (lo: number, hi: number) => e('coins', Math.round(lo * k / 10) * 10, Math.round(hi * k / 10) * 10, 1);
+    const [melee, magic, ranged, tough, boss] = ids;
+    tables.push(
+      { id: `mon_${melee}`, source: 'monster', entries: [coins(820, 1400), e(oreFor(tier), 3, 8, 0.4), e(c, 1, 3, 0.25), e('stone', 10, 20, 0.2)] },
+      { id: `mon_${magic}`, source: 'monster', entries: [coins(880, 1500), e(rune, 50, 100, 0.45), e(`raw_${f}`, 2, 5, 0.35), e(`${w}_logs`, 3, 7, 0.3)] },
+      { id: `mon_${ranged}`, source: 'monster', entries: [coins(980, 1700), e(`${m}_arrows`, 20, 45, 0.45), e(`${m}_bar`, 1, 3, 0.25), e(`cooked_${f}`, 1, 3, 0.3)] },
+      { id: `mon_${tough}`, source: 'monster', entries: [coins(1100, 1900), e(oreFor(tier), 5, 11, 0.45), e(`${w}_logs`, 4, 10, 0.35), e(rune, 40, 80, 0.3)] },
+      {
+        id: `boss_${boss}`, source: 'miniboss',
+        entries: [coins(4200, 7600), e(`${m}_bar`, 8, 18, 0.6), e(`great_${f}`, 3, 8, 0.5), e(`${w}_logs`, 20, 40, 0.5), e(rune, 80, 160, 0.5), e(treasure, 1, 1, 0.1)],
+        groups: [{ chance: 0, items: [] }], // replaced below with the gem group
+      },
+      // 🎒 The Traveller's gift at this town's well.
+      { id: gift.id, source: 'skilling', entries: [e('coins', Math.round(5000 * k / 100) * 100, Math.round(5000 * k / 100) * 100, 1), e(treasure, 1, 1, 1), e(`${c}_seed`, 3, 3, 1), ...gift.extra.map(([id, n]) => e(id, n, n, 1))] },
+    );
+  };
+  town(6, ['snow_hare', 'frost_wisp', 'snowball_bandit', 'woolly_ram', 'old_rimeback'], 'frost_rune', 'singing_icicle', { id: 'gift_frosthold', extra: [['great_frostcod', 5]] });
+  town(7, ['gloom_mole', 'echo_wisp', 'ribbon_bandit', 'chasm_crawler', 'hollow_wyrm'], 'shadow_rune', 'echo_shell', { id: 'gift_voidreach', extra: [['dried_voidbloom', 10]] });
+  town(8, ['crater_boar', 'star_sprite', 'comet_hawk', 'stardust_treant', 'stargrown_elder'], 'light_rune', 'star_shard', { id: 'gift_starfall_crater', extra: [['starbloom_logs', 30]] });
+  town(9, ['cloud_ram', 'chime_sprite', 'sky_pirate', 'storm_gryphon', 'aurelion'], 'air_rune', 'cloud_pearl', { id: 'gift_celestine_spires', extra: [['light_rune', 150]] });
+  town(10, ['fern_raptor', 'first_light', 'thornback', 'moss_colossus', 'first_wyrm'], 'nature_rune', 'first_fossil', { id: 'gift_primordial_rift', extra: [['travellers_cloak', 1]] });
+}
+
 // ----- Mini boss: the ONLY place gems drop (in Pocketvale) -----
 /** Chance weights per rarity: common is common, mythic is very rare. */
 export const GEM_RARITY_WEIGHTS: Record<GemRarity, number> = { common: 45, uncommon: 28, rare: 15, epic: 8, legendary: 3, mythic: 1 };
@@ -205,6 +234,13 @@ tables.find((t) => t.id === 'boss_the_hush')!.groups = [gemGroup(0.9, { common: 
 
 // The Kiln Wyrm: a gem 92% of the time, rarities a step better again.
 tables.find((t) => t.id === 'boss_kiln_wyrm')!.groups = [gemGroup(0.92, { common: 14, uncommon: 28, rare: 29, epic: 19, legendary: 8, mythic: 2 })];
+
+// The Frontier's mini bosses: a gem more often each town, and rarities a step better each time.
+tables.find((t) => t.id === 'boss_old_rimeback')!.groups = [gemGroup(0.93, { common: 11, uncommon: 26, rare: 30, epic: 21, legendary: 9, mythic: 3 })];
+tables.find((t) => t.id === 'boss_hollow_wyrm')!.groups = [gemGroup(0.94, { common: 9, uncommon: 24, rare: 30, epic: 23, legendary: 10, mythic: 4 })];
+tables.find((t) => t.id === 'boss_stargrown_elder')!.groups = [gemGroup(0.95, { common: 7, uncommon: 22, rare: 30, epic: 25, legendary: 11, mythic: 5 })];
+tables.find((t) => t.id === 'boss_aurelion')!.groups = [gemGroup(0.96, { common: 5, uncommon: 20, rare: 30, epic: 27, legendary: 12, mythic: 6 })];
+tables.find((t) => t.id === 'boss_first_wyrm')!.groups = [gemGroup(0.98, { common: 3, uncommon: 17, rare: 30, epic: 29, legendary: 14, mythic: 7 })];
 
 // ----- Weekly boss: 2 guaranteed gems with better rarity odds -----
 const WEEKLY_GEM_WEIGHTS: Record<GemRarity, number> = { common: 20, uncommon: 30, rare: 25, epic: 15, legendary: 7, mythic: 3 };

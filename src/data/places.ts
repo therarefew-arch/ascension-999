@@ -30,10 +30,36 @@ const PLACE_NAMES: Partial<Record<Region, Partial<Record<SkillId, string>>>> = {
     mining: 'The Glowing Vents', smithing: 'The Old Kiln Forge', woodcutting: 'Emberbark Slopes', fishing: 'The Lava Lake',
     cooking: 'Hot-Stone Bakery', firemaking: 'The Ember Steps', crafting: 'Potters’ Row', runecrafting: 'The Fire Circle', enhancing: 'The Magma Anvil',
   },
+  Frosthold: {
+    herblore: 'Frostmint Hollow', farming: 'Your Garden (back in Pocketvale)',
+    mining: 'The Frostcore Glacier', smithing: 'The Rimefire Forge', woodcutting: 'Frostpine Ridge', fishing: 'The Ice Holes',
+    cooking: 'The Stew Hall', firemaking: 'The Long Hearth', crafting: 'The Sled Barn', runecrafting: 'The Singing Stones', enhancing: 'The Frost Anvil',
+  },
+  Voidreach: {
+    herblore: 'The Rim Gardens', farming: 'Your Garden (back in Pocketvale)',
+    mining: 'The Edge Quarry', smithing: 'The Hanging Forge', woodcutting: 'The Voidwood Thicket', fishing: 'The Star Well',
+    cooking: 'The Rope-Bridge Inn', firemaking: 'The Lamp Pegs', crafting: 'The Ribbon Loft', runecrafting: 'The Echo Circle', enhancing: 'The Gravity Anvil',
+  },
+  'Starfall Crater': {
+    herblore: 'The Thistle Rows', farming: 'Your Garden (back in Pocketvale)',
+    mining: 'The Impact Seam', smithing: 'The Starmetal Smithy', woodcutting: 'The Starbloom Orchard', fishing: 'The Crater Pond',
+    cooking: 'The Harvest Table', firemaking: 'The Comet Pit', crafting: 'The Barn Loft', runecrafting: 'The Humming Stone', enhancing: 'The Skyfall Anvil',
+  },
+  'Celestine Spires': {
+    herblore: 'The Sky Gardens', farming: 'Your Garden (back in Pocketvale)',
+    mining: 'The Floating Quarry', smithing: 'The Wind Forge', woodcutting: 'The Celestwood Terraces', fishing: 'The Cloud Nets',
+    cooking: 'The Sky Kitchen', firemaking: 'The Beacon Spire', crafting: 'The Chime-Maker’s Workshop', runecrafting: 'The Star Observatory', enhancing: 'The Zenith Anvil',
+  },
+  'Primordial Rift': {
+    herblore: 'The Fern Valley', farming: 'Your Garden (back in Pocketvale)',
+    mining: 'The First Stone', smithing: 'The Dawn Forge', woodcutting: 'The Worldtree Roots', fishing: 'The Leviathan Deeps',
+    cooking: 'The First Fire', firemaking: 'The Eternal Flame', crafting: 'The Ancestors’ Workshop', runecrafting: 'The Origin Circle', enhancing: 'The Anvil of Ages',
+  },
 };
 
 /** Where the combat area is in each town. */
-export const TRAINING: Partial<Record<Region, string>> = { Pocketvale: 'Training Grounds', Ironmoor: 'Mine Tunnels', Coalhaven: 'The Docks', Bluecliff: 'The Cliff Path', Lunaria: 'The Fog Streets', Cinderpeak: 'The Ash Fields' };
+export const TRAINING: Partial<Record<Region, string>> = { Pocketvale: 'Training Grounds', Ironmoor: 'Mine Tunnels', Coalhaven: 'The Docks', Bluecliff: 'The Cliff Path', Lunaria: 'The Fog Streets', Cinderpeak: 'The Ash Fields',
+  Frosthold: 'The Snowfields', Voidreach: 'The Chasm Rim', 'Starfall Crater': 'The Crater Fields', 'Celestine Spires': 'The High Bridges', 'Primordial Rift': 'The Wild Valley' };
 
 export function placeName(region: Region, skill: SkillId): string {
   return PLACE_NAMES[region]?.[skill] ?? SKILLS[skill].place;

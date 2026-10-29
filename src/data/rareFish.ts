@@ -45,6 +45,26 @@ export const RARE_FISH: RareFish[] = [
   { id: 'rf_magma_guppy', name: 'Magma guppy', emoji: '🐟', region: 'Cinderpeak', weight: 60, minCm: 5, maxCm: 15, value: 3000, blurb: 'Swims happily in the lava lake. Do not hold it for long.' },
   { id: 'rf_ember_puffer', name: 'Ember puffer', emoji: '🐡', region: 'Cinderpeak', weight: 30, minCm: 20, maxCm: 50, value: 5000, blurb: 'Puffs up into a glowing ball of sparks when surprised.' },
   { id: 'rf_obsidian_ray', name: 'Obsidian ray', emoji: '🐠', region: 'Cinderpeak', weight: 10, minCm: 100, maxCm: 260, value: 10000, blurb: 'Glides under the lava crust like a shadow. Its edges glow orange.' },
+  // Frosthold
+  { id: 'rf_snow_trout', name: 'Snow trout', emoji: '🐟', region: 'Frosthold', weight: 60, minCm: 30, maxCm: 70, value: 4200, blurb: 'Pale as the drifts. Bites best while someone sings by the ice hole.' },
+  { id: 'rf_aurora_char', name: 'Aurora char', emoji: '🐠', region: 'Frosthold', weight: 30, minCm: 25, maxCm: 60, value: 7000, blurb: 'Its scales shimmer green and pink, like the lights over the glacier.' },
+  { id: 'rf_icecrown_pike', name: 'Ice-crown pike', emoji: '🐡', region: 'Frosthold', weight: 10, minCm: 90, maxCm: 210, value: 14000, blurb: 'Wears a little crown of frost. The old fishers bow when one is landed.' },
+  // Voidreach
+  { id: 'rf_starling_minnow', name: 'Starling minnow', emoji: '🐟', region: 'Voidreach', weight: 60, minCm: 5, maxCm: 20, value: 5800, blurb: 'Swims up out of the chasm in shoals, twinkling like a handful of stars.' },
+  { id: 'rf_echo_eel', name: 'Echo eel', emoji: '🐍', region: 'Voidreach', weight: 30, minCm: 60, maxCm: 160, value: 9500, blurb: 'You hear it splash a whole day after you catch it.' },
+  { id: 'rf_abyssal_angler', name: 'Abyssal angler', emoji: '🐡', region: 'Voidreach', weight: 10, minCm: 80, maxCm: 240, value: 19000, blurb: 'Carries a tiny lantern on its head. Nobody knows what it uses for bait.' },
+  // Starfall Crater
+  { id: 'rf_comet_goldfish', name: 'Comet goldfish', emoji: '🐠', region: 'Starfall Crater', weight: 60, minCm: 10, maxCm: 30, value: 8000, blurb: 'Leaves a little trail of sparkles behind it in the crater pond.' },
+  { id: 'rf_moonbeam_catfish', name: 'Moonbeam catfish', emoji: '🐟', region: 'Starfall Crater', weight: 30, minCm: 60, maxCm: 140, value: 13000, blurb: 'Whiskers that glow. The farmers say it hums along with the star at night.' },
+  { id: 'rf_starheart_sturgeon', name: 'Starheart sturgeon', emoji: '🐡', region: 'Starfall Crater', weight: 10, minCm: 150, maxCm: 300, value: 26000, blurb: 'Huge, ancient and calm. It was here before the star fell, and wasn\'t bothered by it either.' },
+  // Celestine Spires
+  { id: 'rf_breeze_guppy', name: 'Breeze guppy', emoji: '🐟', region: 'Celestine Spires', weight: 60, minCm: 5, maxCm: 15, value: 11000, blurb: 'Swims through the air between the towers. Easily caught in a butterfly net.' },
+  { id: 'rf_cloud_koi', name: 'Cloud koi', emoji: '🐠', region: 'Celestine Spires', weight: 30, minCm: 40, maxCm: 100, value: 18000, blurb: 'White and gold, and it leaves a little puff of cloud behind every flick of its tail.' },
+  { id: 'rf_thunder_whale', name: 'Thunder whale calf', emoji: '🐋', region: 'Celestine Spires', weight: 10, minCm: 200, maxCm: 450, value: 36000, blurb: 'A baby sky whale. It rumbles happily, then floats off home. (It always gets home.)' },
+  // The Primordial Rift
+  { id: 'rf_trilobite', name: 'Living trilobite', emoji: '🦐', region: 'Primordial Rift', weight: 60, minCm: 5, maxCm: 30, value: 15000, blurb: 'Everyone thought these were only fossils. Nobody told the trilobites.' },
+  { id: 'rf_coelacanth', name: 'First coelacanth', emoji: '🐟', region: 'Primordial Rift', weight: 30, minCm: 100, maxCm: 200, value: 25000, blurb: 'The fish that first thought about walking. It decided against it.' },
+  { id: 'rf_little_leviathan', name: 'Little leviathan', emoji: '🐉', region: 'Primordial Rift', weight: 10, minCm: 300, maxCm: 900, value: 50000, blurb: '"Little." Lives in the Leviathan Deeps with its very much bigger family.' },
 ];
 
 export const RARE_FISH_MAP: Record<string, RareFish> = Object.fromEntries(RARE_FISH.map((f) => [f.id, f]));

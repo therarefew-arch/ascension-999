@@ -89,7 +89,9 @@ function goodsFor(t: number): string[] {
 }
 /** Treasures (sell high). The volcano's heartfire ember only turns up from Cinderpeak on. */
 function treasuresFor(t: number): string[] {
-  return ['golden_egg', 'starlit_crystal', 'sea_pearl', ...(t >= 5 ? ['heartfire_ember'] : [])];
+  const far = ['heartfire_ember', 'singing_icicle', 'echo_shell', 'star_shard', 'cloud_pearl', 'first_fossil'];
+  // From Cinderpeak on, each town's own treasure joins (and the cheapest Heartland ones drop out).
+  return t >= 5 ? far.slice(Math.max(0, t - 7), t - 4) : ['golden_egg', 'starlit_crystal', 'sea_pearl'];
 }
 
 const DUD_LINES = [
@@ -108,7 +110,7 @@ const DUD_LINES = [
 // whole story. Keep it consistent: hooded, always one town ahead, pays for everyone's bread, asks which road
 // goes highest, leaves gifts by the wells wrapped in an old travelling cloak, the compass that "points further",
 // and the end of the road at the Primordial Rift.
-interface Gossip { text: string; when: 'any' | 'before' | 'after' | 'coat' }
+interface Gossip { text: string; when: 'any' | 'before' | 'after' | 'met' | 'coat' }
 const GOSSIP: Gossip[] = [
   { when: 'any', text: 'Sealed crates! No peeking, no refunds!' },
   { when: 'any', text: 'Every crate packed by my own two hands. Mostly. Some come packed already, and I don\'t ask.' },
@@ -121,13 +123,18 @@ const GOSSIP: Gossip[] = [
   { when: 'after', text: 'I sold a compass to a hooded sort once. They paid in starlight — glowed in my purse for a week. If you\'ve got it now, they meant you to have it.' },
   { when: 'after', text: 'Last I heard they were bound for {next}. Up and up. They always pick the road that goes highest.' },
   { when: 'after', text: 'One day I\'ll catch them up and ask what they\'re walking toward. You\'ll get there first, I reckon.' },
+  { when: 'met', text: 'You caught them up? At the Rift? Well I never. What was under the hood? — No, don\'t tell me. Some things a pedlar likes to wonder about.' },
+  { when: 'met', text: 'Mira? From Pocketvale? I sold her a compass and never once asked her name. Shame on me. Best customer I ever had.' },
+  { when: 'met', text: 'So that\'s the end of the roads, is it? Funny. Business is still good. Folk always want to go somewhere.' },
   { when: 'coat', text: 'That coat! I\'d know those patches anywhere. No, no — keep it. It suits you. It never suited me.' },
 ];
 
 /** What the Pedlar says. `k` picks the line (one a day to start; tapping him moves on to the next). */
 export function pedlarGossip(p: PlayerState, k: number, next?: string): string {
   const met = p.travellerGifts.length > 0;
-  const lines = GOSSIP.filter((g) => g.when === 'any' || g.when === (met ? 'after' : 'before') || (g.when === 'coat' && relicOn(p, 'patchwork_coat')));
+  const caughtUp = p.travellerGifts.includes('Primordial Rift');
+  const phase = caughtUp ? 'met' : met ? 'after' : 'before';
+  const lines = GOSSIP.filter((g) => g.when === 'any' || g.when === phase || (g.when === 'coat' && relicOn(p, 'patchwork_coat')));
   const line = lines[((k % lines.length) + lines.length) % lines.length].text;
   return line.replace('{next}', next ?? 'the high roads');
 }

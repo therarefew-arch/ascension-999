@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 export type SceneName = 'forest' | 'town' | 'mine' | 'forge' | 'river' | 'camp' | 'kitchen' | 'workshop' | 'tower' | 'altar' | 'ironmoor' | 'coalhaven' | 'bluecliff'
-  | 'lunaria' | 'lunaria_restored' | 'cinderpeak' | 'cinderpeak_stirring';
+  | 'lunaria' | 'lunaria_restored' | 'cinderpeak' | 'cinderpeak_stirring' | 'frosthold' | 'voidreach' | 'starfall' | 'celestine' | 'rift';
 
 const W = 72;
 const H = 128;
@@ -423,19 +423,196 @@ function drawCinderpeak(px: Px, r: () => number, stirring: boolean) {
   for (let i = 0; i < 40; i++) px(Math.floor(r() * W), 112 + Math.floor(r() * 16), 2, 1, ['#5b4038', '#3b2a26', stirring ? '#f97316' : '#7c2d12'][Math.floor(r() * 3)]);
 }
 
+/** Frosthold: a snowed-in mountain hamlet. Snowy peaks, frostpines, round huts with smoking chimneys, the Stew Hall. */
+function drawFrosthold(px: Px, r: () => number) {
+  const sky = ['#5b7ea6', '#7896ba', '#98b1cd', '#bccfe2'];
+  for (let y = 0; y < 58; y++) px(0, y, W, 1, sky[Math.min(3, Math.floor(y / 15))]);
+  // a faint aurora ribbon
+  for (let x = 0; x < W; x++) px(x, 10 + Math.round(Math.sin(x / 6) * 3), 1, 2, x % 3 ? 'rgba(134,239,172,0.35)' : 'rgba(244,114,182,0.3)');
+  // snowy peaks
+  const peak = (cx: number, top: number, w: number) => {
+    for (let y = top; y < 60; y++) {
+      const half = Math.round((y - top) * w);
+      px(cx - half, y, half * 2 + 1, 1, y - top < 7 ? '#f8fafc' : y % 4 === 0 ? '#64748b' : '#7c8ba1');
+    }
+  };
+  peak(14, 18, 0.9); peak(52, 12, 0.8); peak(34, 26, 1.0);
+  // deep snow ground
+  for (let x = 0; x < W; x++) { const top = 60 + Math.round(Math.sin(x / 9) * 2); px(x, top, 1, H - top, '#e8eef5'); }
+  for (let y = 70; y < H; y += 6) for (let i = 0; i < 6; i++) px(Math.floor(r() * W), y + Math.floor(r() * 4), 3, 1, '#cbd5e1');
+  // frostpines
+  const pine = (x: number, y: number, s: number) => {
+    for (let k = 0; k < s; k++) px(x - k, y + k * 2, k * 2 + 1, 2, k % 2 ? '#1e4d4a' : '#2a5f5a');
+    for (let k = 0; k < s; k += 2) px(x - k, y + k * 2, k * 2 + 1, 1, '#f1f5f9');
+    px(x, y + s * 2, 1, 3, '#3b2a1c');
+  };
+  for (const [x, y, s] of [[4, 58, 6], [64, 56, 7], [20, 76, 5], [68, 80, 5], [6, 92, 6]] as const) pine(x, y, s);
+  // round huts with snowy roofs and warm windows
+  const hut = (x: number, y: number, w: number) => {
+    px(x, y, w, 8, '#8b5e3c'); px(x, y + 7, w, 1, '#5b3a22');
+    for (let i = 0; i < 4; i++) px(x - 1 + i, y - 1 - i, w + 2 - i * 2, 1, '#f8fafc');
+    px(x + 2, y + 2, 2, 2, '#fde68a'); px(x + w - 4, y + 3, 2, 4, '#3b2a1c');
+    px(x + w - 3, y - 6, 2, 3, '#57534e');
+    for (let i = 0; i < 4; i++) px(x + w - 3 + (i % 2), y - 8 - i * 2, 2, 2, 'rgba(241,245,249,0.6)');
+  };
+  hut(30, 66, 11); hut(46, 70, 9); hut(10, 72, 8);
+  // the Stew Hall: a long log hall with a big glowing door
+  px(26, 88, 26, 12, '#6b4226'); for (let i = 0; i < 6; i++) px(25 + i, 87 - i, 28 - i * 2, 1, '#f8fafc');
+  px(37, 92, 5, 8, '#fbbf24'); px(29, 91, 3, 3, '#fde68a'); px(46, 91, 3, 3, '#fde68a');
+  // gentle snowfall
+  for (let i = 0; i < 40; i++) px(Math.floor(r() * W), Math.floor(r() * 110), 1, 1, '#ffffff');
+}
+
+/** Voidreach: rope bridges and little houses on posts over a chasm full of stars. */
+function drawVoidreach(px: Px, r: () => number) {
+  const sky = ['#1e1b4b', '#2e1065', '#3b1a6e', '#4c2a80'];
+  for (let y = 0; y < 50; y++) px(0, y, W, 1, sky[Math.min(3, Math.floor(y / 13))]);
+  for (let i = 0; i < 30; i++) px(Math.floor(r() * W), Math.floor(r() * 45), 1, 1, '#e9d5ff');
+  // two cliff edges with the chasm between them
+  for (let y = 46; y < H; y++) {
+    const left = 18 + Math.round(Math.sin(y / 5) * 2) - Math.max(0, Math.floor((y - 90) / 3));
+    const right = 54 - Math.round(Math.sin(y / 6) * 2) + Math.max(0, Math.floor((y - 90) / 3));
+    px(0, y, Math.max(0, left), 1, y % 5 === 0 ? '#3f3a52' : '#4a4560');
+    px(right, y, W - right, 1, y % 5 === 0 ? '#3f3a52' : '#4a4560');
+    px(left, y, Math.max(0, right - left), 1, '#0b0820');
+  }
+  // the stars below — the chasm is full of them
+  for (let i = 0; i < 70; i++) {
+    const y = 50 + Math.floor(r() * 78);
+    px(22 + Math.floor(r() * 28), y, 1, 1, ['#f5f3ff', '#c4b5fd', '#fde68a', '#a5b4fc'][Math.floor(r() * 4)]);
+  }
+  px(34, 104, 3, 3, 'rgba(196,181,253,0.5)'); px(35, 105, 1, 1, '#ffffff');
+  // rope bridges with ribbons
+  const bridge = (y: number) => {
+    for (let x = 16; x < 57; x++) px(x, y + Math.round(Math.sin((x - 16) / 41 * Math.PI) * 3), 1, 1, '#a16207');
+    for (let x = 18; x < 56; x += 3) px(x, y - 3 + Math.round(Math.sin((x - 16) / 41 * Math.PI) * 3), 1, 3, '#713f12');
+    for (let x = 20; x < 54; x += 6) px(x, y - 4 + Math.round(Math.sin((x - 16) / 41 * Math.PI) * 3), 1, 2, ['#f472b6', '#fde047', '#38bdf8', '#4ade80'][(x / 6) % 4 | 0]);
+  };
+  bridge(62); bridge(84);
+  // little houses on stilts at the cliff edges
+  const house = (x: number, y: number, c: string) => {
+    px(x, y, 8, 6, c); for (let i = 0; i < 4; i++) px(x - 1 + i, y - 1 - i, 10 - i * 2, 1, '#312e81');
+    px(x + 2, y + 2, 2, 2, '#fde68a'); px(x + 1, y + 6, 1, 4, '#3b2a1c'); px(x + 6, y + 6, 1, 4, '#3b2a1c');
+  };
+  house(4, 52, '#5b4a7a'); house(58, 54, '#4c3d6b'); house(8, 74, '#4c3d6b'); house(60, 78, '#5b4a7a');
+  // voidwood trees and floating lanterns
+  for (const x of [2, 66]) { px(x + 1, 100, 1, 6, '#1c1230'); for (let k = 0; k < 6; k++) px(x + Math.floor(r() * 4), 95 + Math.floor(r() * 5), 2, 2, ['#581c87', '#6b21a8', '#3b0764'][Math.floor(r() * 3)]); }
+  for (let i = 0; i < 6; i++) { const x = 20 + Math.floor(r() * 32), y = 20 + Math.floor(r() * 30); px(x, y, 2, 2, '#fde68a'); px(x - 1, y - 1, 4, 4, 'rgba(253,230,138,0.2)'); }
+}
+
+/** Starfall Crater: golden crop rings inside a crater, a glowing tree over the fallen star, calm cows. */
+function drawStarfall(px: Px, r: () => number) {
+  const sky = ['#7a5ea8', '#9a74b8', '#c58fb8', '#efb88f'];
+  for (let y = 0; y < 44; y++) px(0, y, W, 1, sky[Math.min(3, Math.floor(y / 11))]);
+  for (let i = 0; i < 14; i++) px(Math.floor(r() * W), Math.floor(r() * 22), 1, 1, '#fff7d6');
+  // a shooting star
+  for (let i = 0; i < 8; i++) px(48 + i, 6 + Math.floor(i / 2), 1, 1, i === 7 ? '#ffffff' : 'rgba(255,247,214,0.6)');
+  // the crater rim, then the bowl
+  for (let x = 0; x < W; x++) { const top = 40 + Math.round(Math.abs(x - 36) / 6); px(x, top, 1, H - top, '#8a6a3e'); }
+  for (let y = 50; y < H; y++) { const half = Math.min(36, 10 + (y - 50) * 1.2); px(Math.round(36 - half), y, Math.round(half * 2), 1, '#a8853f'); }
+  // rings of golden crops around the middle
+  for (let ring = 0; ring < 4; ring++) {
+    const ry = 86 + ring * 9, rx = 18 + ring * 9;
+    for (let a = 0; a < 60; a++) {
+      const t = (a / 60) * Math.PI * 2;
+      px(Math.round(36 + Math.cos(t) * rx), Math.round(ry - 10 + Math.sin(t) * (rx * 0.32)), 1, 1, ring % 2 ? '#e2b84a' : '#c99a2e');
+    }
+  }
+  // the Stargrown Elder: a big tree with glowing blossoms, the star glowing in its roots
+  px(34, 60, 4, 22, '#5b3a22'); px(30, 80, 12, 3, '#5b3a22');
+  for (let k = 0; k < 40; k++) px(22 + Math.floor(r() * 28), 44 + Math.floor(r() * 18), 3, 2, ['#4d7c0f', '#65a30d', '#3f6212'][Math.floor(r() * 3)]);
+  for (let k = 0; k < 12; k++) px(24 + Math.floor(r() * 24), 45 + Math.floor(r() * 16), 1, 1, '#fef08a');
+  px(33, 79, 6, 4, '#fde047'); px(31, 77, 10, 8, 'rgba(253,224,71,0.25)'); px(29, 75, 14, 12, 'rgba(253,224,71,0.1)');
+  // farmhouse and barn on the rim
+  px(4, 46, 10, 7, '#b45309'); for (let i = 0; i < 4; i++) px(3 + i, 45 - i, 12 - i * 2, 1, '#7c2d12'); px(7, 49, 3, 4, '#3b2a1c');
+  px(58, 44, 9, 7, '#e7e5e4'); for (let i = 0; i < 4; i++) px(57 + i, 43 - i, 11 - i * 2, 1, '#57534e'); px(61, 47, 2, 2, '#fde68a');
+  // calm cows lying in the grass
+  for (const [x, y] of [[10, 104], [54, 100], [24, 116]] as const) {
+    px(x, y, 7, 3, '#f5f5f4'); px(x + 1, y, 2, 1, '#292524'); px(x + 4, y + 1, 2, 2, '#292524'); px(x + 6, y - 1, 3, 3, '#f5f5f4'); px(x + 8, y, 1, 1, '#fda4af');
+  }
+}
+
+/** Celestine Spires: slender towers above a sea of clouds, little bridges, chimes, a fish in the air. */
+function drawCelestine(px: Px, r: () => number) {
+  const sky = ['#5aa7d6', '#7cbde2', '#a2d2ec', '#cbe6f5'];
+  for (let y = 0; y < H; y++) px(0, y, W, 1, sky[Math.min(3, Math.floor(y / 26))]);
+  // the sun, high and bright
+  px(56, 8, 8, 8, '#fef9c3'); px(54, 10, 12, 4, '#fef9c3'); px(58, 6, 4, 12, '#fef9c3');
+  // towers: tall and slim with pointed teal roofs
+  const tower = (x: number, top: number, w: number) => {
+    px(x, top, w, 110 - top, '#e7e2d6'); for (let y = top; y < 110; y += 4) px(x, y, w, 1, '#d6cfbf');
+    for (let i = 0; i < Math.ceil(w / 2) + 3; i++) px(x + Math.floor(w / 2) - i, top - 8 + i, i * 2 + (w % 2), 1, '#14b8a6');
+    for (let y = top + 6; y < 104; y += 12) px(x + Math.floor(w / 2) - 1, y, 2, 3, '#fde68a');
+  };
+  tower(6, 30, 7); tower(30, 16, 9); tower(54, 36, 8);
+  // little bridges between the towers
+  for (let x = 13; x < 30; x++) px(x, 52 + Math.round(Math.sin((x - 13) / 17 * Math.PI) * 2), 1, 1, '#92400e');
+  for (let x = 39; x < 54; x++) px(x, 62 + Math.round(Math.sin((x - 39) / 15 * Math.PI) * 2), 1, 1, '#92400e');
+  // wind chimes hanging off the bridges
+  for (const x of [20, 46]) { px(x, 55, 1, 3, '#a8a29e'); for (let k = 0; k < 3; k++) px(x - 1 + k, 58, 1, 2 + k, '#5eead4'); }
+  // a sea of clouds below
+  for (let i = 0; i < 26; i++) { const x = Math.floor(r() * W) - 6, y = 100 + Math.floor(r() * 24); px(x, y, 14 + Math.floor(r() * 10), 4, i % 3 ? '#ffffff' : '#e0f2fe'); }
+  px(0, 112, W, H - 112, '#f8fafc');
+  // fish swimming through the air
+  for (const [x, y] of [[20, 76], [44, 84], [60, 72]] as const) { px(x, y, 4, 2, '#f59e0b'); px(x + 4, y - 1, 2, 4, '#fbbf24'); px(x, y, 1, 1, '#1f2937'); }
+  // drifting little clouds
+  for (let i = 0; i < 5; i++) px(Math.floor(r() * W), 20 + Math.floor(r() * 40), 8, 2, 'rgba(255,255,255,0.8)');
+}
+
+/** The Primordial Rift: giant ferns, the Worldtree, and a glowing crack in the sky. */
+function drawRift(px: Px, r: () => number) {
+  const sky = ['#1a2e1f', '#21402a', '#2d5636', '#3f6e45'];
+  for (let y = 0; y < 60; y++) px(0, y, W, 1, sky[Math.min(3, Math.floor(y / 15))]);
+  // the Rift: a jagged glowing crack across the sky
+  let cy = 10;
+  for (let x = 0; x < W; x++) {
+    cy = Math.max(4, Math.min(18, cy + (r() < 0.5 ? -1 : 1)));
+    px(x, cy - 2, 1, 5, 'rgba(190,242,100,0.25)'); px(x, cy - 1, 1, 3, '#d9f99d'); px(x, cy, 1, 1, '#ffffff');
+  }
+  for (let i = 0; i < 18; i++) px(Math.floor(r() * W), 20 + Math.floor(r() * 30), 1, 1, '#bef264');
+  // misty far-off forest filling the valley behind the tree
+  const haze = ['#3f6e45', '#3a6640', '#345d3a', '#2f5434', '#2a4b2f'];
+  for (let y = 60; y < 104; y++) px(0, y, W, 1, haze[Math.min(4, Math.floor((y - 60) / 9))]);
+  for (let i = 0; i < 26; i++) { const x = Math.floor(r() * W), h = 6 + Math.floor(r() * 10); px(x, 70 + Math.floor(r() * 24) - h, 3, h, ['#24442a', '#2b4f30', '#1f3d25'][Math.floor(r() * 3)]); }
+  for (let i = 0; i < 6; i++) px(Math.floor(r() * W) - 10, 66 + Math.floor(r() * 30), 22, 2, 'rgba(217,249,157,0.12)');
+  // the Worldtree: an enormous trunk holding up the sky
+  px(30, 24, 12, 80, '#3f2a1a'); px(28, 96, 16, 8, '#3f2a1a');
+  for (let y = 26; y < 100; y += 5) px(31 + (y % 3), y, 2, 3, '#2a1c12');
+  for (let k = 0; k < 70; k++) px(8 + Math.floor(r() * 56), 18 + Math.floor(r() * 24), 4, 3, ['#166534', '#15803d', '#14532d', '#4d7c0f'][Math.floor(r() * 4)]);
+  // roots spreading out
+  for (const [dx, len] of [[-1, 18], [1, 20], [-1, 10], [1, 12]] as const) for (let i = 0; i < len; i++) px(36 + dx * (6 + i), 100 + Math.floor(i / 4), 2, 1, '#3f2a1a');
+  // valley floor
+  for (let x = 0; x < W; x++) { const top = 102 + Math.round(Math.sin(x / 5) * 1.5); px(x, top, 1, H - top, '#2f4a24'); }
+  // giant ferns
+  const fern = (x: number, y: number, h: number, flip: number) => {
+    for (let i = 0; i < h; i++) {
+      const cx = x + Math.round(Math.sin(i / h * 1.6) * 4 * flip);
+      px(cx, y - i, 1, 1, '#365314');
+      if (i % 2 === 0) { px(cx - 3, y - i, 3, 1, '#4d7c0f'); px(cx + 1, y - i, 3, 1, '#65a30d'); }
+    }
+  };
+  fern(6, 104, 34, 1); fern(14, 106, 26, -1); fern(60, 104, 36, -1); fern(66, 108, 22, 1); fern(48, 110, 18, 1); fern(22, 112, 16, -1);
+  // the old well (where the Traveller waits) and a tiny figure
+  px(44, 112, 8, 5, '#78716c'); px(43, 111, 10, 1, '#57534e'); px(44, 106, 1, 5, '#57534e'); px(51, 106, 1, 5, '#57534e'); px(43, 105, 10, 1, '#7c2d12');
+  px(54, 109, 2, 2, '#e7c9a9'); px(53, 111, 4, 5, '#7c6a4c');
+  // drifting spores of light
+  for (let i = 0; i < 20; i++) px(Math.floor(r() * W), 40 + Math.floor(r() * 80), 1, 1, 'rgba(217,249,157,0.8)');
+}
+
 export const DRAW: Record<SceneName, (px: Px, r: () => number) => void> = {
   cinderpeak: (px, r) => drawCinderpeak(px, r, false), cinderpeak_stirring: (px, r) => drawCinderpeak(px, r, true),
   forest: drawForest, town: drawTown, mine: drawMine, forge: drawForge,
   river: drawRiver, camp: drawCamp, kitchen: drawKitchen, workshop: drawWorkshop, tower: drawTower, altar: drawAltar, ironmoor: drawIronmoor, coalhaven: drawCoalhaven, bluecliff: drawBluecliff,
   lunaria: (px, r) => drawLunaria(px, r, false), lunaria_restored: (px, r) => drawLunaria(px, r, true),
+  frosthold: drawFrosthold, voidreach: drawVoidreach, starfall: drawStarfall, celestine: drawCelestine, rift: drawRift,
 };
 
 /** Where the interesting part of each scene is (0% = top, 100% = bottom), for short banners. */
-const FOCUS: Partial<Record<SceneName, number>> = { bluecliff: 22, coalhaven: 46, ironmoor: 50, town: 50, lunaria: 40, lunaria_restored: 40, cinderpeak: 40, cinderpeak_stirring: 40 };
+const FOCUS: Partial<Record<SceneName, number>> = { bluecliff: 22, coalhaven: 46, ironmoor: 50, town: 50, lunaria: 40, lunaria_restored: 40, cinderpeak: 40, cinderpeak_stirring: 40, frosthold: 55, voidreach: 45, starfall: 55, celestine: 35, rift: 20 };
 
 /** Outdoor scenes follow the real clock on your phone. Indoor ones stay cosy all day. */
 // (Lunaria is always under its own moon, so it skips the day/night tint.)
-const OUTDOOR: SceneName[] = ['forest', 'town', 'river', 'ironmoor', 'coalhaven', 'bluecliff', 'cinderpeak', 'cinderpeak_stirring'];
+const OUTDOOR: SceneName[] = ['forest', 'town', 'river', 'ironmoor', 'coalhaven', 'bluecliff', 'cinderpeak', 'cinderpeak_stirring', 'frosthold', 'starfall', 'celestine'];
 
 export type DayPhase = 'dawn' | 'day' | 'dusk' | 'night';
 

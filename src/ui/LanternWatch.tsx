@@ -50,6 +50,8 @@ function sprite(emoji: string, size: number): HTMLCanvasElement {
 const GROUND: Record<string, [string, string]> = {
   Pocketvale: ['#1c2b1a', '#24361f'], Ironmoor: ['#26221f', '#302a25'], Coalhaven: ['#1d2024', '#262a2f'],
   Bluecliff: ['#1a2630', '#203140'], Lunaria: ['#1f2233', '#272a40'], Cinderpeak: ['#2b1c17', '#38231b'],
+  Frosthold: ['#26303d', '#2e3a4a'], Voidreach: ['#17122b', '#1e1736'], 'Starfall Crater': ['#2a2616', '#332e1b'],
+  'Celestine Spires': ['#22303a', '#2a3a46'], 'Primordial Rift': ['#16261a', '#1c2f20'],
 };
 
 const wEmoji = (w: { id: WeaponId; evo?: boolean }) => (w.evo ? WEAPONS[w.id].evo.emoji : WEAPONS[w.id].emoji);

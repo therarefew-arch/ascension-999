@@ -34,6 +34,7 @@ const LAYOUTS: Layout[] = [
 /** Which layout (and whether it's mirrored) each town uses. */
 const TOWN_MAP: Record<string, [number, boolean]> = {
   Pocketvale: [0, false], Ironmoor: [1, false], Coalhaven: [0, true], Bluecliff: [1, true], Lunaria: [0, true], Cinderpeak: [1, false],
+  Frosthold: [0, false], Voidreach: [1, true], 'Starfall Crater': [0, true], 'Celestine Spires': [1, false], 'Primordial Rift': [0, false],
 };
 export function mapFor(region: string): Layout {
   const [i, mirror] = TOWN_MAP[region] ?? [0, false];

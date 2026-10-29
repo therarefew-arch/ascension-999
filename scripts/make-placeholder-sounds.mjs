@@ -868,6 +868,198 @@ function addTo(out, start, len, fn) { for (let i = 0; i < len && start + i < out
   writeMusic('music_cinderpeak', out, MR);
 }
 
+// ---------- The far Frontier: Frosthold, Voidreach, Starfall Crater, Celestine Spires, the Primordial Rift ----------
+// Shared little instruments for these songs (all at MR = 11,025 Hz to keep the files small).
+const fx = {
+  /** A soft held chord: each note a sine with a gentle 2nd harmonic, swelling in and out. */
+  pad(out, start, len, freqs, amp, vib = 0) {
+    addTo(out, start, len, (t) => {
+      let v = 0;
+      for (const f of freqs) v += Math.sin(2 * Math.PI * f * t + vib * Math.sin(2 * Math.PI * 5 * t)) + 0.2 * Math.sin(4 * Math.PI * f * t);
+      return (v / freqs.length) * Math.sin(Math.PI * Math.min(1, t / (len / MR))) ** 2 * amp;
+    });
+  },
+  /** Music box / celesta: bright, bell-like, quick to fade. */
+  bell(out, at, f, amp, decay = 3.5) {
+    addTo(out, at, Math.floor(2.2 * MR), (t) => (Math.sin(2 * Math.PI * f * t) + 0.35 * Math.sin(2 * Math.PI * f * 4.01 * t) * Math.exp(-6 * t)) * Math.exp(-decay * t) * Math.min(1, t / 0.003) * amp);
+  },
+  /** Plucked string (guitar / lute). */
+  pluck(out, at, f, amp) {
+    addTo(out, at, Math.floor(1.1 * MR), (t) => {
+      let v = 0;
+      for (let h = 1; h <= 5; h++) v += Math.sin(2 * Math.PI * f * h * t) * Math.exp(-(2.5 + h * 2) * t) / h;
+      return v * Math.min(1, t / 0.002) * amp;
+    });
+  },
+  /** A bowed / breathy melody note with vibrato (fiddle when bright, flute when soft). */
+  bow(out, at, f, len, amp, bright = 0.5, breath = 0) {
+    const rb = seeded(Math.floor(f * 100 + at));
+    addTo(out, at, len, (t) => {
+      const vib = Math.sin(2 * Math.PI * 5.2 * t) * 0.006 * Math.min(1, t / 0.25);
+      const ph = 2 * Math.PI * f * t * (1 + vib);
+      const tone = Math.sin(ph) + bright * 0.5 * Math.sin(2 * ph) + bright * 0.25 * Math.sin(3 * ph);
+      const env = Math.min(1, t / 0.08) * Math.min(1, (len / MR - t) / 0.12);
+      return (tone + breath * (rb() * 2 - 1)) * env * amp;
+    });
+  },
+  /** Low drum: a pitch-dropping thump. */
+  drum(out, at, amp, pitch = 90) {
+    addTo(out, at, Math.floor(0.45 * MR), (t) => Math.sin(2 * Math.PI * (pitch - pitch * 0.5 * Math.min(1, t * 6)) * t) * Math.exp(-8 * t) * amp);
+  },
+  /** Little bells shaken (sleigh bells / chimes). */
+  jingle(out, at, amp, seed) {
+    const rj = seeded(seed);
+    for (let k = 0; k < 4; k++) {
+      const f = 2600 + rj() * 1800;
+      addTo(out, at + Math.floor(k * 0.012 * MR), Math.floor(0.25 * MR), (t) => Math.sin(2 * Math.PI * f * t) * Math.exp(-18 * t) * amp);
+    }
+  },
+  /** Turn a whole song up or down (to sit level with the other town songs). */
+  gain(out, g) { for (let i = 0; i < out.length; i++) out[i] *= g; },
+  /** Fade the ends so every song starts and ends in silence. */
+  ends(out) {
+    const f = Math.floor(0.5 * MR);
+    for (let i = 0; i < f; i++) { out[i] *= i / f; out[out.length - 1 - i] *= i / f; }
+  },
+};
+const N = (name) => 440 * Math.pow(2, ({ C: -9, Db: -8, D: -7, Eb: -6, E: -5, F: -4, Gb: -3, G: -2, Ab: -1, A: 0, Bb: 1, B: 2 })[name.replace(/\d/, '')] / 12) * Math.pow(2, Number(name.slice(-1)) - 4);
+
+// Frosthold: a snowy lullaby in 3/4 — a music box tune, a soft "ooh" choir, sleigh bells, a slow waltz bass.
+{
+  const bpm = 84, beat = 60 / bpm, BAR = 3 * beat;
+  const fix = { 'F#3': N('Gb3'), 'C#3': N('Db3') };
+  const ch = [['D3', 'F#3', 'A3'], ['B2', 'D3', 'F#3'], ['G2', 'B2', 'D3'], ['A2', 'C#3', 'E3']].map((c) => c.map((n) => fix[n] ?? N(n)));
+  const tune = ['A5', 'F#5', 'D5', 'E5', 'F#5', 'G5', 'F#5', 'E5', 'D5', 'B4', 'C#5', 'D5', 'E5', 'A4', 'B4', 'C#5', 'D5', 'F#5', 'E5', 'D5'].map((n) => ({ 'F#5': N('Gb5'), 'C#5': N('Db5') })[n] ?? N(n));
+  const bars = 48;
+  const out = new Float32Array(Math.floor(bars * BAR * MR) + MR * 2);
+  let k = 0;
+  for (let b = 0; b < bars; b++) {
+    const c = ch[b % 4];
+    const start = Math.floor(b * BAR * MR);
+    const section = Math.floor(b / 8);
+    fx.pad(out, start, Math.floor(BAR * MR * 1.05), c.map((f) => f * 2), 0.028, 0.002);
+    // waltz bass: root on 1, chord softly on 2 and 3
+    fx.pluck(out, start, c[0] / 2, 0.05);
+    fx.pluck(out, start + Math.floor(beat * MR), c[1], 0.018); fx.pluck(out, start + Math.floor(2 * beat * MR), c[2], 0.018);
+    // music box tune (rests in the 1st and 5th sections)
+    if (section !== 0 && section !== 4) for (let i = 0; i < 3; i++) if ((b + i) % 5 !== 4) { fx.bell(out, start + Math.floor(i * beat * MR), tune[k++ % tune.length], 0.03); }
+    // sleigh bells on the downbeat in the busier sections
+    if (section >= 2 && section <= 4) fx.jingle(out, start, 0.006, 500 + b);
+  }
+  fx.gain(out, 1.55);
+  fx.ends(out);
+  writeMusic('music_frosthold', out, MR);
+}
+
+// Voidreach: slow and spacey. Deep drone, glassy bells that echo back (quieter each time), and soft swells.
+{
+  const beat = 60 / 64, BAR = 4 * beat;
+  const roots = [N('D2'), N('Bb1'), N('F2'), N('C2')];
+  const scale = [N('D5'), N('E5'), N('F5'), N('A5'), N('C6'), N('D6'), N('A4')];
+  const bars = 32;
+  const out = new Float32Array(Math.floor(bars * BAR * MR) + MR * 3);
+  const rnd = seeded(91);
+  for (let b = 0; b < bars; b++) {
+    const root = roots[Math.floor(b / 2) % 4];
+    const start = Math.floor(b * BAR * MR);
+    if (b % 2 === 0) fx.pad(out, start, Math.floor(BAR * 2 * MR), [root * 2, root * 3, root * 4.5], 0.03, 0.003);
+    addTo(out, start, Math.floor(BAR * MR), (t) => Math.sin(2 * Math.PI * root * t) * 0.025 * (0.7 + 0.3 * Math.sin(2 * Math.PI * 0.25 * t)));
+    // a bell or two each bar, each with three echoes a beat apart
+    for (let i = 0; i < 2; i++) {
+      if (rnd() < 0.35) continue;
+      const f = scale[Math.floor(rnd() * scale.length)];
+      const at = start + Math.floor((i * 2 + (rnd() < 0.5 ? 0 : 1)) * beat * MR);
+      for (let e = 0; e < 4; e++) fx.bell(out, at + Math.floor(e * beat * 0.75 * MR), f, 0.03 * Math.pow(0.45, e), 2.2);
+    }
+  }
+  fx.gain(out, 1.35);
+  fx.ends(out);
+  writeMusic('music_voidreach', out, MR);
+}
+
+// Starfall Crater: a gentle folk tune — fingerpicked guitar, a sweet fiddle, a soft foot-tap, and the star's low hum.
+{
+  const beat = 60 / 92, BAR = 4 * beat, E8 = beat / 2;
+  const ch = [['G2', 'B2', 'D3', 'G3'], ['C3', 'E3', 'G3', 'C4'], ['D3', 'Gb3', 'A3', 'D4'], ['G2', 'B2', 'D3', 'G3'],
+    ['E2', 'G2', 'B2', 'E3'], ['C3', 'E3', 'G3', 'C4'], ['D3', 'Gb3', 'A3', 'D4'], ['G2', 'B2', 'D3', 'G3']].map((c) => c.map(N));
+  const tune = ['B4', 'D5', 'E5', 'D5', 'B4', 'A4', 'G4', 'A4', 'B4', 'D5', 'G5', 'Gb5', 'E5', 'D5', 'B4', 'A4'].map(N);
+  const bars = 48;
+  const out = new Float32Array(Math.floor(bars * BAR * MR) + MR * 2);
+  const HUM = N('G2');
+  let k = 0;
+  for (let b = 0; b < bars; b++) {
+    const c = ch[b % 8];
+    const start = Math.floor(b * BAR * MR);
+    const section = Math.floor(b / 8);
+    // the star's hum, always there
+    addTo(out, start, Math.floor(BAR * MR), (t) => (Math.sin(2 * Math.PI * HUM * t) + 0.4 * Math.sin(2 * Math.PI * HUM * 2 * t)) * 0.012);
+    // fingerpicking: root, 3rd, 5th, octave, 5th, 3rd, 5th, octave
+    [0, 1, 2, 3, 2, 1, 2, 3].forEach((n, i) => fx.pluck(out, start + Math.floor(i * E8 * MR), c[n], i === 0 ? 0.045 : 0.025));
+    // a soft foot-tap on 1 and 3
+    if (section >= 1) { fx.drum(out, start, 0.05, 70); fx.drum(out, start + Math.floor(2 * beat * MR), 0.04, 70); }
+    // the fiddle: two long notes a bar, rests in the 1st and last section
+    if (section >= 1 && section <= 4) for (let i = 0; i < 2; i++) fx.bow(out, start + Math.floor(i * 2 * beat * MR), tune[k++ % tune.length], Math.floor(beat * 1.9 * MR), 0.022, 0.7);
+  }
+  fx.ends(out);
+  writeMusic('music_starfall', out, MR);
+}
+
+// Celestine Spires: airy and bright — rippling celesta arpeggios, a high pad, and wind chimes on the breeze. No drums.
+{
+  const beat = 60 / 76, BAR = 4 * beat, E8 = beat / 2;
+  const ch = [['F3', 'A3', 'C4', 'E4'], ['D3', 'F3', 'A3', 'C4'], ['Bb2', 'D3', 'F3', 'A3'], ['C3', 'E3', 'G3', 'Bb3']].map((c) => c.map(N));
+  const bars = 36;
+  const out = new Float32Array(Math.floor(bars * BAR * MR) + MR * 3);
+  const rnd = seeded(33);
+  for (let b = 0; b < bars; b++) {
+    const c = ch[b % 4];
+    const start = Math.floor(b * BAR * MR);
+    fx.pad(out, start, Math.floor(BAR * MR * 1.1), c.map((f) => f * 2), 0.022, 0.004);
+    // arpeggio up and back down, an octave up
+    [0, 1, 2, 3, 2, 3, 1, 2].forEach((n, i) => fx.bell(out, start + Math.floor(i * E8 * MR), c[n] * 2, 0.022, 4.5));
+    // wind chimes: a few random high notes drifting in
+    for (let i = 0; i < 3; i++) if (rnd() < 0.5) fx.bell(out, start + Math.floor(rnd() * BAR * MR), [N('C6'), N('E6'), N('G6'), N('A6'), N('D7')][Math.floor(rnd() * 5)], 0.012, 2.5);
+  }
+  fx.gain(out, 2.1);
+  fx.ends(out);
+  writeMusic('music_celestine', out, MR);
+}
+
+// The Primordial Rift: old and wild — a deep frame drum, a buzzing low drone, a breathy wooden flute,
+// and the slow "first song" hum that every other town has been echoing.
+{
+  const beat = 60 / 70, BAR = 4 * beat;
+  const pent = ['D4', 'F4', 'G4', 'A4', 'C5', 'D5'].map(N);
+  const bars = 34;
+  const out = new Float32Array(Math.floor(bars * BAR * MR) + MR * 3);
+  const rnd = seeded(7);
+  const D = N('D2');
+  let note = 2;
+  for (let b = 0; b < bars; b++) {
+    const start = Math.floor(b * BAR * MR);
+    const section = Math.floor(b / 8);
+    // drone with a slow "wah" like a didgeridoo
+    addTo(out, start, Math.floor(BAR * MR), (t) => {
+      const w = 0.5 + 0.5 * Math.sin(2 * Math.PI * 0.5 * t);
+      return (Math.sin(2 * Math.PI * D * t) + w * 0.45 * Math.sin(2 * Math.PI * D * 3 * t) + (1 - w) * 0.3 * Math.sin(2 * Math.PI * D * 5 * t)) * 0.026;
+    });
+    // frame drum: DUM . . dum | DUM . dum .
+    if (section >= 1) { fx.drum(out, start, 0.09, 75); fx.drum(out, start + Math.floor(1.5 * beat * MR), 0.04, 95); fx.drum(out, start + Math.floor(2 * beat * MR), 0.07, 75); fx.drum(out, start + Math.floor(3 * beat * MR), 0.035, 95); }
+    // the first song: a slow hummed melody every other bar
+    if (b % 2 === 0) fx.pad(out, start, Math.floor(BAR * 2 * MR), [N('D3'), N('A3')], 0.02, 0.004);
+    // wooden flute phrases in the middle sections
+    if (section >= 1 && section <= 3) {
+      for (let i = 0; i < 4; i++) {
+        if (rnd() < 0.3) continue;
+        note = Math.max(0, Math.min(pent.length - 1, note + [-2, -1, 0, 1, 1, 2][Math.floor(rnd() * 6)]));
+        fx.bow(out, start + Math.floor(i * beat * MR), pent[note], Math.floor(beat * 0.95 * MR), 0.024, 0.15, 0.25);
+      }
+    }
+  }
+  fx.ends(out);
+  writeMusic('music_rift', out, MR);
+}
+
 // Calm lofi loop for the Mahjong tile game: 72 bpm, jazzy 7th chords, soft kick + brush, vinyl crackle. 4 bars × 2 = ~26.7s.
 {
   const bpm = 72;

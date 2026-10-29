@@ -10,7 +10,7 @@ export const REGIONS = [
 export type Region = (typeof REGIONS)[number];
 
 /** Regions that are built. Add a region here when it's built (players still have to travel there to unlock it). */
-export const OPEN_REGIONS: Region[] = ['Pocketvale', 'Ironmoor', 'Coalhaven', 'Bluecliff', 'Lunaria', 'Cinderpeak'];
+export const OPEN_REGIONS: Region[] = ['Pocketvale', 'Ironmoor', 'Coalhaven', 'Bluecliff', 'Lunaria', 'Cinderpeak', 'Frosthold', 'Voidreach', 'Starfall Crater', 'Celestine Spires', 'Primordial Rift'];
 
 /** How to reach each built region. */
 export const REGION_INFO: Partial<Record<Region, {
@@ -21,7 +21,7 @@ export const REGION_INFO: Partial<Record<Region, {
   /** Fast travel cost (instant, only to places you've visited). */
   fastTravelCoins: number;
   blurb: string;
-  scene: 'town' | 'ironmoor' | 'coalhaven' | 'bluecliff' | 'lunaria' | 'cinderpeak';
+  scene: 'town' | 'ironmoor' | 'coalhaven' | 'bluecliff' | 'lunaria' | 'cinderpeak' | 'frosthold' | 'voidreach' | 'starfall' | 'celestine' | 'rift';
 }>> = {
   Pocketvale: { unlockLevel: 1, walkMs: 90_000, fastTravelCoins: 200, blurb: 'A quiet town at the edge of the hills', scene: 'town' },
   Ironmoor: { unlockLevel: 50, walkMs: 90_000, fastTravelCoins: 200, blurb: 'A smoky mountain town built around the deep iron mines', scene: 'ironmoor' },
@@ -31,6 +31,16 @@ export const REGION_INFO: Partial<Record<Region, {
   Lunaria: { unlockLevel: 245, walkMs: 240_000, fastTravelCoins: 800, blurb: 'A misty island town where every lantern went dark at once', scene: 'lunaria' },
   // Up the long switchback road to the volcano.
   Cinderpeak: { unlockLevel: 320, walkMs: 300_000, fastTravelCoins: 1200, blurb: 'A warm village on a sleepy volcano — hot springs, glowing goats and the Ash Market', scene: 'cinderpeak' },
+  // Over the high pass into the snow.
+  Frosthold: { unlockLevel: 400, walkMs: 360_000, fastTravelCoins: 1700, blurb: 'A snowed-in mountain hamlet where everyone sings to keep warm — even to the soup', scene: 'frosthold' },
+  // Down the long dark stair to the edge of the world.
+  Voidreach: { unlockLevel: 485, walkMs: 420_000, fastTravelCoins: 2400, blurb: 'A rope-bridge town on the rim of a chasm full of stars. Shout, and it answers tomorrow', scene: 'voidreach' },
+  // Across the scorched plain to where the star came down.
+  'Starfall Crater': { unlockLevel: 570, walkMs: 480_000, fastTravelCoins: 3300, blurb: 'A farming village inside the crater where a star fell. It hums. The cows are very calm about it', scene: 'starfall' },
+  // Straight up the cloud stair.
+  'Celestine Spires': { unlockLevel: 660, walkMs: 540_000, fastTravelCoins: 4500, blurb: 'Towers above the clouds, joined by little bridges. Fish swim through the air and the wind plays chimes', scene: 'celestine' },
+  // The end of every road.
+  'Primordial Rift': { unlockLevel: 750, walkMs: 600_000, fastTravelCoins: 6000, blurb: 'Where the world began — giant ferns, the Worldtree, and a crack in the sky that hums the first song', scene: 'rift' },
 };
 
 /** Skills whose resources must be gathered on location (you start them in that region). */

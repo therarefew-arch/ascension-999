@@ -526,6 +526,19 @@ items.push(
   ]),
   { id: 'travellers_compass', name: "Traveller's compass", category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🧭', stackable: true, value: 2500,
     description: 'Left at a well by someone always one town ahead. The needle doesn\'t point north. It points further.' },
+  // ❄️ Frosthold · 🌌 Voidreach · 🌠 Starfall Crater · ☁️ Celestine Spires · 🌀 the Primordial Rift
+  { id: 'singing_icicle', name: 'Singing icicle', category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🧊', stackable: true, value: 6500, region: 'Frosthold',
+    description: 'Hums one clear note when you hold it up to the light. It never melts. Frosthold choirs tune to these.' },
+  { id: 'echo_shell', name: 'Echo shell', category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🐚', stackable: true, value: 9000, region: 'Voidreach',
+    description: 'Found on the rim of the chasm. Hold it to your ear and you hear something someone will say tomorrow.' },
+  { id: 'star_shard', name: 'Star shard', category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🌟', stackable: true, value: 12500, region: 'Starfall Crater',
+    description: 'A chip of the fallen star. Warm, and humming the same note as the crater.' },
+  { id: 'cloud_pearl', name: 'Cloud pearl', category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🫧', stackable: true, value: 17000, region: 'Celestine Spires',
+    description: 'A pearl the sky carp make out of mist. Weighs nothing at all — keep a hand on it.' },
+  { id: 'first_fossil', name: 'First fossil', category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🦴', stackable: true, value: 24000, region: 'Primordial Rift',
+    description: 'The print of something that lived on the very first morning of the world.' },
+  { id: 'travellers_cloak', name: "Traveller's cloak", category: 'treasure', tier: 'gold', icon: 'coins', emoji: '🧥', stackable: true, value: 1,
+    description: 'Faded, patched, and soft from walking every road there is. Given to you at the end of the world. Nobody would buy it. Nobody should.' },
 );
 
 // ----- 🌿 Herblore: herbs and dried herbs · 🌱 Farming: seeds and crops (one of each per town) -----
@@ -597,6 +610,41 @@ export const MEALS: MealDef[] = [
   { id: 'emberleaf_chai', name: 'Emberleaf chai', emoji: '🍵', tab: 'Brews', level: 322, tierNum: 5,
     inputs: [{ item: 'dried_emberleaf', qty: 3 }, { item: 'emberpepper', qty: 1 }], buff: { skill: 'smithing', kind: 'xp', pct: 10, minutes: 30 },
     description: 'Warm, peppery and sweet. Cinderpeak smiths drink it by the kettle.' },
+  // ❄️ Frosthold
+  { id: 'winter_stew', name: 'Frosthold winter stew', emoji: '🍲', tab: 'Meals', level: 405, tierNum: 6,
+    inputs: [{ item: 'cooked_frostcod', qty: 2 }, { item: 'snowcabbage', qty: 2 }], buff: { skill: 'fishing', kind: 'speed', pct: 7, minutes: 30 },
+    description: 'One frostcod, snow cabbage, a knob of butter — and a song sung slowly while it simmers. The song is the important part.' },
+  { id: 'frostmint_cocoa', name: 'Frostmint cocoa', emoji: '☕', tab: 'Brews', level: 402, tierNum: 6,
+    inputs: [{ item: 'dried_frostmint', qty: 3 }, { item: 'snowcabbage', qty: 1 }], buff: { skill: 'combat', kind: 'xp', pct: 10, minutes: 30 },
+    description: 'Thick, sweet and minty. Warms you from your toes up — good for a fight in the snow.' },
+  // 🌌 Voidreach
+  { id: 'void_plum_tart', name: 'Void plum tart', emoji: '🥧', tab: 'Meals', level: 490, tierNum: 7,
+    inputs: [{ item: 'cooked_voideel', qty: 2 }, { item: 'voidplum', qty: 2 }], buff: { skill: 'mining', kind: 'speed', pct: 7, minutes: 30 },
+    description: 'A purple tart that tastes a little different every bite. The edge-quarry miners swear by it.' },
+  { id: 'voidbloom_tea', name: 'Voidbloom tea', emoji: '🫖', tab: 'Brews', level: 487, tierNum: 7,
+    inputs: [{ item: 'dried_voidbloom', qty: 3 }, { item: 'voidplum', qty: 1 }], buff: { skill: 'runecrafting', kind: 'xp', pct: 12, minutes: 30 },
+    description: 'Dark as the chasm, with little stars swirling at the bottom of the cup.' },
+  // 🌠 Starfall Crater
+  { id: 'starfruit_pie', name: 'Starfruit pie', emoji: '🥧', tab: 'Meals', level: 575, tierNum: 8,
+    inputs: [{ item: 'cooked_starray', qty: 2 }, { item: 'starfruit', qty: 2 }], buff: { skill: 'farming', kind: 'speed', pct: 8, minutes: 30 },
+    description: 'The harvest-supper pie of the crater farms. Glows faintly on the windowsill while it cools.' },
+  { id: 'starthistle_tonic', name: 'Starthistle tonic', emoji: '🧋', tab: 'Brews', level: 572, tierNum: 8,
+    inputs: [{ item: 'dried_starthistle', qty: 3 }, { item: 'starfruit', qty: 1 }], buff: { skill: 'all', kind: 'xp', pct: 5, minutes: 30 },
+    description: 'Fizzy and bright. Everything you do feels like it matters a little more.' },
+  // ☁️ Celestine Spires
+  { id: 'sky_pear_crumble', name: 'Sky pear crumble', emoji: '🍮', tab: 'Meals', level: 665, tierNum: 9,
+    inputs: [{ item: 'cooked_skycarp', qty: 2 }, { item: 'skypear', qty: 2 }], buff: { skill: 'woodcutting', kind: 'speed', pct: 8, minutes: 30 },
+    description: 'So light you have to eat it quickly before it floats off the plate.' },
+  { id: 'skysage_infusion', name: 'Skysage infusion', emoji: '🍵', tab: 'Brews', level: 662, tierNum: 9,
+    inputs: [{ item: 'dried_skysage', qty: 3 }, { item: 'skypear', qty: 1 }], buff: { skill: 'enhancing', kind: 'xp', pct: 12, minutes: 30 },
+    description: 'Clear as the air up high. The Spires\' scholars drink it to think straight.' },
+  // 🌀 The Primordial Rift
+  { id: 'first_feast', name: 'The First Feast', emoji: '🍖', tab: 'Meals', level: 755, tierNum: 10,
+    inputs: [{ item: 'cooked_leviathan', qty: 2 }, { item: 'worldpumpkin', qty: 2 }], buff: { skill: 'all', kind: 'speed', pct: 5, minutes: 30 },
+    description: 'Cooked on the First Fire, the way the very first meal was. Everything goes a little quicker afterwards.' },
+  { id: 'worldroot_brew', name: 'Worldroot brew', emoji: '🧉', tab: 'Brews', level: 752, tierNum: 10,
+    inputs: [{ item: 'dried_worldroot', qty: 3 }, { item: 'worldpumpkin', qty: 1 }], buff: { skill: 'all', kind: 'xp', pct: 6, minutes: 30 },
+    description: 'Tastes like rain on old earth. You feel very small, and very much at home.' },
 ];
 for (const m of MEALS) {
   items.push({ id: m.id, name: m.name, category: 'meal', tier: 'oak', icon: 'log', emoji: m.emoji, stackable: true, tierNum: m.tierNum,

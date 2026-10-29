@@ -601,7 +601,15 @@ export const game = {
     if (typeof got === 'string') return fail(got);
     play('welcome');
     buzz([20, 40, 20]);
-    toast(`🎁 The Traveller left you: ${got.map((s) => `${s.qty > 1 ? `${s.qty.toLocaleString()} ` : ''}${getItem(s.id).name}`).join(', ')}`, 'level');
+    const what = got.map((s) => `${s.qty > 1 ? `${s.qty.toLocaleString()} ` : ''}${getItem(s.id).name}`).join(', ');
+    if (snap.player.location === 'Primordial Rift') {
+      // The end of the Traveller's road: you finally meet her (her story is in the Journal's Tales).
+      celebrate();
+      play('levelup');
+      toast(`🎒 You caught up with the Traveller! Read "The Traveller" in your Journal. She gave you: ${what}`, 'level');
+    } else {
+      toast(`🎁 The Traveller left you: ${what}`, 'level');
+    }
     announceLore(syncLore(snap.player));
     save();
     emit();

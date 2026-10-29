@@ -101,6 +101,11 @@ export const BUY_LISTS: Partial<Record<Region, string[]>> = {
   Lunaria: ['moonsilver_ore', 'moonwood_logs', 'raw_moonfin', 'moonsilver_bar', 'moonsilver_arrows', 'cooked_moonfin', 'cobalt_ore', 'stone', 'rune_essence', 'moonmelon_seed'],
   // The Ash Market.
   Cinderpeak: ['emberite_ore', 'emberbark_logs', 'raw_emberfin', 'emberite_bar', 'emberite_arrows', 'cooked_emberfin', 'moonsilver_ore', 'stone', 'rune_essence', 'emberpepper_seed', 'emberpepper'],
+  Frosthold: ['frostcore_ore', 'frostpine_logs', 'raw_frostcod', 'frostcore_bar', 'frostcore_arrows', 'cooked_frostcod', 'emberite_ore', 'stone', 'rune_essence', 'snowcabbage_seed', 'frost_rune'],
+  Voidreach: ['voidstone_ore', 'voidwood_logs', 'raw_voideel', 'voidstone_bar', 'voidstone_arrows', 'cooked_voideel', 'frostcore_ore', 'stone', 'rune_essence', 'voidplum_seed', 'shadow_rune'],
+  'Starfall Crater': ['starmetal_ore', 'starbloom_logs', 'raw_starray', 'starmetal_bar', 'starmetal_arrows', 'cooked_starray', 'voidstone_ore', 'stone', 'rune_essence', 'starfruit_seed', 'starfruit'],
+  'Celestine Spires': ['celestium_ore', 'celestwood_logs', 'raw_skycarp', 'celestium_bar', 'celestium_arrows', 'cooked_skycarp', 'starmetal_ore', 'stone', 'rune_essence', 'skypear_seed', 'light_rune'],
+  'Primordial Rift': ['primordial_ore', 'worldtree_logs', 'raw_leviathan', 'primordial_bar', 'primordial_arrows', 'cooked_leviathan', 'celestium_ore', 'stone', 'rune_essence', 'worldpumpkin_seed', 'nature_rune'],
 };
 /** 🎒 The Satchel: sends whatever doesn't fit in your bag to the bank. Needs any skill at 110 (Coalhaven). */
 export const SATCHEL = { level: 110, coins: 25_000 };
