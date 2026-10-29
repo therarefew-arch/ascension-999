@@ -1,4 +1,6 @@
 // One skill: pick a resource, play its minigame, or set it to idle.
+import { MASTERY } from '../../core/mastery';
+import { ASCENSION_LEVEL } from '../../data/ascended';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { SkillId } from '../../data/items';
@@ -348,6 +350,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
         </div>
         <BoostRow skill={skill} />
         <GoalRow skill={skill} place={`📍 ${placeName(player.location, skill)}, ${player.location}`} />
+        {lvl >= ASCENSION_LEVEL && <MasteryRow skill={skill} level={lvl} />}
       </div>
 
       {tabRow}
@@ -418,6 +421,20 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/** ✦ Mastery perks at 800 / 900 / 999 (shown once a skill is in the Ascension). */
+function MasteryRow({ skill, level }: { skill: SkillId; level: number }) {
+  const name = SKILLS[skill].name;
+  const next = MASTERY.find((m) => level < m.level);
+  return (
+    <div className="mastery-perks small">
+      {MASTERY.map((m) => (
+        <span key={m.level} className={`mp ${level >= m.level ? 'on' : ''}`} title={m.text(name)}>✦ {m.name}</span>
+      ))}
+      <span className="muted mp-next">{next ? `Lv ${next.level}: ${next.text(name)}` : MASTERY.map((m) => m.text(name)).join(' · ')}</span>
     </div>
   );
 }

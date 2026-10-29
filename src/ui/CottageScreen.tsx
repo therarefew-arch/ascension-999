@@ -6,6 +6,7 @@ import { game, useGame } from '../core/store';
 import { fmtNum } from './format';
 import { ItemIcon } from './icons';
 import { dayPhase } from './PixelScene';
+import { HallOfAscended } from './Hall';
 
 export function CottageScreen({ onGarden }: { onGarden: () => void }) {
   const { player } = useGame();
@@ -27,6 +28,8 @@ export function CottageScreen({ onGarden }: { onGarden: () => void }) {
         {player.activePet && PET_MAP[player.activePet] && <span className="cottage-pet bob">{PET_MAP[player.activePet].emoji}</span>}
         {built.size === 0 && <div className="cottage-empty">An empty room, full of possibilities.<br />Build your first piece below!</div>}
       </div>
+
+      <HallOfAscended />
 
       <div className="card cottage-perks">
         <div className="row-between"><b>🏡 {built.size - keepsakes.length}/{FURNITURE.length} pieces{keepsakes.length ? ` · ${keepsakes.length} keepsake${keepsakes.length > 1 ? 's' : ''}` : ''}</b><button className="btn btn-sm" onClick={onGarden}>🌱 Garden</button></div>

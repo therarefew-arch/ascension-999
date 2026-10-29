@@ -8,6 +8,8 @@ import { ITEMS } from '../data/items';
 import { REGIONS } from '../data/tiers';
 import { countInBag, countInBank, removeFromBag, removeFromBank } from './inventory';
 import { giveLoot, giveWorn } from './loot';
+import { ASC_RELIC_TIER, ASCEND_RELIC_COST, RELIC_MAP, relicItemId, type RelicKey } from '../data/relics';
+import { findRelic, replaceRelic } from './relics';
 import type { PlayerState } from './player';
 import { levelForXp } from './xp';
 
@@ -98,4 +100,28 @@ export function reforge(p: PlayerState, id: string, from: ForgePlace, locked: Bo
   }
   if (p.keep.includes(id)) p.keep = p.keep.map((k) => (k === id ? next : k));
   return next;
+}
+
+// ----- 🌟 Ascending a Relic: its final form, once per Relic. -----
+/** Why this Relic can't be ascended (null = it can). */
+export function whyCantAscendRelic(p: PlayerState, key: RelicKey): string | null {
+  if (!RELIC_MAP[key]) return 'Unknown Relic';
+  const tier = p.relics[key];
+  if (tier === undefined || !findRelic(p, key)) return "You don't have this Relic";
+  if (tier >= ASC_RELIC_TIER) return 'Already Ascended';
+  const req = ITEMS[relicItemId(key, ASC_RELIC_TIER)]?.equip?.req;
+  if (req && levelForXp(p.skills[req.skill].xp) < req.level) return `Needs ${req.skill[0].toUpperCase() + req.skill.slice(1)} level ${req.level}`;
+  if (p.starlight < ASCEND_RELIC_COST) return `Needs ${ASCEND_RELIC_COST.toLocaleString()} Starlight`;
+  return null;
+}
+
+/** Ascends a Relic right where it is (worn stays worn), like a Pedlar awakening. Returns the new item id. */
+export function ascendRelic(p: PlayerState, key: RelicKey): string | null {
+  if (whyCantAscendRelic(p, key)) return null;
+  const had = findRelic(p, key)!;
+  const id = relicItemId(key, ASC_RELIC_TIER);
+  if (!replaceRelic(p, had.id, id)) return null;
+  p.starlight -= ASCEND_RELIC_COST;
+  p.relics[key] = ASC_RELIC_TIER;
+  return id;
 }

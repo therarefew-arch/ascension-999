@@ -4,6 +4,7 @@ import { ASC_BASES, ASC_DROP_MS, ASCENSION_LEVEL, rollAscended, STARLIGHT_PER_HO
 import { ITEMS, type SkillId } from '../data/items';
 import { REGIONS, type Region } from '../data/tiers';
 import { ascBonus } from './ascBonus';
+import { MASTERY_NUM, masteryRank } from './mastery';
 import { giveLoot } from './loot';
 import { OFFLINE_CAP_MS, type PlayerState } from './player';
 import { levelForXp } from './xp';
@@ -65,14 +66,17 @@ export function rollAscendedDrops(
   if (level < ASCENSION_LEVEL) return;
   // ✨ A little Starlight drifts down while you work (whole bits, the rest is a chance).
   // 🌠 Starcaught (Starfall Crater): more of it.
-  const sl = (ms / 3_600_000) * STARLIGHT_PER_HOUR * (1 + ascBonus(p, 'sc') / 100);
+  // ✦ Adept mastery (800 in this skill): +5% too.
+  const rank = masteryRank(p, skill);
+  const sl = (ms / 3_600_000) * STARLIGHT_PER_HOUR * (1 + (ascBonus(p, 'sc') + (rank >= 1 ? MASTERY_NUM.starlight : 0)) / 100);
   const bits = Math.floor(sl) + (rng() < sl - Math.floor(sl) ? 1 : 0);
   if (bits > 0) {
     giveLoot(p, [{ id: 'starlight', qty: bits }]);
     report.gained.starlight = (report.gained.starlight ?? 0) + bits;
   }
   // 🌳 Primordial (the Rift): Ascended items turn up a little more often.
-  const n = poisson(ms, ASC_DROP_MS / (1 + ascBonus(p, 'pr') / 100), rng);
+  // ✦ Expert mastery (900 in this skill): +5% too.
+  const n = poisson(ms, ASC_DROP_MS / (1 + (ascBonus(p, 'pr') + (rank >= 2 ? MASTERY_NUM.finds : 0)) / 100), rng);
   const town = Math.max(0, REGIONS.indexOf((where ?? p.location) as Region));
   for (let i = 0; i < n; i++) {
     const id = rollAscended(pickBase(p, skill, rng), level, town, rng);

@@ -10,6 +10,25 @@ export function relicOn(p: PlayerState, key: RelicKey): boolean {
   return !!id && ITEMS[id]?.relic?.key === key;
 }
 
+/** Is this Relic worn right now, in its 🌟 Ascended form? */
+export function relicAsc(p: PlayerState, key: RelicKey): boolean {
+  const id = p.equipment[RELIC_MAP[key].slot];
+  return !!id && ITEMS[id]?.relic?.key === key && !!ITEMS[id]?.relic?.ascended;
+}
+
+/** 🌟 The same numbers for Ascended Relics (and their extra powers). */
+export const RELIC_ASC = {
+  doubleChance: 0.25,
+  thriftChance: 0.2, hammerDouble: 0.1,
+  arrowSave: 0.85, bowAccuracy: 0.05,
+  runeSave: 0.6,
+  kindlePerSwing: 0.08, kindleMax: 1,
+  wardEvery: 5,
+  crownXp: 1.08,
+  coatCoins: 1.25, coatDiscount: 0.8,
+  skilletFire: 2,
+} as const;
+
 /** Trait numbers, kept in one place. */
 export const RELIC = {
   /** Whisperwood Axe / Deepdelver's Pick / Granny Bramble's Skillet: chance of a free second roll. */

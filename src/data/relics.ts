@@ -20,32 +20,49 @@ export interface RelicDef {
   trait: string;
   /** A line of story. */
   lore: string;
+  /** 🌟 Its Ascended form's power (replaces the trait once ascended at the Starforge). */
+  ascTrait: string;
 }
 
 export const RELICS: RelicDef[] = [
   { key: 'whisperwood_axe', name: 'Whisperwood Axe', emoji: '🪓', kind: 'tool', slot: 'axe',
-    trait: '15% chance to cut a second log', lore: 'The trees lean in to listen when it swings.' },
+    trait: '15% chance to cut a second log', lore: 'The trees lean in to listen when it swings.',
+    ascTrait: "25% chance of a second log, and bird's nests turn up twice as often" },
   { key: 'deepdelver_pick', name: "Deepdelver's Pick", emoji: '⛏️', kind: 'tool', slot: 'pickaxe',
-    trait: '15% chance to mine a second ore', lore: 'Its old owner dug so deep they found the bottom, and came back up.' },
+    trait: '15% chance to mine a second ore', lore: 'Its old owner dug so deep they found the bottom, and came back up.',
+    ascTrait: "25% chance of a second ore, and geodes turn up twice as often" },
   { key: 'tidecaller_rod', name: 'Tidecaller Rod', emoji: '🎣', kind: 'tool', slot: 'rod',
-    trait: 'Rare fish bite twice as often', lore: 'The line hums a tune only the old fish remember.' },
+    trait: 'Rare fish bite twice as often', lore: 'The line hums a tune only the old fish remember.',
+    ascTrait: "Rare fish bite three times as often, and corked bottles wash up twice as often" },
   { key: 'hearthsong_hammer', name: 'Hearthsong Hammer', emoji: '🔨', kind: 'tool', slot: 'hammer',
-    trait: '12% chance smithing uses no materials', lore: 'It rings like a bell. Metal seems happy to be shaped by it.' },
+    trait: '12% chance smithing uses no materials', lore: 'It rings like a bell. Metal seems happy to be shaped by it.',
+    ascTrait: "20% chance smithing uses no materials, and 10% chance of a second bar" },
   { key: 'bramble_skillet', name: "Granny Bramble's Skillet", emoji: '🍳', kind: 'tool', slot: 'skillet',
-    trait: '15% chance to cook a second one for free', lore: 'Seasoned by sixty years of Sunday suppers.' },
+    trait: '15% chance to cook a second one for free', lore: 'Seasoned by sixty years of Sunday suppers.',
+    ascTrait: "25% chance to cook a second one for free, and every log keeps the cooking fire going twice as long" },
   { key: 'emberheart_blade', name: 'Emberheart Blade', emoji: '🗡️', kind: 'weapon', slot: 'weapon',
-    trait: 'Hits 5% harder with every swing at the same foe (up to +50%)', lore: 'A coal glows in the hilt, brighter the longer the fight.' },
+    trait: 'Hits 5% harder with every swing at the same foe (up to +50%)', lore: 'A coal glows in the hilt, brighter the longer the fight.',
+    ascTrait: "Hits 8% harder with every swing at the same foe (up to +100%)" },
   { key: 'galewhisper_bow', name: 'Galewhisper Bow', emoji: '🏹', kind: 'weapon', slot: 'weapon',
-    trait: 'Arrows come back 60% of the time', lore: 'The wind carries every arrow home.' },
+    trait: 'Arrows come back 60% of the time', lore: 'The wind carries every arrow home.',
+    ascTrait: "Arrows come back 85% of the time, and +5% hit chance" },
   { key: 'starweaver_staff', name: 'Starweaver Staff', emoji: '🪄', kind: 'weapon', slot: 'weapon',
-    trait: 'Casts with any runes in your bag (the strongest first)', lore: 'It doesn\'t care which star you wish on.' },
+    trait: 'Casts with any runes in your bag (the strongest first)', lore: 'It doesn\'t care which star you wish on.',
+    ascTrait: "Casts with any runes, and keeps the rune 60% of the time" },
   { key: 'oathkeeper_shield', name: 'Oathkeeper Shield', emoji: '🛡️', kind: 'armour', slot: 'shield',
-    trait: 'Wards off the first blow from every foe', lore: 'Sworn to one promise: the first strike never lands.' },
+    trait: 'Wards off the first blow from every foe', lore: 'Sworn to one promise: the first strike never lands.',
+    ascTrait: "Wards off the first blow from every foe, and every 5th blow after that" },
   { key: 'wanderers_crown', name: "Wanderer's Crown", emoji: '👑', kind: 'armour', slot: 'head',
-    trait: '+5% XP in every skill', lore: 'A king who gave up his throne to see the world. He learned a lot.' },
+    trait: '+5% XP in every skill', lore: 'A king who gave up his throne to see the world. He learned a lot.',
+    ascTrait: "+8% XP in every skill" },
   { key: 'patchwork_coat', name: "Pedlar's Patchwork Coat", emoji: '🧥', kind: 'armour', slot: 'body',
-    trait: '+15% coins from monsters, and the Pedlar\'s crates cost 10% less', lore: 'Every patch is from a town he sold in. The Pedlar wants it back.' },
+    trait: '+15% coins from monsters, and the Pedlar\'s crates cost 10% less', lore: 'Every patch is from a town he sold in. The Pedlar wants it back.',
+    ascTrait: "+25% coins from monsters, and the Pedlar's crates cost 20% less" },
 ];
 
 export const RELIC_MAP = Object.fromEntries(RELICS.map((r) => [r.key, r])) as Record<RelicKey, RelicDef>;
 export const relicItemId = (key: RelicKey, tier: number) => `relic_${key}_${tier}`;
+
+/** 🌟 Ascended Relics (part 5 of the Ascension): any Relic can be ascended once at the Starforge. */
+export const ASC_RELIC_TIER = 11;
+export const ASCEND_RELIC_COST = 2500;

@@ -22,7 +22,8 @@ import { advanceFight, isFightId, type CombatReport } from './combat';
 import { STIR_XP_MULT, stirBoosts } from './cinderpeak';
 import { festivalXpMult, rollFestivalToken } from './festivals';
 import { recordRareFish, type RareCatch } from './fishJournal';
-import { RELIC, relicOn } from './relics';
+import { RELIC, RELIC_ASC, relicAsc, relicOn } from './relics';
+import { MASTERY_NUM, masteredCount } from './mastery';
 import { ascBonus, ascXpMult, rollAscendedDrops } from './ascension';
 import { MONSTER_MAP } from '../data/monsters';
 import { weaponStyle } from './combat';
@@ -155,7 +156,7 @@ export function stokeFire(p: PlayerState, report: ProgressReport, log?: string):
   if (p.fire.heatMs >= MAX_FIRE_MS - 1000) return 'The fire is already roaring';
   completeAction(p, ACTIONS[FIRE_LOGS[chosen].burnAction], report);
   const bonus = (1 + skillLevel(p, 'firemaking') / 250) * (1 + cottageFirePct(p) / 100);
-  p.fire.heatMs = Math.min(MAX_FIRE_MS, Math.max(0, p.fire.heatMs) + FIRE_LOGS[chosen].heatMs * bonus);
+  p.fire.heatMs = Math.min(MAX_FIRE_MS, Math.max(0, p.fire.heatMs) + FIRE_LOGS[chosen].heatMs * bonus * (relicAsc(p, 'bramble_skillet') ? RELIC_ASC.skilletFire : 1));
   p.fire.log = chosen;
   return null;
 }
@@ -297,16 +298,19 @@ export function completeAction(
   let relicRolls = 0;
   let thrifty = false;
   if (!action.kind) {
-    const double = (action.skill === 'woodcutting' && relicOn(p, 'whisperwood_axe'))
-      || (action.skill === 'mining' && relicOn(p, 'deepdelver_pick'))
-      || (action.skill === 'cooking' && relicOn(p, 'bramble_skillet'));
-    if (double && Math.random() < RELIC.doubleChance) relicRolls = 1;
+    const doubleRelic = action.skill === 'woodcutting' ? 'whisperwood_axe' : action.skill === 'mining' ? 'deepdelver_pick'
+      : action.skill === 'cooking' ? 'bramble_skillet' : null;
+    if (doubleRelic && relicOn(p, doubleRelic)
+      && Math.random() < (relicAsc(p, doubleRelic) ? RELIC_ASC.doubleChance : RELIC.doubleChance)) relicRolls = 1;
+    // 🌟 Ascended Hearthsong Hammer: sometimes a second bar.
+    if (action.skill === 'smithing' && relicAsc(p, 'hearthsong_hammer') && Math.random() < RELIC_ASC.hammerDouble) relicRolls++;
     // 🌟 Ascended tools: a chance of a double result.
     const asc = ascBonus(p, 'dr', action.skill);
     if (asc && Math.random() < asc / 100) relicRolls++;
     // Only when the result still fits, since the materials stay in the bag.
     // ⚒️ Forge-thrift (Ironmoor town bonus) works the same way for its tool's skill.
-    const thriftChance = (action.skill === 'smithing' && relicOn(p, 'hearthsong_hammer') ? RELIC.thriftChance : 0)
+    const thriftChance = (action.skill === 'smithing' && relicOn(p, 'hearthsong_hammer')
+      ? (relicAsc(p, 'hearthsong_hammer') ? RELIC_ASC.thriftChance : RELIC.thriftChance) : 0)
       + ascBonus(p, 'th', action.skill) / 100;
     thrifty = action.inputs.length > 0 && thriftChance > 0 && Math.random() < thriftChance
       && (satchelOn(p) || canFitAll(p.inventory, maxLoot(opts.lootTable ?? action.lootTable)));
@@ -351,7 +355,10 @@ export function completeAction(
   // 🎁 A rare find now and then while gathering (bird nests, geodes, bottles).
   // 🌟 Ascended tools with "rare finds" give finds and rare fish an extra chance.
   const ascFinds = !action.kind ? ascBonus(p, 'rf', action.skill) : 0;
-  const findTries = ascFinds && Math.random() < ascFinds / 100 ? 2 : 1;
+  // 🌟 Ascended Relics (axe, pick, rod) make their skill's finds twice as common.
+  const findRelic = action.skill === 'woodcutting' ? 'whisperwood_axe' : action.skill === 'mining' ? 'deepdelver_pick'
+    : action.skill === 'fishing' ? 'tidecaller_rod' : null;
+  const findTries = (ascFinds && Math.random() < ascFinds / 100 ? 2 : 1) + (findRelic && relicAsc(p, findRelic) ? 1 : 0);
   for (let k = 0; k < findTries && !action.kind && action.skill in FIND_ITEM; k++) {
     const find = rollLoot(stirring ? 'find_ember_geode' : `find_${action.skill}`);
     if (find.length) {
@@ -362,7 +369,7 @@ export function completeAction(
   // 🐟 A rare fish now and then — recorded in the Fishing Journal.
   // ✨ The Tidecaller Rod gives rare fish a second chance to bite.
   const rareTries = !action.kind && action.skill === 'fishing' && action.region && LOOT_TABLES[`rare_fish_${action.region}`]
-    ? (relicOn(p, 'tidecaller_rod') ? 2 : 1) + (ascFinds && Math.random() < ascFinds / 100 ? 1 : 0)
+    ? (relicAsc(p, 'tidecaller_rod') ? 3 : relicOn(p, 'tidecaller_rod') ? 2 : 1) + (ascFinds && Math.random() < ascFinds / 100 ? 1 : 0)
       + (Math.random() < ascBonus(p, 'td', 'fishing') / 100 ? 1 : 0) : 0; // 🌊 Tidewise (Bluecliff)
   for (let k = 0; k < rareTries; k++) {
     const rare = rollLoot(`rare_fish_${action.region}`);
@@ -397,9 +404,12 @@ export function addXp(p: PlayerState, action: { skill: SkillId }, report: Progre
   // 🎪 The season's festival skill gets +10%.
   xp = xp * festivalXpMult(action.skill);
   // ✨ The Wanderer's Crown: +5% XP in every skill.
-  if (relicOn(p, 'wanderers_crown')) xp = xp * RELIC.crownXp;
+  if (relicOn(p, 'wanderers_crown')) xp = xp * (relicAsc(p, 'wanderers_crown') ? RELIC_ASC.crownXp : RELIC.crownXp);
   // 🌟 Ascended bonuses.
   xp = xp * ascXpMult(p, action.skill);
+  // ✦ Master mastery: +1% XP in every skill for each skill at 999.
+  const masters = masteredCount(p);
+  if (masters) xp = xp * (1 + (masters * MASTERY_NUM.masterXp) / 100);
   const skill = p.skills[action.skill];
   const before = levelForXp(skill.xp);
   skill.xp = Math.min(MAX_XP, skill.xp + xp);

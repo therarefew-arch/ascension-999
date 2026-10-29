@@ -3,7 +3,7 @@
 import { CROPS, FISH, HERBS, METALS, REGIONS, TIER_COUNT, WOODS, tierForLevel, tierLevel, tierPalette, tierRegion, tierXp, type Region } from './tiers';
 import { RARE_FISH } from './rareFish';
 import { FESTIVALS, TREAT_BUFF } from './festivals';
-import { RELICS, relicItemId, type RelicKey } from './relics';
+import { ASC_RELIC_TIER, RELICS, relicItemId, type RelicKey } from './relics';
 import { ASCENSION_LEVEL, BONUSES, isAscendedId, parseAscended, type AscParts } from './ascended';
 
 export type ItemCategory = 'ore' | 'bar' | 'log' | 'material' | 'fish' | 'food' | 'weapon' | 'armour' | 'tool' | 'gem' | 'ammo' | 'currency' | 'treasure'
@@ -167,7 +167,7 @@ export interface ItemDef {
   /** Seeds: the crop (tier index into CROPS) it grows into. */
   seedOf?: number;
   /** ✨ Relics: one-of-a-kind gear from the Pedlar's crates (can't be sold or upgraded). */
-  relic?: { key: RelicKey };
+  relic?: { key: RelicKey; ascended?: boolean };
   /** 🌟 Ascended items (levels 750+): grade, town and rolled bonuses (data/ascended.ts). */
   ascended?: AscParts;
 }
@@ -505,6 +505,23 @@ for (const r of RELICS) {
       },
     });
   }
+}
+
+// 🌟 Ascended Relics: each Relic's final form (made at the Starforge). Stronger than any town, with a stronger trait.
+for (const r of RELICS) {
+  const g = RELIC_GEAR[r.slot === 'weapon' ? r.key : r.slot];
+  const stats = Object.fromEntries(Object.entries(g.stat(TIER_COUNT - 1)).map(([k, v]) => [k, Math.round((v as number) * 1.6)])) as ItemStats;
+  items.push({
+    id: relicItemId(r.key, ASC_RELIC_TIER), name: `Ascended ${r.name}`, category: g.category, tier: 'asc_g', icon: g.icon, emoji: r.emoji,
+    stackable: false, tierNum: TIER_COUNT - 1, region: tierRegion(TIER_COUNT - 1), relic: { key: r.key, ascended: true },
+    description: `🌟 Ascended Relic — one of a kind. ${r.ascTrait}. ${r.lore}`,
+    equip: {
+      slot: r.slot, stats,
+      req: g.skill ? { skill: g.skill, level: ASCENSION_LEVEL } : undefined,
+      ...(g.category === 'tool' ? { toolTier: TIER_COUNT - 1 } : {}),
+      ...(g.style ? { style: g.style, speedMs: WEAPON_SPEED[g.style] } : {}),
+    },
+  });
 }
 
 // ----- 🎁 Rare finds while gathering (open them from the bag) and the treasures inside -----

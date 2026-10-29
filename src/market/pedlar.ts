@@ -10,7 +10,7 @@ import { CROPS, FISH, HERBS, METALS, REGIONS, WOODS, type Region } from '../data
 import { canFitAll } from '../core/inventory';
 import { giveLoot, satchelOn } from '../core/loot';
 import type { ItemStack, PlayerState } from '../core/player';
-import { findRelic, RELIC, relicOn, replaceRelic } from '../core/relics';
+import { findRelic, RELIC, RELIC_ASC, relicAsc, relicOn, replaceRelic } from '../core/relics';
 import { baseValue } from './market';
 
 export type CrateKey = 'rough' | 'ironbound' | 'gilded';
@@ -66,7 +66,7 @@ export const pedlarHere = (p: PlayerState, now = Date.now()) => !p.travel && ped
 
 /** Price of a crate in a town (rounded to a tidy number; the Patchwork Coat takes 10% off). */
 export function cratePrice(p: PlayerState, key: CrateKey, town: Region = p.location): number {
-  const raw = CRATE_MAP[key].base * Math.pow(TOWN_PRICE_MULT, townTier(town)) * (relicOn(p, 'patchwork_coat') ? RELIC.coatDiscount : 1);
+  const raw = CRATE_MAP[key].base * Math.pow(TOWN_PRICE_MULT, townTier(town)) * (relicOn(p, 'patchwork_coat') ? (relicAsc(p, 'patchwork_coat') ? RELIC_ASC.coatDiscount : RELIC.coatDiscount) : 1);
   const step = raw >= 100_000 ? 1000 : raw >= 10_000 ? 100 : 10;
   return Math.round(raw / step) * step;
 }

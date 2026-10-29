@@ -60,7 +60,9 @@ import {
   deleteSave, exportSave, importSave, loadedFromVersion, loadGame, loadSettings, markBackedUp, requestPersistentStorage, saveGame, saveSettings, type SlotId,
 } from './save';
 import type { Settings } from './settings';
-import { breakDown, breakDownAllFine, craftAscended, reforge, whyCantCraft, whyCantReforge, type ForgePlace } from './starforge';
+import { ascendRelic, breakDown, breakDownAllFine, craftAscended, reforge, whyCantAscendRelic, whyCantCraft, whyCantReforge, type ForgePlace } from './starforge';
+import type { RelicKey } from '../data/relics';
+import { masteryReached } from './mastery';
 import type { BonusKey } from '../data/ascended';
 
 /** Gaps longer than this count as "away" and show the summary card. */
@@ -151,6 +153,9 @@ function announceLevels(report: ProgressReport) {
     const milestone = Math.floor(lv.to / 10) > Math.floor(lv.from / 10);
     toast(milestone && lv.to % 10 === 0 ? `🎉 ${SKILLS[lv.skill].name} level ${lv.to}!` : `${SKILLS[lv.skill].name} level ${lv.to}!`, 'level');
     if (milestone) celebrate();
+    // ✦ A mastery step (800 / 900 / 999).
+    const m = masteryReached(lv.from, lv.to);
+    if (m) toast(`✦ ${SKILLS[lv.skill].name} ${m.name}: ${m.text(SKILLS[lv.skill].name)}`, 'level');
   }
 }
 
@@ -1316,6 +1321,19 @@ export const game = {
     save();
     emit();
     return next;
+  },
+  ascendRelic(key: RelicKey): string | null {
+    const why = whyCantAscendRelic(snap.player, key);
+    if (why) { fail(why); return null; }
+    const id = ascendRelic(snap.player, key);
+    if (!id) return null;
+    play('levelup');
+    play('enchant');
+    toast(`🌟 ${getItem(id).name}! Its power grows.`, 'level');
+    celebrate();
+    save();
+    emit();
+    return id;
   },
 
   // ----- Gear -----

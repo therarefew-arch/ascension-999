@@ -1628,3 +1628,28 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .road-tag { color: #e0e7ff; background: #3730a3; }
 .road-loot { color: #c7d2fe; margin-top: 2px; }
 .road-beaten { display: flex; flex-direction: column; align-items: center; text-align: center; color: #a5f3fc; min-width: 84px; }
+
+/* 🌟 Ascending Relics (Starforge) */
+.sf-relics { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.sf-relic { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line); }
+.sf-relic.done { border-color: rgba(251, 191, 36, 0.5); box-shadow: 0 0 10px rgba(251, 191, 36, 0.15); }
+.sf-relic-emoji { font-size: 1.5rem; }
+.sf-relic-next { color: #fcd9a8; }
+
+/* ✦ Mastery perks (skill screen) */
+.mastery-perks { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 4px; }
+.mastery-perks .mp { padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--dim, #8a8079); }
+.mastery-perks .mp.on { color: #fde68a; border-color: rgba(251, 191, 36, 0.5); background: rgba(251, 191, 36, 0.1); }
+.mastery-perks .mp-next { flex-basis: 100%; }
+
+/* 🏛️ Hall of the Ascended (Cottage) */
+.hall { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.hall-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
+.hall-piece { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 3px; padding: 10px 8px; border-radius: 14px;
+  background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--grade) 18%, transparent), rgba(20, 18, 16, 0.95) 70%);
+  border: 1.5px solid color-mix(in srgb, var(--grade) 55%, transparent); }
+.hall-piece b { color: var(--grade); }
+.hall-piece.grade-g { box-shadow: 0 0 16px color-mix(in srgb, var(--grade) 45%, transparent); }
+.hall-shelf { display: flex; flex-wrap: wrap; gap: 6px; }
+.hall-relic { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 10px; border: 1px solid rgba(251, 191, 36, 0.45); background: rgba(251, 191, 36, 0.07); }
+.hall-gems { color: #a5f3fc; }

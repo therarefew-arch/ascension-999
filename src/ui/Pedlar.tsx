@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { sound } from '../audio/sound';
 import { getItem, STAT_LABELS, type ItemStats } from '../data/items';
-import { RELICS, RELIC_MAP } from '../data/relics';
+import { ASC_RELIC_TIER, RELICS, RELIC_MAP } from '../data/relics';
 import { REGIONS } from '../data/tiers';
 import { SKILLS } from '../data/skills';
 import { game, useGame } from '../core/store';
@@ -89,7 +89,7 @@ export function PedlarCard() {
             return t === undefined ? (
               <div key={r.key} className="pd-relic unknown"><span className="pd-relic-emoji">❔</span><span className="grow small"><b>An unknown Relic</b><span className="muted">{r.trait}</span></span></div>
             ) : (
-              <div key={r.key} className="pd-relic"><span className="pd-relic-emoji">{r.emoji}</span><span className="grow small"><b>{r.name}</b> <span className="dim">· {REGIONS[t]} strength</span><span className="muted">{r.trait}</span></span></div>
+              <div key={r.key} className="pd-relic"><span className="pd-relic-emoji">{r.emoji}</span><span className="grow small"><b>{r.name}</b> <span className="dim">· {t >= ASC_RELIC_TIER ? '🌟 Ascended' : `${REGIONS[t]} strength`}</span><span className="muted">{t >= ASC_RELIC_TIER ? r.ascTrait : r.trait}</span></span></div>
             );
           })}
           <p className="small dim">Find a Relic again in a farther town’s crate and it awakens to that town’s strength.</p>

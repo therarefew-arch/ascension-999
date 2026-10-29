@@ -4,6 +4,8 @@ import {
   ASC_BASES, ASCENSION_LEVEL, BONUSES, BREAK_VALUE, CRAFT_COST, reforgeCost, TOWN_BONUS, townBonusFor, townBonusName, type BonusKey,
 } from '../data/ascended';
 import { REGIONS } from '../data/tiers';
+import { ASC_RELIC_TIER, ASCEND_RELIC_COST, RELICS } from '../data/relics';
+import { whyCantAscendRelic } from '../core/starforge';
 import { getItem } from '../data/items';
 import { SKILLS } from '../data/skills';
 import { game, useGame } from '../core/store';
@@ -68,6 +70,7 @@ export function StarforgeCard() {
           })}
         </div>
       )}
+      <RelicAscend />
       {made && (
         <div className="sf-made" style={{ ['--grade' as string]: getItem(made).ascended?.grade.color }}>
           <ItemIcon id={made} size={40} />
@@ -113,5 +116,38 @@ export function ReforgePanel({ id, from, onChange }: { id: string; from: ForgePl
           </button>
         )}
     </section>
+  );
+}
+
+/** 🌟 Ascend a Relic: each Relic you own can be raised once into its final form. */
+function RelicAscend() {
+  const { player } = useGame();
+  const [open, setOpen] = useState(false);
+  const owned = RELICS.filter((r) => player.relics[r.key] !== undefined);
+  if (!owned.length) return null;
+  return (
+    <div className="sf-relics">
+      <button className="link-btn small" onClick={() => setOpen((o) => !o)}>{open ? '▾' : '▸'} 🌟 Ascend a Relic ({fmtNum(ASCEND_RELIC_COST)} ✨ each)</button>
+      {open && owned.map((r) => {
+        const done = (player.relics[r.key] ?? 0) >= ASC_RELIC_TIER;
+        const why = done ? null : whyCantAscendRelic(player, r.key);
+        return (
+          <div key={r.key} className={`sf-relic ${done ? 'done' : ''}`}>
+            <span className="sf-relic-emoji">{r.emoji}</span>
+            <div className="grow small">
+              <b>{done ? 'Ascended ' : ''}{r.name}</b>
+              <div className={done ? 'gold' : 'muted'}>{done ? r.ascTrait : `Now: ${r.trait}`}</div>
+              {!done && <div className="sf-relic-next">🌟 Ascended: {r.ascTrait}</div>}
+            </div>
+            {!done && (
+              <button className="btn btn-sm btn-primary" disabled={!!why} title={why ?? ''} onClick={() => game.ascendRelic(r.key)}>
+                {why && !why.includes('Starlight') ? '🔒' : 'Ascend'}
+              </button>
+            )}
+          </div>
+        );
+      })}
+      {open && <p className="tiny muted">It changes right where it is — worn, in your bag or in the bank. Needs that Relic's skill at {ASCENSION_LEVEL} to ascend.</p>}
+    </div>
   );
 }
