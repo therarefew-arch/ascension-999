@@ -459,8 +459,34 @@ Enhancing now has three minigames (tabs): **Rune Align** (the original, enhances
 - New sounds: `clack` (crisp tile flip) and `thud` (tile landing in the basket). Bot test: a perfect-memory player clears ~65% of boards; random tapping ~2%.
 - Fishing remembers the last minigame tab while the app is open.
 
+### The Ascension — design (agreed with the owner, 2026-10-29, not built yet)
+Everything past level 750 is called **the Ascension**. Story: Mira hands you "the road up" at the Rift; the Ascension is the sky above it, and **✨ Starlight** is bits of it drifting down.
+
+**Core loop (owner's wish): chasing randomly rolled god loot, as a collection — hybrid of grinding and crafting.**
+- **Ascended items drop** from any action or kill while that skill is 750+ (combat: any combat skill 750+). The chance is **per minute of work, not per action**, so slow and fast actions (and every town) are equally good.
+- **Every slot can be Ascended** (owner's choice: all): the 5 armour slots and all 9 tools. A gathering/crafting action drops that skill's tool (or rarely armour); combat drops armour/weapons.
+- **Random bonuses:** each item rolls 2–4 bonuses from its slot's pool (e.g. +% skill speed, double resource chance, +% XP, rare finds ×, rare fish chance, food heals more, +damage vs bosses, coins ×). Each bonus rolls a number inside a range.
+- **Grades** from how well the bonuses rolled: **Fine → Blessed → Divine → ✨ Godforged** (every bonus at or near its max, plus a gold glow).
+- **Level raises the ceiling:** a skill near 750 can reach Blessed; Divine opens around 850; **Godforged needs ~950+** (the climb to 999 is what makes the jackpot possible).
+- **Target rarity (owner's choice): about one Godforged every ~2 weeks** of steady play once your levels allow it (drops + crafting together). Tune with a bot test like the Pedlar's.
+- **✨ Starlight dust = the safety net (crafting):** earned slowly from all 750+ play and by **breaking down** unwanted Ascended items. Spend it to:
+  - **Craft** a fresh Ascended item for a slot you choose (bonuses still random).
+  - **Reforge** one bonus (rerolls that line only).
+  - **Lock** a bonus so a reforge can't touch it (costs more).
+  No bad-luck hour is ever wasted. Starlight can't be bought with coins and isn't sold by NPCs (no paying to skip).
+
+**Getting to 750 stays worth it (owner: "not make getting there useless"):**
+- **Every town has its own bonus family.** Some bonuses only roll on items found or crafted *in that town* (e.g. a Frosthold "hearthwarm" healing bonus, a Bluecliff tide bonus on rods). A best-in-slot piece means visiting the right town — the Heartland stays worth walking to.
+- **Relics ascend:** each of the 11 Relics can be raised once more into an Ascended form with a fixed, unique power.
+- **Ascension bosses:** 3–4 big endgame bosses beyond the Rift (the owner's earlier wish: "big bosses to chase"), the only source of the best gems and better Godforged odds. Gems still ONLY from bosses.
+- **Mastery perks** stay a small side reward (the owner prefers goals to chase over passive bonuses).
+
+**Collection, not achievements:** no checklists or "collect all" counters (owner isn't a completionist). A **🏛️ Hall of the Ascended** in the Cottage shows off your best pieces.
+
+**Build order (suggested):** 1) Ascended items + bonus rolls + grades + drops (per-minute) for tools and armour; 2) Starlight: break down, craft, reforge, lock; 3) town bonus families; 4) Ascension bosses + gems; 5) Ascended Relics, Hall of the Ascended, mastery perks. Bot-test Godforged ≈ every 2 weeks after parts 1–2.
+
 ### Owner's notes for later
-- **NEXT SESSION (locked in 2026-10-26): The Ascension endgame (750 → 999).** The owner wants it to feel like **goals to chase**: big endgame bosses and rare "Ascended" crafts to work toward, more than small passive mastery bonuses. Start by brainstorming the bosses and Ascended crafts with the owner before building.
+- **NEXT: build the Ascension (750 → 999)** — design agreed with the owner on 2026-10-29, see "The Ascension — design" above. Build it in the parts listed there, one at a time.
 - **Lunaria = the ghost town** (region 5, two towns after Coalhaven): investigate what happened — the Silver Willow, the dark lights, the bell that rings with no one there. Lore threads from Ironmoor and Coalhaven lead here.
 - **Every town needs its own vibe, theme, background music and lore** — a reason to love each town.
 - **Fishing journal**: only worth doing if there are *many different random fish* to catch (rare/odd catches), not just one fish per tier — otherwise your level already shows them all.
