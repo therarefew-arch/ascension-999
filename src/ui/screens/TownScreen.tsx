@@ -16,6 +16,7 @@ import { FestivalBunting, FestivalStall } from '../Festival';
 import { mountainStirs, travellerWhereabouts } from '../../core/cinderpeak';
 import { SaveSafetyHint } from '../Backup';
 import { SettlingIn } from '../SettlingIn';
+import { PedlarCard } from '../Pedlar';
 import { dayPhase } from '../PixelScene';
 
 function greeting() {
@@ -153,6 +154,8 @@ export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, o
       <FestivalStall />
 
       <TodayCard onGo={goTo} />
+
+      <PedlarCard />
 
       <div className="services">
         <button className="service" onClick={onMarket}>

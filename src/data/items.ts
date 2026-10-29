@@ -3,6 +3,7 @@
 import { CROPS, FISH, HERBS, METALS, TIER_COUNT, WOODS, tierForLevel, tierLevel, tierPalette, tierRegion, tierXp, type Region } from './tiers';
 import { RARE_FISH } from './rareFish';
 import { FESTIVALS, TREAT_BUFF } from './festivals';
+import { RELICS, relicItemId, type RelicKey } from './relics';
 
 export type ItemCategory = 'ore' | 'bar' | 'log' | 'material' | 'fish' | 'food' | 'weapon' | 'armour' | 'tool' | 'gem' | 'ammo' | 'currency' | 'treasure'
   | 'herb' | 'crop' | 'seed' | 'meal';
@@ -159,6 +160,8 @@ export interface ItemDef {
   buff?: Buff;
   /** Seeds: the crop (tier index into CROPS) it grows into. */
   seedOf?: number;
+  /** ✨ Relics: one-of-a-kind gear from the Pedlar's crates (can't be sold or upgraded). */
+  relic?: { key: RelicKey };
 }
 
 export const MAX_UPGRADE = 10;
@@ -455,6 +458,40 @@ for (const tier of TOOL_TIERS) {
         toolTier: tier.toolTier,
       },
     }, 'crafting');
+  }
+}
+
+// ----- ✨ Relics (one per town strength; found only in the Wandering Pedlar's sealed crates) -----
+// About as strong as a +4 piece of that town's gear, plus a special trait (core/relics.ts).
+const RELIC_GEAR: Record<string, { icon: IconKind; category: ItemCategory; skill?: SkillId; stat: (t: number) => ItemStats; style?: CombatStyle }> = {
+  axe: { icon: 'axe', category: 'tool', skill: 'woodcutting', stat: (t) => ({ woodcuttingSpeed: Math.round(7.5 * (t + 1)) }) },
+  pickaxe: { icon: 'pickaxe', category: 'tool', skill: 'mining', stat: (t) => ({ miningSpeed: Math.round(7.5 * (t + 1)) }) },
+  rod: { icon: 'rod', category: 'tool', skill: 'fishing', stat: (t) => ({ fishingSpeed: Math.round(7.5 * (t + 1)) }) },
+  hammer: { icon: 'hammer', category: 'tool', skill: 'smithing', stat: (t) => ({ smithingSpeed: Math.round(7.5 * (t + 1)) }) },
+  skillet: { icon: 'skillet', category: 'tool', skill: 'cooking', stat: (t) => ({ cookingSpeed: Math.round(7.5 * (t + 1)) }) },
+  emberheart_blade: { icon: 'sword', category: 'weapon', skill: 'melee', style: 'melee', stat: (t) => ({ attack: 9 * (t + 1) }) },
+  galewhisper_bow: { icon: 'bow', category: 'weapon', skill: 'ranged', style: 'ranged', stat: (t) => ({ attack: Math.round(7.5 * (t + 1)) }) },
+  starweaver_staff: { icon: 'staff', category: 'weapon', skill: 'magic', style: 'magic', stat: (t) => ({ attack: Math.round(7.5 * (t + 1)) }) },
+  shield: { icon: 'shield', category: 'armour', skill: 'defense', stat: (t) => ({ defense: Math.round(7.5 * (t + 1)) }) },
+  head: { icon: 'helmet', category: 'armour', skill: 'defense', stat: (t) => ({ defense: Math.round(4.5 * (t + 1)) }) },
+  body: { icon: 'chest', category: 'armour', skill: 'defense', stat: (t) => ({ defense: 12 * (t + 1) }) },
+};
+for (const r of RELICS) {
+  const g = RELIC_GEAR[r.slot === 'weapon' ? r.key : r.slot];
+  for (let t = 0; t < TIER_COUNT; t++) {
+    const region = tierRegion(t);
+    const req = g.category === 'tool' ? (t > 0 ? tierLevel(t) : 0) : gearReq(t);
+    items.push({
+      id: relicItemId(r.key, t), name: t === 0 ? r.name : `${r.name} (${region})`, category: g.category, tier: METALS[t].key, icon: g.icon, emoji: r.emoji,
+      stackable: false, tierNum: t, region, relic: { key: r.key },
+      description: `✨ Relic — one of a kind. ${r.trait}. ${r.lore}`,
+      equip: {
+        slot: r.slot, stats: g.stat(t),
+        req: req && g.skill ? { skill: g.skill, level: req } : undefined,
+        ...(g.category === 'tool' ? { toolTier: t } : {}),
+        ...(g.style ? { style: g.style, speedMs: WEAPON_SPEED[g.style] } : {}),
+      },
+    });
   }
 }
 

@@ -12,6 +12,7 @@ import { LORE_MAP } from '../data/lore';
 import { alreadySettled, TUTORIAL } from './tutorial';
 import { FURNITURE_MAP } from './cottage';
 import { RARE_FISH_MAP } from '../data/rareFish';
+import { RELIC_MAP, type RelicKey } from '../data/relics';
 import { isFightId, maxHp } from './combat';
 
 export const SAVE_SLOTS = [1, 2, 3] as const;
@@ -341,6 +342,15 @@ function repair(raw: any): PlayerState {
   p.starsCaught = Math.max(0, Number(raw?.starsCaught) || 0);
   // Cottage (v19)
   if (Array.isArray(raw?.cottage)) p.cottage = Array.from(new Set(raw.cottage.filter((id: unknown) => typeof id === 'string' && !!FURNITURE_MAP[id as string])));
+  // ✨ Relics + 🧺 the Wandering Pedlar (no version bump: older saves simply start with none)
+  if (raw?.relics && typeof raw.relics === 'object') {
+    for (const [k, t] of Object.entries(raw.relics)) {
+      if (RELIC_MAP[k as RelicKey] && typeof t === 'number' && t >= 0) p.relics[k as RelicKey] = Math.floor(t);
+    }
+  }
+  if (raw?.pedlar && typeof raw.pedlar === 'object') {
+    p.pedlar = { favour: Math.max(0, Math.floor(Number(raw.pedlar.favour) || 0)), opened: Math.max(0, Math.floor(Number(raw.pedlar.opened) || 0)) };
+  }
   // 📌 Kept-in-bag items (v22)
   if (Array.isArray(raw?.keep)) p.keep = Array.from(new Set(raw.keep.filter((id: unknown) => typeof id === 'string' && !!ITEMS[id as string])));
   // Fishing Journal + festivals (v21)

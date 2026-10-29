@@ -7,6 +7,7 @@ import type { TownRequest } from './cozy';
 import type { Bounty } from './bounties';
 import type { ActiveBuff } from './buffs';
 import type { Plot } from './farming';
+import type { RelicKey } from '../data/relics';
 
 /**
  * v2: added 6 skills; the old "tool" gear slot became "pickaxe".
@@ -132,6 +133,10 @@ export interface PlayerState {
   festivalsSeen: string[];
   /** 📌 Items "Deposit all" leaves in the bag. */
   keep: string[];
+  /** ✨ Relics found: the strongest tier of each (one of each per save). */
+  relics: Partial<Record<RelicKey, number>>;
+  /** 🧺 The Wandering Pedlar: Pedlar's Favour (empty crates in a row) and crates opened. */
+  pedlar: { favour: number; opened: number };
 }
 
 export interface Loadout {
@@ -200,6 +205,8 @@ export function newPlayer(now = Date.now()): PlayerState {
     fishJournal: {},
     festivalsSeen: [],
     keep: [],
+    relics: {},
+    pedlar: { favour: 0, opened: 0 },
   };
 }
 

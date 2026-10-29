@@ -1488,6 +1488,63 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .chip.traveller-chip { background: rgba(251, 191, 36, 0.18); color: #fde68a; border: 1px solid rgba(251, 191, 36, 0.6); }
 .region-row.traveller { box-shadow: inset 3px 0 0 #fbbf24; }
 @media (prefers-reduced-motion: reduce) { .traveller-card, .traveller-emoji { animation: none; } }
+
+/* 🧺 The Wandering Pedlar (Town): his cart of sealed crates, the Favour meter, Relics, and prying a crate open */
+.pd-sighting { display: flex; align-items: center; gap: 8px; margin: 10px 0; padding: 7px 10px; border-radius: 10px; border: 1px dashed rgba(167, 139, 250, 0.5); background: rgba(167, 139, 250, 0.07); }
+.pd-sighting b { color: #c4b5fd; }
+.pd-emoji-s { font-size: 1.15rem; flex: none; }
+.pd-card { margin: 12px 0; display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: var(--radius); border: 1.5px solid #7c3aed;
+  background: radial-gradient(circle at 90% 0%, rgba(167, 139, 250, 0.18), transparent 50%), linear-gradient(160deg, #241a38, #140f20); box-shadow: 0 0 18px rgba(124, 58, 237, 0.2); }
+.pd-head { display: flex; gap: 10px; align-items: center; }
+.pd-head .section-title { margin: 0; color: #c4b5fd; }
+.pd-emoji { font-size: 1.9rem; flex: none; animation: travellerBob 2.6s ease-in-out infinite; }
+.pd-favour { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.pd-pips { display: inline-flex; gap: 3px; }
+.pd-pips i { width: 14px; height: 8px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); }
+.pd-pips i.on { background: #4ade80; box-shadow: 0 0 6px rgba(74, 222, 128, 0.6); }
+.pd-crates { display: flex; flex-direction: column; gap: 6px; }
+.pd-crate { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; text-align: left; color: inherit; font: inherit; cursor: pointer;
+  border: 1.5px solid #4c3a6b; background: #1d1630; transition: transform 0.1s, border-color 0.1s; }
+.pd-crate:active { transform: scale(0.98); }
+.pd-crate b { display: block; }
+.pd-crate .small { display: block; }
+.pd-crate.poor { opacity: 0.55; }
+.pd-crate-emoji { font-size: 1.8rem; flex: none; width: 36px; text-align: center; }
+.pd-price { flex: none; font-weight: 800; color: #fde68a; font-size: 0.85rem; white-space: nowrap; }
+.pd-relic-toggle { align-self: flex-start; padding: 4px 0; border: 0; background: none; color: #fde68a; font: inherit; cursor: pointer; }
+.pd-relics { display: flex; flex-direction: column; gap: 5px; }
+.pd-relics p { margin: 2px 0 0; }
+.pd-relic { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 10px; background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.35); }
+.pd-relic.unknown { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); }
+.pd-relic .grow > * { display: block; }
+.pd-relic .grow > .dim { display: inline; }
+.pd-relic-emoji { font-size: 1.3rem; width: 26px; text-align: center; flex: none; }
+.pd-overlay { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: rgba(6, 4, 14, 0.78); animation: scDeal 0.2s ease both; }
+.pd-panel { width: min(100%, 400px); max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 18px 16px; border-radius: 18px;
+  border: 1.5px solid #7c3aed; background: linear-gradient(170deg, #241a38, #120d1c); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6); }
+.pd-panel p { margin: 0; }
+.pd-title { text-align: center; font-weight: 900; font-size: 1.15rem; letter-spacing: 0.03em; }
+.pd-title.gold { color: #fde68a; text-shadow: 0 0 14px rgba(251, 191, 36, 0.7); }
+.pd-big-crate { align-self: center; width: 150px; height: 150px; border-radius: 24px; font-size: 5.5rem; line-height: 1; border: 2px dashed rgba(196, 181, 253, 0.4);
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.18), transparent 70%); cursor: pointer; touch-action: manipulation; }
+.pd-big-crate.shake { animation: pdShake 0.35s ease; }
+@keyframes pdShake { 20% { transform: rotate(-9deg) scale(1.05); } 45% { transform: rotate(7deg) scale(0.97); } 70% { transform: rotate(-4deg); } }
+.pd-pry-pips { display: flex; justify-content: center; gap: 6px; }
+.pd-pry-pips i { width: 26px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); }
+.pd-pry-pips i.on { background: #fbbf24; }
+.pd-reveal { display: flex; flex-direction: column; gap: 9px; animation: scDeal 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.pd-reveal .center { text-align: center; }
+.pd-loot { display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 12px; background: rgba(0, 0, 0, 0.3); }
+.pd-loot-row { display: flex; align-items: center; gap: 8px; }
+.pd-coin { font-size: 1.4rem; width: 30px; text-align: center; }
+.pd-relic-glow { align-self: center; font-size: 4.5rem; line-height: 1; filter: drop-shadow(0 0 18px rgba(251, 191, 36, 0.9)); animation: pdGlow 1.6s ease-in-out infinite alternate; }
+@keyframes pdGlow { to { transform: translateY(-5px) scale(1.06); filter: drop-shadow(0 0 28px rgba(251, 191, 36, 1)); } }
+.pd-reveal.relic { padding: 6px; border-radius: 14px; background: radial-gradient(circle at 50% 10%, rgba(251, 191, 36, 0.18), transparent 60%); }
+.pd-favour-used { text-align: center; color: #86efac; }
+.pd-btns { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) { .pd-emoji, .pd-relic-glow, .pd-big-crate.shake { animation: none; } }
 /* 🐟 Fishing Journal */
 .fish-entry { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid rgba(255, 255, 255, 0.06); }
 .fish-entry.locked { opacity: 0.8; }

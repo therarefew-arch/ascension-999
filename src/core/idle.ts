@@ -22,6 +22,7 @@ import { advanceFight, isFightId, type CombatReport } from './combat';
 import { STIR_XP_MULT, stirBoosts } from './cinderpeak';
 import { festivalXpMult, rollFestivalToken } from './festivals';
 import { recordRareFish, type RareCatch } from './fishJournal';
+import { RELIC, relicOn } from './relics';
 
 export interface ProgressReport {
   /** The first running activity (kept for simple screens). */
@@ -274,7 +275,20 @@ export function completeAction(
   const fromSlot = upgradeSource(p, action);
   // Enhancing can fail: then only the materials are used, the item itself stays.
   const success = action.kind !== 'enhance' || Math.random() < enhanceChance(p, action, opts.chanceBonus ?? 0);
+  // ✨ Relics: a free second log / ore / meal, or smithing that uses no materials.
+  let relicRolls = 0;
+  let thrifty = false;
+  if (!action.kind) {
+    const double = (action.skill === 'woodcutting' && relicOn(p, 'whisperwood_axe'))
+      || (action.skill === 'mining' && relicOn(p, 'deepdelver_pick'))
+      || (action.skill === 'cooking' && relicOn(p, 'bramble_skillet'));
+    if (double && Math.random() < RELIC.doubleChance) relicRolls = 1;
+    // Only when the result still fits, since the materials stay in the bag.
+    thrifty = action.skill === 'smithing' && action.inputs.length > 0 && relicOn(p, 'hearthsong_hammer') && Math.random() < RELIC.thriftChance
+      && (satchelOn(p) || canFitAll(p.inventory, maxLoot(opts.lootTable ?? action.lootTable)));
+  }
   for (const input of action.inputs) {
+    if (thrifty) break;
     if (input.item === action.upgrades) {
       if (!success) continue;
       if (fromSlot && fromSlot !== 'bag') delete p.equipment[fromSlot];
@@ -290,7 +304,7 @@ export function completeAction(
     report.actions++;
     return false;
   }
-  for (let roll = 0; roll <= (opts.bonusRolls ?? 0); roll++) {
+  for (let roll = 0; roll <= (opts.bonusRolls ?? 0) + relicRolls; roll++) {
     let loot = rollLoot(opts.lootTable ?? action.lootTable);
     // Upgrading worn gear: the improved item goes back into the same slot.
     if (roll === 0 && fromSlot && fromSlot !== 'bag' && action.output) {
@@ -319,7 +333,10 @@ export function completeAction(
     }
   }
   // 🐟 A rare fish now and then — recorded in the Fishing Journal.
-  if (!action.kind && action.skill === 'fishing' && action.region && LOOT_TABLES[`rare_fish_${action.region}`]) {
+  // ✨ The Tidecaller Rod gives rare fish a second chance to bite.
+  const rareTries = !action.kind && action.skill === 'fishing' && action.region && LOOT_TABLES[`rare_fish_${action.region}`]
+    ? (relicOn(p, 'tidecaller_rod') ? 2 : 1) : 0;
+  for (let k = 0; k < rareTries; k++) {
     const rare = rollLoot(`rare_fish_${action.region}`);
     if (rare.length) {
       giveLoot(p, rare);
@@ -351,6 +368,8 @@ export function addXp(p: PlayerState, action: { skill: SkillId }, report: Progre
   xp = xp * buffXpMult(p, action.skill) * cottageXpMult(p, action.skill);
   // 🎪 The season's festival skill gets +10%.
   xp = xp * festivalXpMult(action.skill);
+  // ✨ The Wanderer's Crown: +5% XP in every skill.
+  if (relicOn(p, 'wanderers_crown')) xp = xp * RELIC.crownXp;
   const skill = p.skills[action.skill];
   const before = levelForXp(skill.xp);
   skill.xp = Math.min(MAX_XP, skill.xp + xp);

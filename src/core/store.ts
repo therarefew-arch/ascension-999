@@ -19,6 +19,7 @@ import { catchStar, claimGift, claimRequest, claimRequestBonus, ensureRequests, 
 import type { LoreNote } from '../data/lore';
 import { LANTERNS, lightLantern, ringBell, whyCantLight, whyCantRing } from './lunaria';
 import { takeTravellerGift } from './cinderpeak';
+import { openCrate, type CrateKey, type CrateResult } from '../market/pedlar';
 import { disablePush, enablePush, hasPushSubscription, refreshPush, sendNotes } from './push';
 import { predictNotes } from './notifySchedule';
 import { MAX_LENGTH, MIN_LENGTH, runesongXp } from './runesong';
@@ -605,6 +606,16 @@ export const game = {
     save();
     emit();
   },
+  /** 🧺 Buy and pry open one of the Wandering Pedlar's sealed crates. Returns what was inside (null if it couldn't). */
+  openCrate(key: CrateKey): CrateResult | null {
+    const got = openCrate(snap.player, key);
+    if (typeof got === 'string') { fail(got); return null; }
+    if (got.outcome === 'relic') { celebrate(); buzz([30, 60, 30, 60, 90]); }
+    else if (got.outcome === 'treasure') buzz([20, 40, 20]);
+    save();
+    emit();
+    return got;
+  },
   petPet() {
     play('match');
     buzz([10, 30, 10]);
@@ -854,6 +865,8 @@ export const game = {
 
   /** A short buzz (respects the vibration setting). */
   vibrate(ms: number) { buzz(ms); },
+  /** Shows a gentle "can't do that" note (with the error sound). */
+  cant(reason: string) { fail(reason); },
 
   /**
    * 🏮 Lantern Watch: the night is over. Combat XP for the time held and monsters beaten, coins, a few

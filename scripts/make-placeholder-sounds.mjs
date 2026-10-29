@@ -251,6 +251,12 @@ const sounds = {
     ['', lowpass(noise(0.05, 1, 70), 1200)],
     ['', strike(640, [1, 2.2], [55, 85], [0.45, 0.2], 0.12, 1), 0.004],
   ), 0.3),
+  // 🧺 The Pedlar's crates: a wooden lid creaking as it's pried open, then a little knock as it gives.
+  creak: norm(mix(
+    ['', shape(sweep(170, 310, 0.5, 1, 0), (t) => (0.3 + 0.7 * Math.abs(Math.sin(t * 38))) * Math.sin(Math.PI * Math.min(1, t / 0.5)) ** 0.7)],
+    ['', bandpass(noise(0.5, 0.35, 3), 700, 2600)],
+    ['', strike(210, [1, 2.4], [30, 45], [1, 0.4], 0.18, 0.9), 0.48],
+  ), 0.22),
   // Spellcards: a papery card flick (dealing/picking a card).
   card: norm(mix(
     ['', shape(bandpass(noise(0.05, 1, 0), 1800, 7000), (t) => Math.min(1, t / 0.003) * Math.exp(-70 * t))],

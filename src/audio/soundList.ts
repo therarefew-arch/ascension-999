@@ -10,7 +10,9 @@ export type SoundKey =
   // Spellcards: card flick, tally tick, magic "whoomp" when Power multiplies
   | 'card' | 'tick' | 'boom'
   // Sort the Catch: tile flip clack, basket thud
-  | 'clack' | 'thud';
+  | 'clack' | 'thud'
+  // 🧺 Prying open the Pedlar's crates
+  | 'creak';
 export type MusicKey = 'music_town' | 'music_mahjong' | 'music_ironmoor' | 'music_coalhaven' | 'music_bluecliff'
   | 'music_kitchen' | 'music_lunaria' | 'music_cinderpeak';
 
@@ -21,6 +23,7 @@ export const EFFECT_SOUNDS: SoundKey[] = [
   'coin', 'shing', 'block', 'eat', 'fire_loop',
   'card', 'tick', 'boom',
   'clack', 'thud',
+  'creak',
 ];
 export const MUSIC_TRACKS: MusicKey[] = ['music_town', 'music_mahjong', 'music_ironmoor', 'music_coalhaven', 'music_bluecliff', 'music_kitchen', 'music_lunaria', 'music_cinderpeak'];
 

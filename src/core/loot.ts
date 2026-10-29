@@ -77,14 +77,15 @@ export const satchelOn = (p: PlayerState) => p.satchel.owned && p.satchel.on;
  * Puts rolled loot into the player's bag (coins go to the purse). Returns anything that didn't fit.
  * With the Satchel on, whatever doesn't fit in the bag goes straight to the bank instead.
  */
-export function giveLoot(p: PlayerState, loot: ItemStack[]): ItemStack[] {
+export function giveLoot(p: PlayerState, loot: ItemStack[], opts: { overflowToBank?: boolean } = {}): ItemStack[] {
   const leftover: ItemStack[] = [];
   for (const st of loot) {
     if (st.id === 'coins') { p.coins += st.qty; continue; }
     const added = addToBag(p.inventory, st.id, st.qty);
     if (added > 0) recordCollection(p, st.id, added);
     if (added < st.qty) {
-      if (satchelOn(p)) {
+      // Bought things (the Pedlar's crates) are never lost: what doesn't fit waits in the bank.
+      if (satchelOn(p) || opts.overflowToBank) {
         addToBank(p, st.id, st.qty - added);
         recordCollection(p, st.id, st.qty - added);
       } else {

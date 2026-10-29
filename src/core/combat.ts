@@ -11,6 +11,7 @@ import type { PlayerState } from './player';
 import { levelForXp } from './xp';
 import { HOT_SPRING_MULT, inHotSprings } from './cinderpeak';
 import { rollFestivalToken } from './festivals';
+import { RELIC, relicOn } from './relics';
 
 export const FIGHT_PREFIX = 'fight:';
 export const isFightId = (actionId: string | undefined | null) => !!actionId && actionId.startsWith(FIGHT_PREFIX);
@@ -48,6 +49,10 @@ export interface FightState {
   critReady: boolean;
   /** Minigame: the monster's attack landing before this time is blocked. */
   blockUntil: number;
+  /** ✨ Emberheart Blade: swings at this monster so far. */
+  kindle?: number;
+  /** ✨ Oathkeeper Shield: this monster's first blow was already warded off. */
+  warded?: boolean;
   kills: number;
   /** What just happened (for the fight screen). */
   log: { at: number; text: string; kind: 'you' | 'them' | 'info' | 'loot' }[];
@@ -68,14 +73,15 @@ export function maxHp(p: PlayerState): number {
 export function currentAmmo(p: PlayerState): string | null {
   const style = weaponStyle(p);
   if (style === 'melee') return null;
-  // Elemental staffs only cast with runes of their own element.
+  // Elemental staffs only cast with runes of their own element (✨ the Starweaver Staff casts with any).
   const element = p.equipment.weapon ? getItem(p.equipment.weapon).equip?.element : undefined;
+  const anyRune = relicOn(p, 'starweaver_staff');
   let best: string | null = null;
   for (const s of p.inventory) {
     if (!s) continue;
     const a = ITEMS[s.id]?.ammo;
     if (!a || a.style !== style) continue;
-    if (style === 'magic' && a.element !== element) continue;
+    if (style === 'magic' && !anyRune && a.element !== element) continue;
     if (!best || a.power > ITEMS[best].ammo!.power) best = s.id;
   }
   return best;
@@ -197,7 +203,7 @@ export function advanceFight(
       const step = Math.min(f.respawn, ms - t);
       f.respawn -= step;
       t += step;
-      if (f.respawn <= 0) { f.monsterHp = monster.hp; f.monsterTimer = monster.speedMs; log(f, at, `A ${monster.name} appears!`, 'info'); }
+      if (f.respawn <= 0) { f.monsterHp = monster.hp; f.monsterTimer = monster.speedMs; f.kindle = 0; f.warded = false; log(f, at, `A ${monster.name} appears!`, 'info'); }
       continue;
     }
     const step = Math.min(f.playerTimer, f.monsterTimer, ms - t);
@@ -213,7 +219,8 @@ export function advanceFight(
       f.playerTimer += s.speedMs;
       if (s.style !== 'melee') {
         if (!s.ammo) return { stop: s.style === 'ranged' ? 'Out of arrows' : 'Out of runes', usedMs: t };
-        if (rng() >= AMMO_SAVE) {
+        const save = s.style === 'ranged' && relicOn(p, 'galewhisper_bow') ? RELIC.arrowSave : AMMO_SAVE;
+        if (rng() >= save) {
           removeFromBag(p.inventory, s.ammo, 1);
           report.used[s.ammo] = (report.used[s.ammo] ?? 0) + 1;
         }
@@ -223,6 +230,11 @@ export function advanceFight(
       if (crit || rng() < s.accuracy) {
         let dmg = 1 + Math.floor(rng() * s.maxHit);
         if (crit) dmg = Math.ceil(s.maxHit * CRIT_MULT);
+        // ✨ Emberheart Blade: hotter with every swing at the same foe.
+        if (s.style === 'melee' && relicOn(p, 'emberheart_blade')) {
+          dmg = Math.round(dmg * (1 + Math.min(RELIC.kindleMax, RELIC.kindlePerSwing * (f.kindle ?? 0))));
+          f.kindle = (f.kindle ?? 0) + 1;
+        }
         dmg = Math.min(dmg, f.monsterHp);
         f.monsterHp -= dmg;
         cr.damageDealt += dmg;
@@ -235,7 +247,9 @@ export function advanceFight(
       if (f.monsterHp <= 0) {
         cr.kills++;
         f.kills++;
-        const loot = rollLoot(monster.lootTable, rng);
+        let loot = rollLoot(monster.lootTable, rng);
+        // ✨ Pedlar's Patchwork Coat: a little more coin from every monster.
+        if (relicOn(p, 'patchwork_coat')) loot = loot.map((st) => (st.id === 'coins' ? { ...st, qty: Math.round(st.qty * RELIC.coatCoins) } : st));
         giveLoot(p, loot);
         for (const st of loot) report.gained[st.id] = (report.gained[st.id] ?? 0) + st.qty;
         log(f, now, `${monster.name} defeated!`, 'loot');
@@ -259,7 +273,13 @@ export function advanceFight(
       const s = combatStats(p, monster);
       const blocked = f.blockUntil >= now;
       f.blockUntil = 0;
-      if (rng() < s.enemyAccuracy) {
+      const lands = rng() < s.enemyAccuracy;
+      if (lands && !f.warded && relicOn(p, 'oathkeeper_shield')) {
+        // ✨ Oathkeeper Shield: the first blow from every foe never lands.
+        f.warded = true;
+        addXp(p, { skill: 'defense' }, report, 4);
+        log(f, now, `The Oathkeeper wards off ${monster.name}'s blow!`, 'them');
+      } else if (lands) {
         let dmg = Math.floor(rng() * (monster.maxHit + 1));
         if (blocked) dmg = Math.floor(dmg / 2);
         p.hp -= dmg;

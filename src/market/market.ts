@@ -134,12 +134,14 @@ export function sellable(p: PlayerState): { id: string; qty: number }[] {
   const ids = new Set<string>();
   for (const s of p.inventory) if (s) ids.add(s.id);
   for (const s of p.bank) ids.add(s.id);
-  return ITEM_LIST.filter((it) => ids.has(it.id) && it.id !== 'coins')
+  // ✨ Relics are one of a kind — they can't be sold.
+  return ITEM_LIST.filter((it) => ids.has(it.id) && it.id !== 'coins' && !it.relic)
     .map((it) => ({ id: it.id, qty: countInBag(p.inventory, it.id) + countInBank(p, it.id) }));
 }
 
 /** Sells from the bag first, then the bank. Returns coins earned. */
 export function sell(p: PlayerState, id: string, qty: number, now = Date.now()): number {
+  if (getItem(id).relic) return 0;
   let left = qty;
   left -= removeFromBag(p.inventory, id, left);
   if (left > 0) left -= removeFromBank(p, id, left);
