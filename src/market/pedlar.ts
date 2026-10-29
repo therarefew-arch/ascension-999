@@ -103,6 +103,35 @@ const DUD_LINES = [
   'A tiny painted horse. Lovely, but worthless. 🐴',
 ];
 
+// ---------- The Pedlar's gossip ----------
+// He has crossed paths with 🎒 the Traveller (core/cinderpeak.ts, data/lore.ts) and drops hints — never the
+// whole story. Keep it consistent: hooded, always one town ahead, pays for everyone's bread, asks which road
+// goes highest, leaves gifts by the wells wrapped in an old travelling cloak, the compass that "points further",
+// and the end of the road at the Primordial Rift.
+interface Gossip { text: string; when: 'any' | 'before' | 'after' | 'coat' }
+const GOSSIP: Gossip[] = [
+  { when: 'any', text: 'Sealed crates! No peeking, no refunds!' },
+  { when: 'any', text: 'Every crate packed by my own two hands. Mostly. Some come packed already, and I don\'t ask.' },
+  { when: 'any', text: 'Straw\'s free, friend. It\'s what\'s under it that costs.' },
+  { when: 'any', text: 'Folk mix me up with another wanderer on these roads. Both in hoods, see. Mine\'s for the rain. Theirs… I never did see a face.' },
+  { when: 'any', text: 'There\'s someone always a town ahead of me. I roll in, and the innkeeper says "you just missed them." Every single time.' },
+  { when: 'before', text: 'Odd customer, years back. Bought nothing, paid for everyone\'s bread. Asked me which road goes highest.' },
+  { when: 'before', text: 'That other wanderer leaves things by the wells, they say. Never this close to home — further out. Volcano country, last I heard.' },
+  { when: 'after', text: 'Found a parcel by a well, did you? Wrapped in an old travelling cloak? Aye. That\'s them.' },
+  { when: 'after', text: 'I sold a compass to a hooded sort once. They paid in starlight — glowed in my purse for a week. If you\'ve got it now, they meant you to have it.' },
+  { when: 'after', text: 'Last I heard they were bound for {next}. Up and up. They always pick the road that goes highest.' },
+  { when: 'after', text: 'One day I\'ll catch them up and ask what they\'re walking toward. You\'ll get there first, I reckon.' },
+  { when: 'coat', text: 'That coat! I\'d know those patches anywhere. No, no — keep it. It suits you. It never suited me.' },
+];
+
+/** What the Pedlar says. `k` picks the line (one a day to start; tapping him moves on to the next). */
+export function pedlarGossip(p: PlayerState, k: number, next?: string): string {
+  const met = p.travellerGifts.length > 0;
+  const lines = GOSSIP.filter((g) => g.when === 'any' || g.when === (met ? 'after' : 'before') || (g.when === 'coat' && relicOn(p, 'patchwork_coat')));
+  const line = lines[((k % lines.length) + lines.length) % lines.length].text;
+  return line.replace('{next}', next ?? 'the high roads');
+}
+
 export type CrateOutcome = 'dud' | 'goods' | 'treasure' | 'relic';
 export interface CrateResult {
   outcome: CrateOutcome;

@@ -10,10 +10,11 @@ import { REGIONS } from '../data/tiers';
 import { SKILLS } from '../data/skills';
 import { game, useGame } from '../core/store';
 import {
-  CRATES, CRATE_MAP, cratePrice, FAVOUR_MAX, pedlarHere, pedlarTomorrow, pedlarTown, whyCantOpen,
+  CRATES, CRATE_MAP, cratePrice, FAVOUR_MAX, localDay, pedlarGossip, pedlarHere, pedlarTomorrow, pedlarTown, whyCantOpen,
   type CrateKey, type CrateResult,
 } from '../market/pedlar';
 import { ItemIcon } from './icons';
+import { travellerWhereabouts } from '../core/cinderpeak';
 import { canEquip } from '../core/equipment';
 
 const fmt = (n: number) => n.toLocaleString();
@@ -24,6 +25,8 @@ export function PedlarCard() {
   const { player } = useGame();
   const [opening, setOpening] = useState<CrateKey | null>(null);
   const [showRelics, setShowRelics] = useState(false);
+  const [talk, setTalk] = useState(0);
+  const chat = () => { sound.play('tick', { rate: 0.8 + Math.random() * 0.3, volume: 0.5 }); setTalk((n) => n + 1); };
   const town = pedlarTown(player);
   const found = RELICS.filter((r) => player.relics[r.key] !== undefined);
 
@@ -49,9 +52,12 @@ export function PedlarCard() {
         <span className="pd-emoji">🧺</span>
         <div className="grow">
           <h2 className="section-title">THE WANDERING PEDLAR</h2>
-          <div className="small muted">A hooded trader with a creaky cart. “Sealed crates! No peeking, no refunds!” Here today — tomorrow he’s off to {pedlarTomorrow(player)}.</div>
+          <div className="small muted">A trader with a creaky cart. Here today, off to {pedlarTomorrow(player)} tomorrow.</div>
         </div>
       </div>
+      <button className="pd-gossip small" onClick={chat} aria-label="Chat with the Pedlar">
+        “{pedlarGossip(player, localDay() + talk, travellerWhereabouts(player)?.town)}” <span className="dim">· tap to chat</span>
+      </button>
 
       <div className="pd-favour" title="Every empty crate fills it. When it's full, your next crate is a good one — and Relics are 3× as likely.">
         <span className="small"><b>🍀 Pedlar’s Favour</b></span>

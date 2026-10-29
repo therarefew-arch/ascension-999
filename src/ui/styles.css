@@ -1498,6 +1498,9 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .pd-head { display: flex; gap: 10px; align-items: center; }
 .pd-head .section-title { margin: 0; color: #c4b5fd; }
 .pd-emoji { font-size: 1.9rem; flex: none; animation: travellerBob 2.6s ease-in-out infinite; }
+.pd-gossip { text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(196, 181, 253, 0.25); background: rgba(0, 0, 0, 0.25);
+  color: #e9d5ff; font: inherit; font-style: italic; cursor: pointer; }
+.pd-gossip .dim { font-style: normal; }
 .pd-favour { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .pd-pips { display: inline-flex; gap: 3px; }
 .pd-pips i { width: 14px; height: 8px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); }
