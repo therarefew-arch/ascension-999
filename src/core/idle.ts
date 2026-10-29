@@ -75,13 +75,26 @@ export function homeTurf(p: PlayerState, action: ActionDef): boolean {
   return isLocalGather(action) && p.location === action.region;
 }
 
+/**
+ * 🛠️ How much of an action's time is left with this much tool speed (a gear stat, %).
+ * Up to 30% it's the plain rule (30% speed = 30% less time). Past that, each extra % counts a
+ * little less, so stacking speed never reaches zero time (before v0.0.1.46 top tools went
+ * past 100% and every action hit the floor). 55% → ×0.52, 121% → ×0.30, 154% → ×0.25.
+ */
+export const TOOL_SPEED_SOFT = 30;
+export function toolSpeedMult(speed: number): number {
+  if (speed <= TOOL_SPEED_SOFT) return 1 - Math.max(0, speed) / 100;
+  const g0 = 1 - TOOL_SPEED_SOFT / 100;
+  return g0 / (1 + (speed - TOOL_SPEED_SOFT) / (100 * g0));
+}
+
 /** How long one action takes for this player (tools, how seasoned they are, meals and home turf speed it up). */
 export function actionDuration(p: PlayerState, action: ActionDef): number {
   const statKey = `${action.skill}Speed` as keyof ItemStats;
   const speed = statKey in STAT_LABELS ? equipmentStats(p)[statKey] ?? 0 : 0;
   const meal = buffSpeedPct(p, action.skill);
   const turf = homeTurf(p, action) ? HOME_TURF_PCT : 0;
-  return Math.max(500, Math.round(action.durationMs * (1 - speed / 100) * (1 - seasonedPercent(p, action.skill) / 100) * (1 - meal / 100) * (1 - turf / 100)));
+  return Math.max(500, Math.round(action.durationMs * toolSpeedMult(speed) * (1 - seasonedPercent(p, action.skill) / 100) * (1 - meal / 100) * (1 - turf / 100)));
 }
 
 // ---------------------------------------------------------------------------

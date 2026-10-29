@@ -4,7 +4,7 @@
 import { CROPS, regionOpen, tierLevel, tierRegion, tierXp } from '../data/tiers';
 import { getItem } from '../data/items';
 import type { ProgressReport } from './idle';
-import { addXp, equippedToolTier, skillLevel } from './idle';
+import { addXp, equippedToolTier, skillLevel, toolSpeedMult } from './idle';
 import { equipmentStats } from './equipment';
 import { TOOL_TIERS } from '../data/items';
 import { rollFestivalToken } from './festivals';
@@ -61,7 +61,7 @@ export function plant(p: PlayerState, i: number, seedId: string, report: Progres
   removeFromBag(p.inventory, seedId, 1);
   // A better trowel makes crops grow a little faster.
   const speed = equipmentStats(p).farmingSpeed ?? 0;
-  p.farm.plots[i] = { crop: t, plantedAt: now, readyAt: now + Math.round(growMs(t) * (1 - speed / 100)), tendedMs: 0 };
+  p.farm.plots[i] = { crop: t, plantedAt: now, readyAt: now + Math.round(growMs(t) * toolSpeedMult(speed)), tendedMs: 0 };
   addXp(p, { skill: 'farming' }, report, plantXp(t));
   return null;
 }

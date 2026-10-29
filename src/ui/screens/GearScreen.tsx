@@ -3,6 +3,7 @@ import {
   ARMOUR_SLOTS, getItem, ITEM_LIST, SLOT_LABELS, STAT_LABELS, TOOL_SLOTS, type EquipSlot, type ItemStats,
 } from '../../data/items';
 import { canEquip, equipmentStats, SOCKET_SLOTS } from '../../core/equipment';
+import { toolSpeedMult } from '../../core/idle';
 import { RARITY_COLORS } from '../../data/items';
 import { BONUSES } from '../../data/ascended';
 import { SKILLS } from '../../data/skills';
@@ -185,10 +186,10 @@ export function GearScreen() {
         <h3>Total stats</h3>
         <div className="stat-list">
           {(Object.keys(STAT_LABELS) as (keyof ItemStats)[]).map((k) => (
-            <div key={k} className="stat-line"><span>{STAT_LABELS[k]}</span><b>{stats[k] ?? 0}</b></div>
+            <div key={k} className="stat-line"><span>{STAT_LABELS[k]}</span><b>{stats[k] ?? 0}{k.endsWith('Speed') && (stats[k] ?? 0) > 0 ? <span className="muted"> · {(1 / toolSpeedMult(stats[k] ?? 0)).toFixed(1)}× as fast</span> : null}</b></div>
           ))}
         </div>
-        <p className="small muted">Includes socketed gems. Tools make their skill faster. Attack, Defense and Max HP help in combat.</p>
+        <p className="small muted">Includes socketed gems. Tools make their skill faster (past 30%, each extra % counts a little less). Attack, Defense and Max HP help in combat.</p>
       </div>
       {picking && <SlotPicker slot={picking} onClose={() => setPicking(null)} />}
     </div>
