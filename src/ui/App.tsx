@@ -124,7 +124,8 @@ export function App() {
   // Sound can only start after the first tap (browser rule).
   // Each town has its own song; it crossfades when you arrive somewhere new.
   const town = player.location;
-  useEffect(() => { sound.playMusic(musicFor(town)); }, [town]);
+  // (On the title screen the title theme plays instead — TitleScreen starts it.)
+  useEffect(() => { if (slot !== null) sound.playMusic(musicFor(town)); }, [town, slot]);
 
   useEffect(() => {
     const unlock = () => sound.unlock();

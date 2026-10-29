@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { sound } from '../audio/sound';
+import { musicFor } from '../audio/soundList';
 import {
   buyFood, buyPet, expPips, FOOD, KIND, KINDS, level, LIVES, loadRun, march, moveOrMerge, newRun, PERKS, PET_COST, REROLL_COST, reroll,
   saveRun, sellPet, sellValue, TEAM_SIZE, toggleFreeze, WINS_NEEDED, type Act, type FView, type Frame, type ParadeOutcome, type Pet, type Run,
@@ -61,6 +62,9 @@ export function PetParade({ onClose }: { onClose: () => void }) {
   const runRef = useRef<Run | null>(null);
   runRef.current = run;
   useEffect(() => () => { const r = runRef.current; if (r && r.phase === 'shop' && !paid.current) writeSaved(slot, r); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // 🎪 Its own fairground march; the town's song comes back when you leave.
+  const town = player.location;
+  useEffect(() => { sound.playMusic('music_parade'); return () => sound.playMusic(musicFor(town)); }, [town]);
 
   const pay = (r: Run) => {
     if (paid.current) return;

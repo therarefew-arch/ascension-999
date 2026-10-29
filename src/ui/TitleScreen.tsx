@@ -1,5 +1,6 @@
 // "Choose your saga" — three save slots.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { sound } from '../audio/sound';
 import { SAVE_SLOTS, slotSummary, type SlotId } from '../core/save';
 import { game, useGame } from '../core/store';
 import { UiIcon } from './icons';
@@ -12,10 +13,12 @@ export function TitleScreen() {
   useGame(); // re-render after deletes
   const [confirm, setConfirm] = useState<{ slot: SlotId; kind: 'new' | 'delete' } | null>(null);
   const [restoring, setRestoring] = useState<SlotId | null>(null);
+  // 🌄 The title theme (starts after the first tap — a browser rule).
+  useEffect(() => { sound.playMusic('music_title'); }, []);
 
   return (
     <div className="title-screen">
-      <PixelScene scene="forest" dim={0.35} className="screen-bg" />
+      <PixelScene scene="title" dim={0.18} className="screen-bg" />
       <div className="title-inner">
         <img className="title-emblem" src={`${import.meta.env.BASE_URL}icon.svg`} width={84} height={84} alt="" aria-hidden="true" />
         <h1 className="game-title">ASCENSION <span className="title-999">999</span></h1>

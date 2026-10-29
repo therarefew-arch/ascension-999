@@ -14,7 +14,8 @@ export type SoundKey =
   // 🧺 Prying open the Pedlar's crates
   | 'creak';
 export type MusicKey = 'music_town' | 'music_mahjong' | 'music_ironmoor' | 'music_coalhaven' | 'music_bluecliff'
-  | 'music_kitchen' | 'music_lunaria' | 'music_cinderpeak' | 'music_frosthold' | 'music_voidreach' | 'music_starfall' | 'music_celestine' | 'music_rift';
+  | 'music_kitchen' | 'music_lunaria' | 'music_cinderpeak' | 'music_frosthold' | 'music_voidreach' | 'music_starfall' | 'music_celestine' | 'music_rift'
+  | 'music_title' | 'music_parade';
 
 export const EFFECT_SOUNDS: SoundKey[] = [
   'click', 'mine', 'smith', 'levelup', 'equip', 'deposit', 'error', 'welcome',
@@ -25,7 +26,7 @@ export const EFFECT_SOUNDS: SoundKey[] = [
   'clack', 'thud',
   'creak',
 ];
-export const MUSIC_TRACKS: MusicKey[] = ['music_town', 'music_mahjong', 'music_ironmoor', 'music_coalhaven', 'music_bluecliff', 'music_kitchen', 'music_lunaria', 'music_cinderpeak', 'music_frosthold', 'music_voidreach', 'music_starfall', 'music_celestine', 'music_rift'];
+export const MUSIC_TRACKS: MusicKey[] = ['music_town', 'music_mahjong', 'music_ironmoor', 'music_coalhaven', 'music_bluecliff', 'music_kitchen', 'music_lunaria', 'music_cinderpeak', 'music_frosthold', 'music_voidreach', 'music_starfall', 'music_celestine', 'music_rift', 'music_title', 'music_parade'];
 
 /** Each town's own background theme (Pocketvale keeps the original town song). */
 const TOWN_MUSIC: Record<string, MusicKey> = { Ironmoor: 'music_ironmoor', Coalhaven: 'music_coalhaven', Bluecliff: 'music_bluecliff', Lunaria: 'music_lunaria', Cinderpeak: 'music_cinderpeak',

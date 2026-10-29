@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 export type SceneName = 'forest' | 'town' | 'mine' | 'forge' | 'river' | 'camp' | 'kitchen' | 'workshop' | 'tower' | 'altar' | 'ironmoor' | 'coalhaven' | 'bluecliff'
-  | 'lunaria' | 'lunaria_restored' | 'cinderpeak' | 'cinderpeak_stirring' | 'frosthold' | 'voidreach' | 'starfall' | 'celestine' | 'rift';
+  | 'lunaria' | 'lunaria_restored' | 'cinderpeak' | 'cinderpeak_stirring' | 'frosthold' | 'voidreach' | 'starfall' | 'celestine' | 'rift' | 'title';
 
 const W = 72;
 const H = 128;
@@ -599,16 +599,103 @@ function drawRift(px: Px, r: () => number) {
   for (let i = 0; i < 20; i++) px(Math.floor(r() * W), 40 + Math.floor(r() * 80), 1, 1, 'rgba(217,249,157,0.8)');
 }
 
+// 🌄 The title screen: the whole game in one picture. Twilight over the Heartland, a great mountain
+// with a lantern-lit road winding up it, and the summit star waiting at the top (the Ascension).
+// Pocketvale's cottages glow at the foot, where every saga starts.
+function drawTitle(px: Px, r: () => number) {
+  // twilight sky: deep night at the top, a warm glow along the far hills
+  const sky = ['#0c0d24', '#11122e', '#171638', '#1e1a44', '#271e4f', '#33235a', '#432a61', '#573265', '#6d3a63', '#86465d', '#9f5653', '#b86a4a'];
+  for (let y = 0; y < 84; y++) px(0, y, W, 1, sky[Math.min(sky.length - 1, Math.floor(y / 7))]);
+  // stars (a few warm ones)
+  for (let i = 0; i < 70; i++) {
+    const y = Math.floor(r() * r() * 62);
+    px(Math.floor(r() * W), y, 1, 1, r() > 0.85 ? '#fde68a' : r() > 0.5 ? '#e0e7ff' : '#a5b4fc');
+  }
+  // far ridges, faded into the dusk
+  for (let x = 0; x < W; x++) {
+    const top = 66 + Math.round(Math.sin(x / 6) * 3 + Math.sin(x / 2.3) * 1.2);
+    px(x, top, 1, 84 - top, '#3a2a5e');
+    const top2 = 74 + Math.round(Math.sin(x / 4 + 2) * 2.5);
+    px(x, top2, 1, 90 - top2, '#2c2350');
+  }
+  // the great mountain
+  const PEAK = 30;
+  const half = (y: number) => (y - PEAK) * 0.62 + Math.sin(y / 3) * 0.8;
+  for (let y = PEAK; y < 108; y++) {
+    const w = half(y);
+    const x0 = Math.round(36 - w), x1 = Math.round(36 + w);
+    px(x0, y, x1 - x0 + 1, 1, '#1e1838');
+    // starlit left face, shadowed right face
+    px(x0, y, Math.max(1, Math.round(w * 0.55)), 1, '#2a2350');
+    px(x0, y, 1, 1, '#4c3f80');
+    // snow on the upper slopes
+    if (y < PEAK + 12) {
+      const sw = Math.max(1, Math.round(w * (1 - (y - PEAK) / 13)));
+      px(Math.round(36 - w), y, sw + 1, 1, '#d9d4f2');
+      if (r() < 0.5) px(Math.round(36 + w - sw * 0.6), y, Math.max(1, Math.round(sw * 0.6)), 1, '#9d97c4');
+    }
+  }
+  // the summit star: a soft halo, then a bright four-point star
+  for (const [rad, c] of [[11, 'rgba(251,191,36,0.06)'], [8, 'rgba(251,191,36,0.1)'], [5, 'rgba(253,230,138,0.18)'], [3, 'rgba(255,247,214,0.35)']] as const) {
+    for (let dy = -rad; dy <= rad; dy++) {
+      const dx = Math.round(Math.sqrt(rad * rad - dy * dy));
+      px(36 - dx, 22 + dy, dx * 2 + 1, 1, c);
+    }
+  }
+  px(36, 15, 1, 15, '#fde68a'); px(29, 22, 15, 1, '#fde68a');
+  px(35, 19, 3, 7, '#fff7d6'); px(33, 21, 7, 3, '#fff7d6'); px(36, 22, 1, 1, '#ffffff');
+  // the road up: switchbacks from the valley to the summit, a lantern at every bend
+  const pts: [number, number][] = [[38, 120], [30, 108], [46, 98], [28, 88], [44, 78], [31, 68], [42, 58], [33, 49], [39, 41], [36, 33]];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [ax, ay] = pts[i], [bx, by] = pts[i + 1];
+    const steps = Math.max(Math.abs(bx - ax), Math.abs(by - ay));
+    for (let s = 0; s <= steps; s++) {
+      const x = Math.round(ax + ((bx - ax) * s) / steps), y = Math.round(ay + ((by - ay) * s) / steps);
+      px(x, y, 1, 1, y > 100 ? '#8a6a45' : '#6b5a8a');
+    }
+  }
+  for (const [x, y] of pts.slice(1, -1)) {
+    px(x - 1, y - 1, 3, 1, 'rgba(251,191,36,0.3)'); px(x, y - 2, 1, 3, 'rgba(251,191,36,0.3)');
+    px(x, y - 1, 1, 1, '#fde047');
+  }
+  // mist drifting across the mountain
+  for (const [y, a] of [[64, 0.1], [72, 0.08], [86, 0.07]] as const) {
+    for (let i = 0; i < 4; i++) px(Math.floor(r() * W) - 12, y + Math.floor(r() * 4), 18 + Math.floor(r() * 14), 1, `rgba(196,181,253,${a})`);
+  }
+  // the Heartland valley at the foot
+  for (let x = 0; x < W; x++) {
+    const top = 106 + Math.round(Math.sin(x / 7) * 2 + Math.sin(x / 3) * 0.7);
+    px(x, top, 1, H - top, '#161a2c');
+    px(x, top, 1, 1, '#24304a');
+  }
+  // pine silhouettes
+  for (let i = 0; i < 16; i++) {
+    const x = Math.floor(r() * W), base = 108 + Math.floor(r() * 14), h = 5 + Math.floor(r() * 6);
+    for (let k = 0; k < h; k++) px(x - Math.floor((h - k) / 3), base - k, 1 + 2 * Math.floor((h - k) / 3), 1, '#0f1424');
+  }
+  // Pocketvale: little cottages with warm windows and a thread of chimney smoke
+  const cottage = (x: number, y: number, w: number) => {
+    px(x, y, w, 4, '#3b2f2a');
+    for (let k = 0; k < 3; k++) px(x - 1 + k, y - 1 - k, w + 2 - k * 2, 1, '#5b2f28');
+    px(x + 1, y + 1, 1, 1, '#fbbf24'); if (w > 4) px(x + w - 2, y + 1, 1, 1, '#f59e0b');
+    px(x + w - 2, y - 5, 1, 2, '#3b2f2a');
+    for (let k = 0; k < 4; k++) px(x + w - 2 + (k % 2), y - 7 - k * 2, 1, 1, 'rgba(203,213,225,0.25)');
+  };
+  cottage(8, 116, 6); cottage(17, 119, 5); cottage(52, 117, 6); cottage(61, 120, 5); cottage(27, 122, 4);
+  // fireflies over the meadow
+  for (let i = 0; i < 14; i++) px(Math.floor(r() * W), 104 + Math.floor(r() * 22), 1, 1, 'rgba(253,224,71,0.85)');
+}
+
 export const DRAW: Record<SceneName, (px: Px, r: () => number) => void> = {
   cinderpeak: (px, r) => drawCinderpeak(px, r, false), cinderpeak_stirring: (px, r) => drawCinderpeak(px, r, true),
   forest: drawForest, town: drawTown, mine: drawMine, forge: drawForge,
   river: drawRiver, camp: drawCamp, kitchen: drawKitchen, workshop: drawWorkshop, tower: drawTower, altar: drawAltar, ironmoor: drawIronmoor, coalhaven: drawCoalhaven, bluecliff: drawBluecliff,
   lunaria: (px, r) => drawLunaria(px, r, false), lunaria_restored: (px, r) => drawLunaria(px, r, true),
-  frosthold: drawFrosthold, voidreach: drawVoidreach, starfall: drawStarfall, celestine: drawCelestine, rift: drawRift,
+  frosthold: drawFrosthold, voidreach: drawVoidreach, starfall: drawStarfall, celestine: drawCelestine, rift: drawRift, title: drawTitle,
 };
 
 /** Where the interesting part of each scene is (0% = top, 100% = bottom), for short banners. */
-const FOCUS: Partial<Record<SceneName, number>> = { bluecliff: 22, coalhaven: 46, ironmoor: 50, town: 50, lunaria: 40, lunaria_restored: 40, cinderpeak: 40, cinderpeak_stirring: 40, frosthold: 55, voidreach: 45, starfall: 55, celestine: 35, rift: 20 };
+const FOCUS: Partial<Record<SceneName, number>> = { bluecliff: 22, coalhaven: 46, ironmoor: 50, town: 50, lunaria: 40, lunaria_restored: 40, cinderpeak: 40, cinderpeak_stirring: 40, frosthold: 55, voidreach: 45, starfall: 55, celestine: 35, rift: 20, title: 35 };
 
 /** Outdoor scenes follow the real clock on your phone. Indoor ones stay cosy all day. */
 // (Lunaria is always under its own moon, so it skips the day/night tint.)

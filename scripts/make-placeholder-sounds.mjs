@@ -1106,4 +1106,162 @@ const N = (name) => 440 * Math.pow(2, ({ C: -9, Db: -8, D: -7, Eb: -6, E: -5, F:
   writeMusic('music_mahjong', out);
 }
 
+// ---------- 🌄 The title theme: "The Road Up" ----------
+// A gentle, rising theme in D major at 72 bpm. It opens with the soft swelling chords from the town
+// song (the owner's favourite sound), then a wooden flute plays the theme — a little tune that keeps
+// climbing, like the lantern road up the mountain. A harp rolls upward under it, a music box answers,
+// and in the big middle section the strings lift it towards the summit star before it settles home.
+{
+  const S = (n) => N(n.replace('F#', 'Gb').replace('C#', 'Db').replace('G#', 'Ab'));
+  const beat = 60 / 72, BAR = 4 * beat;
+  const CH = {
+    D: ['D3', 'F#3', 'A3'], A: ['C#3', 'E3', 'A3'], Bm: ['B2', 'D3', 'F#3'], G: ['G2', 'B2', 'D3'],
+    Em: ['E3', 'G3', 'B3'], Asus: ['D3', 'E3', 'A3'],
+  };
+  // The theme (8 bars): [note, beats]. It climbs bar by bar, the way the road does.
+  const THEME = [
+    [['A4', 1], ['D5', 1], ['E5', 1], ['F#5', 1]], [['E5', 2], ['C#5', 1], ['A4', 1]],
+    [['B4', 1], ['D5', 1], ['F#5', 1], ['A5', 1]], [['G5', 3], ['F#5', 1]],
+    [['F#5', 1], ['A5', 1], ['B5', 1], ['D6', 1]], [['C#6', 2], ['A5', 2]],
+    [['B5', 1], ['A5', 1], ['G5', 1], ['E5', 1]], [['E5', 2], ['A5', 2]],
+  ];
+  const BRIDGE = [
+    [['F#5', 2], ['D5', 1], ['B4', 1]], [['D5', 2], ['B4', 2]], [['A4', 1], ['D5', 1], ['F#5', 2]], [['E5', 4]],
+    [['G5', 2], ['E5', 1], ['B4', 1]], [['D5', 2], ['G5', 2]], [['A5', 2], ['G5', 1], ['E5', 1]], [['E5', 2], ['C#5', 2]],
+  ];
+  const ENDING = [[['A4', 1], ['D5', 1], ['E5', 1], ['F#5', 1]], [['E5', 4]], [['D5', 4]], [['D5', 4]]];
+  // Sections: chords per bar, the melody, and which voice plays it.
+  const sections = [
+    { chords: ['D', 'A', 'Bm', 'G'], mel: null },
+    { chords: ['D', 'A', 'Bm', 'G', 'D', 'A', 'G', 'A'], mel: THEME, voice: 'flute' },
+    { chords: ['Bm', 'G', 'D', 'A', 'Em', 'G', 'A', 'Asus'], mel: BRIDGE, voice: 'box', drum: true },
+    { chords: ['D', 'A', 'Bm', 'G', 'D', 'A', 'G', 'A'], mel: THEME, voice: 'strings', drum: true, full: true },
+    { chords: ['G', 'A', 'Bm', 'D', 'G', 'A', 'D', 'D'], mel: [null, null, null, null, ...ENDING], voice: 'flute' },
+  ];
+  const bars = sections.reduce((n, s) => n + s.chords.length, 0);
+  const out = new Float32Array(Math.floor(bars * BAR * MR) + MR * 4);
+  const rnd = seeded(999);
+  let b = 0;
+  for (const sec of sections) {
+    sec.chords.forEach((name, i) => {
+      const chord = CH[name].map(S);
+      const start = Math.floor(b * BAR * MR);
+      const barLen = Math.floor(BAR * MR);
+      // The swelling pad (the town song's sound), an octave up, a touch fuller in the climax.
+      addTo(out, start, Math.floor(barLen * 1.08), (t) => {
+        const env = Math.sin(Math.PI * Math.min(1, t / (BAR * 1.08))) ** 1.5;
+        let v = 0;
+        for (const f of chord) v += Math.sin(2 * Math.PI * f * 2 * t) + 0.3 * Math.sin(4 * Math.PI * f * 2 * t);
+        return (v / chord.length) * env * (sec.full ? 0.05 : 0.04);
+      });
+      // A low root to anchor it.
+      addTo(out, start, barLen, (t) => Math.sin(2 * Math.PI * chord[0] / 2 * t) * Math.exp(-0.6 * t) * Math.min(1, t / 0.05) * 0.035);
+      // The harp: chord notes rolling upward through two octaves, every beat.
+      const harp = [...chord.map((f) => f * 2), ...chord.map((f) => f * 4)];
+      for (let k = 0; k < 8; k++) {
+        if (!sec.mel && k % 2) continue; // the intro is barer
+        fx.pluck(out, start + Math.floor(k * beat * 0.5 * MR), harp[k % harp.length], 0.012);
+      }
+      // Soft timpani swells on the downbeat in the bigger sections.
+      if (sec.drum && i % 2 === 0) fx.drum(out, start, 0.05, 70);
+      // Twinkling stars: a music-box note now and then in the intro and the ending.
+      if ((!sec.mel || sec === sections[4]) && rnd() < 0.7) fx.bell(out, start + Math.floor((1 + rnd() * 2) * beat * MR), chord[Math.floor(rnd() * 3)] * 8, 0.012);
+      // The melody.
+      const line = sec.mel?.[i];
+      if (line) {
+        let at = 0;
+        for (const [n, len] of line) {
+          const f = S(n);
+          const s0 = start + Math.floor(at * beat * MR);
+          const l = Math.floor(len * beat * MR * 0.97);
+          if (sec.voice === 'flute') fx.bow(out, s0, f, l, 0.03, 0.12, 0.06);
+          else if (sec.voice === 'box') { fx.bell(out, s0, f * 2, 0.026); fx.bow(out, s0, f / 2, l, 0.012, 0.4); }
+          else { fx.bow(out, s0, f, l, 0.03, 0.55); fx.bow(out, s0, f / 2, l, 0.014, 0.4); }
+          at += len;
+        }
+      }
+      b++;
+    });
+  }
+  fx.gain(out, 0.95);
+  fx.ends(out);
+  writeMusic('music_title', out, MR);
+}
+
+// ---------- 🎪 Pet Parade: a bouncy little fairground march ----------
+// G major at 112 bpm: an oom-pah bass, off-beat plucks, a soft snare and tambourine, a cheerful
+// piccolo tune and a glockenspiel that joins in. Cozy, not loud — it loops every ~2 minutes.
+{
+  const S = (n) => N(n.replace('F#', 'Gb').replace('C#', 'Db'));
+  const beat = 60 / 112, BAR = 4 * beat;
+  const CH = { G: ['G2', 'B2', 'D3'], C: ['C3', 'E3', 'G3'], D: ['D3', 'F#3', 'A3'], Em: ['E3', 'G3', 'B3'], A: ['A2', 'C#3', 'E3'] };
+  const A_PART = {
+    chords: ['G', 'C', 'D', 'G', 'G', 'C', 'D', 'G'],
+    tune: [
+      [['D5', 0.5], ['G5', 0.5], ['G5', 1], ['B5', 1], ['G5', 1]], [['E5', 1], ['G5', 1], ['C6', 1.5], ['B5', 0.5]],
+      [['A5', 1], ['F#5', 1], ['D5', 1], ['F#5', 1]], [['G5', 2], ['D5', 2]],
+      [['D5', 0.5], ['G5', 0.5], ['G5', 1], ['B5', 1], ['D6', 1]], [['E6', 1], ['D6', 1], ['C6', 1], ['B5', 1]],
+      [['A5', 1], ['B5', 0.5], ['A5', 0.5], ['F#5', 1], ['A5', 1]], [['G5', 3], [null, 1]],
+    ],
+  };
+  const B_PART = {
+    chords: ['Em', 'C', 'G', 'D', 'C', 'D', 'G', 'G'],
+    tune: [
+      [['B5', 1], ['G5', 1], ['E5', 1], ['G5', 1]], [['C6', 1], ['B5', 1], ['A5', 2]],
+      [['B5', 1], ['A5', 1], ['G5', 1], ['D5', 1]], [['F#5', 1], ['A5', 1], ['D6', 2]],
+      [['E6', 1], ['D6', 1], ['C6', 1], ['A5', 1]], [['B5', 1], ['A5', 1], ['F#5', 1], ['A5', 1]],
+      [['G5', 1], ['B5', 1], ['D6', 1], ['B5', 1]], [['G5', 2], [null, 2]],
+    ],
+  };
+  const INTRO = { chords: ['G', 'D', 'G', 'D'], tune: null };
+  const OUTRO = { chords: ['C', 'D', 'G', 'G'], tune: null };
+  // [part, melody voice]
+  const plan = [[INTRO, null], [A_PART, 'piccolo'], [A_PART, 'glock'], [B_PART, 'piccolo'], [A_PART, 'both'], [B_PART, 'glock'], [A_PART, 'both'], [OUTRO, null]];
+  const bars = plan.reduce((n, [p]) => n + p.chords.length, 0);
+  const out = new Float32Array(Math.floor(bars * BAR * MR) + MR * 2);
+  const snare = (at, amp) => {
+    const rs = seeded(at);
+    addTo(out, at, Math.floor(0.14 * MR), (t) => ((rs() * 2 - 1) * 0.8 + 0.4 * Math.sin(2 * Math.PI * 190 * t)) * Math.exp(-28 * t) * amp);
+  };
+  let b = 0;
+  for (const [part, voice] of plan) {
+    part.chords.forEach((name, i) => {
+      const chord = CH[name].map(S);
+      const start = Math.floor(b * BAR * MR);
+      const at = (beats) => start + Math.floor(beats * beat * MR);
+      // oom-pah: bass on 1 and 3 (root, then fifth), chord plucks on 2 and 4
+      fx.pluck(out, at(0), chord[0] / 2, 0.06);
+      fx.pluck(out, at(2), chord[2] / 2, 0.05);
+      for (const k of [1, 3]) for (const f of chord) fx.pluck(out, at(k), f * 2, 0.011);
+      // drums: soft kick on 1 and 3, snare on 2 and 4, tambourine on the off-beats once the tune is going
+      fx.drum(out, at(0), 0.06, 85); fx.drum(out, at(2), 0.045, 85);
+      snare(at(1), 0.03); snare(at(3), 0.03);
+      if (part.tune) for (const k of [0.5, 1.5, 2.5, 3.5]) fx.jingle(out, at(k), 0.004, b * 8 + k * 2);
+      // a little drum roll into each new part
+      if (i === part.chords.length - 1) for (let k = 0; k < 4; k++) snare(at(3 + k * 0.25), 0.012 + k * 0.004);
+      // the tune
+      const line = part.tune?.[i];
+      if (line) {
+        let t0 = 0;
+        for (const [n, len] of line) {
+          if (n) {
+            const f = S(n);
+            const l = Math.floor(len * beat * MR * 0.85);
+            if (voice === 'piccolo' || voice === 'both') fx.bow(out, at(t0), f, l, 0.024, 0.18, 0.04);
+            if (voice === 'glock' || voice === 'both') fx.bell(out, at(t0), f * (voice === 'both' ? 2 : 1), voice === 'both' ? 0.016 : 0.03, 4);
+          }
+          t0 += len;
+        }
+      } else if (i % 2 === 0) {
+        // intro / outro: a glockenspiel flourish up the chord
+        chord.forEach((f, k) => fx.bell(out, at(k * 0.5), f * 4, 0.016, 4));
+      }
+      b++;
+    });
+  }
+  fx.gain(out, 1.05);
+  fx.ends(out);
+  writeMusic('music_parade', out, MR);
+}
+
 console.log('Placeholder sounds written to', OUT);
