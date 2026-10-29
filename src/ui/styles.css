@@ -1090,6 +1090,16 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .lw-tag { font-size: 0.62rem; font-weight: 900; padding: 1px 6px; border-radius: 6px; background: rgba(251, 191, 36, 0.2); color: #fde68a; vertical-align: 2px; }
 .lw-rewards { display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.3); text-align: center; }
 .lw-pet { margin-top: 4px; color: #f9a8d4; }
+.lw-btns.col { grid-template-columns: 1fr; }
+.lw-banner { align-self: center; margin-top: 4px; padding: 5px 12px; border-radius: 999px; background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(251, 191, 36, 0.5);
+  color: #fde68a; font-weight: 800; font-size: 0.82rem; text-align: center; text-shadow: 0 1px 2px #000; animation: scDeal 0.3s ease both; }
+.lw-kit span.evo { background: rgba(180, 83, 9, 0.55); box-shadow: 0 0 0 1px #fbbf24, 0 0 8px rgba(251, 191, 36, 0.6); }
+.lw-kit span.ready { box-shadow: 0 0 0 1px #fde047; animation: lwReady 1s ease-in-out infinite; }
+@keyframes lwReady { 50% { box-shadow: 0 0 0 1px #fde047, 0 0 10px rgba(253, 224, 71, 0.8); } }
+.lw-choice.partner { border-color: rgba(253, 224, 71, 0.7); }
+.lw-choice.sold, .lw-choice:disabled { opacity: 0.5; cursor: default; }
+.lw-price { flex: none; font-weight: 900; color: #fde68a; white-space: nowrap; }
+.lw-best { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; margin-top: 4px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.12); }
 
 /* 🧵 Tinker's Tray (Crafting match-3) */
 .tt-order { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 14px; background: rgba(30, 20, 12, 0.92); border: 1.5px solid #5c3d22; }

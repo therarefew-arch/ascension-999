@@ -16,7 +16,7 @@ import { PixelScene } from '../PixelScene';
 import { TRAINING } from '../../data/places';
 import { sound } from '../../audio/sound';
 import { AttackFxLayer, type Fx } from '../AttackFx';
-import { LanternWatch } from '../LanternWatch';
+import { hasSavedNight, LanternWatch } from '../LanternWatch';
 
 const STYLE_ICON = { melee: 'melee', ranged: 'ranged', magic: 'magic' } as const;
 const STYLE_NAME: Record<CombatStyle, string> = { melee: 'Melee', ranged: 'Ranged', magic: 'Magic' };
@@ -287,7 +287,7 @@ function BountyBoard() {
 }
 
 export function CombatScreen({ onItem }: { onItem: (id: string) => void }) {
-  const { player } = useGame();
+  const { player, slot } = useGame();
   const fighting = !!player.fight && fightSlot(player) >= 0;
   const style = weaponStyle(player);
   const max = maxHp(player);
@@ -312,7 +312,9 @@ export function CombatScreen({ onItem }: { onItem: (id: string) => void }) {
             </div>
             <button className="lw-launch" onClick={() => setWatch(true)}>
               <span className="lw-launch-emoji">🏮</span>
-              <span className="grow"><b>Lantern Watch</b><span className="small muted">Survive the night in {player.location} — dodge the swarm, pick a power-up every level, face the dawn beast.</span></span>
+              <span className="grow"><b>Lantern Watch</b><span className="small muted">{hasSavedNight(slot)
+                ? '💾 You have a saved night — tap to carry on.'
+                : `Survive the night in ${player.location} — dodge the swarm, pick a power-up every level, face the dawn beast.`}</span></span>
               <span className="lw-launch-go">▶</span>
             </button>
             {watch && <LanternWatch onClose={() => setWatch(false)} />}

@@ -45,7 +45,7 @@ let lastBagLayout: (ItemStack | null)[] | null = null;
 let lastBankOrder: string[] | null = null;
 import { giveLoot, grantPet, lootFits, rollGemReroll, rollLoot, satchelOn, validateLootTables } from './loot';
 import { BLOCK_WINDOW_MS, eatFood, endFight, fightSlot, maxHp, regenHp, startFight, weaponStyle } from './combat';
-import { lootRolls, nightXp } from './lanternWatch';
+import { lootRolls, nightXp, STUB_COINS } from './lanternWatch';
 import { REROLL_COST, socketGem, unsocketGem } from './equipment';
 import { countInBag, removeFromBag } from './inventory';
 import { MONSTER_MAP, MONSTERS } from '../data/monsters';
@@ -857,19 +857,23 @@ export const game = {
    * 🏮 Lantern Watch: the night is over. Combat XP for the time held and monsters beaten, coins, a few
    * rolls of the town's monster loot (through the loot system — never gems), and Lumen on your first dawn.
    */
-  lanternWatchEnd(r: { seconds: number; kills: number; won: boolean; coins: number }) {
+  lanternWatchEnd(r: { seconds: number; kills: number; won: boolean; coins: number; region?: string; endlessSecs?: number; stubs?: number }) {
     const p = snap.player;
     const style = weaponStyle(p);
-    const xp = nightXp(skillLevel(p, style), r.seconds, r.kills, r.won);
+    const xp = nightXp(skillLevel(p, style), r.seconds, r.kills, r.won, r.endlessSecs ?? 0);
     const report = emptyReport(null);
     addXp(p, { skill: style }, report, xp.style);
     addXp(p, { skill: 'health' }, report, xp.health);
     addXp(p, { skill: 'defense' }, report, xp.defense);
-    const mobs = MONSTERS.filter((m) => m.region === p.location && !m.miniboss && !m.weekly);
+    // Loot from the town the night was in (a saved night can be finished from anywhere).
+    const region = r.region ?? p.location;
+    const mobs = MONSTERS.filter((m) => m.region === region && !m.miniboss && !m.weekly);
     const loot: ItemStack[] = [];
-    const rolls = lootRolls(r.kills) + (r.won ? 3 : 0);
+    const rolls = lootRolls(r.kills, (r.endlessSecs ?? 0) > 0) + (r.won ? 3 : 0);
     for (let i = 0; i < rolls && mobs.length; i++) loot.push(...rollLoot(mobs[Math.floor(Math.random() * mobs.length)].lootTable));
-    const coins = Math.max(0, Math.min(5000, Math.floor(r.coins)));
+    // Leftover candle stubs are worth a few coins each.
+    const stubCoins = Math.max(0, Math.min(2000, Math.floor(r.stubs ?? 0))) * STUB_COINS;
+    const coins = Math.max(0, Math.min(15000, Math.floor(r.coins))) + stubCoins;
     if (coins) loot.push({ id: 'coins', qty: coins });
     // Merge the same items together for a tidy summary.
     const merged: ItemStack[] = [];
