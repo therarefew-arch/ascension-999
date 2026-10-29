@@ -17,6 +17,8 @@ import { TRAINING } from '../../data/places';
 import { sound } from '../../audio/sound';
 import { AttackFxLayer, type Fx } from '../AttackFx';
 import { hasSavedNight, LanternWatch } from '../LanternWatch';
+import { HoldWall, hasSavedWall } from '../HoldWall';
+import { WAVES as WALL_WAVES } from '../../core/holdWall';
 
 const STYLE_ICON = { melee: 'melee', ranged: 'ranged', magic: 'magic' } as const;
 const STYLE_NAME: Record<CombatStyle, string> = { melee: 'Melee', ranged: 'Ranged', magic: 'Magic' };
@@ -292,6 +294,7 @@ export function CombatScreen({ onItem }: { onItem: (id: string) => void }) {
   const style = weaponStyle(player);
   const max = maxHp(player);
   const [watch, setWatch] = useState(false);
+  const [wall, setWall] = useState(false);
   return (
     <div className="skill-screen">
       <PixelScene scene="forest" dim={0.65} className="screen-bg" />
@@ -318,6 +321,14 @@ export function CombatScreen({ onItem }: { onItem: (id: string) => void }) {
               <span className="lw-launch-go">▶</span>
             </button>
             {watch && <LanternWatch onClose={() => setWatch(false)} />}
+            <button className="lw-launch hw-launch" onClick={() => setWall(true)}>
+              <span className="lw-launch-emoji">🛡️</span>
+              <span className="grow"><b>Hold the Wall</b><span className="small muted">{hasSavedWall(slot)
+                ? '💾 Your wall is waiting — tap to carry on.'
+                : `Build towers and hold ${player.location}'s gate for ${WALL_WAVES} waves against its monsters.`}</span></span>
+              <span className="lw-launch-go">▶</span>
+            </button>
+            {wall && <HoldWall onClose={() => setWall(false)} />}
             <BountyBoard />
             {player.location === WEEKLY_BOSS.region && <WeeklyBoss />}
             <h2 className="section-title">{player.location.toUpperCase()}</h2>

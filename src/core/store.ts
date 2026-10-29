@@ -46,6 +46,8 @@ let lastBankOrder: string[] | null = null;
 import { giveLoot, grantPet, lootFits, rollGemReroll, rollLoot, satchelOn, validateLootTables } from './loot';
 import { BLOCK_WINDOW_MS, eatFood, endFight, fightSlot, maxHp, regenHp, startFight, weaponStyle } from './combat';
 import { lootRolls, nightXp, STUB_COINS } from './lanternWatch';
+import { paradeCoins, WINS_NEEDED as PARADE_WINS } from './petParade';
+import { wallXp } from './holdWall';
 import { REROLL_COST, socketGem, unsocketGem } from './equipment';
 import { countInBag, removeFromBag } from './inventory';
 import { MONSTER_MAP, MONSTERS } from '../data/monsters';
@@ -888,6 +890,68 @@ export const game = {
     emit();
     return {
       won: r.won, xp, coins: merged.find((s) => s.id === 'coins')?.qty ?? 0,
+      items: merged.filter((s) => s.id !== 'coins'), leftover: leftover.reduce((s, x) => s + x.qty, 0), pet,
+    };
+  },
+
+  /**
+   * 🎪 Pet Parade is over: coins for each win (a bonus for all 10), plus a rare find and — the first
+   * time — Confetti the parade poodle for a full parade. Everything goes through the loot system.
+   */
+  petParadeEnd(r: { wins: number }) {
+    const p = snap.player;
+    const best = Math.max(...ALL_SKILLS.map((s) => skillLevel(p, s)));
+    const full = r.wins >= PARADE_WINS;
+    const loot: ItemStack[] = [];
+    const coins = paradeCoins(r.wins, best);
+    if (coins) loot.push({ id: 'coins', qty: coins });
+    if (full) loot.push({ id: ['bird_nest', 'geode', 'message_bottle'][Math.floor(Math.random() * 3)], qty: 1 });
+    const leftover = giveLoot(p, loot);
+    const pet = full && grantPet(p, 'pet_confetti');
+    if (full) celebrate();
+    const report = emptyReport(null);
+    if (r.wins > 0) trackRequests(p, report, 1);
+    trackTutorial(p, report);
+    save();
+    emit();
+    return { coins, items: loot.filter((s) => s.id !== 'coins'), leftover: leftover.reduce((s, x) => s + x.qty, 0), pet };
+  },
+
+  /**
+   * 🛡️ Hold the Wall is over: combat XP shared out by what your towers did (archers → Ranged,
+   * mages → Magic, soldiers & captain → Melee) plus Defense, coins, the town's monster loot, and
+   * Lookout the watch-hawk the first time the wall holds.
+   */
+  holdWallEnd(r: { waves: number; won: boolean; kills: number; region?: string; dmg: { melee: number; ranged: number; magic: number } }) {
+    const p = snap.player;
+    const style = weaponStyle(p);
+    const xp = wallXp(skillLevel(p, style), r.waves, r.won);
+    const report = emptyReport(null);
+    const total = r.dmg.melee + r.dmg.ranged + r.dmg.magic;
+    const share = (k: 'melee' | 'ranged' | 'magic') => (total > 0 ? r.dmg[k] / total : k === style ? 1 : 0);
+    const gained = { melee: 0, ranged: 0, magic: 0, defense: xp.defense };
+    for (const k of ['melee', 'ranged', 'magic'] as const) {
+      gained[k] = Math.round(xp.combat * share(k));
+      if (gained[k] > 0) addXp(p, { skill: k }, report, gained[k]);
+    }
+    addXp(p, { skill: 'defense' }, report, xp.defense);
+    const region = r.region ?? p.location;
+    const mobs = MONSTERS.filter((m) => m.region === region && !m.miniboss && !m.weekly);
+    const loot: ItemStack[] = [];
+    const rolls = Math.min(15, Math.floor(r.waves * 0.8)) + (r.won ? 3 : 0);
+    for (let i = 0; i < rolls && mobs.length; i++) loot.push(...rollLoot(mobs[Math.floor(Math.random() * mobs.length)].lootTable));
+    const merged: ItemStack[] = [];
+    for (const s of loot) { const m = merged.find((x) => x.id === s.id); if (m) m.qty += s.qty; else merged.push({ ...s }); }
+    const leftover = giveLoot(p, merged);
+    const pet = r.won && grantPet(p, 'pet_lookout');
+    if (r.won) celebrate();
+    trackRequests(p, report, 1);
+    trackTutorial(p, report);
+    announceLevels(report);
+    save();
+    emit();
+    return {
+      won: r.won, xp: gained, coins: merged.find((s) => s.id === 'coins')?.qty ?? 0,
       items: merged.filter((s) => s.id !== 'coins'), leftover: leftover.reduce((s, x) => s + x.qty, 0), pet,
     };
   },

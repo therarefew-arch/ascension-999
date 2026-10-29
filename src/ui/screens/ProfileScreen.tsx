@@ -12,6 +12,7 @@ import { ItemIcon, UiIcon } from '../icons';
 import { fmtDuration, fmtNum } from '../format';
 import { PixelScene } from '../PixelScene';
 import { SettingsScreen } from './SettingsScreen';
+import { hasSavedParade, PetParade } from '../PetParade';
 
 export type ProfileTab = 'character' | 'stats' | 'pets' | 'settings';
 
@@ -99,9 +100,18 @@ function Stats() {
 }
 
 function Pets() {
-  const { player } = useGame();
+  const { player, slot } = useGame();
+  const [parade, setParade] = useState(false);
   return (
     <>
+      <button className="lw-launch pp-launch" onClick={() => setParade(true)}>
+        <span className="lw-launch-emoji">🎪</span>
+        <span className="grow"><b>Pet Parade</b><span className="small muted">{hasSavedParade(slot)
+          ? '💾 Your parade is waiting — tap to carry on.'
+          : 'Line up 5 critters and march against rival parades. Your pets join the stall as champions!'}</span></span>
+        <span className="lw-launch-go">▶</span>
+      </button>
+      {parade && <PetParade onClose={() => setParade(false)} />}
       <p className="small muted">Tap a pet to have it follow you (+{PET_XP_BONUS * 100}% XP in its skill). Pets are rare finds while skilling and from bosses.</p>
       <div className="pet-grid">
         {PETS.map((pet) => {
