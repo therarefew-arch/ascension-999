@@ -1,9 +1,10 @@
 // Static item definitions. No player data lives here.
 // Tiered items (ores, bars, logs, fish, gear, tools, ammo) are generated for all 20 tiers from data/tiers.ts.
-import { CROPS, FISH, HERBS, METALS, TIER_COUNT, WOODS, tierForLevel, tierLevel, tierPalette, tierRegion, tierXp, type Region } from './tiers';
+import { CROPS, FISH, HERBS, METALS, REGIONS, TIER_COUNT, WOODS, tierForLevel, tierLevel, tierPalette, tierRegion, tierXp, type Region } from './tiers';
 import { RARE_FISH } from './rareFish';
 import { FESTIVALS, TREAT_BUFF } from './festivals';
 import { RELICS, relicItemId, type RelicKey } from './relics';
+import { ASCENSION_LEVEL, BONUSES, isAscendedId, parseAscended, type AscParts } from './ascended';
 
 export type ItemCategory = 'ore' | 'bar' | 'log' | 'material' | 'fish' | 'food' | 'weapon' | 'armour' | 'tool' | 'gem' | 'ammo' | 'currency' | 'treasure'
   | 'herb' | 'crop' | 'seed' | 'meal';
@@ -64,6 +65,11 @@ export const TIER_COLORS: Record<string, { main: string; light: string; dark: st
 for (const m of METALS) TIER_COLORS[m.key] ??= tierPalette(m.hue, m.sat, m.light);
 for (const w of WOODS) TIER_COLORS[w.key] ??= tierPalette(w.hue, 40, w.light);
 for (const f of FISH) TIER_COLORS[f.key] ??= tierPalette(f.hue, 60, 60);
+// 🌟 Ascended grades: Fine (silver), Blessed (blue), Divine (violet), Godforged (gold).
+TIER_COLORS.asc_f = { main: '#cbd5e1', light: '#f1f5f9', dark: '#64748b' };
+TIER_COLORS.asc_b = { main: '#60a5fa', light: '#dbeafe', dark: '#1e40af' };
+TIER_COLORS.asc_d = { main: '#c084fc', light: '#f3e8ff', dark: '#6b21a8' };
+TIER_COLORS.asc_g = { main: '#fbbf24', light: '#fef3c7', dark: '#92400e' };
 
 export const RARITIES: GemRarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
 export const RARITY_COLORS: Record<GemRarity, string> = {
@@ -162,6 +168,8 @@ export interface ItemDef {
   seedOf?: number;
   /** ✨ Relics: one-of-a-kind gear from the Pedlar's crates (can't be sold or upgraded). */
   relic?: { key: RelicKey };
+  /** 🌟 Ascended items (levels 750+): grade, town and rolled bonuses (data/ascended.ts). */
+  ascended?: AscParts;
 }
 
 export const MAX_UPGRADE = 10;
@@ -651,7 +659,57 @@ for (const m of MEALS) {
     region: tierRegion(m.tierNum), buff: m.buff, description: m.description });
 }
 
-export const ITEMS: Record<string, ItemDef> = Object.fromEntries(items.map((i) => [i.id, i]));
+// ----- 🌟 Ascended items (levels 750+) -----
+// They aren't listed up front: every one is different, and its id says exactly what it is (data/ascended.ts).
+// Base stats match the best crafted gear at +10, a little more for better grades; the rolled bonuses come on top.
+const ASC_VALUE = { f: 20_000, b: 50_000, d: 150_000, g: 500_000 };
+function ascendedDef(id: string): ItemDef | undefined {
+  const a = parseAscended(id);
+  if (!a) return undefined;
+  const { base, grade } = a;
+  const top = TIER_COUNT - 1;
+  let stats: ItemStats;
+  if (base.kind === 'tool') {
+    const tool = CRAFTED_TOOLS.find((t) => t.key === base.key)!;
+    stats = { [tool.stat]: 5 * (top + 1) };
+  } else if (base.key === 'bow' || base.key === 'staff') stats = { attack: 5 * (top + 1) };
+  else stats = gearStats(base.key as (typeof GEAR_PIECES)[number]['key'], top + 1);
+  stats = upgradedStats(stats, MAX_UPGRADE);
+  for (const k of Object.keys(stats) as (keyof ItemStats)[]) stats[k] = Math.round(stats[k]! * grade.power);
+  // Flat bonuses go straight onto the stats.
+  for (const b of a.bonuses) {
+    if (b.key === 'at') stats.attack = (stats.attack ?? 0) + b.value;
+    if (b.key === 'df') stats.defense = (stats.defense ?? 0) + b.value;
+    if (b.key === 'hp') stats.health = (stats.health ?? 0) + b.value;
+    if (b.key === 'sp') { const k = `${base.skill}Speed` as keyof ItemStats; stats[k] = (stats[k] ?? 0) + b.value; }
+  }
+  const town = REGIONS[a.town];
+  return {
+    id, name: `${grade.name} ${base.name}`, category: base.kind === 'tool' ? 'tool' : base.kind === 'weapon' ? 'weapon' : 'armour',
+    tier: `asc_${grade.key}`, icon: base.icon, stackable: false, tierNum: top, value: ASC_VALUE[grade.key], ascended: a,
+    description: `🌟 Ascended — found in ${town}. ${a.bonuses.filter((b) => !['at', 'df', 'hp'].includes(b.key)).map((b) => BONUSES[b.key].text(b.value, base.skill)).join(' · ') || 'Every one is different.'}`,
+    equip: {
+      slot: base.slot, stats, req: { skill: base.skill, level: ASCENSION_LEVEL },
+      ...(base.kind === 'tool' ? { toolTier: top } : {}),
+      ...(base.style ? { style: base.style, speedMs: WEAPON_SPEED[base.style] } : {}),
+    },
+  };
+}
+const ascCache = new Map<string, ItemDef | undefined>();
+const staticItems: Record<string, ItemDef> = Object.fromEntries(items.map((i) => [i.id, i]));
+/** Every item by id. Ascended ids are worked out on demand (and remembered). */
+export const ITEMS: Record<string, ItemDef> = new Proxy(staticItems, {
+  get(target, key) {
+    if (typeof key !== 'string') return undefined;
+    const hit = target[key];
+    if (hit || !isAscendedId(key)) return hit;
+    if (!ascCache.has(key)) ascCache.set(key, ascendedDef(key));
+    return ascCache.get(key);
+  },
+  has(target, key) {
+    return key in target || (typeof key === 'string' && isAscendedId(key) && !!ascendedDef(key));
+  },
+});
 export const ITEM_LIST = items;
 
 export function getItem(id: string): ItemDef {

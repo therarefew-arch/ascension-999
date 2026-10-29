@@ -11,6 +11,8 @@ import { ItemIcon } from './icons';
 import { Sheet, StatCompare } from './components';
 import { fmtNum } from './format';
 import { buffText } from '../core/buffs';
+import { BONUSES, GRADES } from '../data/ascended';
+import { REGIONS } from '../data/tiers';
 
 export type ItemPlace = 'bag' | 'bank' | 'worn';
 
@@ -43,7 +45,9 @@ export function ItemSheet({ id, from, onClose, onReroll }: { id: string; from: I
             <span className="pill">{item.category === 'armour' ? 'Armour' : item.category[0].toUpperCase() + item.category.slice(1)}</span>
             {slot && <span className="pill">{SLOT_LABELS[slot]} slot</span>}
           </div>
-          <p className="muted">{item.description}</p>
+          {item.ascended
+            ? <p className="muted">🌟 Ascended · found in {REGIONS[item.ascended.town]}. Every one rolls different bonuses.</p>
+            : <p className="muted">{item.description}</p>}
           {item.heals && <p className="small good-text">Heals {item.heals} in combat (coming soon)</p>}
           {item.upgrade && (
             <p className="small gold">
@@ -53,6 +57,20 @@ export function ItemSheet({ id, from, onClose, onReroll }: { id: string; from: I
           <p className="small">In bag: <b>{fmtNum(inBag)}</b> · In bank: <b>{fmtNum(inBank)}</b></p>
         </div>
       </div>
+
+      {item.ascended && (
+        <section className="block asc-block" style={{ ['--grade' as string]: item.ascended.grade.color }}>
+          <h3 className="asc-grade">{item.ascended.grade.key === 'g' ? '✨ ' : ''}{item.ascended.grade.name}</h3>
+          <ul className="asc-bonuses">
+            {item.ascended.bonuses.map((b) => {
+              const def = BONUSES[b.key];
+              const near = b.value >= def.max - Math.max(1, (def.max - def.min) * 0.08);
+              return <li key={b.key} className={near ? 'top' : ''}>{def.text(b.value, SKILLS[item.ascended!.base.skill].name)} <span className="muted small">({def.min}–{def.max})</span></li>;
+            })}
+          </ul>
+          <p className="small muted">Grades: {GRADES.map((g) => g.name).join(' → ')}. Divine can drop from level 850, Godforged from 950.</p>
+        </section>
+      )}
 
       {item.equip && (
         <section className="block">

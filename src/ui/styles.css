@@ -1592,3 +1592,11 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; }
 }
+
+/* 🌟 Ascended items: grade colour, rolled bonuses (near-max rolls glow) */
+.asc-block { border: 1px solid var(--grade); border-radius: 12px; padding: 10px 12px; background: color-mix(in srgb, var(--grade) 8%, transparent); }
+.asc-grade { color: var(--grade); margin: 0 0 6px; text-shadow: 0 0 10px color-mix(in srgb, var(--grade) 50%, transparent); }
+.asc-bonuses { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 4px; }
+.asc-bonuses li { font-weight: 700; }
+.asc-bonuses li::before { content: '◆ '; color: var(--grade); }
+.asc-bonuses li.top { color: #fde68a; text-shadow: 0 0 8px rgba(251, 191, 36, 0.45); }

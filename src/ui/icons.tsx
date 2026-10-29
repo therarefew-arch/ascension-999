@@ -310,7 +310,8 @@ export function ItemIcon({ id, size = 40 }: { id: string; size?: number }) {
   const c = TIER_COLORS[item.tier] ?? TIER_COLORS.iron;
   const plus = item.upgrade?.level ?? 0;
   const great = item.id.startsWith('great_');
-  const rarity = item.gem ? RARITY_COLORS[item.gem.rarity] : null;
+  const rarity = item.gem ? RARITY_COLORS[item.gem.rarity] : item.ascended ? item.ascended.grade.color : null;
+  const god = item.ascended?.grade.key === 'g';
   if (item.emoji) {
     return (
       <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" className="item-icon">
@@ -323,6 +324,7 @@ export function ItemIcon({ id, size = 40 }: { id: string; size?: number }) {
     <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" className="item-icon">
       {rarity && <circle cx="24" cy="25" r="21" fill={rarity} opacity="0.18" stroke={rarity} strokeWidth="2" />}
       <ItemShape kind={item.icon} c={c} />
+      {god && <path d="M38 3 L40.5 9.5 L47 10 L42 14 L43.5 20.5 L38 17 L32.5 20.5 L34 14 L29 10 L35.5 9.5 Z" fill="#fde68a" stroke="#b45309" strokeWidth="1" />}
       {great && <path d="M38 4 L40 9 L45 9 L41 12 L43 17 L38 14 L33 17 L35 12 L31 9 L36 9 Z" fill="#fbbf24" stroke="#92610f" strokeWidth="1" />}
       {plus > 0 && (
         <g>

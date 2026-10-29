@@ -11,7 +11,7 @@ import { fmtDuration, fmtNum } from './format';
 export function AwayCard({ away }: { away: AwayReport }) {
   const { report } = away;
   const doing = report.actionIds.map((id) => (isFightId(id) ? `fighting ${fightMonster(id).name}` : ACTIONS[id] ? `${SKILLS[ACTIONS[id].skill].verb.toLowerCase()} ${ACTIONS[id].name}` : '')).filter(Boolean);
-  const gained = Object.entries(report.gained);
+  const gained = Object.entries(report.gained).filter(([id]) => !id.startsWith('asc.')); // 🌟 Ascended finds get their own lines below
   const used = Object.entries(report.used);
   const capped = away.awayMs > OFFLINE_CAP_MS;
 
@@ -42,6 +42,7 @@ export function AwayCard({ away }: { away: AwayReport }) {
         {report.combat && (
           <div className="away-line">⚔ {report.combat.kills} monsters defeated · {report.combat.damageDealt} damage dealt{report.combat.foodEaten ? ` · ${report.combat.foodEaten} food eaten` : ''}</div>
         )}
+        {(report.ascended ?? []).map((id, k) => <div key={k} className="away-line level">🌟 Ascended find: {getItem(id).name}!</div>)}
         {report.pets.map((id) => <div key={id} className="away-line level">🎉 New pet: {PET_MAP[id].emoji} {PET_MAP[id].name}!</div>)}
         {report.failed > 0 && <p className="small muted">{report.failed} enhance {report.failed === 1 ? 'try' : 'tries'} didn't take (items kept safe).</p>}
         {report.actions === 0 && !report.stopped && <p className="muted">Nothing finished while you were gone.</p>}

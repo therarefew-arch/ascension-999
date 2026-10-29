@@ -459,7 +459,7 @@ Enhancing now has three minigames (tabs): **Rune Align** (the original, enhances
 - New sounds: `clack` (crisp tile flip) and `thud` (tile landing in the basket). Bot test: a perfect-memory player clears ~65% of boards; random tapping ~2%.
 - Fishing remembers the last minigame tab while the app is open.
 
-### The Ascension — design (agreed with the owner, 2026-10-29, not built yet)
+### The Ascension — design (agreed with the owner, 2026-10-29 · part 1 built in v0.0.1.44)
 Everything past level 750 is called **the Ascension**. Story: Mira hands you "the road up" at the Rift; the Ascension is the sky above it, and **✨ Starlight** is bits of it drifting down.
 
 **Core loop (owner's wish): chasing randomly rolled god loot, as a collection — hybrid of grinding and crafting.**
@@ -482,6 +482,8 @@ Everything past level 750 is called **the Ascension**. Story: Mira hands you "th
 - **Mastery perks** stay a small side reward (the owner prefers goals to chase over passive bonuses).
 
 **Collection, not achievements:** no checklists or "collect all" counters (owner isn't a completionist). A **🏛️ Hall of the Ascended** in the Cottage shows off your best pieces.
+
+**Part 1 — built in v0.0.1.44:** `data/ascended.ts` (bases, bonus pools, grades, id format `asc.<base>.<grade>.<town>.<bonuses>`), `core/ascension.ts` (per-minute drops via `giveLoot` with overflow to the bank, `ascBonus`), items resolved on demand in `ITEMS` (a Proxy). One drop per ~3 h of 750+ work per idle slot. Grade odds: Blessed 25%, Divine 5% (850+), Godforged 1 in 250 (950+) → bot test: a heavy idler (3 slots × 16 h/day) gets ~200 drops and ~1 Godforged in 2 weeks. Bonuses: speed, double result, skill XP, rare finds, all-XP (tools); attack, mini-boss damage, coins, combat XP, all-XP (weapons); defense, HP, food heals, coins, combat XP, all-XP (armour). Ascended staffs cast with any rune. Not upgradable; sellable at the Trading Post for now (part 2 adds breaking down into Starlight).
 
 **Build order (suggested):** 1) Ascended items + bonus rolls + grades + drops (per-minute) for tools and armour; 2) Starlight: break down, craft, reforge, lock; 3) town bonus families; 4) Ascension bosses + gems; 5) Ascended Relics, Hall of the Ascended, mastery perks. Bot-test Godforged ≈ every 2 weeks after parts 1–2.
 

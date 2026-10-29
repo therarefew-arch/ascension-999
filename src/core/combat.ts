@@ -12,6 +12,7 @@ import { levelForXp } from './xp';
 import { HOT_SPRING_MULT, inHotSprings } from './cinderpeak';
 import { rollFestivalToken } from './festivals';
 import { RELIC, relicOn } from './relics';
+import { ascBonus } from './ascension';
 
 export const FIGHT_PREFIX = 'fight:';
 export const isFightId = (actionId: string | undefined | null) => !!actionId && actionId.startsWith(FIGHT_PREFIX);
@@ -75,7 +76,8 @@ export function currentAmmo(p: PlayerState): string | null {
   if (style === 'melee') return null;
   // Elemental staffs only cast with runes of their own element (✨ the Starweaver Staff casts with any).
   const element = p.equipment.weapon ? getItem(p.equipment.weapon).equip?.element : undefined;
-  const anyRune = relicOn(p, 'starweaver_staff');
+  // 🌟 Ascended staffs cast with any rune too.
+  const anyRune = relicOn(p, 'starweaver_staff') || !!(p.equipment.weapon && ITEMS[p.equipment.weapon]?.ascended);
   let best: string | null = null;
   for (const s of p.inventory) {
     if (!s) continue;
@@ -180,10 +182,11 @@ function autoEat(p: PlayerState, report: ProgressReport, cr: CombatReport, max: 
   }
   if (!best) return;
   removeFromBag(p.inventory, best, 1);
-  p.hp = Math.min(max, p.hp + ITEMS[best].heals!);
+  const heal = foodHeal(p, best);
+  p.hp = Math.min(max, p.hp + heal);
   report.used[best] = (report.used[best] ?? 0) + 1;
   cr.foodEaten++;
-  log(f, at, `Ate ${ITEMS[best].name} (+${ITEMS[best].heals} HP)`, 'info');
+  log(f, at, `Ate ${ITEMS[best].name} (+${heal} HP)`, 'info');
 }
 
 /**
@@ -235,6 +238,8 @@ export function advanceFight(
           dmg = Math.round(dmg * (1 + Math.min(RELIC.kindleMax, RELIC.kindlePerSwing * (f.kindle ?? 0))));
           f.kindle = (f.kindle ?? 0) + 1;
         }
+        // 🌟 Ascended: extra damage to mini bosses.
+        if (monster.miniboss) dmg = Math.round(dmg * (1 + ascBonus(p, 'bd') / 100));
         dmg = Math.min(dmg, f.monsterHp);
         f.monsterHp -= dmg;
         cr.damageDealt += dmg;
@@ -250,6 +255,9 @@ export function advanceFight(
         let loot = rollLoot(monster.lootTable, rng);
         // ✨ Pedlar's Patchwork Coat: a little more coin from every monster.
         if (relicOn(p, 'patchwork_coat')) loot = loot.map((st) => (st.id === 'coins' ? { ...st, qty: Math.round(st.qty * RELIC.coatCoins) } : st));
+        // 🌟 Ascended: more coins from monsters.
+        const ascCoins = ascBonus(p, 'cn');
+        if (ascCoins) loot = loot.map((st) => (st.id === 'coins' ? { ...st, qty: Math.round(st.qty * (1 + ascCoins / 100)) } : st));
         giveLoot(p, loot);
         for (const st of loot) report.gained[st.id] = (report.gained[st.id] ?? 0) + st.qty;
         log(f, now, `${monster.name} defeated!`, 'loot');
@@ -324,6 +332,11 @@ export function eatFood(p: PlayerState, id: string): string | null {
   const max = maxHp(p);
   if (p.hp >= max) return "You're already at full health";
   removeFromBag(p.inventory, id, 1);
-  p.hp = Math.min(max, p.hp + heals);
+  p.hp = Math.min(max, p.hp + foodHeal(p, id));
   return null;
+}
+
+/** How much a food heals you (🌟 Ascended gear can make food heal more). */
+export function foodHeal(p: PlayerState, id: string): number {
+  return Math.round((ITEMS[id]?.heals ?? 0) * (1 + ascBonus(p, 'fh') / 100));
 }

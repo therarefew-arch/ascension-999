@@ -23,6 +23,9 @@ import { STIR_XP_MULT, stirBoosts } from './cinderpeak';
 import { festivalXpMult, rollFestivalToken } from './festivals';
 import { recordRareFish, type RareCatch } from './fishJournal';
 import { RELIC, relicOn } from './relics';
+import { ascBonus, ascXpMult, rollAscendedDrops } from './ascension';
+import { MONSTER_MAP } from '../data/monsters';
+import { weaponStyle } from './combat';
 
 export interface ProgressReport {
   /** The first running activity (kept for simple screens). */
@@ -46,6 +49,8 @@ export interface ProgressReport {
   combat?: CombatReport;
   /** Pets found. */
   pets: string[];
+  /** 🌟 Ascended items found (levels 750+). */
+  ascended?: string[];
 }
 
 export function skillLevel(p: PlayerState, skill: SkillId): number {
@@ -283,6 +288,9 @@ export function completeAction(
       || (action.skill === 'mining' && relicOn(p, 'deepdelver_pick'))
       || (action.skill === 'cooking' && relicOn(p, 'bramble_skillet'));
     if (double && Math.random() < RELIC.doubleChance) relicRolls = 1;
+    // 🌟 Ascended tools: a chance of a double result.
+    const asc = ascBonus(p, 'dr', action.skill);
+    if (asc && Math.random() < asc / 100) relicRolls++;
     // Only when the result still fits, since the materials stay in the bag.
     thrifty = action.skill === 'smithing' && action.inputs.length > 0 && relicOn(p, 'hearthsong_hammer') && Math.random() < RELIC.thriftChance
       && (satchelOn(p) || canFitAll(p.inventory, maxLoot(opts.lootTable ?? action.lootTable)));
@@ -325,7 +333,10 @@ export function completeAction(
   // 🪓 Your tools get a little more seasoned with every use.
   if (TOOL_SLOT_FOR[action.skill]) p.toolUses[action.skill] = (p.toolUses[action.skill] ?? 0) + 1;
   // 🎁 A rare find now and then while gathering (bird nests, geodes, bottles).
-  if (!action.kind && action.skill in FIND_ITEM) {
+  // 🌟 Ascended tools with "rare finds" give finds and rare fish an extra chance.
+  const ascFinds = !action.kind ? ascBonus(p, 'rf', action.skill) : 0;
+  const findTries = ascFinds && Math.random() < ascFinds / 100 ? 2 : 1;
+  for (let k = 0; k < findTries && !action.kind && action.skill in FIND_ITEM; k++) {
     const find = rollLoot(stirring ? 'find_ember_geode' : `find_${action.skill}`);
     if (find.length) {
       giveLoot(p, find);
@@ -335,7 +346,7 @@ export function completeAction(
   // 🐟 A rare fish now and then — recorded in the Fishing Journal.
   // ✨ The Tidecaller Rod gives rare fish a second chance to bite.
   const rareTries = !action.kind && action.skill === 'fishing' && action.region && LOOT_TABLES[`rare_fish_${action.region}`]
-    ? (relicOn(p, 'tidecaller_rod') ? 2 : 1) : 0;
+    ? (relicOn(p, 'tidecaller_rod') ? 2 : 1) + (ascFinds && Math.random() < ascFinds / 100 ? 1 : 0) : 0;
   for (let k = 0; k < rareTries; k++) {
     const rare = rollLoot(`rare_fish_${action.region}`);
     if (rare.length) {
@@ -370,6 +381,8 @@ export function addXp(p: PlayerState, action: { skill: SkillId }, report: Progre
   xp = xp * festivalXpMult(action.skill);
   // ✨ The Wanderer's Crown: +5% XP in every skill.
   if (relicOn(p, 'wanderers_crown')) xp = xp * RELIC.crownXp;
+  // 🌟 Ascended bonuses.
+  xp = xp * ascXpMult(p, action.skill);
   const skill = p.skills[action.skill];
   const before = levelForXp(skill.xp);
   skill.xp = Math.min(MAX_XP, skill.xp + xp);
@@ -407,7 +420,9 @@ export function advanceIdle(p: PlayerState, ms: number, now = Date.now()): Progr
 function advanceSlot(p: PlayerState, i: number, ms: number, startAt: number, report: ProgressReport, overallStart: number) {
   const slot = p.slots[i];
   if (!slot) return;
+  let worked = ms;
   const stop = (actionId: string, reason: string, usedMs: number) => {
+    worked = usedMs;
     const at = startAt + usedMs;
     report.stops.push({ actionId, reason, afterMs: at - overallStart });
     if (isFightId(actionId)) p.fight = null;
@@ -418,8 +433,11 @@ function advanceSlot(p: PlayerState, i: number, ms: number, startAt: number, rep
   // Fighting uses a slot too.
   if (isFightId(slot.actionId)) {
     const cr = (report.combat ??= { kills: 0, damageDealt: 0, damageTaken: 0, foodEaten: 0 });
+    const monster = MONSTER_MAP[slot.actionId.slice('fight:'.length)];
+    const style = weaponStyle(p);
     const { stop: why, usedMs } = advanceFight(p, ms, report, cr, startAt);
     if (why) stop(slot.actionId, why, usedMs);
+    rollAscendedDrops(p, style, worked, monster?.region, report);
     return;
   }
 
@@ -457,4 +475,7 @@ function advanceSlot(p: PlayerState, i: number, ms: number, startAt: number, rep
     const next = whyCantDo(p, action);
     if (next) { stop(action.id, next, elapsed); break; }
   }
+  // 🌟 Levels 750+: a chance of an Ascended item for every bit of time spent working.
+  const action = ACTIONS[slot.actionId];
+  if (action) rollAscendedDrops(p, action.skill, worked, action.region, report);
 }

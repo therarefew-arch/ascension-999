@@ -150,6 +150,16 @@ function announceLevels(report: ProgressReport) {
   }
 }
 
+/** 🌟 An Ascended item dropped. These are rare, so each one gets its moment. */
+function announceAscended(report: ProgressReport) {
+  for (const id of report.ascended ?? []) {
+    const a = getItem(id).ascended!;
+    play(a.grade.key === 'g' || a.grade.key === 'd' ? 'levelup' : 'rune');
+    toast(`🌟 Ascended find: ${getItem(id).name}!`, a.grade.key === 'f' ? 'good' : 'level');
+    if (a.grade.key === 'g' || a.grade.key === 'd') celebrate();
+  }
+}
+
 function announcePets(report: ProgressReport) {
   for (const id of report.pets) {
     play('levelup');
@@ -269,6 +279,7 @@ function tick(now = Date.now()) {
   announceLevels(report);
   if (report.levelUps.length) checkGoals();
   announcePets(report);
+  announceAscended(report);
   bagWarnings(p);
   if (report.stops.some((s) => s.reason.endsWith('defeated!'))) announceLore(syncLore(p));
   // 🎁 Found something while gathering?
