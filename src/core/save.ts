@@ -351,6 +351,8 @@ function repair(raw: any): PlayerState {
   if (raw?.pedlar && typeof raw.pedlar === 'object') {
     p.pedlar = { favour: Math.max(0, Math.floor(Number(raw.pedlar.favour) || 0)), opened: Math.max(0, Math.floor(Number(raw.pedlar.opened) || 0)) };
   }
+  // 🌟 Starlight (no version bump: older saves start with none)
+  if (typeof raw?.starlight === 'number' && raw.starlight > 0) p.starlight = Math.floor(raw.starlight);
   // 📌 Kept-in-bag items (v22)
   if (Array.isArray(raw?.keep)) p.keep = Array.from(new Set(raw.keep.filter((id: unknown) => typeof id === 'string' && !!ITEMS[id as string])));
   // Fishing Journal + festivals (v21)

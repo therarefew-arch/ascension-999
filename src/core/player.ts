@@ -137,6 +137,8 @@ export interface PlayerState {
   relics: Partial<Record<RelicKey, number>>;
   /** 🧺 The Wandering Pedlar: Pedlar's Favour (empty crates in a row) and crates opened. */
   pedlar: { favour: number; opened: number };
+  /** 🌟 Starlight (the Ascension's crafting currency, levels 750+). */
+  starlight: number;
 }
 
 export interface Loadout {
@@ -207,6 +209,7 @@ export function newPlayer(now = Date.now()): PlayerState {
     keep: [],
     relics: {},
     pedlar: { favour: 0, opened: 0 },
+    starlight: 0,
   };
 }
 

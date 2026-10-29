@@ -4,11 +4,14 @@ import {
 } from '../../data/items';
 import { canEquip, equipmentStats, SOCKET_SLOTS } from '../../core/equipment';
 import { RARITY_COLORS } from '../../data/items';
+import { BONUSES } from '../../data/ascended';
+import { SKILLS } from '../../data/skills';
 import { UiIcon } from '../icons';
 import { countInBag, countInBank } from '../../core/inventory';
 import { game, useGame } from '../../core/store';
 import { DiffChips, Sheet, StatCompare } from '../components';
 import { ItemIcon } from '../icons';
+import { ReforgePanel, StarforgeCard } from '../Starforge';
 
 const WHERE_TO_GET: Partial<Record<EquipSlot, string>> = {
   pickaxe: 'Craft one at the Workshop.',
@@ -24,7 +27,9 @@ function SlotPicker({ slot, onClose }: { slot: EquipSlot; onClose: () => void })
   const { player } = useGame();
   const wornId = player.equipment[slot];
   const worn = wornId ? getItem(wornId) : null;
-  const options = ITEM_LIST.filter((it) => it.equip?.slot === slot)
+  // 🌟 Ascended items aren't in the item list (each one is different), so add the ones you have.
+  const ascIds = Array.from(new Set([...player.inventory, ...player.bank].filter((s) => s && s.id.startsWith('asc.')).map((s) => s!.id)));
+  const options = [...ITEM_LIST, ...ascIds.map((id) => getItem(id))].filter((it) => it.equip?.slot === slot)
     .map((it) => ({ item: it, bag: countInBag(player.inventory, it.id), bank: countInBank(player, it.id) }))
     .filter((o) => o.bag + o.bank > 0);
 
@@ -40,8 +45,14 @@ function SlotPicker({ slot, onClose }: { slot: EquipSlot; onClose: () => void })
             <button className="btn" onClick={() => { game.unequip(slot); }}>Unequip</button>
           </div>
           <StatCompare next={worn.equip!.stats} current={null} />
+          {worn.ascended && (
+            <ul className="asc-bonuses" style={{ ['--grade' as string]: worn.ascended.grade.color }}>
+              {worn.ascended.bonuses.filter((b) => !['at', 'df', 'hp', 'sp'].includes(b.key)).map((b) => <li key={b.key}>{BONUSES[b.key].text(b.value, SKILLS[worn.ascended!.base.skill].name)}</li>)}
+            </ul>
+          )}
         </section>
       ) : <p className="muted">Nothing equipped here yet.</p>}
+      {worn?.ascended && <ReforgePanel id={worn.id} from="worn" />}
 
       <h3>Your {SLOT_LABELS[slot].toLowerCase()} items</h3>
       {options.length === 0 && <p className="small muted">You don't have any. {WHERE_TO_GET[slot] ?? 'Smith some at the Forge!'}</p>}
@@ -169,6 +180,7 @@ export function GearScreen() {
       <SlotGrid slots={ARMOUR_SLOTS} onPick={setPicking} />
       <h2 className="section-title">SKILLING TOOLS</h2>
       <SlotGrid slots={TOOL_SLOTS} onPick={setPicking} />
+      <StarforgeCard />
       <div className="card">
         <h3>Total stats</h3>
         <div className="stat-list">

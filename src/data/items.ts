@@ -184,6 +184,8 @@ const items: ItemDef[] = [
   { id: 'rune_essence', name: 'Rune essence', category: 'material', tier: 'essence', icon: 'rock', stackable: true, description: 'Glittering stone humming with magic. Runecrafting turns it into runes and talismans.' },
   // Coins (go straight to your purse, not your bag)
   { id: 'coins', name: 'Coins', category: 'currency', tier: 'gold', icon: 'coins', stackable: true, description: 'Shiny coins. Spend them at the Trading Post and on upgrades.' },
+  // 🌟 The Ascension: bits of the sky above the Rift (goes to your Starlight, not your bag)
+  { id: 'starlight', name: 'Starlight', category: 'currency', tier: 'gold', icon: 'coins', emoji: '✨', stackable: true, description: 'Bits of the sky drifting down above the Rift. Spend it at the Starforge (Gear screen) to craft and reforge Ascended items.' },
 ];
 
 // ----- Ores (tier 3+ have their own ore; tier 0 = copper+tin, 1 = iron, 2 = iron+coal) -----

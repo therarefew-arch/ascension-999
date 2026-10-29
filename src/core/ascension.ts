@@ -1,6 +1,6 @@
 // 🌟 The Ascension (levels 750 → 999): Ascended drops and the bonuses on worn Ascended items.
 // Drops are rolled per minute of work (not per action), so every skill and every town is equally good.
-import { ASC_BASES, ASC_DROP_MS, ASCENSION_LEVEL, rollAscended, type AscBase, type BonusKey } from '../data/ascended';
+import { ASC_BASES, ASC_DROP_MS, ASCENSION_LEVEL, rollAscended, STARLIGHT_PER_HOUR, type AscBase, type BonusKey } from '../data/ascended';
 import { ITEMS, type SkillId } from '../data/items';
 import { REGIONS, type Region } from '../data/tiers';
 import { giveLoot } from './loot';
@@ -68,6 +68,13 @@ export function rollAscendedDrops(
   if (ms <= 0) return;
   const level = levelForXp(p.skills[skill].xp);
   if (level < ASCENSION_LEVEL) return;
+  // ✨ A little Starlight drifts down while you work (whole bits, the rest is a chance).
+  const sl = (ms / 3_600_000) * STARLIGHT_PER_HOUR;
+  const bits = Math.floor(sl) + (rng() < sl - Math.floor(sl) ? 1 : 0);
+  if (bits > 0) {
+    giveLoot(p, [{ id: 'starlight', qty: bits }]);
+    report.gained.starlight = (report.gained.starlight ?? 0) + bits;
+  }
   const n = poisson(ms, ASC_DROP_MS, rng);
   const town = Math.max(0, REGIONS.indexOf((where ?? p.location) as Region));
   for (let i = 0; i < n; i++) {

@@ -1,6 +1,6 @@
 // THE central loot system. Every item a player gains goes through here.
 // Rule: gems can only drop from bosses and mini bosses — enforced below.
-import { getItem, type GemRarity, type GemType, type SkillId } from '../data/items';
+import { getItem, type GemRarity, type GemType, type SkillId, type EquipSlot } from '../data/items';
 import { PETS } from '../data/pets';
 import { gemRerollTable, LOOT_TABLES, type LootGroup, type LootSource, type LootTable } from '../data/lootTables';
 import { addToBag, addToBank, canFitAll } from './inventory';
@@ -81,6 +81,7 @@ export function giveLoot(p: PlayerState, loot: ItemStack[], opts: { overflowToBa
   const leftover: ItemStack[] = [];
   for (const st of loot) {
     if (st.id === 'coins') { p.coins += st.qty; continue; }
+    if (st.id === 'starlight') { p.starlight += st.qty; continue; }
     const added = addToBag(p.inventory, st.id, st.qty);
     if (added > 0) recordCollection(p, st.id, added);
     if (added < st.qty) {
@@ -94,6 +95,12 @@ export function giveLoot(p: PlayerState, loot: ItemStack[], opts: { overflowToBa
     }
   }
   return leftover;
+}
+
+/** 🌟 The Starforge reforges a worn item in place: the new roll goes straight back into its gear slot. */
+export function giveWorn(p: PlayerState, slot: EquipSlot, id: string) {
+  p.equipment[slot] = id;
+  recordCollection(p, id, 1);
 }
 
 /** Collection log: counts every item you've ever received. */

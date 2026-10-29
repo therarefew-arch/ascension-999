@@ -11,7 +11,8 @@ import { ItemIcon } from './icons';
 import { Sheet, StatCompare } from './components';
 import { fmtNum } from './format';
 import { buffText } from '../core/buffs';
-import { BONUSES, GRADES } from '../data/ascended';
+import { BONUSES, BREAK_VALUE, GRADES } from '../data/ascended';
+import { ReforgePanel } from './Starforge';
 import { REGIONS } from '../data/tiers';
 
 export type ItemPlace = 'bag' | 'bank' | 'worn';
@@ -69,8 +70,14 @@ export function ItemSheet({ id, from, onClose, onReroll }: { id: string; from: I
             })}
           </ul>
           <p className="small muted">Grades: {GRADES.map((g) => g.name).join(' → ')}. Divine can drop from level 850, Godforged from 950.</p>
+          {from !== 'worn' && (
+            <button className="btn btn-wide" onClick={() => game.breakDown(id, from)}>
+              Break down · +{BREAK_VALUE[item.ascended.grade.key]} ✨ Starlight
+            </button>
+          )}
         </section>
       )}
+      {item.ascended && <ReforgePanel id={id} from={from} onChange={(next) => onReroll?.(next)} />}
 
       {item.equip && (
         <section className="block">

@@ -58,6 +58,8 @@ import {
   deleteSave, exportSave, importSave, loadedFromVersion, loadGame, loadSettings, markBackedUp, requestPersistentStorage, saveGame, saveSettings, type SlotId,
 } from './save';
 import type { Settings } from './settings';
+import { breakDown, breakDownAllFine, craftAscended, reforge, whyCantCraft, whyCantReforge, type ForgePlace } from './starforge';
+import type { BonusKey } from '../data/ascended';
 
 /** Gaps longer than this count as "away" and show the summary card. */
 const AWAY_THRESHOLD_MS = 60 * 1000;
@@ -1269,6 +1271,48 @@ export const game = {
     toast(on ? `📌 ${getItem(id).name} stays in your bag on "Deposit all"` : `${getItem(id).name} will be deposited with everything else`, 'info');
     save();
     emit();
+  },
+
+  // ----- ✨ The Starforge (Ascended items, levels 750+) -----
+  breakDown(id: string, from: 'bag' | 'bank') {
+    const name = getItem(id).name;
+    const gain = breakDown(snap.player, id, from);
+    if (!gain) return fail("Couldn't break that down");
+    play('rune');
+    toast(`✨ Broke down ${name}: +${gain} Starlight`, 'good');
+    save();
+    emit();
+  },
+  breakDownAllFine() {
+    const r = breakDownAllFine(snap.player);
+    if (!r.items) return fail('No spare Fine items');
+    play('rune');
+    toast(`✨ Broke down ${r.items} Fine item${r.items === 1 ? '' : 's'}: +${r.starlight} Starlight`, 'good');
+    save();
+    emit();
+  },
+  craftAscended(baseKey: string): string | null {
+    const why = whyCantCraft(snap.player, baseKey);
+    if (why) { fail(why); return null; }
+    const id = craftAscended(snap.player, baseKey);
+    if (!id) return null;
+    const g = getItem(id).ascended!.grade;
+    play(g.key === 'd' || g.key === 'g' ? 'levelup' : 'enchant');
+    toast(`✨ The Starforge made a ${getItem(id).name}!`, g.key === 'f' ? 'good' : 'level');
+    if (g.key === 'd' || g.key === 'g') celebrate();
+    save();
+    emit();
+    return id;
+  },
+  reforge(id: string, from: ForgePlace, locked: BonusKey[]): string | null {
+    const why = whyCantReforge(snap.player, id, from, locked);
+    if (why) { fail(why); return null; }
+    const next = reforge(snap.player, id, from, locked);
+    if (!next) return null;
+    play('enchant');
+    save();
+    emit();
+    return next;
   },
 
   // ----- Gear -----

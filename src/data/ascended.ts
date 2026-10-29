@@ -165,3 +165,34 @@ export function rollAscended(base: AscBase, level: number, town: number, rng: ()
 export function bestGradeFor(level: number): GradeDef {
   return [...GRADES].reverse().find((g) => g.level <= level) ?? GRADES[0];
 }
+
+// ----- ✨ The Starforge (Starlight crafting) -----
+/** Starlight earned per hour of 750+ work in one idle slot (on top of breaking items down). */
+export const STARLIGHT_PER_HOUR = 10;
+/** Starlight for breaking an item down, by grade. */
+export const BREAK_VALUE: Record<GradeKey, number> = { f: 10, b: 30, d: 120, g: 500 };
+/** Starlight to craft a fresh Ascended item for a slot of your choice (bonuses still random). */
+export const CRAFT_COST = 400;
+/** Starlight to reforge an item (rerolls every unlocked bonus). Each locked bonus doubles it. */
+export const REFORGE_COST: Record<GradeKey, number> = { f: 40, b: 80, d: 200, g: 500 };
+export const reforgeCost = (grade: GradeKey, locks: number) => REFORGE_COST[grade] * 2 ** locks;
+
+/**
+ * Reforges an item: locked bonuses stay exactly as they are; every other bonus is rerolled
+ * (which bonus it is and how strong), within the item's grade. The grade never changes.
+ */
+export function reforgeAscended(id: string, locked: BonusKey[], rng: () => number = Math.random): string | null {
+  const a = parseAscended(id);
+  if (!a) return null;
+  const keep = a.bonuses.filter((b) => locked.includes(b.key));
+  const pool = bonusPool(a.base).filter((k) => !keep.some((b) => b.key === k));
+  const bonuses = [...keep];
+  for (let i = keep.length; i < a.bonuses.length && pool.length; i++) {
+    const key = pool.splice(Math.floor(rng() * pool.length), 1)[0];
+    const def = BONUSES[key];
+    const q = a.grade.q[0] + rng() * (a.grade.q[1] - a.grade.q[0]);
+    bonuses.push({ key, value: Math.max(1, Math.round(def.min + q * (def.max - def.min))) });
+  }
+  bonuses.sort((x, y) => bonusPool(a.base).indexOf(x.key) - bonusPool(a.base).indexOf(y.key));
+  return ascendedId({ base: a.base.key, grade: a.grade.key, town: a.town, bonuses });
+}
