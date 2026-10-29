@@ -857,10 +857,10 @@ export const game = {
    * 🏮 Lantern Watch: the night is over. Combat XP for the time held and monsters beaten, coins, a few
    * rolls of the town's monster loot (through the loot system — never gems), and Lumen on your first dawn.
    */
-  lanternWatchEnd(r: { seconds: number; kills: number; won: boolean; coins: number; region?: string; endlessSecs?: number; stubs?: number }) {
+  lanternWatchEnd(r: { seconds: number; kills: number; won: boolean; coins: number; region?: string; stubs?: number }) {
     const p = snap.player;
     const style = weaponStyle(p);
-    const xp = nightXp(skillLevel(p, style), r.seconds, r.kills, r.won, r.endlessSecs ?? 0);
+    const xp = nightXp(skillLevel(p, style), r.seconds, r.kills, r.won);
     const report = emptyReport(null);
     addXp(p, { skill: style }, report, xp.style);
     addXp(p, { skill: 'health' }, report, xp.health);
@@ -869,7 +869,7 @@ export const game = {
     const region = r.region ?? p.location;
     const mobs = MONSTERS.filter((m) => m.region === region && !m.miniboss && !m.weekly);
     const loot: ItemStack[] = [];
-    const rolls = lootRolls(r.kills, (r.endlessSecs ?? 0) > 0) + (r.won ? 3 : 0);
+    const rolls = lootRolls(r.kills) +(r.won ? 3 : 0);
     for (let i = 0; i < rolls && mobs.length; i++) loot.push(...rollLoot(mobs[Math.floor(Math.random() * mobs.length)].lootTable));
     // Leftover candle stubs are worth a few coins each.
     const stubCoins = Math.max(0, Math.min(2000, Math.floor(r.stubs ?? 0))) * STUB_COINS;

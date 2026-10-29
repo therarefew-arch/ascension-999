@@ -8,7 +8,7 @@ import { musicFor } from '../audio/soundList';
 import { weaponStyle } from '../core/combat';
 import { skillLevel } from '../core/idle';
 import {
-  buyOffer, canEvolve, choose, closeShop, keepWatching, loadRun, NIGHT_SECONDS, newRun, nightMonsters, nightXp, PASSIVES, rerollChoices,
+  buyOffer, canEvolve, choose, closeShop, loadRun, NIGHT_SECONDS, newRun, nightMonsters, nightXp, PASSIVES, rerollChoices,
   rerollShop, runXp, saveRun, startWeapon, step, stats, STUB_COINS, WEAPONS, type Choice, type Run, type ShopOffer, type Style, type WeaponId,
 } from '../core/lanternWatch';
 import { game, useGame } from '../core/store';
@@ -231,7 +231,7 @@ function draw(ctx: CanvasRenderingContext2D, r: Run, w: number, h: number, joy: 
   // The night: dark everywhere except the lantern's circle (a flicker keeps it alive).
   const lr = Math.min(w, h) * 0.46 + Math.sin(r.t * 7) * 3 + Math.sin(r.t * 2.3) * 4;
   const dark = ctx.createRadialGradient(w / 2, h / 2, lr * 0.35, w / 2, h / 2, Math.max(w, h) * 0.75);
-  const deep = r.endless ? 0.96 : 0.93;
+  const deep = 0.93;
   dark.addColorStop(0, 'rgba(6,8,22,0.05)');
   dark.addColorStop(0.4, 'rgba(6,8,22,0.55)');
   dark.addColorStop(1, `rgba(6,8,22,${deep})`);
@@ -248,7 +248,7 @@ function draw(ctx: CanvasRenderingContext2D, r: Run, w: number, h: number, joy: 
   // Getting hurt: a soft red edge.
   if (r.touchFlash > 0) { ctx.fillStyle = `rgba(239,68,68,${r.touchFlash * 0.5})`; ctx.fillRect(0, 0, w, h); }
   // Dawn creeping in near the end of the first night.
-  if (!r.endless && r.t > NIGHT_SECONDS - 60) { ctx.fillStyle = `rgba(253,186,116,${Math.min(0.18, (r.t - (NIGHT_SECONDS - 60)) / 330)})`; ctx.fillRect(0, 0, w, h); }
+  if (r.t > NIGHT_SECONDS - 60) { ctx.fillStyle = `rgba(253,186,116,${Math.min(0.18, (r.t - (NIGHT_SECONDS - 60)) / 330)})`; ctx.fillRect(0, 0, w, h); }
   // Arrows to the cart and the great beast when they're off-screen.
   if (r.cart) edgeArrow(ctx, w, h, r.cart.x - r.px, r.cart.y - r.py, '🛒', '#fde047');
   const boss = r.enemies.find((e) => e.boss);
@@ -319,8 +319,7 @@ export function LanternWatch({ onClose }: { onClose: () => void }) {
     paid.current = true;
     clearSaved(slot);
     return game.lanternWatchEnd({
-      seconds: r.t, kills: r.kills, won: r.dawnWon, coins: r.coins, region: r.region,
-      endlessSecs: r.endless ? r.t - r.endlessFrom : 0, stubs: r.stubs,
+      seconds: r.t, kills: r.kills, won: r.dawnWon, coins: r.coins, region: r.region, stubs: r.stubs,
     });
   };
   /** Keeps the night on this device so it can be picked up later. */
@@ -522,13 +521,6 @@ export function LanternWatch({ onClose }: { onClose: () => void }) {
     refresh();
   };
   const leaveShop = () => { const r = runRef.current; if (r) { closeShop(r); sound.play('click', { volume: 0.5 }); refresh(); } };
-  const goEndless = () => {
-    const r = runRef.current;
-    if (!r) return;
-    keepWatching(r);
-    sound.play('ignite', { volume: 0.7 }); sound.play('boom', { rate: 0.5, volume: 0.6 });
-    refresh();
-  };
 
   const headHome = () => {
     const r = runRef.current;
@@ -560,10 +552,10 @@ export function LanternWatch({ onClose }: { onClose: () => void }) {
           {saved ? (
             <>
               <p className="lw-sub">You have a night waiting in <b>{saved.region}</b>.</p>
-              <p className="small muted center">{fmtTime(saved.t)} held · level {saved.level} · {saved.kills.toLocaleString()} monsters · 🕯️ {saved.stubs}{saved.endless ? ' · endless watch' : ''}</p>
+              <p className="small muted center">{fmtTime(saved.t)} held · level {saved.level} · {saved.kills.toLocaleString()} monsters · 🕯️ {saved.stubs}{saved.phase === 'dawn' ? ' · dawn reached' : ''}</p>
               <div className="lw-btns col">
-                <button className="btn btn-hero btn-lg btn-wide" onClick={resume}>▶ Carry on the night</button>
-                <button className="btn btn-lg btn-wide" onClick={endSaved}>🏠 End it & collect the rewards</button>
+                {saved.phase === 'play' && <button className="btn btn-hero btn-lg btn-wide" onClick={resume}>▶ Carry on the night</button>}
+                <button className={`btn btn-lg btn-wide ${saved.phase === 'dawn' ? 'btn-hero' : ''}`} onClick={endSaved}>🏠 {saved.phase === 'dawn' ? 'Collect the rewards' : 'End it & collect the rewards'}</button>
                 <button className="btn btn-lg btn-wide" onClick={onClose}>Back</button>
               </div>
             </>
@@ -579,7 +571,7 @@ export function LanternWatch({ onClose }: { onClose: () => void }) {
                 <li>✨ Gather light. <b>Every level-up, pick 1 of 3 power-ups</b>. Max a weapon, own its partner, then open a 🎁 chest to <b>evolve</b> it.</li>
                 <li>🕯️ Collect candle stubs — spend them at the <b>Night Pedlar’s cart</b> (5:00) or to reroll your choices.</li>
                 <li>❗ Watch out: some monsters wind up and <b>charge</b>, some <b>spit</b>.</li>
-                <li>🌅 At 10:00 the great <b>{night.boss.name}</b> comes. Beat it — then head home or <b>keep watching</b> for more XP.</li>
+                <li>🌅 At 10:00 the great <b>{night.boss.name}</b> comes. Beat it and dawn breaks — a big XP bonus.</li>
                 <li>💾 Pause to save and come back later. Knocked out? You keep everything you earned.</li>
               </ul>
               <p className="small muted">You start with <b>{WEAPONS[startWeapon(style)].name}</b> ({STYLE_NAME[style]}). A full night at your level is worth about <b>{xpPreview.style.toLocaleString()} {STYLE_NAME[style]} XP</b>, plus Health & Defense XP, coins and loot from {region}'s monsters.</p>
@@ -598,7 +590,7 @@ export function LanternWatch({ onClose }: { onClose: () => void }) {
           <div className="lw-hud">
             <div className="lw-hud-row">
               <span className="lw-time mono">
-                {r.endless ? `🌙 +${fmtTime(r.t - r.endlessFrom)}` : r.bossSpawned ? '🌅 DAWN' : `🌙 ${fmtTime(Math.max(0, NIGHT_SECONDS - r.t))}`}
+                {r.bossSpawned ? '🌅 DAWN' : `🌙 ${fmtTime(Math.max(0, NIGHT_SECONDS - r.t))}`}
               </span>
               <span className="lw-kills mono">💀 {r.kills.toLocaleString()}</span>
               <span className="lw-kills mono">🕯️ {r.stubs}</span>
@@ -653,18 +645,6 @@ export function LanternWatch({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          {r.phase === 'dawn' && !result && (
-            <div className="lw-overlay">
-              <div className="lw-panel">
-                <div className="lw-level">🌅 DAWN BREAKS!</div>
-                <p className="small center">You beat the {night.boss.name}! Head home with your rewards — or keep the lantern lit through an <b>endless night</b>: harder every minute, a stronger great beast every 5 minutes, and <b>more XP for every minute</b> you last.</p>
-                <p className="small muted center">So far: +{liveXp!.style.toLocaleString()} {STYLE_NAME[style]} XP · {r.kills.toLocaleString()} monsters · 🕯️ {r.stubs}</p>
-                <button className="btn btn-hero btn-lg btn-wide" onClick={headHome}>🏠 Head home (collect rewards)</button>
-                <button className="btn btn-lg btn-wide" onClick={goEndless}>🌙 Keep watching (endless)</button>
-              </div>
-            </div>
-          )}
-
           {paused && r.phase === 'play' && !result && !r.choices && !r.shop && (
             <div className="lw-overlay">
               <div className="lw-panel">
@@ -680,9 +660,9 @@ export function LanternWatch({ onClose }: { onClose: () => void }) {
           {result && (
             <div className="lw-overlay">
               <div className="lw-panel">
-                <div className="lw-level">{result.won ? (r.endless ? '🌙 What a watch!' : '🌅 DAWN BREAKS!') : '🌙 The night is over'}</div>
+                <div className="lw-level">{result.won ? '🌅 DAWN BREAKS!' : '🌙 The night is over'}</div>
                 <p className="small center">
-                  {result.won ? (r.endless ? `You beat ${r.bossCount} great beast${r.bossCount > 1 ? 's' : ''} and held out ${fmtTime(r.t - r.endlessFrom)} into the endless night.` : `You beat the ${night.boss.name} and held the lantern until morning.`) : `You held out for ${fmtTime(r.t)}.`} {r.kills.toLocaleString()} monsters · level {r.level}.
+                  {result.won ? `You beat the ${night.boss.name} and held the lantern until morning.` : `You held out for ${fmtTime(r.t)}.`} {r.kills.toLocaleString()} monsters · level {r.level}.
                 </p>
                 <div className="lw-rewards">
                   <div><b className="gold">+{result.xp.style.toLocaleString()}</b> {STYLE_NAME[style]} XP</div>

@@ -3,18 +3,16 @@
 // Every level-up pauses the night and offers 3 power-ups (new weapons, weapon upgrades, or passives).
 // v0.0.1.36: 14 weapons + 14 passives, weapon evolutions (max a weapon + own its partner passive, then
 // open a chest), 🕯️ candle stubs to spend at the Night Pedlar's cart (5:00) or on rerolls, monsters that
-// charge and spit, and an endless watch after dawn. Being knocked out just ends the night — you keep
-// everything you earned. This file is the whole game engine (no drawing), so it can be tested.
+// charge and spit. Beating the dawn beast ends the night (the endless watch was removed in v0.0.1.37 —
+// owner's choice). Being knocked out just ends the night — you keep everything you earned. This file is the whole game engine (no drawing), so it can be tested.
 import { gatherXpPerHour, tierForLevel } from '../data/tiers';
 import { MONSTERS, type MonsterDef } from '../data/monsters';
 
 export type Style = 'melee' | 'ranged' | 'magic';
 export const NIGHT_SECONDS = 600;
-/** The Night Pedlar's cart rolls in at 5:00 (and every 5 minutes during an endless watch). */
+/** The Night Pedlar's cart rolls in at 5:00. */
 export const CART_EVERY = 300;
 const CART_STAYS = 75;
-/** During an endless watch a stronger great beast comes every 5 minutes. */
-const ENDLESS_BOSS_EVERY = 300;
 
 // ---------- Power-ups ----------
 export type WeaponId = 'sword' | 'arrows' | 'bolt' | 'ring' | 'glow' | 'storm' | 'pet' | 'nova' | 'hatchet'
@@ -105,16 +103,14 @@ export type LwEvent =
 
 export interface Run {
   t: number;
-  /** 'dawn' = the great beast is beaten: head home, or keep watching (endless). */
+  /** 'dawn' only appears in nights saved by v0.0.1.36 (beast beaten, rewards not yet collected). */
   phase: 'play' | 'dawn' | 'won' | 'lost';
   region: string;
   kinds: Kind[];
   boss: Kind;
   bossSpawned: boolean;
-  /** The first great beast was beaten (counts as a won night, even if the endless watch ends badly). */
+  /** The great beast was beaten (a won night). */
   dawnWon: boolean;
-  endless: boolean;
-  endlessFrom: number;
   bossCount: number; nextBoss: number;
   px: number; py: number; face: number; moving: boolean;
   hp: number; maxHp: number; touchFlash: number; revived: boolean; shake: number;
@@ -177,7 +173,7 @@ export function newRun(o: LwInit): Run {
   // Melee fighters stand in the crowd, so they're sturdier (more health, a little armour).
   const maxHp = 100 + Math.min(60, Math.floor(o.healthLevel / 5)) + (o.style === 'melee' ? 40 : 0);
   return {
-    t: 0, phase: 'play', region: o.region, kinds, boss, bossSpawned: false, dawnWon: false, endless: false, endlessFrom: 0,
+    t: 0, phase: 'play', region: o.region, kinds, boss, bossSpawned: false, dawnWon: false,
     bossCount: 0, nextBoss: NIGHT_SECONDS,
     px: 0, py: 0, face: 0, moving: false, hp: maxHp, maxHp, touchFlash: 0, revived: false, shake: 0,
     level: 1, xp: 0, need: needFor(1), pending: 0, choices: null, rerollCost: 2,
@@ -205,7 +201,11 @@ export function loadRun(raw: string | null): Run | null {
   try {
     const d = JSON.parse(raw);
     if (d?.v !== SAVE_VERSION || !d.run || (d.run.phase !== 'play' && d.run.phase !== 'dawn')) return null;
-    return { ...d.run, rng: Math.random, events: [] } as Run;
+    const run = { ...d.run, rng: Math.random, events: [] } as Run & { endless?: boolean };
+    // Nights from the old endless watch (v0.0.1.36) can only be collected now, not carried on.
+    if (run.dawnWon || run.endless) run.phase = 'dawn';
+    delete run.endless;
+    return run;
   } catch { return null; }
 }
 
@@ -331,17 +331,6 @@ export function rerollShop(r: Run): boolean {
 }
 export function closeShop(r: Run) { r.shop = null; }
 
-// ---------- Dawn ----------
-/** After the great beast falls: keep watching through an endless night (harder, more XP). */
-export function keepWatching(r: Run) {
-  if (r.phase !== 'dawn') return;
-  r.phase = 'play';
-  r.endless = true;
-  r.endlessFrom = r.t;
-  r.nextBoss = r.t + ENDLESS_BOSS_EVERY;
-  r.nextCart = Math.max(r.nextCart, r.t + 60);
-  r.banner = { text: '🌙 The night goes on…', until: r.t + 3 };
-}
 
 // ---------- The step ----------
 export interface Input { dx: number; dy: number }
@@ -421,10 +410,10 @@ function spawning(r: Run, dt: number) {
     const ringKind = open[Math.floor(r.rng() * Math.min(2, open.length))];
     for (let j = 0; j < n && r.enemies.length < MAX_ENEMIES + 40; j++) spawnAt(r, ringKind.k, ringKind.i, (j / n) * Math.PI * 2, 20);
   }
-  // The Night Pedlar's cart: halfway through the night (and every 5 minutes of an endless watch).
+  // The Night Pedlar's cart: halfway through the night.
   if (r.t >= r.nextCart) {
     r.nextCart += CART_EVERY;
-    if (r.t < NIGHT_SECONDS || r.endless) {
+    if (r.t < NIGHT_SECONDS) {
       const a = r.rng() * Math.PI * 2;
       r.cart = { x: r.px + Math.cos(a) * 240, y: r.py + Math.sin(a) * 240, until: r.t + CART_STAYS };
       r.events.push({ type: 'cart' });
@@ -432,13 +421,12 @@ function spawning(r: Run, dt: number) {
     }
   }
   if (r.cart && r.t > r.cart.until) r.cart = null;
-  // Dawn: the town's great beast (and, in an endless watch, a stronger one every 5 minutes).
-  if (r.t >= r.nextBoss && (!r.bossSpawned || (r.endless && !bossAlive))) {
+  // Dawn: the town's great beast.
+  if (r.t >= r.nextBoss && !r.bossSpawned) {
     r.bossSpawned = true;
-    r.nextBoss = r.t + ENDLESS_BOSS_EVERY;
     spawnAt(r, r.boss, -1, r.rng() * Math.PI * 2, 0, { boss: true });
     r.events.push({ type: 'boss' });
-    r.banner = { text: r.bossCount ? `👹 A stronger ${r.boss.name} stirs!` : `🌅 Dawn — the ${r.boss.name} comes!`, until: r.t + 3 };
+    r.banner = { text: `🌅 Dawn — the ${r.boss.name} comes!`, until: r.t + 3 };
   }
 }
 
@@ -794,7 +782,7 @@ function deaths(r: Run) {
       r.bossCount += 1;
       if (!r.dawnWon) {
         r.dawnWon = true;
-        r.phase = 'dawn';
+        r.phase = 'won';
         r.foes = [];
         r.events.push({ type: 'won' });
       }
@@ -933,20 +921,16 @@ export function step(r: Run, dt: number, input: Input) {
 }
 
 // ---------- Rewards ----------
-/** Endless minutes count for a bit more than the night itself. */
-const endlessSecs = (r: Pick<Run, 'endless' | 'endlessFrom' | 't'>) => (r.endless ? Math.max(0, r.t - r.endlessFrom) : 0);
-
-/** Combat XP for a night: about the pace of your tier, a little more for kills, a big dawn bonus, more for an endless watch. */
-export function nightXp(styleLevel: number, seconds: number, kills: number, won: boolean, extraSecs = 0) {
+/** Combat XP for a night: about the pace of your tier, a little more for kills, and a big dawn bonus. */
+export function nightXp(styleLevel: number, seconds: number, kills: number, won: boolean) {
   const perSecond = gatherXpPerHour(tierForLevel(styleLevel)) / 3600;
-  const secs = Math.max(0, Math.min(NIGHT_SECONDS + 180, seconds - extraSecs));
-  const more = Math.max(0, Math.min(3000, extraSecs));
+  const secs = Math.max(0, Math.min(NIGHT_SECONDS + 180, seconds));
   const k = Math.max(0, Math.min(20000, kills));
-  const style = Math.round(perSecond * (secs * 1.5 + more * 2.2 + k * 0.25) * (won ? 1.5 : 1));
+  const style = Math.round(perSecond * (secs * 1.5 + k * 0.25) * (won ? 1.5 : 1));
   return { style, health: Math.round(style / 3), defense: Math.round(style / 4) };
 }
-export const runXp = (styleLevel: number, r: Run) => nightXp(styleLevel, r.t, r.kills, r.dawnWon, endlessSecs(r));
-/** How many of the town's monster loot rolls a night gives (one per 40 kills; up to 12, or 24 in an endless watch). */
-export const lootRolls = (kills: number, endless = false) => Math.min(endless ? 24 : 12, Math.floor(Math.max(0, kills) / 40));
+export const runXp = (styleLevel: number, r: Run) => nightXp(styleLevel, r.t, r.kills, r.dawnWon);
+/** How many of the town's monster loot rolls a night gives (one per 40 kills, up to 12). */
+export const lootRolls = (kills: number) => Math.min(12, Math.floor(Math.max(0, kills) / 40));
 /** Candle stubs left over at the end turn into coins. */
 export const STUB_COINS = 5;
