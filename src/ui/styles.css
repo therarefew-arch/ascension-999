@@ -1653,3 +1653,10 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .hall-shelf { display: flex; flex-wrap: wrap; gap: 6px; }
 .hall-relic { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 10px; border: 1px solid rgba(251, 191, 36, 0.45); background: rgba(251, 191, 36, 0.07); }
 .hall-gems { color: #a5f3fc; }
+
+/* 🌄 Title: "Tap to begin" (the first tap switches sound on, so the title theme can play) */
+.title-tap { cursor: pointer; }
+.title-tap .title-inner { justify-content: flex-start; padding-top: calc(var(--sat) + 22vh); }
+.title-begin { text-align: center; margin-top: 18px; color: #fde68a; letter-spacing: 4px; font-family: var(--mono); font-size: 0.9rem;
+  text-shadow: 0 0 12px rgba(251, 191, 36, 0.6); animation: title-begin 1.8s ease-in-out infinite; }
+@keyframes title-begin { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }

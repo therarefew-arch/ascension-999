@@ -129,9 +129,10 @@ export function App() {
 
   useEffect(() => {
     const unlock = () => sound.unlock();
-    window.addEventListener('pointerdown', unlock);
-    window.addEventListener('keydown', unlock);
-    return () => { window.removeEventListener('pointerdown', unlock); window.removeEventListener('keydown', unlock); };
+    // iPhones only count the end of a tap (touchend / click) as permission to play sound.
+    const events = ['pointerdown', 'touchend', 'click', 'keydown'] as const;
+    for (const e of events) window.addEventListener(e, unlock);
+    return () => { for (const e of events) window.removeEventListener(e, unlock); };
   }, []);
 
   // Light click sound on button presses.

@@ -13,8 +13,25 @@ export function TitleScreen() {
   useGame(); // re-render after deletes
   const [confirm, setConfirm] = useState<{ slot: SlotId; kind: 'new' | 'delete' } | null>(null);
   const [restoring, setRestoring] = useState<SlotId | null>(null);
-  // 🌄 The title theme (starts after the first tap — a browser rule).
+  // 🌄 The title theme. Browsers keep sound off until the first tap, so when the game first opens
+  // the title waits for a tap ("Tap to begin") — that tap switches sound on and the theme starts.
   useEffect(() => { sound.playMusic('music_title'); }, []);
+  const [begun, setBegun] = useState(() => sound.unlocked);
+  const begin = () => { sound.unlock(); sound.playMusic('music_title'); setBegun(true); };
+
+  if (!begun) {
+    return (
+      <div className="title-screen title-tap" onClick={begin} role="button" tabIndex={0} aria-label="Tap to begin"
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') begin(); }}>
+        <PixelScene scene="title" dim={0.12} className="screen-bg" />
+        <div className="title-inner">
+          <img className="title-emblem" src={`${import.meta.env.BASE_URL}icon.svg`} width={84} height={84} alt="" aria-hidden="true" />
+          <h1 className="game-title">ASCENSION <span className="title-999">999</span></h1>
+          <div className="title-begin">✦ TAP TO BEGIN ✦</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="title-screen">

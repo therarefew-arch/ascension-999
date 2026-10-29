@@ -24,6 +24,11 @@ class SoundSystem {
   private lastPlayed = new Map<SoundKey, number>();
   private voices = new Map<SoundKey, { src: AudioBufferSourceNode; gain: GainNode }[]>();
 
+  /** Is sound switched on yet? (Browsers keep it off until the first tap.) */
+  get unlocked(): boolean {
+    return !!this.ctx && this.ctx.state === 'running';
+  }
+
   /** Browsers only allow sound after the player taps something, so this runs on the first tap. */
   unlock(): void {
     if (!this.ctx) {
