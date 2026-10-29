@@ -1107,39 +1107,39 @@ const N = (name) => 440 * Math.pow(2, ({ C: -9, Db: -8, D: -7, Eb: -6, E: -5, F:
 }
 
 // ---------- 🌄 The title theme: "The Road Up" ----------
-// A gentle, rising theme in D major at 72 bpm. It opens with the soft swelling chords from the town
-// song (the owner's favourite sound), then a wooden flute plays the theme — a little tune that keeps
-// climbing, like the lantern road up the mountain. A harp rolls upward under it, a music box answers,
-// and in the big middle section the strings lift it towards the summit star before it settles home.
+// Moody and slow (v0.0.1.52 — the owner found the first version too circus-like): B minor at 66 bpm.
+// The soft swelling chords from the town song carry it; a breathy low flute plays a long, climbing
+// theme; the harp only rolls one slow chord at the start of each bar (it was every half-beat before),
+// and a music-box star twinkles now and then — never the tune. Low strings take the middle, and the
+// climax lifts to strings before it settles back home on B minor.
 {
-  const S = (n) => N(n.replace('F#', 'Gb').replace('C#', 'Db').replace('G#', 'Ab'));
-  const beat = 60 / 72, BAR = 4 * beat;
+  const S = (n) => N(n.replace('F#', 'Gb').replace('C#', 'Db').replace('G#', 'Ab').replace('A#', 'Bb'));
+  const beat = 60 / 66, BAR = 4 * beat;
   const CH = {
-    D: ['D3', 'F#3', 'A3'], A: ['C#3', 'E3', 'A3'], Bm: ['B2', 'D3', 'F#3'], G: ['G2', 'B2', 'D3'],
-    Em: ['E3', 'G3', 'B3'], Asus: ['D3', 'E3', 'A3'],
+    Bm: ['B2', 'D3', 'F#3'], G: ['G2', 'B2', 'D3'], D: ['D3', 'F#3', 'A3'], A: ['C#3', 'E3', 'A3'],
+    Em: ['E3', 'G3', 'B3'], 'F#': ['F#2', 'A#2', 'C#3'],
   };
-  // The theme (8 bars): [note, beats]. It climbs bar by bar, the way the road does.
+  // The theme (8 bars): [note, beats] — long notes, climbing like the road.
   const THEME = [
-    [['A4', 1], ['D5', 1], ['E5', 1], ['F#5', 1]], [['E5', 2], ['C#5', 1], ['A4', 1]],
-    [['B4', 1], ['D5', 1], ['F#5', 1], ['A5', 1]], [['G5', 3], ['F#5', 1]],
-    [['F#5', 1], ['A5', 1], ['B5', 1], ['D6', 1]], [['C#6', 2], ['A5', 2]],
-    [['B5', 1], ['A5', 1], ['G5', 1], ['E5', 1]], [['E5', 2], ['A5', 2]],
+    [['F#4', 2], ['B4', 1], ['C#5', 1]], [['D5', 3], ['B4', 1]],
+    [['A4', 2], ['F#4', 1], ['A4', 1]], [['E4', 4]],
+    [['F#4', 1], ['B4', 1], ['D5', 1], ['F#5', 1]], [['E5', 3], ['D5', 1]],
+    [['B4', 2], ['G4', 1], ['B4', 1]], [['A#4', 4]],
   ];
   const BRIDGE = [
-    [['F#5', 2], ['D5', 1], ['B4', 1]], [['D5', 2], ['B4', 2]], [['A4', 1], ['D5', 1], ['F#5', 2]], [['E5', 4]],
-    [['G5', 2], ['E5', 1], ['B4', 1]], [['D5', 2], ['G5', 2]], [['A5', 2], ['G5', 1], ['E5', 1]], [['E5', 2], ['C#5', 2]],
+    [['A4', 2], ['D5', 2]], [['D5', 2], ['B4', 2]], [['C#5', 2], ['E5', 2]], [['D5', 4]],
+    [['B4', 2], ['D5', 1], ['G5', 1]], [['G5', 2], ['E5', 2]], [['F#5', 2], ['C#5', 2]], [['A#4', 4]],
   ];
-  const ENDING = [[['A4', 1], ['D5', 1], ['E5', 1], ['F#5', 1]], [['E5', 4]], [['D5', 4]], [['D5', 4]]];
-  // Sections: chords per bar, the melody, and which voice plays it.
+  const ENDING = [[['F#4', 2], ['B4', 2]], [['D5', 4]], [['C#5', 2], ['A#4', 2]], [['B4', 4]]];
   const sections = [
-    { chords: ['D', 'A', 'Bm', 'G'], mel: null },
-    { chords: ['D', 'A', 'Bm', 'G', 'D', 'A', 'G', 'A'], mel: THEME, voice: 'flute' },
-    { chords: ['Bm', 'G', 'D', 'A', 'Em', 'G', 'A', 'Asus'], mel: BRIDGE, voice: 'box', drum: true },
-    { chords: ['D', 'A', 'Bm', 'G', 'D', 'A', 'G', 'A'], mel: THEME, voice: 'strings', drum: true, full: true },
-    { chords: ['G', 'A', 'Bm', 'D', 'G', 'A', 'D', 'D'], mel: [null, null, null, null, ...ENDING], voice: 'flute' },
+    { chords: ['Bm', 'G', 'D', 'A'], mel: null },
+    { chords: ['Bm', 'G', 'D', 'A', 'Bm', 'G', 'Em', 'F#'], mel: THEME, voice: 'flute' },
+    { chords: ['D', 'G', 'A', 'Bm', 'G', 'Em', 'F#', 'F#'], mel: BRIDGE, voice: 'cello', drum: true },
+    { chords: ['Bm', 'G', 'D', 'A', 'Bm', 'G', 'Em', 'F#'], mel: THEME, voice: 'strings', drum: true, full: true },
+    { chords: ['G', 'D', 'Em', 'F#', 'Bm', 'G', 'F#', 'Bm'], mel: [null, null, null, null, ...ENDING], voice: 'flute' },
   ];
-  const bars = sections.reduce((n, s) => n + s.chords.length, 0);
-  const out = new Float32Array(Math.floor(bars * BAR * MR) + MR * 4);
+  const bars = sections.reduce((n, sec) => n + sec.chords.length, 0);
+  const out = new Float32Array(Math.floor(bars * BAR * MR) + MR * 5);
   const rnd = seeded(999);
   let b = 0;
   for (const sec of sections) {
@@ -1147,25 +1147,24 @@ const N = (name) => 440 * Math.pow(2, ({ C: -9, Db: -8, D: -7, Eb: -6, E: -5, F:
       const chord = CH[name].map(S);
       const start = Math.floor(b * BAR * MR);
       const barLen = Math.floor(BAR * MR);
-      // The swelling pad (the town song's sound), an octave up, a touch fuller in the climax.
-      addTo(out, start, Math.floor(barLen * 1.08), (t) => {
-        const env = Math.sin(Math.PI * Math.min(1, t / (BAR * 1.08))) ** 1.5;
+      // The swelling pad (the town song's sound), an octave up, fuller in the climax.
+      addTo(out, start, Math.floor(barLen * 1.1), (t) => {
+        const env = Math.sin(Math.PI * Math.min(1, t / (BAR * 1.1))) ** 1.5;
         let v = 0;
-        for (const f of chord) v += Math.sin(2 * Math.PI * f * 2 * t) + 0.3 * Math.sin(4 * Math.PI * f * 2 * t);
-        return (v / chord.length) * env * (sec.full ? 0.05 : 0.04);
+        for (const f of chord) v += Math.sin(2 * Math.PI * f * 2 * t) + 0.25 * Math.sin(4 * Math.PI * f * 2 * t);
+        return (v / chord.length) * env * (sec.full ? 0.058 : 0.048);
       });
-      // A low root to anchor it.
-      addTo(out, start, barLen, (t) => Math.sin(2 * Math.PI * chord[0] / 2 * t) * Math.exp(-0.6 * t) * Math.min(1, t / 0.05) * 0.035);
-      // The harp: chord notes rolling upward through two octaves, every beat.
-      const harp = [...chord.map((f) => f * 2), ...chord.map((f) => f * 4)];
-      for (let k = 0; k < 8; k++) {
-        if (!sec.mel && k % 2) continue; // the intro is barer
-        fx.pluck(out, start + Math.floor(k * beat * 0.5 * MR), harp[k % harp.length], 0.012);
+      // A deep, slow-fading root under it.
+      addTo(out, start, barLen, (t) => Math.sin(2 * Math.PI * chord[0] / 2 * t) * Math.exp(-0.35 * t) * Math.min(1, t / 0.08) * 0.04);
+      // The harp: one slow rolled chord at the start of the bar (the intro only every other bar).
+      if (sec.mel || i % 2 === 0) {
+        const roll = [chord[0], chord[1], chord[2], chord[0] * 2, chord[1] * 2];
+        roll.forEach((f, k) => fx.pluck(out, start + Math.floor(k * beat * 0.3 * MR), f * 2, 0.008));
       }
-      // Soft timpani swells on the downbeat in the bigger sections.
-      if (sec.drum && i % 2 === 0) fx.drum(out, start, 0.05, 70);
-      // Twinkling stars: a music-box note now and then in the intro and the ending.
-      if ((!sec.mel || sec === sections[4]) && rnd() < 0.7) fx.bell(out, start + Math.floor((1 + rnd() * 2) * beat * MR), chord[Math.floor(rnd() * 3)] * 8, 0.012);
+      // A soft, distant timpani roll-swell in the bigger sections.
+      if (sec.drum && i % 4 === 0) fx.drum(out, start, 0.035, 60);
+      // A lone star twinkling now and then (intro and ending only).
+      if ((!sec.mel || sec === sections[4]) && rnd() < 0.35) fx.bell(out, start + Math.floor((2 + rnd() * 1.5) * beat * MR), chord[Math.floor(rnd() * 3)] * 8, 0.007, 2.5);
       // The melody.
       const line = sec.mel?.[i];
       if (line) {
@@ -1173,17 +1172,17 @@ const N = (name) => 440 * Math.pow(2, ({ C: -9, Db: -8, D: -7, Eb: -6, E: -5, F:
         for (const [n, len] of line) {
           const f = S(n);
           const s0 = start + Math.floor(at * beat * MR);
-          const l = Math.floor(len * beat * MR * 0.97);
-          if (sec.voice === 'flute') fx.bow(out, s0, f, l, 0.03, 0.12, 0.06);
-          else if (sec.voice === 'box') { fx.bell(out, s0, f * 2, 0.026); fx.bow(out, s0, f / 2, l, 0.012, 0.4); }
-          else { fx.bow(out, s0, f, l, 0.03, 0.55); fx.bow(out, s0, f / 2, l, 0.014, 0.4); }
+          const l = Math.floor(len * beat * MR * 0.98);
+          if (sec.voice === 'flute') fx.bow(out, s0, f, l, 0.03, 0.1, 0.08);
+          else if (sec.voice === 'cello') fx.bow(out, s0, f / 2, l, 0.034, 0.45);
+          else { fx.bow(out, s0, f, l, 0.026, 0.5); fx.bow(out, s0, f / 2, l, 0.016, 0.35); }
           at += len;
         }
       }
       b++;
     });
   }
-  fx.gain(out, 0.95);
+  fx.gain(out, 0.8);
   fx.ends(out);
   writeMusic('music_title', out, MR);
 }
