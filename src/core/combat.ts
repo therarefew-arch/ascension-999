@@ -2,7 +2,9 @@
 // Triangle: Melee beats Ranged, Ranged beats Magic, Magic beats Melee.
 // Cozy rule: being knocked out never costs items — you just wake up in town with full health.
 import { getItem, ITEMS, WEAPON_SPEED, type CombatStyle, type SkillId } from '../data/items';
-import { MONSTER_MAP, monsterStyle, nextWeeklyReset, type MonsterDef } from '../data/monsters';
+import { MONSTER_MAP, monsterStyle, nextMidnight, nextWeeklyReset, type MonsterDef } from '../data/monsters';
+import { ASC_BASES, ASC_BOSS_ODDS, ASCENSION_LEVEL, rollAscended } from '../data/ascended';
+import { REGIONS } from '../data/tiers';
 import { equipmentStats } from './equipment';
 import { addXp, chooseSlot, type ProgressReport } from './idle';
 import { countInBag, removeFromBag } from './inventory';
@@ -118,6 +120,10 @@ export function whyCantFight(p: PlayerState, monster: MonsterDef, now = Date.now
   const ready = p.bossReadyAt[monster.id] ?? 0;
   if (monster.region !== p.location) return `Travel to ${monster.region} to fight this`;
   if (monster.weekly && ready > now) return `Defeated this week — returns Monday`;
+  if (monster.ascension) {
+    if (!canClimb(p)) return `The Road Up opens when a combat skill reaches ${ASCENSION_LEVEL}`;
+    if (ready > now) return 'Beaten today — back at midnight';
+  }
   if (monster.miniboss && ready > now) return `${monster.name} is resting — back in ${Math.ceil((ready - now) / 1000)}s`;
   const style = weaponStyle(p);
   if (style !== 'melee' && !currentAmmo(p)) {
@@ -133,6 +139,11 @@ function newFight(monster: MonsterDef, p: PlayerState): FightState {
     monsterId: monster.id, monsterHp: monster.hp, playerTimer: combatStats(p).speedMs, monsterTimer: monster.speedMs,
     respawn: 0, critReady: false, blockUntil: 0, kills: 0, log: [],
   };
+}
+
+/** 🌌 The Road Up (Ascension bosses) opens when any combat skill is 750+. */
+export function canClimb(p: PlayerState): boolean {
+  return (['melee', 'ranged', 'magic', 'defense', 'health'] as SkillId[]).some((s) => lvl(p, s) >= ASCENSION_LEVEL);
 }
 
 export function startFight(p: PlayerState, monsterId: string): string | null {
@@ -261,12 +272,20 @@ export function advanceFight(
         // 🌟 Ascended: more coins from monsters.
         const ascCoins = ascBonus(p, 'cn');
         if (ascCoins) loot = loot.map((st) => (st.id === 'coins' ? { ...st, qty: Math.round(st.qty * (1 + ascCoins / 100)) } : st));
-        giveLoot(p, loot);
+        giveLoot(p, loot, monster.ascension ? { overflowToBank: true } : undefined); // 🌌 once-a-day bosses never lose loot to a full bag
         for (const st of loot) report.gained[st.id] = (report.gained[st.id] ?? 0) + st.qty;
         log(f, now, `${monster.name} defeated!`, 'loot');
         rollFestivalToken(p, report, now, true);
         if (monster.miniboss) {
-          p.bossReadyAt[monster.id] = monster.weekly ? nextWeeklyReset(now) : now + monster.miniboss.respawnMs;
+          p.bossReadyAt[monster.id] = monster.weekly ? nextWeeklyReset(now) : monster.ascension ? nextMidnight(now) : now + monster.miniboss.respawnMs;
+          // 🌌 Ascension bosses: one Ascended item for any slot, with better grade odds (capped by your level).
+          if (monster.ascension) {
+            const base = ASC_BASES[Math.floor(rng() * ASC_BASES.length)];
+            const id = rollAscended(base, lvl(p, s.style), REGIONS.indexOf('Primordial Rift'), rng, ASC_BOSS_ODDS[monster.ascension]);
+            giveLoot(p, [{ id, qty: 1 }], { overflowToBank: true });
+            report.gained[id] = (report.gained[id] ?? 0) + 1;
+            (report.ascended ??= []).push(id);
+          }
           const petId = monster.weekly ? 'pet_sprout' : monster.pet ?? null;
           const pet = petId ? rollPet(p, 'combat', rng, petId) : null;
           if (pet) report.pets.push(pet);

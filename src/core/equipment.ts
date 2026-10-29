@@ -41,7 +41,7 @@ export function unsocketGem(p: PlayerState, slot: EquipSlot): void {
 
 /** Coins to reroll a gem's stat, by rarity. */
 export const REROLL_COST: Record<string, number> = {
-  common: 50, uncommon: 120, rare: 300, epic: 800, legendary: 2000, mythic: 5000,
+  common: 50, uncommon: 120, rare: 300, epic: 800, legendary: 2000, mythic: 5000, starborn: 12000,
 };
 
 export function canEquip(p: PlayerState, item: ItemDef): string | null {

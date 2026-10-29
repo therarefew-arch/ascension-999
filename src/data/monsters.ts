@@ -21,6 +21,10 @@ export interface MonsterDef {
   miniboss?: { respawnMs: number };
   /** Weekly boss: returns every Monday, and its combat style changes each week. */
   weekly?: boolean;
+  /** 🌌 Ascension bosses (the Road Up): 1–4. Beaten once a day, need a combat skill at 750. */
+  ascension?: number;
+  /** Its combat style changes every day (Melee → Ranged → Magic). */
+  daily?: boolean;
   /** Mini bosses: the combat pet they can drop. */
   pet?: string;
   /** Colours for its portrait. */
@@ -441,7 +445,45 @@ export const WEEKLY_BOSS: MonsterDef = {
   blurb: 'Weekly boss. An ancient walking tree who wakes once a week. Its fighting style changes every week.',
 };
 
-export const MONSTER_MAP: Record<string, MonsterDef> = Object.fromEntries([...MONSTERS, WEEKLY_BOSS].map((m) => [m.id, m]));
+// ----- 🌌 The Ascension bosses: the Road Up, above the Primordial Rift. -----
+// Fought by hand, once a day each (they return at midnight). Stats come from one formula so
+// a player at the boss's level wins in about 2–5 minutes (bot-tested in v0.0.1.48):
+// hp 10×Lv (+500 per step up), attack Lv+197, defense Lv+76, max hit 0.27×Lv.
+const ascBoss = (n: number, level: number, m: Omit<MonsterDef, 'level' | 'hp' | 'attack' | 'defense' | 'maxHit' | 'region' | 'miniboss' | 'ascension'>): MonsterDef => ({
+  ...m, level, region: 'Primordial Rift', ascension: n, miniboss: { respawnMs: 0 },
+  hp: 10 * level + 500 * (n - 1), attack: level + 197, defense: level + 76, maxHit: Math.round(0.27 * level),
+});
+export const ASCENSION_BOSSES: MonsterDef[] = [
+  ascBoss(1, 780, {
+    id: 'skyward_warden', name: 'The Skyward Warden', style: 'melee', speedMs: 2300, lootTable: 'boss_skyward_warden',
+    colors: { body: '#a8a29e', dark: '#44403c', accent: '#fde68a' }, art: 'treant',
+    blurb: 'A stone giant at the foot of the Road Up. It has stood guard so long that clouds snag on its shoulders.',
+  }),
+  ascBoss(2, 850, {
+    id: 'cometail', name: 'Cometail', style: 'ranged', speedMs: 2200, lootTable: 'boss_cometail',
+    colors: { body: '#7dd3fc', dark: '#0c4a6e', accent: '#fef08a' }, art: 'bird',
+    blurb: 'A great bird with a comet for a tail. It flings sparks from the sky and laughs like wind chimes.',
+  }),
+  ascBoss(3, 920, {
+    id: 'lantern_leviathan', name: 'The Lantern Leviathan', style: 'magic', speedMs: 2400, lootTable: 'boss_lantern_leviathan',
+    colors: { body: '#312e81', dark: '#1e1b4b', accent: '#fbbf24' }, art: 'wyrm',
+    blurb: 'It swims through the night sky with a thousand little lanterns glowing along its back.',
+  }),
+  ascBoss(4, 990, {
+    id: 'unlit_star', name: 'The Unlit Star', style: 'magic', daily: true, speedMs: 2300, lootTable: 'boss_unlit_star', pet: 'pet_wishling',
+    colors: { body: '#1f2937', dark: '#030712', accent: '#e0f2fe' }, art: 'ghost',
+    blurb: 'A star that forgot how to shine, at the very top of the Road Up. Beat it and, for a moment, it remembers. Its fighting style changes every day.',
+  }),
+];
+
+export const MONSTER_MAP: Record<string, MonsterDef> = Object.fromEntries([...MONSTERS, WEEKLY_BOSS, ...ASCENSION_BOSSES].map((m) => [m.id, m]));
+
+/** Midnight (local time) tonight: when the Ascension bosses come back. */
+export function nextMidnight(now = Date.now()): number {
+  const d = new Date(now);
+  d.setHours(24, 0, 0, 0);
+  return d.getTime();
+}
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 /** Monday 00:00 (local time) of the current week. */
@@ -457,6 +499,11 @@ export function nextWeeklyReset(now = Date.now()): number {
 
 /** A monster's style right now (the weekly boss rotates Melee → Ranged → Magic each week). */
 export function monsterStyle(m: MonsterDef, now = Date.now()): CombatStyle {
+  if (m.daily) {
+    const d = new Date(now);
+    const day = Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86_400_000);
+    return (['melee', 'ranged', 'magic'] as CombatStyle[])[day % 3];
+  }
   if (!m.weekly) return m.style;
   const week = Math.floor(weekStart(now) / WEEK_MS);
   return (['melee', 'ranged', 'magic'] as CombatStyle[])[((week % 3) + 3) % 3];

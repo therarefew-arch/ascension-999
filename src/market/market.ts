@@ -39,7 +39,7 @@ const BASE: Record<string, number> = {
   raw_shrimp: 4, raw_trout: 10, cooked_shrimp: 7, great_shrimp: 12, cooked_trout: 16, great_trout: 26,
   bronze_arrows: 1, iron_arrows: 3, air_rune: 2, water_rune: 3, earth_rune: 4, fire_rune: 5,
 };
-const GEM_VALUE: Record<string, number> = { common: 60, uncommon: 150, rare: 400, epic: 1_000, legendary: 3_000, mythic: 9_000 };
+const GEM_VALUE: Record<string, number> = { common: 60, uncommon: 150, rare: 400, epic: 1_000, legendary: 3_000, mythic: 9_000, starborn: 25_000 };
 
 /** A fair base value for every item. */
 export function baseValue(item: ItemDef): number {

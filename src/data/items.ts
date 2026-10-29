@@ -10,7 +10,7 @@ export type ItemCategory = 'ore' | 'bar' | 'log' | 'material' | 'fish' | 'food' 
   | 'herb' | 'crop' | 'seed' | 'meal';
 export type CombatStyle = 'melee' | 'ranged' | 'magic';
 export type GemType = 'ruby' | 'sapphire' | 'emerald';
-export type GemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
+export type GemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'starborn';
 export type EquipSlot =
   | 'head' | 'body' | 'legs' | 'weapon' | 'shield'
   | 'pickaxe' | 'axe' | 'rod' | 'tinderbox' | 'skillet' | 'hammer' | 'knife' | 'sickle' | 'trowel';
@@ -71,9 +71,9 @@ TIER_COLORS.asc_b = { main: '#60a5fa', light: '#dbeafe', dark: '#1e40af' };
 TIER_COLORS.asc_d = { main: '#c084fc', light: '#f3e8ff', dark: '#6b21a8' };
 TIER_COLORS.asc_g = { main: '#fbbf24', light: '#fef3c7', dark: '#92400e' };
 
-export const RARITIES: GemRarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+export const RARITIES: GemRarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'starborn'];
 export const RARITY_COLORS: Record<GemRarity, string> = {
-  common: '#a8a29e', uncommon: '#4ade80', rare: '#60a5fa', epic: '#c084fc', legendary: '#fb923c', mythic: '#f472b6',
+  common: '#a8a29e', uncommon: '#4ade80', rare: '#60a5fa', epic: '#c084fc', legendary: '#fb923c', mythic: '#f472b6', starborn: '#a5f3fc',
 };
 
 export interface ItemStats {
@@ -270,6 +270,8 @@ export const GEM_TYPES: { type: GemType; name: string; stat: 'attack' | 'defense
 /** Stat range for each rarity (before the type multiplier). */
 export const GEM_RANGES: Record<GemRarity, [number, number]> = {
   common: [1, 2], uncommon: [2, 3], rare: [3, 5], epic: [5, 7], legendary: [7, 10], mythic: [10, 14],
+  // 🌌 Only from the Ascension bosses.
+  starborn: [14, 20],
 };
 export const gemId = (type: GemType, rarity: GemRarity, value: number) => `${type}_${rarity}_${value}`;
 for (const g of GEM_TYPES) {

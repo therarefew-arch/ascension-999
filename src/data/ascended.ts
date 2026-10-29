@@ -164,13 +164,14 @@ export function parseAscended(id: string): AscParts | null {
 }
 
 /** Rolls a brand-new Ascended item. `level` = the skill level that found it (caps the grade). */
-export function rollAscended(base: AscBase, level: number, town: number, rng: () => number = Math.random): string {
+export function rollAscended(base: AscBase, level: number, town: number, rng: () => number = Math.random, odds?: Partial<Record<GradeKey, number>>): string {
   let grade = GRADES[0];
   const r = rng();
   let acc = 0;
   for (const g of [...GRADES].reverse()) {
-    if (g.odds === 0) continue;
-    acc += g.odds;
+    const o = odds?.[g.key] ?? g.odds;
+    if (o === 0) continue;
+    acc += o;
     if (r < acc) { grade = g; break; }
   }
   // Your level sets the best grade that can drop: Divine from 850, Godforged from 950.
@@ -186,6 +187,17 @@ export function rollAscended(base: AscBase, level: number, town: number, rng: ()
   bonuses.sort((a, b) => bonusPool(base, town).indexOf(a.key) - bonusPool(base, town).indexOf(b.key));
   return ascendedId({ base: base.key, grade: grade.key, town, bonuses });
 }
+
+/**
+ * 🌌 The Ascension bosses each give one Ascended item a day, with better grade odds (still capped
+ * by your level). Bot-tested: beating all four every day adds ≈ 0.27 Godforged per 2 weeks.
+ */
+export const ASC_BOSS_ODDS: Record<number, Partial<Record<GradeKey, number>>> = {
+  1: { b: 0.35, d: 0.08, g: 1 / 400 },
+  2: { b: 0.4, d: 0.1, g: 1 / 300 },
+  3: { b: 0.45, d: 0.12, g: 1 / 200 },
+  4: { b: 0.5, d: 0.15, g: 1 / 120 },
+};
 
 /** The best grade a skill level can find. */
 export function bestGradeFor(level: number): GradeDef {

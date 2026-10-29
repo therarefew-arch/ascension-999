@@ -19,6 +19,7 @@ import { AttackFxLayer, type Fx } from '../AttackFx';
 import { hasSavedNight, LanternWatch } from '../LanternWatch';
 import { HoldWall, hasSavedWall } from '../HoldWall';
 import { WAVES as WALL_WAVES } from '../../core/holdWall';
+import { RoadUp } from '../RoadUp';
 
 const STYLE_ICON = { melee: 'melee', ranged: 'ranged', magic: 'magic' } as const;
 const STYLE_NAME: Record<CombatStyle, string> = { melee: 'Melee', ranged: 'Ranged', magic: 'Magic' };
@@ -333,6 +334,7 @@ export function CombatScreen({ onItem }: { onItem: (id: string) => void }) {
             {player.location === WEEKLY_BOSS.region && <WeeklyBoss />}
             <h2 className="section-title">{player.location.toUpperCase()}</h2>
             {MONSTERS.filter((m) => m.region === player.location).map((m) => <MonsterCard key={m.id} m={m} />)}
+            {player.location === 'Primordial Rift' && <RoadUp />}
             <p className="small dim center">Other towns have their own monsters — travel from the Town screen.</p>
             <p className="small dim center">Knocked out? You wake up safe in town — you never lose items.</p>
           </>

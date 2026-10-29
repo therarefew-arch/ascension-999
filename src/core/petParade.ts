@@ -107,6 +107,7 @@ export const KINDS: Kind[] = [
   K('c_nova', 'Nova', '🌠', 6, 5, 6, (L) => `Start of parade: give a random friend +${2 * L}/+${2 * L}.`, 'pet_nova'),
   K('c_cirrus', 'Cirrus', '🕊️', 5, 4, 6, (L) => `Before attack: lift the friend behind: +${L}/+${L}.`, 'pet_cirrus'),
   K('c_pip', 'Pip', '🦕', 6, 4, 9, (L) => `Faint: give the friend behind +${L} attack and +${3 * L} health.`, 'pet_pip'),
+  K('c_wishling', 'Wishling', '⭐', 6, 5, 7, (L) => `Start of parade: light the way — the front friend gets +${L} attack and +${2 * L} health.`, 'pet_wishling'),
 
   // Summoned helpers
   T('beetle', 'Beetle', '🪲'), T('ram', 'Ram', '🐏'), T('boar', 'Boar', '🐗'), T('bee', 'Bee', '🐝'), T('pumpkin', 'Little Pumpkin', '🎃'),
@@ -319,6 +320,7 @@ const ABILITIES: Record<string, Ability> = {
   c_nib: { faint: (api, s, L) => { for (const t of api.rivals(s).slice(0, 2)) api.hit(t, 3 * L, s); } },
   c_nova: { sob: (api, s, L) => { const f = randomOf(api, api.friends(s), 1)[0]; if (f) api.buff(f, 2 * L, 2 * L); } },
   c_cirrus: { before: (api, s, L) => { for (const f of api.behind(s, 1)) api.buff(f, L, L); } },
+  c_wishling: { sob: (api, s, L) => { const f = api.friends(s, true)[0]; if (f) api.buff(f, L, 2 * L); } },
   c_pip: { faint: (api, s, L) => { for (const f of api.behind(s, 1)) api.buff(f, L, 3 * L); } },
 };
 /** Faint abilities get told where the critter stood (so summons appear in its place). */

@@ -34,6 +34,7 @@ export const PETS: PetDef[] = [
   { id: 'pet_nib', name: 'Nib', emoji: '🦇', skill: 'combat', odds: 50, blurb: 'A star-bat that hatched in the Hollow Wyrm\'s coils. Hangs upside down from your hat and squeaks a day late.' },
   { id: 'pet_nova', name: 'Nova', emoji: '🌠', skill: 'combat', odds: 50, blurb: 'A seed of light from the Stargrown Elder. It hums the crater\'s note, very quietly, when it\'s happy.' },
   { id: 'pet_cirrus', name: 'Cirrus', emoji: '🕊️', skill: 'combat', odds: 50, blurb: "Aurelion's littlest eaglet. Too fluffy to fly properly, so it mostly drifts." },
+  { id: 'pet_wishling', name: 'Wishling', emoji: '⭐', skill: 'combat', odds: 20, blurb: "A crumb of the Unlit Star that remembered how to shine. It hums to itself and lights the way." },
   { id: 'pet_pip', name: 'Pip', emoji: '🦕', skill: 'combat', odds: 50, blurb: 'A baby long-neck from the Rift, the very first of its kind. Follows you like you hung the moon.' },
   { id: 'pet_wick', name: 'Wick', emoji: '🕯️', skill: 'firemaking', odds: 0, blurb: "Lunaria's lantern spirit. A thank-you from the whole town for bringing the light back." },
   { id: 'pet_lumen', name: 'Lumen', emoji: '🦋', skill: 'combat', odds: 0, blurb: 'A lantern moth who followed your light home after your first dawn on Lantern Watch.' },
