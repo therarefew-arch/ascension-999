@@ -892,10 +892,10 @@ const fx = {
     });
   },
   /** A bowed / breathy melody note with vibrato (fiddle when bright, flute when soft). */
-  bow(out, at, f, len, amp, bright = 0.5, breath = 0) {
+  bow(out, at, f, len, amp, bright = 0.5, breath = 0, vibDepth = 0.006) {
     const rb = seeded(Math.floor(f * 100 + at));
     addTo(out, at, len, (t) => {
-      const vib = Math.sin(2 * Math.PI * 5.2 * t) * 0.006 * Math.min(1, t / 0.25);
+      const vib = Math.sin(2 * Math.PI * 5.2 * t) * vibDepth * Math.min(1, t / 0.25);
       const ph = 2 * Math.PI * f * t * (1 + vib);
       const tone = Math.sin(ph) + bright * 0.5 * Math.sin(2 * ph) + bright * 0.25 * Math.sin(3 * ph);
       const env = Math.min(1, t / 0.08) * Math.min(1, (len / MR - t) / 0.12);
@@ -1115,6 +1115,8 @@ const N = (name) => 440 * Math.pow(2, ({ C: -9, Db: -8, D: -7, Eb: -6, E: -5, F:
 {
   const S = (n) => N(n.replace('F#', 'Gb').replace('C#', 'Db').replace('G#', 'Ab').replace('A#', 'Bb'));
   const beat = 60 / 66, BAR = 4 * beat;
+  // Only a faint vibrato: on the long held notes the usual amount sounded too wobbly (owner, v0.0.1.53).
+  const VIB = 0.0015;
   const CH = {
     Bm: ['B2', 'D3', 'F#3'], G: ['G2', 'B2', 'D3'], D: ['D3', 'F#3', 'A3'], A: ['C#3', 'E3', 'A3'],
     Em: ['E3', 'G3', 'B3'], 'F#': ['F#2', 'A#2', 'C#3'],
@@ -1173,9 +1175,9 @@ const N = (name) => 440 * Math.pow(2, ({ C: -9, Db: -8, D: -7, Eb: -6, E: -5, F:
           const f = S(n);
           const s0 = start + Math.floor(at * beat * MR);
           const l = Math.floor(len * beat * MR * 0.98);
-          if (sec.voice === 'flute') fx.bow(out, s0, f, l, 0.03, 0.1, 0.08);
-          else if (sec.voice === 'cello') fx.bow(out, s0, f / 2, l, 0.034, 0.45);
-          else { fx.bow(out, s0, f, l, 0.026, 0.5); fx.bow(out, s0, f / 2, l, 0.016, 0.35); }
+          if (sec.voice === 'flute') fx.bow(out, s0, f, l, 0.03, 0.1, 0.05, VIB);
+          else if (sec.voice === 'cello') fx.bow(out, s0, f / 2, l, 0.034, 0.45, 0, VIB);
+          else { fx.bow(out, s0, f, l, 0.026, 0.5, 0, VIB); fx.bow(out, s0, f / 2, l, 0.016, 0.35, 0, VIB); }
           at += len;
         }
       }
