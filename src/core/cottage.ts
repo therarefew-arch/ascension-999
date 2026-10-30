@@ -34,6 +34,8 @@ export interface Furniture {
   festival?: FestivalId;
   /** 👪 Earned with your family (a 🥇 week) instead of being built. */
   family?: boolean;
+  /** 🧭 Found at the end of this town's expedition instead of being built. */
+  expedition?: Region;
   blurb: string;
 }
 
@@ -109,7 +111,23 @@ export const FAMILY_FURNITURE: Furniture[] = [
   { id: 'family_portrait', name: 'Guild portrait', emoji: '🖼️', x: 38, y: 8, skill: 'crafting', level: 1, tier: 0, cost: [],
     perk: { kind: 'xp', skill: 'all', pct: 1 }, family: true, blurb: 'Everyone squeezed into one frame, someone blinking. It makes the cottage feel full.' },
 ];
-export const ALL_FURNITURE = [...FURNITURE, ...FESTIVAL_FURNITURE, ...FAMILY_FURNITURE];
+/** 🧭 Rare finds from beating each town's expedition boss (v0.0.1.60). */
+const ex = (id: string, name: string, emoji: string, x: number, y: number, expedition: Region, perk: Perk, blurb: string): Furniture =>
+  ({ id, name, emoji, x, y, skill: 'crafting', level: 1, tier: 0, cost: [], perk, expedition, blurb });
+export const EXPEDITION_FURNITURE: Furniture[] = [
+  ex('whisper_bough', 'Whispering bough', '🍃', 20, 90, 'Pocketvale', { kind: 'xp', skill: 'woodcutting', pct: 3 }, 'A branch of the Whispering Oak. On quiet nights it rustles with no wind.'),
+  ex('glow_stone', "Lamp-Eater's glow-stone", '💡', 30, 40, 'Ironmoor', { kind: 'xp', skill: 'mining', pct: 3 }, 'Coughed up by the Lamp-Eater. Still warm, still glowing.'),
+  ex('wisp_jar', 'Wisp in a jar', '🫙', 46, 40, 'Coalhaven', { kind: 'stars', pct: 5 }, 'A little marsh light that seems happy to have a shelf of its own.'),
+  ex('sea_chest', "Wrecker's sea chest", '🧰', 66, 88, 'Bluecliff', { kind: 'xp', skill: 'fishing', pct: 3 }, 'Captain Barnacle’s chest. Smells of salt and old adventures.'),
+  ex('lamplighter_pole', "Lamplighter's pole", '🕯️', 80, 46, 'Lunaria', { kind: 'fire', pct: 15 }, 'Its little flame never quite goes out — as if it is waiting for something.'),
+  ex('ashhorn_horn', "Ashhorn's horn", '📯', 96, 40, 'Cinderpeak', { kind: 'xp', skill: 'smithing', pct: 3 }, 'Warm as a forge. The mountain rumbles back when you blow it.'),
+  ex('yeti_rug', 'Yeti-fur rug', '🧶', 48, 76, 'Frosthold', { kind: 'xp', skill: 'all', pct: 1 }, 'Freely given — the yeti was shedding anyway.'),
+  ex('heron_feather', 'Ribbon heron feather', '🪶', 12, 14, 'Voidreach', { kind: 'xp', skill: 'crafting', pct: 3 }, 'Taller than you, and it shimmers with tiny stars.'),
+  ex('star_antler', 'Star antler', '✨', 64, 8, 'Starfall Crater', { kind: 'xp', skill: 'combat', pct: 2 }, 'Shed by Starhorn. The stars on it still twinkle.'),
+  ex('rain_cloud', 'Little rain cloud', '🌧️', 80, 82, 'Celestine Spires', { kind: 'xp', skill: 'farming', pct: 3 }, 'It drifts over to water the plants all by itself.'),
+  ex('first_tusk', 'The First Tusk', '🦴', 96, 78, 'Primordial Rift', { kind: 'xp', skill: 'combat', pct: 3 }, 'Older than mountains. Ferns keep sprouting from it.'),
+];
+export const ALL_FURNITURE = [...FURNITURE, ...FESTIVAL_FURNITURE, ...FAMILY_FURNITURE, ...EXPEDITION_FURNITURE];
 export const FURNITURE_MAP: Record<string, Furniture> = Object.fromEntries(ALL_FURNITURE.map((f) => [f.id, f]));
 
 const baseXp = (t: number) => (t === 0 ? 8 : t === 1 ? 12 : tierXp(t));
@@ -125,6 +143,7 @@ export function whyCantBuild(p: PlayerState, id: string): string | null {
   if (p.cottage.includes(id)) return 'Already built';
   if (f.festival) return 'Find it at the festival stall';
   if (f.family) return 'Earned on a 🥇 Gold guild week';
+  if (f.expedition) return `A rare find from beating the boss of the ${f.expedition} expedition`;
   const region = furnitureRegion(f);
   if (!regionOpen(region) || !p.regions.includes(region)) return `Discover ${region} first`;
   if (f.needsLunaria && !p.lunaria.restored) return 'Bring Lunaria home first';

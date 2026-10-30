@@ -4,7 +4,7 @@ import { ITEM_LIST, ITEMS, type SkillId } from '../data/items';
 import { ACTIONS } from '../data/skills';
 import { INVENTORY_SLOTS, MAX_BAG_SLOTS, MAX_IDLE_SLOTS, SAVE_VERSION, newPlayer, type ItemStack, type Loadout, type PlayerState } from './player';
 import { PET_MAP } from '../data/pets';
-import { OPEN_REGIONS, REGIONS } from '../data/tiers';
+import { OPEN_REGIONS, REGIONS, type Region } from '../data/tiers';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
 import { levelForXp, MAX_LEVEL } from './xp';
 import { MONSTER_MAP } from '../data/monsters';
@@ -374,6 +374,11 @@ function repair(raw: any): PlayerState {
     }));
   }
   if (Array.isArray(raw?.giftsGot)) p.giftsGot = raw.giftsGot.filter((x: unknown) => typeof x === 'string').slice(-60);
+  // 🧭 Expedition boss wins per town (v0.0.1.60)
+  if (raw?.expeditionWins && typeof raw.expeditionWins === 'object') {
+    p.expeditionWins = {};
+    for (const [r, n] of Object.entries(raw.expeditionWins)) if ((REGIONS as readonly string[]).includes(r) && Number.isInteger(n) && (n as number) > 0) p.expeditionWins[r as Region] = n as number;
+  }
   if (typeof raw?.hearth === 'string' && /^\d{4}-\d\d-\d\d$/.test(raw.hearth)) p.hearth = raw.hearth;
   // 📌 Kept-in-bag items (v22)
   if (Array.isArray(raw?.keep)) p.keep = Array.from(new Set(raw.keep.filter((id: unknown) => typeof id === 'string' && !!ITEMS[id as string])));

@@ -107,6 +107,18 @@ export const KINDS: Kind[] = [
   K('c_nova', 'Nova', '🌠', 6, 5, 6, (L) => `Start of parade: give a random friend +${2 * L}/+${2 * L}.`, 'pet_nova'),
   K('c_cirrus', 'Cirrus', '🕊️', 5, 4, 6, (L) => `Before attack: lift the friend behind: +${L}/+${L}.`, 'pet_cirrus'),
   K('c_pip', 'Pip', '🦕', 6, 4, 9, (L) => `Faint: give the friend behind +${L} attack and +${3 * L} health.`, 'pet_pip'),
+  // 🧭 Expedition boss pets (v0.0.1.60)
+  K('c_bristle', 'Bristle', '🦡', 2, 3, 3, (L) => `Before attack: gain +${L} health.`, 'pet_bristle'),
+  K('c_flicker', 'Flicker', '🐛', 2, 2, 3, (L) => `Start of parade: glow on the friend behind: +${L}/+${L}.`, 'pet_flicker'),
+  K('c_puddle', 'Puddle', '🐸', 2, 2, 4, (L) => `End turn: give the friend ahead +${2 * L} health.`, 'pet_puddle'),
+  K('c_squawk', 'Squawk', '🦜', 3, 3, 3, (L) => `Start of parade: peck the front rival for ${2 * L}.`, 'pet_squawk'),
+  K('c_velvet', 'Velvet', '🐈‍⬛', 4, 3, 5, (L) => `Faint: give the friend behind +${2 * L}/+${L}.`, 'pet_velvet'),
+  K('c_cinder', 'Cinder', '🦎', 4, 4, 4, (L) => `Start of parade: singe the 2 front rivals for ${2 * L}.`, 'pet_cinder'),
+  K('c_waddles', 'Waddles', '🐧', 5, 4, 6, (L) => `Knock out: give all friends +${L} health.`, 'pet_waddles'),
+  K('c_ripple', 'Ripple', '🦢', 5, 4, 5, (L) => `Faint: all friends get +${L} attack.`, 'pet_ripple'),
+  K('c_comet', 'Comet', '🦌', 6, 5, 6, (L) => `Start of parade: streak at the strongest rival for ${4 * L}.`, 'pet_comet'),
+  K('c_nimbus', 'Nimbus', '🐢', 5, 3, 8, (L) => `Before attack: give the friend behind +${L} health.`, 'pet_nimbus'),
+  K('c_truffle', 'Truffle', '🐗', 6, 6, 6, (L) => `Knock out: gain +${L}/+${2 * L}.`, 'pet_truffle'),
   K('c_wishling', 'Wishling', '⭐', 6, 5, 7, (L) => `Start of parade: light the way — the front friend gets +${L} attack and +${2 * L} health.`, 'pet_wishling'),
 
   // Summoned helpers
@@ -321,6 +333,17 @@ const ABILITIES: Record<string, Ability> = {
   c_nova: { sob: (api, s, L) => { const f = randomOf(api, api.friends(s), 1)[0]; if (f) api.buff(f, 2 * L, 2 * L); } },
   c_cirrus: { before: (api, s, L) => { for (const f of api.behind(s, 1)) api.buff(f, L, L); } },
   c_wishling: { sob: (api, s, L) => { const f = api.friends(s, true)[0]; if (f) api.buff(f, L, 2 * L); } },
+  c_bristle: { before: (api, s, L) => api.buff(s, 0, L) },
+  c_flicker: { sob: (api, s, L) => { for (const f of api.behind(s, 1)) api.buff(f, L, L); } },
+  c_puddle: { endTurn: (api, s, L) => { for (const f of api.ahead(s, 1)) api.buff(f, 0, 2 * L); } },
+  c_squawk: { sob: (api, s, L) => { const t = api.rivals(s)[0]; if (t) api.hit(t, 2 * L, s); } },
+  c_velvet: { faint: (api, s, L) => { for (const f of api.behind(s, 1)) api.buff(f, 2 * L, L); } },
+  c_cinder: { sob: (api, s, L) => { for (const t of api.rivals(s).slice(0, 2)) api.hit(t, 2 * L, s); } },
+  c_waddles: { knockout: (api, s, L) => { for (const f of api.friends(s)) api.buff(f, 0, L); } },
+  c_ripple: { faint: (api, s, L) => { for (const f of api.friends(s)) api.buff(f, L, 0); } },
+  c_comet: { sob: (api, s, L) => { const t = [...api.rivals(s)].sort((a, b) => b.atk + b.hp - a.atk - a.hp)[0]; if (t) api.hit(t, 4 * L, s); } },
+  c_nimbus: { before: (api, s, L) => { for (const f of api.behind(s, 1)) api.buff(f, 0, L); } },
+  c_truffle: { knockout: (api, s, L) => api.buff(s, L, 2 * L) },
   c_pip: { faint: (api, s, L) => { for (const f of api.behind(s, 1)) api.buff(f, L, 3 * L); } },
 };
 /** Faint abilities get told where the critter stood (so summons appear in its place). */

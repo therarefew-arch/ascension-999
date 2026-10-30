@@ -146,6 +146,8 @@ export interface PlayerState {
   familyWeek?: FamilyWeek;
   /** 🔥 Hearth Together: the local day someone else in your family played (+5% XP that day). */
   hearth?: string;
+  /** 🧭 Expedition bosses beaten, per town. */
+  expeditionWins?: Partial<Record<Region, number>>;
   /** 🎁 Gifts you sent that the server hasn't confirmed yet (already taken out of your save). */
   giftsOut?: GiftOut[];
   /** 🎁 Ids of gifts you've unwrapped (so one is never unwrapped twice). */

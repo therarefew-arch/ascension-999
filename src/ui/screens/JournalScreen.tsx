@@ -149,7 +149,7 @@ function Tales() {
               </article>
             ) : (
               <div key={n.id} className="tale locked">
-                <b>??? </b><span className="small dim">{n.trigger === 'boss' && n.boss ? `Found by defeating ${MONSTER_MAP[n.boss]?.name ?? 'the mini boss'}` : HOW_FOUND[n.trigger]}</span>
+                <b>??? </b><span className="small dim">{n.trigger === 'boss' && n.boss ? `Found by defeating ${MONSTER_MAP[n.boss]?.name ?? 'the mini boss'}${MONSTER_MAP[n.boss]?.expedition ? ' on an expedition' : ''}` : HOW_FOUND[n.trigger]}</span>
               </div>
             ))}
           </section>

@@ -15,8 +15,9 @@ import type { ItemStack } from '../core/player';
 import { game, useGame } from '../core/store';
 import { levelForXp } from '../core/xp';
 import { getItem, type CombatStyle } from '../data/items';
-import { MONSTER_MAP, monsterStyle } from '../data/monsters';
+import { EXP_BOSS_MOVE, MONSTER_MAP, monsterStyle } from '../data/monsters';
 import { PET_MAP } from '../data/pets';
+import { EXPEDITION_FURNITURE, FURNITURE_MAP } from '../core/cottage';
 import { SKILLS } from '../data/skills';
 import { REGIONS, type Region } from '../data/tiers';
 import { ItemIcon } from './icons';
@@ -146,6 +147,7 @@ function Setup({ onStart }: { onStart: (r: Run) => void }) {
         <b className="gold">{AREAS[town].emoji} {AREAS[town].name[0].toUpperCase() + AREAS[town].name.slice(1)}</b>
         <span className="small muted">{AREAS[town].blurb}</span>
         <span className="small">Monsters level {lo}–{hi}{boss && <> · 👑 {boss.name} ({STYLE_NAME[bossStyle]})</>}</span>
+        {boss && <BossPrizes region={town} pet={boss.pet} />}
         <span className="small">You fight with <b>{STYLE_NAME[style]}</b>
           {fair < 0 && <span className="red"> — {STYLE_NAME[BEATEN_BY[bossStyle]]} would do better against the boss</span>}
           {fair > 0 && <span className="green"> — good against the boss!</span>}
@@ -178,6 +180,20 @@ function Setup({ onStart }: { onStart: (r: Run) => void }) {
       <button className="btn btn-hero" disabled={needAmmo} onClick={start}>SET OFF</button>
       <p className="tiny muted center">Knocked out? You're carried home safe with everything you found. No limits — go as often as you like.</p>
     </div>
+  );
+}
+
+/** What the boss can give (✓ once you have it). */
+function BossPrizes({ region, pet }: { region: Region; pet?: string }) {
+  const { player } = useGame();
+  const piece = EXPEDITION_FURNITURE.find((x) => x.expedition === region);
+  const p = pet ? PET_MAP[pet] : null;
+  const wins = player.expeditionWins?.[region] ?? 0;
+  return (
+    <span className="small muted">
+      Boss prizes: 💎 a gem every time{p && <> · {p.emoji} {p.name}{player.pets.includes(p.id) ? ' ✓' : ' (rare)'}</>}
+      {piece && <> · {piece.emoji} {piece.name}{player.cottage.includes(piece.id) ? ' ✓' : ''}</>} · 📜 a lost note{wins > 0 ? ' · beaten ' + wins + '×' : ''}
+    </span>
   );
 }
 
@@ -393,7 +409,7 @@ function FightView({ run, last, onMove, onBag, onTarget }: { run: Run; last: { r
           return (
             <button key={i} className={`ex-foe ${dead ? 'dead' : ''} ${i === f.target && !dead ? 'target' : ''} ${foe.boss ? 'boss' : foe.elite ? 'elite' : ''}`}
               disabled={dead} onClick={() => { sound.play('tick', { rate: 1.3 }); onTarget(i); }} aria-label={`Aim at ${foe.name}`}>
-              {!dead && <span className={`ex-intent ${foe.intent}`}>{INTENT_ICON[foe.intent]}{foe.intent !== 'guard' ? ` ${intentDamage(run, foe)}` : ''}</span>}
+              {!dead && <span className={`ex-intent ${foe.intent}`}>{INTENT_ICON[foe.intent]}{foe.boss && foe.intent === 'heavy' && EXP_BOSS_MOVE[foe.m] ? ` ${EXP_BOSS_MOVE[foe.m]}` : ''}{foe.intent !== 'guard' ? ` ${intentDamage(run, foe)}` : ''}</span>}
               <span className="ex-foe-art"><MonsterArt monster={m} size={f.foes.length > 2 ? 56 : 72} hurt={!!last && last.res.dealt[i] > 0} /></span>
               {last && last.res.dealt[i] > 0 && <span key={last.key} className="ex-pop">−{last.res.dealt[i]}</span>}
               <span className="ex-foe-name tiny">{foe.name}</span>
@@ -433,7 +449,9 @@ function Done({ run, onClose }: { run: Run; onClose: () => void }) {
       <b className="ex-panel-title">{run.end === 'won' ? `You beat ${boss?.name ?? 'the boss'}!` : run.end === 'ko' ? 'Carried home safe' : 'Back home'}</b>
       <p className="small muted center">{run.end === 'won' ? `${areaTitle(run.region)} is a little less wild today.` : run.end === 'ko' ? 'A kind traveller carried you back to town. You kept everything you found.' : 'You headed home with everything you found.'}</p>
       <p className="small">⚔️ {run.found.kills} monster{run.found.kills === 1 ? '' : 's'} beaten</p>
-      {run.found.pet && <p className="small gold">🐾 {PET_MAP[run.found.pet]?.name} came home with you!</p>}
+      {run.found.pet && <p className="small gold">🐾 {PET_MAP[run.found.pet]?.emoji} {PET_MAP[run.found.pet]?.name} came home with you!</p>}
+      {run.found.cottage && <p className="small gold">🏡 {FURNITURE_MAP[run.found.cottage]?.emoji} {FURNITURE_MAP[run.found.cottage]?.name} — it's waiting in your Cottage!</p>}
+      {run.found.lore && <p className="small">📜 New note in your Journal: <b>{run.found.lore}</b></p>}
       {xp.length > 0 && <div className="ex-xp">{xp.map(([s, n]) => <span key={s} className="tiny"><b>{SKILLS[s as keyof typeof SKILLS].name}</b> +{Math.round(n!).toLocaleString()} XP</span>)}</div>}
       {run.found.items.length > 0 && <div className="ex-found static">{run.found.items.map((s) => <span key={s.id} className="ex-found-item"><ItemIcon id={s.id} size={26} /><span className="tiny mono">{s.qty.toLocaleString()}</span></span>)}</div>}
       {(run.returned?.length ?? 0) > 0 && <p className="tiny muted">Unused supplies went back to your bag (or bank): {merge(run.returned!).map((s) => `${s.qty} ${getItem(s.id).name}`).join(', ')}.</p>}

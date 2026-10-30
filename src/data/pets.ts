@@ -40,6 +40,18 @@ export const PETS: PetDef[] = [
   { id: 'pet_lumen', name: 'Lumen', emoji: '🦋', skill: 'combat', odds: 0, blurb: 'A lantern moth who followed your light home after your first dawn on Lantern Watch.' },
   { id: 'pet_confetti', name: 'Confetti', emoji: '🐩', skill: 'combat', odds: 0, blurb: 'A fluffy parade poodle who joined you after your first full Pet Parade. Prances everywhere.' },
   { id: 'pet_lookout', name: 'Lookout', emoji: '🦅', skill: 'combat', odds: 0, blurb: 'A watch-hawk from the town wall. Followed you home after you first held the wall.' },
+  // 🧭 Expedition boss pets (v0.0.1.60): a 1 in 12 chance each time you beat that boss.
+  { id: 'pet_bristle', name: 'Bristle', emoji: '🦡', skill: 'combat', odds: 12, blurb: 'A badger who lived in the roots of the Whispering Oak. Grumbles, then follows you anyway.' },
+  { id: 'pet_flicker', name: 'Flicker', emoji: '🐛', skill: 'combat', odds: 12, blurb: 'A glow-worm the Lamp-Eater never caught. Lights your pockets from the inside.' },
+  { id: 'pet_puddle', name: 'Puddle', emoji: '🐸', skill: 'combat', odds: 12, blurb: 'A marsh frog who rode out of the Smoke Marshes on your boot.' },
+  { id: 'pet_squawk', name: 'Squawk', emoji: '🦜', skill: 'combat', odds: 12, blurb: 'Captain Barnacle’s parrot. Knows a lot of rude sea words and one nice one.' },
+  { id: 'pet_velvet', name: 'Velvet', emoji: '🐈‍⬛', skill: 'combat', odds: 12, blurb: 'A black cat who walked the Lamplighter’s route with him. Now she walks yours.' },
+  { id: 'pet_cinder', name: 'Cinder', emoji: '🦎', skill: 'combat', odds: 12, blurb: 'A little ash lizard, always warm to hold. Naps on the hearth.' },
+  { id: 'pet_waddles', name: 'Waddles', emoji: '🐧', skill: 'combat', odds: 12, blurb: 'A penguin who slid all the way down the Whiteout Pass after you.' },
+  { id: 'pet_ripple', name: 'Ripple', emoji: '🦢', skill: 'combat', odds: 12, blurb: 'A swan chick from the starlit pools at the bottom of the chasm. Very proud.' },
+  { id: 'pet_comet', name: 'Comet', emoji: '🦌', skill: 'combat', odds: 12, blurb: 'Starhorn’s fawn. One tiny star is already growing between its ears.' },
+  { id: 'pet_nimbus', name: 'Nimbus', emoji: '🐢', skill: 'combat', odds: 12, blurb: 'A baby cloud tortoise with a drizzle the size of a teacup on its shell.' },
+  { id: 'pet_truffle', name: 'Truffle', emoji: '🐗', skill: 'combat', odds: 12, blurb: 'A piglet of the very first boar. Finds mushrooms nobody has ever named.' },
   { id: 'pet_sprout', name: 'Sprout', emoji: '🌱', skill: 'combat', odds: 20, blurb: "A seedling from Grumbleroot's crown. Grows a little every week." },
 ];
 

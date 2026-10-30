@@ -25,6 +25,8 @@ export interface MonsterDef {
   ascension?: number;
   /** Its combat style changes every day (Melee → Ranged → Magic). */
   daily?: boolean;
+  /** 🧭 An expedition boss (only met at the end of an expedition). */
+  expedition?: boolean;
   /** Mini bosses: the combat pet they can drop. */
   pet?: string;
   /** Colours for its portrait. */
@@ -476,7 +478,47 @@ export const ASCENSION_BOSSES: MonsterDef[] = [
   }),
 ];
 
-export const MONSTER_MAP: Record<string, MonsterDef> = Object.fromEntries([...MONSTERS, WEEKLY_BOSS, ...ASCENSION_BOSSES].map((m) => [m.id, m]));
+// ----- 🧭 Expedition bosses (v0.0.1.60): one at the end of each town's expedition road. -----
+// Not in MONSTERS (they're never fought on the Combat screen). Their stats start from the town's mini boss
+// (expeditions scale health and hits per town anyway — see core/expedition.ts `fairPower`).
+const expBoss = (region: Region, m: Pick<MonsterDef, 'id' | 'name' | 'style' | 'pet' | 'colors' | 'art' | 'blurb'>): MonsterDef => {
+  const mini = MONSTERS.find((x) => x.region === region && x.miniboss && !x.weekly)!;
+  return {
+    ...mini, ...m, region, level: mini.level + 10, lootTable: `exp_${m.id}`, expedition: true, miniboss: undefined,
+    hp: Math.round(mini.hp * 1.3), attack: mini.attack + 10, defense: mini.defense + 10, maxHit: Math.round(mini.maxHit * 1.15),
+  };
+};
+export const EXPEDITION_BOSSES: MonsterDef[] = [
+  expBoss('Pocketvale', { id: 'whispering_oak', name: 'The Whispering Oak', style: 'magic', pet: 'pet_bristle', art: 'treant',
+    colors: { body: '#6b8f4e', dark: '#2f3f22', accent: '#fde68a' }, blurb: 'The oldest oak in the woods. When the wind blows through it, you can almost hear names.' }),
+  expBoss('Ironmoor', { id: 'lamp_eater', name: 'The Lamp-Eater', style: 'melee', pet: 'pet_flicker', art: 'lizard',
+    colors: { body: '#57534e', dark: '#1c1917', accent: '#fbbf24' }, blurb: 'A great pale cave salamander that swallows lamps whole. Its belly glows.' }),
+  expBoss('Coalhaven', { id: 'bog_lantern', name: 'The Bog Lantern', style: 'magic', pet: 'pet_puddle', art: 'ghost',
+    colors: { body: '#a3e635', dark: '#1a2e05', accent: '#ecfccb' }, blurb: 'A greenish light that bobs over the marsh and leads travellers in circles.' }),
+  expBoss('Bluecliff', { id: 'captain_barnacle', name: 'Captain Barnacle', style: 'ranged', pet: 'pet_squawk', art: 'bandit',
+    colors: { body: '#1e3a5f', dark: '#0b1a2e', accent: '#f59e0b' }, blurb: 'The last of the wreckers, still guarding a cove full of other people’s treasure.' }),
+  expBoss('Lunaria', { id: 'lamplighter', name: 'The Lamplighter', style: 'magic', pet: 'pet_velvet', art: 'ghost',
+    colors: { body: '#cbd5e1', dark: '#334155', accent: '#fde68a' }, blurb: 'A tall figure with a long pole, still walking his route through the fog — lighting lamps that will not stay lit.' }),
+  expBoss('Cinderpeak', { id: 'ashhorn', name: 'The Ashhorn Ram', style: 'melee', pet: 'pet_cinder', art: 'goat',
+    colors: { body: '#44403c', dark: '#1c1917', accent: '#f97316' }, blurb: 'A huge ram with horns like cooled lava. It butts the mountain to keep it awake.' }),
+  expBoss('Frosthold', { id: 'pass_yeti', name: 'The Yeti of the Pass', style: 'melee', pet: 'pet_waddles', art: 'bear',
+    colors: { body: '#f1f5f9', dark: '#94a3b8', accent: '#38bdf8' }, blurb: 'Shaggy, enormous and very grumpy about the noise. It only wants the pass to itself.' }),
+  expBoss('Voidreach', { id: 'ribbon_heron', name: 'The Ribbon Heron', style: 'ranged', pet: 'pet_ripple', art: 'bird',
+    colors: { body: '#c4b5fd', dark: '#2e1065', accent: '#f472b6' }, blurb: 'A heron as tall as a house, wading through the starlight at the bottom of the chasm.' }),
+  expBoss('Starfall Crater', { id: 'starhorn', name: 'Starhorn', style: 'magic', pet: 'pet_comet', art: 'goat',
+    colors: { body: '#fde68a', dark: '#78350f', accent: '#ffffff' }, blurb: 'A golden stag whose antlers hold little stars. Where it walks, star-flowers grow.' }),
+  expBoss('Celestine Spires', { id: 'old_nimbus', name: 'Old Nimbus', style: 'melee', pet: 'pet_nimbus', art: 'tortoise',
+    colors: { body: '#e0f2fe', dark: '#64748b', accent: '#facc15' }, blurb: 'A tortoise carrying a whole rain cloud on its shell. Slow, wise, and very loud.' }),
+  expBoss('Primordial Rift', { id: 'old_tusk', name: 'Old Tusk, the First Beast', style: 'melee', pet: 'pet_truffle', art: 'boar',
+    colors: { body: '#4d3b2a', dark: '#1f160e', accent: '#86efac' }, blurb: 'The first boar there ever was. Ferns grow on its back and its tusks are older than mountains.' }),
+];
+/** The signature big hit of each expedition boss. */
+export const EXP_BOSS_MOVE: Record<string, string> = {
+  whispering_oak: 'Hushing Roots', lamp_eater: 'Snuff the Lamps', bog_lantern: 'Will-o’-Wisp', captain_barnacle: 'Grapeshot', lamplighter: 'Snuffing Hush',
+  ashhorn: 'Lava Charge', pass_yeti: 'Avalanche', ribbon_heron: 'Ribbon Lash', starhorn: 'Falling Star', old_nimbus: 'Thunderclap', old_tusk: 'Primal Charge',
+};
+
+export const MONSTER_MAP: Record<string, MonsterDef> = Object.fromEntries([...MONSTERS, WEEKLY_BOSS, ...ASCENSION_BOSSES, ...EXPEDITION_BOSSES].map((m) => [m.id, m]));
 
 /** Midnight (local time) tonight: when the Ascension bosses come back. */
 export function nextMidnight(now = Date.now()): number {

@@ -250,3 +250,30 @@ export const LORE_MAP: Record<string, LoreNote> = Object.fromEntries(LORE.map((n
 
 /** Chance per finished action (in that town) to find its hidden note. ~1 in 250. */
 export const LORE_FIND_CHANCE = 1 / 250;
+
+// 🧭 Expedition notes (v0.0.1.60): found by beating each town's expedition boss.
+LORE.push(
+  { id: 'ex_pocketvale', region: 'Pocketvale', trigger: 'boss', boss: 'whispering_oak', title: 'Names in the Oak',
+    text: 'Carved deep in the Whispering Oak, among a hundred names: a little bear, and "M. — I will come back for the view." The carving is old. Someone has kept the moss off it.' },
+  { id: 'ex_ironmoor', region: 'Ironmoor', trigger: 'boss', boss: 'lamp_eater', title: 'The Swallowed Lamps',
+    text: 'Inside the Lamp-Eater’s nest: forty miners’ lamps, polished, all lit. It was never eating them. It was keeping them safe from the dark.' },
+  { id: 'ex_coalhaven', region: 'Coalhaven', trigger: 'boss', boss: 'bog_lantern', title: 'Where the Wisp Led',
+    text: 'Followed all the way, the Bog Lantern leads to a sunken barge’s bell. On it, faintly: SILVER WILLOW — the barge that never came back from Lunaria.' },
+  { id: 'ex_bluecliff', region: 'Bluecliff', trigger: 'boss', boss: 'captain_barnacle', title: 'The Captain’s Log',
+    text: '"Night of the silver fog. Every light across the water went out at once. Not a sound. We turned the ship around and never spoke of it." The rest of the page is salt-stained.' },
+  { id: 'ex_lunaria', region: 'Lunaria', trigger: 'boss', boss: 'lamplighter', title: 'The Last Round',
+    text: 'The Lamplighter fades, and leaves his route book. Every street, every lamp, ticked off — except the last line: "the bell tower. Do not light. Do not ring. They will hear."' },
+  { id: 'ex_cinderpeak', region: 'Cinderpeak', trigger: 'boss', boss: 'ashhorn', title: 'The Ram and the Mountain',
+    text: 'Cinderpeak folk say the mountain sleeps because the Ashhorn sings to it. Beaten, the ram just lies down and hums. Far below, the mountain snores a little softer.' },
+  { id: 'ex_frosthold', region: 'Frosthold', trigger: 'boss', boss: 'pass_yeti', title: 'The Yeti’s Visitor',
+    text: 'In the yeti’s cave: a scarf, neatly folded, and a drawing of the yeti — smiling. Signed with a little bear. It seems someone once asked nicely to pass.' },
+  { id: 'ex_voidreach', region: 'Voidreach', trigger: 'boss', boss: 'ribbon_heron', title: 'The Heron’s Ribbons',
+    text: 'The heron has woven every ribbon that ever fell into the chasm into a nest. Every wish tied to them is still readable. One just says "a little further."' },
+  { id: 'ex_starfall', region: 'Starfall Crater', trigger: 'boss', boss: 'starhorn', title: 'Where Stars Land',
+    text: 'Starhorn’s trail ends at a circle of star-flowers around a single footprint — a child’s, years old, and it never fades.' },
+  { id: 'ex_celestine', region: 'Celestine Spires', trigger: 'boss', boss: 'old_nimbus', title: 'Old Nimbus Remembers',
+    text: 'The old tortoise blinks slowly. "Another one going up," it rumbles. "She went up too. She waved." Then it falls asleep mid-sentence.' },
+  { id: 'ex_rift', region: 'Primordial Rift', trigger: 'boss', boss: 'old_tusk', title: 'The First Beast',
+    text: 'Old Tusk was here before the first tree. It lets you rest against its side, and for a moment you understand: the road up was always here. It was only waiting to be walked.' },
+
+);

@@ -243,6 +243,23 @@ tables.find((t) => t.id === 'boss_stargrown_elder')!.groups = [gemGroup(0.95, { 
 tables.find((t) => t.id === 'boss_aurelion')!.groups = [gemGroup(0.96, { common: 5, uncommon: 20, rare: 30, epic: 27, legendary: 12, mythic: 6 })];
 tables.find((t) => t.id === 'boss_first_wyrm')!.groups = [gemGroup(0.98, { common: 3, uncommon: 17, rare: 30, epic: 29, legendary: 14, mythic: 7 })];
 
+// ----- 🧭 Expedition bosses (v0.0.1.60): the town's mini boss loot, doubled, with a gem every time
+// (same rarity odds as that town's mini boss) and a 30% chance of a second one.
+const EXP_BOSS_FROM: [string, string][] = [
+  ['whispering_oak', 'boss_old_thornhide'], ['lamp_eater', 'boss_forgefather_brask'], ['bog_lantern', 'boss_mother_clawsoot'],
+  ['captain_barnacle', 'boss_old_galewing'], ['lamplighter', 'boss_the_hush'], ['ashhorn', 'boss_kiln_wyrm'], ['pass_yeti', 'boss_old_rimeback'],
+  ['ribbon_heron', 'boss_hollow_wyrm'], ['starhorn', 'boss_stargrown_elder'], ['old_nimbus', 'boss_aurelion'], ['old_tusk', 'boss_first_wyrm'],
+];
+for (const [boss, from] of EXP_BOSS_FROM) {
+  const mini = tables.find((t) => t.id === from)!;
+  const gem = mini.groups![0];
+  tables.push({
+    id: `exp_${boss}`, source: 'boss',
+    entries: mini.entries.map((x) => ({ ...x, min: x.min * 2, max: x.max * 2, chance: Math.min(1, x.chance + 0.2) })),
+    groups: [{ chance: 1, items: gem.items }, { chance: 0.3, items: gem.items }],
+  });
+}
+
 // ----- Weekly boss: 2 guaranteed gems with better rarity odds -----
 const WEEKLY_GEM_WEIGHTS: Partial<Record<GemRarity, number>> = { common: 20, uncommon: 30, rare: 25, epic: 15, legendary: 7, mythic: 3 };
 tables.push({

@@ -4,7 +4,7 @@
 // the store as `Reward`s (`game.expeditionReward`), which gives XP and loot through the loot system.
 // Knocked out = carried home with everything found so far. Only packed supplies you use are gone.
 import { ITEMS, type CombatStyle, type SkillId } from '../data/items';
-import { MONSTERS, MONSTER_MAP, type MonsterDef } from '../data/monsters';
+import { EXPEDITION_BOSSES, MONSTERS, MONSTER_MAP, type MonsterDef } from '../data/monsters';
 import { METALS, REGIONS, TIER_LEVELS, type Region } from '../data/tiers';
 import { ammoFits, combatStats, foodHeal, maxHp, weaponStyle } from './combat';
 import { newPlayer, type ItemStack, type PlayerState } from './player';
@@ -139,7 +139,7 @@ export interface Run {
   /** Short story of what just happened (newest last). */
   log: string[];
   /** Everything found so far (filled in by the store). */
-  found: { items: ItemStack[]; xp: Partial<Record<SkillId, number>>; kills: number; pet?: string };
+  found: { items: ItemStack[]; xp: Partial<Record<SkillId, number>>; kills: number; pet?: string; cottage?: string; lore?: string };
   end?: 'won' | 'ko' | 'home';
   /** The store has given back unused supplies (and what they were). */
   settled?: boolean;
@@ -158,7 +158,11 @@ const pick = <T,>(r: Run, a: readonly T[]): T => a[Math.floor(rand(r) * a.length
 
 // ----- The town -----
 export const townMonsters = (region: Region) => MONSTERS.filter((m) => m.region === region && !m.miniboss && !m.weekly).sort((a, b) => a.level - b.level);
-export const townBoss = (region: Region): MonsterDef | undefined => MONSTERS.find((m) => m.region === region && m.miniboss && !m.weekly && !m.ascension);
+/** The expedition boss waiting at the end of this town's road. */
+export const townBoss = (region: Region): MonsterDef | undefined => EXPEDITION_BOSSES.find((m) => m.region === region);
+/** 🏡 Chance the boss leaves its Cottage piece behind (always by your 3rd win if it hasn't yet). */
+export const COTTAGE_CHANCE = 0.35;
+export const COTTAGE_SURE_BY = 3;
 /** The level a skill check asks for in this town. */
 export const checkLevel = (region: Region) => TIER_LEVELS[REGIONS.indexOf(region)] + 20;
 /** "Monsters here are level 1–45." */
@@ -201,7 +205,10 @@ export function newRun(p: PlayerState, region: Region, pack: ItemStack[], seed =
   const power: Run['power'] = {};
   const fair = fairPower(region);
   for (const m of [...townMonsters(region), townBoss(region)!]) {
-    const you = rawPower(p, m, ammo);
+    // The style triangle counts half as much here (it still matters, but never decides a whole run).
+    const edge = rawPower(p, m, ammo);
+    const even = rawPower(p, { ...m, style: weaponStyle(p) }, ammo);
+    const you = { hit: Math.sqrt(edge.hit * even.hit), hurt: Math.sqrt(edge.hurt * even.hurt) };
     const f = fair[m.id];
     // Your hits are your own; theirs are the fair fighter's, scaled by how your defence compares.
     power[m.id] = { hit: you.hit, hurt: f.hurt * Math.min(3, Math.max(0.35, you.hurt / f.rawHurt)) };
@@ -685,6 +692,12 @@ export function loadRun(s: string | null): Run | null {
     const r = JSON.parse(s) as Run;
     if (r?.v !== 1 || !REGIONS.includes(r.region) || !Array.isArray(r.map) || r.map.length !== ROWS * COLS + 1) return null;
     for (const f of r.fight?.foes ?? []) if (!MONSTER_MAP[f.m]) return null;
+    // Saved before v0.0.1.60 (the mini boss stood at the end): borrow its numbers for the new boss.
+    const boss = townBoss(r.region);
+    if (boss && !r.power[boss.id]) {
+      const mini = MONSTERS.find((m) => m.region === r.region && m.miniboss && !m.weekly);
+      r.power[boss.id] = (mini && r.power[mini.id]) || Object.values(r.power)[0];
+    }
     return r;
   } catch { return null; }
 }

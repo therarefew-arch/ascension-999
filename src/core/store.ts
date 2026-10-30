@@ -49,7 +49,8 @@ import { BLOCK_WINDOW_MS, eatFood, endFight, fightSlot, maxHp, regenHp, startFig
 import { lootRolls, nightXp, STUB_COINS } from './lanternWatch';
 import { paradeCoins, WINS_NEEDED as PARADE_WINS } from './petParade';
 import { wallXp } from './holdWall';
-import { newRun, townBoss, townMonsters, whyCantStart, XP_SECS, type Reward, type Run } from './expedition';
+import { COTTAGE_CHANCE, COTTAGE_SURE_BY, newRun, townBoss, townMonsters, whyCantStart, XP_SECS, type Reward, type Run } from './expedition';
+import { EXPEDITION_FURNITURE } from './cottage';
 import { gatherXpPerHour, REGIONS, tierForLevel } from '../data/tiers';
 import { REROLL_COST, socketGem, unsocketGem } from './equipment';
 import { countInBag, countInBank, removeFromBag, removeFromBank } from './inventory';
@@ -1052,10 +1053,21 @@ export const game = {
       const rolls = k.boss ? 1 : k.elite ? 3 : 1;
       for (let i = 0; i < rolls; i++) loot.push(...rollLoot(m.lootTable));
       if (k.boss) {
-        // The town's mini boss guards the end of the road (gems can drop — only bosses ever drop gems).
+        // 👑 The expedition boss: its own loot (always a gem — bosses are the only gem source), a pet roll,
+        // sometimes its rare Cottage piece, and its lore note the first time.
         for (let i = 0; i < 2 && mobs.length; i++) loot.push(...rollLoot(mobs[Math.floor(Math.random() * mobs.length)].lootTable));
         const pet = m.pet ? rollPet(p, 'combat', Math.random, m.pet) : null;
-        if (pet) { run.found.pet = pet; report.pets.push(pet); toast(`🐾 ${PET_MAP[pet]?.name ?? 'A pet'} wants to come home with you!`, 'level'); }
+        if (pet) { run.found.pet = pet; report.pets.push(pet); toast(`🐾 ${PET_MAP[pet]?.name ?? 'A pet'} wants to come home with you!`, 'level'); familyMoment(p, 'pet', `found a new pet: ${PET_MAP[pet]?.emoji ?? ''} ${PET_MAP[pet]?.name ?? ''}!`); }
+        const wins = ((p.expeditionWins ??= {})[run.region] = (p.expeditionWins[run.region] ?? 0) + 1);
+        const piece = EXPEDITION_FURNITURE.find((f) => f.expedition === run.region);
+        if (piece && !p.cottage.includes(piece.id) && (wins >= COTTAGE_SURE_BY || Math.random() < COTTAGE_CHANCE)) {
+          p.cottage.push(piece.id);
+          run.found.cottage = piece.id;
+          toast(`🏡 ${piece.emoji} ${piece.name} — it's waiting in your Cottage!`, 'level');
+        }
+        p.bossReadyAt[m.id] = Date.now();
+        const notes = syncLore(p);
+        if (notes.length) { run.found.lore = notes[0].title; announceLore(notes); }
       }
       run.found.kills++;
       familyCount(p, 'kills');
