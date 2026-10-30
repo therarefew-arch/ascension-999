@@ -513,7 +513,7 @@ Ironmoor region, weekly boss with "Defeated" screen, NPC Trading Post and shops 
 ### Later phases — not built
 Everything else above.
 
-## 👪 Family → 🏰 Guild (agreed with the owner, 2026-10-30; parts 1–2 built in v0.0.1.55–56)
+## 👪 Family → 🏰 Guild (agreed with the owner, 2026-10-30; all 3 parts built in v0.0.1.55–57)
 
 **Renamed "Guild" for players (owner, v0.0.1.56).** The code and saves still say "family".
 

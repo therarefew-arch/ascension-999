@@ -17,6 +17,7 @@ import { mountainStirs, travellerWhereabouts } from '../../core/cinderpeak';
 import { SaveSafetyHint } from '../Backup';
 import { SettlingIn } from '../SettlingIn';
 import { PedlarCard } from '../Pedlar';
+import { GiftsCard } from '../Family';
 import { dayPhase } from '../PixelScene';
 
 function greeting() {
@@ -152,6 +153,8 @@ export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, o
       {here === 'Cinderpeak' && <CinderpeakCard onMining={() => onSkill('mining')} />}
 
       <FestivalStall />
+
+      <GiftsCard />
 
       <TodayCard onGo={goTo} />
 

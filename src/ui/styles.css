@@ -1720,3 +1720,18 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .fam-goal-step b { display: block; font-size: 0.8rem; }
 .fam-goal-by { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; }
 .fam-goal .btn-hero { width: 100%; margin-top: 8px; }
+
+/* 🎁 Guild gifts (v0.0.1.57) */
+.fam-btns { display: flex; flex-direction: column; gap: 6px; }
+.gift-form { display: flex; flex-direction: column; gap: 8px; }
+.gift-list { max-height: 42vh; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding-right: 2px; }
+.gift-row { display: grid; grid-template-columns: 28px 1fr 64px auto; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 10px; border: 1px solid #292524; }
+.gift-row.on { border-color: #a16207; background: #241a08; }
+.gift-name { min-width: 0; overflow-wrap: anywhere; }
+.gift-qty { width: 64px; padding: 6px; border-radius: 8px; border: 1px solid #57534e; background: #0c0a09; color: inherit; text-align: right; font-size: 0.85rem; }
+.gift-card { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; border-color: #a16207; }
+.gift-wait { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
+.gift-box { font-size: 1.8rem; animation: gift-wiggle 2.4s ease-in-out infinite; }
+.gift-text { min-width: 0; overflow-wrap: anywhere; }
+.gift-what { display: block; }
+@keyframes gift-wiggle { 0%, 80%, 100% { transform: rotate(0); } 85% { transform: rotate(-12deg); } 90% { transform: rotate(10deg); } 95% { transform: rotate(-6deg); } }

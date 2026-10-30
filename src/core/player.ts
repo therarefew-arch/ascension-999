@@ -3,7 +3,7 @@
 import type { EquipSlot, SkillId } from '../data/items';
 import type { FightState } from './combat';
 import type { Region } from '../data/tiers';
-import type { FamilyLink, FamilyWeek } from './family';
+import type { FamilyLink, FamilyWeek, GiftOut } from './family';
 import type { TownRequest } from './cozy';
 import type { Bounty } from './bounties';
 import type { ActiveBuff } from './buffs';
@@ -146,6 +146,10 @@ export interface PlayerState {
   familyWeek?: FamilyWeek;
   /** 🔥 Hearth Together: the local day someone else in your family played (+5% XP that day). */
   hearth?: string;
+  /** 🎁 Gifts you sent that the server hasn't confirmed yet (already taken out of your save). */
+  giftsOut?: GiftOut[];
+  /** 🎁 Ids of gifts you've unwrapped (so one is never unwrapped twice). */
+  giftsGot?: string[];
 }
 
 export interface Loadout {

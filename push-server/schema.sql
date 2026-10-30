@@ -63,3 +63,18 @@ CREATE TABLE IF NOT EXISTS goals (
   PRIMARY KEY (member, week)
 );
 CREATE INDEX IF NOT EXISTS goals_family ON goals (family, week);
+-- 🎁 Guild gifts (v0.0.1.57): items/coins sent to a guild member, waiting until their game unwraps them.
+-- Unclaimed gifts (or gifts to someone who left) go back to the sender after 14 days.
+CREATE TABLE IF NOT EXISTS gifts (
+  id TEXT PRIMARY KEY,        -- made by the sender's game, so a resend never makes a second gift
+  family TEXT NOT NULL,
+  from_m TEXT NOT NULL,
+  from_name TEXT NOT NULL,
+  to_m TEXT NOT NULL,
+  to_name TEXT NOT NULL,
+  items TEXT NOT NULL,        -- [{"id":"moonsilver_ore","qty":500}, …]
+  coins INTEGER NOT NULL DEFAULT 0,
+  at INTEGER NOT NULL,
+  returned INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS gifts_to ON gifts (to_m);

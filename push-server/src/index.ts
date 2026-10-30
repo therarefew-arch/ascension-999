@@ -3,7 +3,7 @@
 // - POST /schedule   the game sends a phone's upcoming notifications when you leave it ([] = cancel).
 // - GET  /inbox      the phone's background helper (public/sw.js) picks up messages after a push wakes it.
 // - every minute     sends a "wake up" push to each phone that has something due.
-// - /family/*        👪 Family (v0.0.1.55): create / join by invite link, the family board + feed, cheers, nudges; v0.0.1.56: the weekly family goal.
+// - /family/*        👪 Family (v0.0.1.55): create / join by invite link, the family board + feed, cheers, nudges; v0.0.1.56: the weekly family goal; v0.0.1.57: gifts.
 //
 // Pushes carry no data (so no encryption is needed): the phone fetches the text from /inbox.
 // Nothing personal is stored — just the phone's push address and the next few game messages.
@@ -105,6 +105,10 @@ async function sendDue(env: Env): Promise<void> {
     env.DB.prepare('DELETE FROM families WHERE id NOT IN (SELECT DISTINCT family FROM members) AND created < ?').bind(now - DAY),
     env.DB.prepare('DELETE FROM cheers WHERE feed NOT IN (SELECT id FROM feed)'),
     env.DB.prepare('DELETE FROM goals WHERE updated < ? OR member NOT IN (SELECT id FROM members)').bind(now - 21 * DAY),
+    // 🎁 Gifts nobody unwrapped in 14 days, or sent to someone who left, go back to the sender…
+    env.DB.prepare('UPDATE gifts SET to_m = from_m, returned = 1, at = ? WHERE returned = 0 AND (at < ? OR to_m NOT IN (SELECT id FROM members)) AND from_m IN (SELECT id FROM members)').bind(now, now - 14 * DAY),
+    // …unless the sender has gone too.
+    env.DB.prepare('DELETE FROM gifts WHERE to_m NOT IN (SELECT id FROM members)'),
   ]);
 }
 
@@ -123,7 +127,7 @@ const cleanName = (v: unknown, fallback: string) => str(v, 24).replace(/[\u0000-
 
 async function readBody(req: Request): Promise<Record<string, unknown> | null> {
   const raw = await req.text();
-  if (raw.length > 12_000) return null;
+  if (raw.length > 32_000) return null;
   try { const d = JSON.parse(raw); return d && typeof d === 'object' ? d : null; } catch { return null; }
 }
 
@@ -178,7 +182,29 @@ async function goalFor(env: Env, family: string, week: string, memberCount: numb
 const stepsDone = (g: { steps: number[]; total: number }) => g.steps.filter((s) => g.total >= s).length;
 
 /** Everything the Family tab shows (with this week's goal when the game says which week it is). */
-async function board(env: Env, family: string, week: string | null = null) {
+// ----- 🎁 Gifts (v0.0.1.57) -----
+// The sender's game takes the items out at once and sends them with its next check-in (with its own gift id,
+// so sending twice never makes two gifts). The other game unwraps them, then says so ("ack") on a later
+// check-in, and only then is the gift deleted — nothing is lost if a phone goes offline halfway.
+interface GiftRow { id: string; from_m: string; from_name: string; to_m: string; to_name: string; items: string; coins: number; at: number; returned: number }
+const GIFT_ID = /^[A-Za-z0-9_-]{8,40}$/;
+function cleanGiftItems(v: unknown): { id: string; qty: number }[] | null {
+  if (!Array.isArray(v) || v.length > 20) return null;
+  const out: { id: string; qty: number }[] = [];
+  for (const it of v) {
+    const id = str((it as { id?: unknown })?.id, 160);
+    const qty = Number((it as { qty?: unknown })?.qty);
+    if (!id || !Number.isInteger(qty) || qty <= 0 || qty > 1_000_000_000) return null;
+    out.push({ id, qty });
+  }
+  return out;
+}
+async function giftsFor(env: Env, member: string) {
+  const { results } = await env.DB.prepare('SELECT * FROM gifts WHERE to_m = ? ORDER BY at LIMIT 20').bind(member).all<GiftRow>();
+  return results.map((g) => ({ id: g.id, from: g.from_m, fromName: g.from_name, toName: g.to_name, items: safeJson(g.items), coins: g.coins, at: g.at, returned: !!g.returned }));
+}
+
+async function board(env: Env, family: string, week: string | null = null, me: string | null = null) {
   const fam = await env.DB.prepare('SELECT name FROM families WHERE id = ?').bind(family).first<{ name: string }>();
   const { results: members } = await env.DB.prepare('SELECT id, name, snap, updated, joined FROM members WHERE family = ? ORDER BY joined').bind(family)
     .all<{ id: string; name: string; snap: string; updated: number; joined: number }>();
@@ -190,6 +216,7 @@ async function board(env: Env, family: string, week: string | null = null) {
     : [];
   return {
     goal: week ? await goalFor(env, family, week, members.length) : undefined,
+    gifts: me ? await giftsFor(env, me) : undefined,
     name: fam?.name ?? 'Family',
     members: members.map((m) => ({ id: m.id, name: m.name, updated: m.updated, snap: safeJson(m.snap) })),
     feed: feed.map((e) => ({ ...e, cheers: cheers.filter((c) => c.feed === e.id).map((c) => c.member) })),
@@ -263,6 +290,30 @@ async function family(req: Request, url: URL, env: Env): Promise<Response> {
       stmts.push(env.DB.prepare('INSERT INTO feed (family, member, kind, text, at) VALUES (?, ?, ?, ?, ?)')
         .bind(me.family, me.id, str(e.kind, 20) || 'moment', text, Number.isFinite(at) && at <= now && at > now - 2 * DAY ? Math.round(at) : now));
     }
+    // 🎁 Gifts this game has unwrapped (delete them) and gifts it is sending.
+    const acks = Array.isArray(d.ack) ? (d.ack as unknown[]).filter((x): x is string => typeof x === 'string' && GIFT_ID.test(x)).slice(0, 40) : [];
+    if (acks.length) stmts.push(env.DB.prepare(`DELETE FROM gifts WHERE to_m = ? AND id IN (${acks.map(() => '?').join(',')})`).bind(me.id, ...acks));
+    const sent: string[] = [];
+    for (const g of (Array.isArray(d.send) ? (d.send as Record<string, unknown>[]) : []).slice(0, 5)) {
+      const id = str(g?.id, 40);
+      const items = cleanGiftItems(g?.items);
+      const coins = Number(g?.coins ?? 0);
+      if (!GIFT_ID.test(id) || !items || !Number.isInteger(coins) || coins < 0 || coins > 1e12 || (!items.length && !coins)) continue;
+      sent.push(id);
+      const to = await env.DB.prepare('SELECT id, name, device FROM members WHERE id = ? AND family = ?').bind(str(g.to, 40), me.family).first<{ id: string; name: string; device: string | null }>();
+      const toName = to?.name ?? cleanName(g.toName, 'them');
+      // Someone who has left the guild: the gift comes straight back.
+      const target = to && to.id !== me.id ? to.id : me.id;
+      const ins = await env.DB.prepare('INSERT OR IGNORE INTO gifts (id, family, from_m, from_name, to_m, to_name, items, coins, at, returned) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .bind(id, me.family, me.id, me.name, target, toName, JSON.stringify(items), coins, now, target === me.id ? 1 : 0).run();
+      if (to && target === to.id && ins.meta.changes) {
+        const label = str(g.label, 80) || 'a gift';
+        await env.DB.batch([
+          env.DB.prepare('INSERT INTO feed (family, member, kind, text, at) VALUES (?, ?, ?, ?, ?)').bind(me.family, me.id, 'gift', `sent ${to.name} ${label}`, now),
+          ...pushTo(env, to.device, `🎁 ${me.name} sent you a gift!`, 'Open Ascension 999 to unwrap it.'),
+        ]);
+      }
+    }
     // This week's counts for the family goal.
     const wk = weekOf((d.week as { week?: unknown } | undefined)?.week);
     let before: Awaited<ReturnType<typeof goalFor>> | null = null;
@@ -291,11 +342,11 @@ async function family(req: Request, url: URL, env: Env): Promise<Response> {
           .bind(me.family, me.id, 'goal', `pushed the guild past ${MEDALS[is - 1]} on this week's goal — ${after.label}!`, now).run();
       }
     }
-    if (events.length || crossed) {
+    if (events.length || crossed || sent.length) {
       // Keep the feed short.
       await env.DB.prepare('DELETE FROM feed WHERE family = ? AND id NOT IN (SELECT id FROM feed WHERE family = ? ORDER BY at DESC LIMIT ?)').bind(me.family, me.family, FEED_KEEP).run();
     }
-    return json(await board(env, me.family, wk));
+    return json({ ...(await board(env, me.family, wk, me.id)), sent });
   }
 
   if (path === 'cheer') {
@@ -304,13 +355,13 @@ async function family(req: Request, url: URL, env: Env): Promise<Response> {
     const ev = await env.DB.prepare('SELECT member, text FROM feed WHERE id = ? AND family = ?').bind(id, me.family).first<{ member: string; text: string }>();
     if (!ev || ev.member === me.id) return empty(400);
     const done = await env.DB.prepare('SELECT 1 AS x FROM cheers WHERE feed = ? AND member = ?').bind(id, me.id).first();
-    if (done) return json(await board(env, me.family, wk));
+    if (done) return json(await board(env, me.family, wk, me.id));
     const owner = await env.DB.prepare('SELECT device FROM members WHERE id = ?').bind(ev.member).first<{ device: string | null }>();
     await env.DB.batch([
       env.DB.prepare('INSERT INTO cheers (feed, member) VALUES (?, ?)').bind(id, me.id),
       ...pushTo(env, owner?.device ?? null, `🎉 ${me.name} cheered for you!`, `You ${ev.text}`),
     ]);
-    return json(await board(env, me.family, wk));
+    return json(await board(env, me.family, wk, me.id));
   }
 
   if (path === 'nudge') {

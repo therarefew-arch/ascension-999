@@ -50,7 +50,7 @@ import { lootRolls, nightXp, STUB_COINS } from './lanternWatch';
 import { paradeCoins, WINS_NEEDED as PARADE_WINS } from './petParade';
 import { wallXp } from './holdWall';
 import { REROLL_COST, socketGem, unsocketGem } from './equipment';
-import { countInBag, removeFromBag } from './inventory';
+import { countInBag, countInBank, removeFromBag, removeFromBank } from './inventory';
 import { MONSTER_MAP, MONSTERS } from '../data/monsters';
 import { clampReward } from './minigames';
 import { newPlayer, type PlayerState } from './player';
@@ -66,7 +66,7 @@ import { masteryReached } from './mastery';
 import type { BonusKey } from '../data/ascended';
 import { outfit } from './outfit';
 import {
-  FAMILY_KEEPSAKE, familyLevelMoment, familyMoment, goalReward, itemName, lastBoard, MEDAL_NAMES, MEDALS, playedToday, setBoard, thisWeek, dayKey,
+  FAMILY_KEEPSAKE, familyLevelMoment, giftLabel, giftsWaiting, MAX_GIFT_STACKS, newGiftId, syncSoon, whyCantGift, type FamilyMember, familyMoment, goalReward, itemName, lastBoard, MEDAL_NAMES, MEDALS, playedToday, setBoard, thisWeek, dayKey,
   type FamilyBoard, type FamilyLink,
 } from './family';
 
@@ -1370,7 +1370,15 @@ export const game = {
 
   /** 👪 Join / leave a family (the Family tab talks to the server first). */
   setFamily(link: FamilyLink | null) {
-    if (link) snap.player.family = link; else { delete snap.player.family; delete snap.player.hearth; }
+    const p = snap.player;
+    if (link) p.family = link;
+    else {
+      // Leaving: gifts that never reached the server come back.
+      const back: ItemStack[] = [];
+      for (const g of p.giftsOut ?? []) { back.push(...g.items); if (g.coins) back.push({ id: 'coins', qty: g.coins }); }
+      if (back.length) giveLoot(p, back, { overflowToBank: true });
+      delete p.family; delete p.hearth; delete p.giftsOut; delete p.familyWeek;
+    }
     save();
     emit();
   },
@@ -1380,6 +1388,13 @@ export const game = {
     setBoard(b);
     const p = snap.player;
     if (!b || !p.family) return;
+    // 🎁 The server has these sent gifts now.
+    if (b.sent?.length && p.giftsOut?.length) {
+      const done = new Set(b.sent);
+      p.giftsOut = p.giftsOut.filter((g) => !done.has(g.id));
+      save();
+      emit();
+    }
     const today = dayKey();
     if (p.hearth !== today && playedToday(b, p.family.m).length) {
       p.hearth = today;
@@ -1387,6 +1402,54 @@ export const game = {
       save();
       emit();
     }
+  },
+
+  /** 🎁 Send items (from bag, then bank) and/or coins to a guild member. They leave your save now. */
+  sendGift(to: FamilyMember, items: ItemStack[], coins: number) {
+    const p = snap.player;
+    if (!p.family) return fail('Join a guild first');
+    if (to.id === p.family.m) return fail("You can't send a gift to yourself");
+    const list = items.filter((s) => s.qty > 0);
+    coins = Math.max(0, Math.floor(coins));
+    if (!list.length && !coins) return fail('Pick something to send');
+    if (list.length > MAX_GIFT_STACKS) return fail(`Up to ${MAX_GIFT_STACKS} kinds of things per gift`);
+    if (coins > p.coins) return fail('Not enough coins');
+    for (const s of list) {
+      const why = whyCantGift(s.id);
+      if (why) return fail(why);
+      if (countInBag(p.inventory, s.id) + countInBank(p, s.id) < s.qty) return fail(`Not enough ${getItem(s.id).name}`);
+    }
+    for (const s of list) {
+      const fromBag = removeFromBag(p.inventory, s.id, s.qty);
+      if (fromBag < s.qty) removeFromBank(p, s.id, s.qty - fromBag);
+    }
+    p.coins -= coins;
+    const label = giftLabel(list, coins);
+    (p.giftsOut ??= []).push({ id: newGiftId(), to: to.id, toName: to.name, items: list.map((s) => ({ ...s })), coins, label, at: Date.now() });
+    play('levelup');
+    toast(`🎁 Sent ${to.name} ${label}`, 'good');
+    save();
+    emit();
+    syncSoon();
+    return true;
+  },
+
+  /** 🎁 Unwrap a gift: everything goes through the loot system (whatever doesn't fit goes to the bank). */
+  unwrapGift(id: string) {
+    const p = snap.player;
+    const g = giftsWaiting(p, lastBoard()).find((x) => x.id === id);
+    if (!g) return fail('That gift is already unwrapped');
+    const loot: ItemStack[] = g.items.filter((s) => !whyCantGift(s.id) && Number.isInteger(s.qty) && s.qty > 0).map((s) => ({ id: s.id, qty: s.qty }));
+    if (g.coins > 0) loot.push({ id: 'coins', qty: Math.floor(g.coins) });
+    giveLoot(p, loot, { overflowToBank: true });
+    p.giftsGot = [...(p.giftsGot ?? []), g.id].slice(-60);
+    play('levelup');
+    celebrate();
+    toast(g.returned ? `🎁 Your gift to ${g.toName} came back: ${giftLabel(g.items, g.coins)}` : `🎁 From ${g.fromName}: ${giftLabel(g.items, g.coins)}`, 'good');
+    save();
+    emit();
+    syncSoon();
+    return true;
   },
 
   /** 🏆 Claim the next step of this week's family goal (coins + a rare find; 🥇 also the family portrait, once). */

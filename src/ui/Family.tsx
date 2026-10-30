@@ -1,11 +1,11 @@
 // 🏰 Guild (Profile → Guild; called "family" in the code and save): start or join a guild, see everyone's adventurer, cheer big moments,
 // and nudge someone to come play. Also: the invite prompt and the regular check-in (useFamilySync).
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { ALL_SKILLS, SKILLS } from '../data/skills';
 import { game, useGame } from '../core/store';
 import type { PlayerState } from '../core/player';
 import {
-  cheerMoment, clearInvite, GOAL_EMOJI, goalReward, hearthLit, MEDAL_NAMES, MEDALS, nextWeekStart, playedToday, thisWeek, createFamily, familyInfo, inviteLink, joinFamily, lastBoard, lastFamilyName, leaveFamily,
+  cheerMoment, clearInvite, giftLabel, giftsWaiting, MAX_GIFT_STACKS, whyCantGift, GOAL_EMOJI, goalReward, hearthLit, MEDAL_NAMES, MEDALS, nextWeekStart, playedToday, thisWeek, createFamily, familyInfo, inviteLink, joinFamily, lastBoard, lastFamilyName, leaveFamily,
   MOMENT_ICON, nudgeMember, onFamilyMoment, pendingInvite, rememberFamilyName, seen, setBoard, subscribeBoard, syncFamily,
   type FamilyBoard, type FamilyMember,
 } from '../core/family';
@@ -14,6 +14,8 @@ import { fmtDuration } from './format';
 import { hasPushSubscription } from '../core/push';
 import { Avatar } from './Avatar';
 import { Sheet } from './components';
+import { ItemIcon } from './icons';
+import { getItem } from '../data/items';
 import { sound } from '../audio/sound';
 
 const SYNC_MS = 3 * 60_000;
@@ -153,6 +155,79 @@ function GoalCard({ board, player }: { board: FamilyBoard; player: PlayerState }
   );
 }
 
+/** 🎁 Pick things from your bag and bank (and/or coins) to send to someone in your guild. */
+function GiftSheet({ to, onClose }: { to: FamilyMember; onClose: () => void }) {
+  const { player } = useGame();
+  const [pick, setPick] = useState<Record<string, number>>({});
+  const [coins, setCoins] = useState('');
+  const [q, setQ] = useState('');
+  const have = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const s of player.inventory) if (s) m.set(s.id, (m.get(s.id) ?? 0) + s.qty);
+    for (const s of player.bank) m.set(s.id, (m.get(s.id) ?? 0) + s.qty);
+    return [...m].filter(([id, n]) => n > 0 && !whyCantGift(id));
+  }, [player.inventory, player.bank]);
+  const shown = have.filter(([id]) => !q || getItem(id).name.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 80);
+  const chosen = Object.entries(pick).filter(([, n]) => n > 0);
+  const coinN = Math.min(player.coins, Math.max(0, Math.floor(Number(coins) || 0)));
+  const set = (id: string, n: number, max: number) => {
+    sound.play('click', { volume: 0.5 });
+    setPick((p) => ({ ...p, [id]: Math.max(0, Math.min(max, Math.floor(n) || 0)) }));
+  };
+  const send = () => {
+    if (game.sendGift(to, chosen.map(([id, qty]) => ({ id, qty })), coinN) === true) onClose();
+  };
+  const tooMany = chosen.length > MAX_GIFT_STACKS;
+  return (
+    <Sheet title={`🎁 A gift for ${to.name}`} onClose={onClose}>
+      <div className="gift-form">
+        <label className="small">Coins <span className="tiny muted">(you have {player.coins.toLocaleString()})</span>
+          <input className="name-input" inputMode="numeric" aria-label="Coins to send" value={coins} placeholder="0" onChange={(e) => setCoins(e.target.value.replace(/[^0-9]/g, ''))} />
+        </label>
+        <input className="name-input" value={q} placeholder="Search your bag and bank…" onChange={(e) => setQ(e.target.value)} />
+        <div className="gift-list">
+          {shown.length === 0 && <p className="small muted">Nothing to send{q ? ' by that name' : ''}.</p>}
+          {shown.map(([id, n]) => (
+            <div key={id} className={`gift-row ${pick[id] ? 'on' : ''}`}>
+              <ItemIcon id={id} size={28} />
+              <span className="gift-name small">{getItem(id).name}<span className="tiny muted"> · have {n.toLocaleString()}</span></span>
+              <input className="gift-qty mono" inputMode="numeric" value={pick[id] ? String(pick[id]) : ''} placeholder="0"
+                onChange={(e) => set(id, Number(e.target.value.replace(/[^0-9]/g, '')), n)} aria-label={`How many ${getItem(id).name}`} />
+              <button className="link-btn tiny" onClick={() => set(id, pick[id] === n ? 0 : n, n)}>{pick[id] === n ? 'None' : 'All'}</button>
+            </div>
+          ))}
+        </div>
+        <p className="tiny muted">Gems, Relics and Starlight can't be sent. Equipped gear stays on you.</p>
+        {(chosen.length > 0 || coinN > 0) && <p className="small">Sending: <b>{giftLabel(chosen.map(([id, qty]) => ({ id, qty })), coinN)}</b></p>}
+        {tooMany && <p className="small red">Up to {MAX_GIFT_STACKS} kinds of things per gift.</p>}
+        <button className="btn btn-hero" disabled={tooMany || (!chosen.length && !coinN)} onClick={send}>SEND TO {to.name.toUpperCase()}</button>
+      </div>
+    </Sheet>
+  );
+}
+
+/** 🎁 Gifts waiting to be unwrapped (Town screen + Guild tab). */
+export function GiftsCard() {
+  const { player } = useGame();
+  const board = useBoard();
+  const waiting = giftsWaiting(player, board);
+  if (!player.family || !waiting.length) return null;
+  return (
+    <section className="card gift-card">
+      {waiting.map((g) => (
+        <div key={g.id} className="gift-wait">
+          <span className="gift-box" aria-hidden>🎁</span>
+          <span className="gift-text small">
+            {g.returned ? <>Your gift to <b>{g.toName}</b> came back</> : <><b>{g.fromName}</b> sent you a gift!</>}
+            <span className="tiny muted gift-what">{giftLabel(g.items, g.coins)}</span>
+          </span>
+          <button className="btn btn-primary" onClick={() => game.unwrapGift(g.id)}>Unwrap</button>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function Start() {
   const [family, setFamily] = useState('');
   const [me, setMe] = useState(lastFamilyName());
@@ -192,6 +267,7 @@ export function FamilyTab() {
   const [msg, setMsg] = useState<string | null>(null);
   const [nudged, setNudged] = useState<string[]>([]);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [giftTo, setGiftTo] = useState<FamilyMember | null>(null);
   if (!link) return <Start />;
 
   const invite = async () => {
@@ -215,6 +291,8 @@ export function FamilyTab() {
     } catch (e) { setMsg((e as Error).message); }
   };
   const leave = async () => {
+    // Send any gifts still on their way first, so they aren't lost or doubled.
+    try { if (game.player().giftsOut?.length) game.familyBoard(await syncFamily(game.player())); } catch { /* gifts come back below */ }
     try { await leaveFamily(link); } catch { /* leave locally anyway */ }
     setBoard(null);
     game.setFamily(null);
@@ -230,6 +308,7 @@ export function FamilyTab() {
           <button className="btn btn-primary" onClick={invite}>Invite</button>
         </div>
         {msg && <p className="small fam-msg" onClick={() => setMsg(null)}>{msg}</p>}
+        {(player.giftsOut?.length ?? 0) > 0 && <p className="tiny muted">🎁 {player.giftsOut!.length === 1 ? 'A gift is' : `${player.giftsOut!.length} gifts are`} on the way…</p>}
         {board && (() => {
           const others = playedToday(board, link.m);
           return hearthLit(player) || others.length
@@ -238,7 +317,9 @@ export function FamilyTab() {
         })()}
         {!hasPushSubscription() && <p className="tiny muted">Turn on notifications in Settings so cheers and nudges reach your phone.</p>}
       </section>
+      <GiftsCard />
       {board && <GoalCard board={board} player={player} />}
+      {giftTo && <GiftSheet to={giftTo} onClose={() => setGiftTo(null)} />}
 
       {!board ? <p className="small muted">Loading the guild board…</p> : (
         <>
@@ -256,7 +337,10 @@ export function FamilyTab() {
                     <span className={`tiny ${seen(m.updated, board.now) === 'playing now' ? 'fam-now' : 'muted'}`}>{seen(m.updated, board.now)}</span>
                   </div>
                   {!me && (
-                    <button className="btn fam-nudge" disabled={nudged.includes(m.id)} onClick={() => nudge(m)} aria-label={`Nudge ${m.name}`}>👋</button>
+                    <div className="fam-btns">
+                      <button className="btn fam-nudge" onClick={() => { sound.play('click'); setGiftTo(m); }} aria-label={`Send ${m.name} a gift`}>🎁</button>
+                      <button className="btn fam-nudge" disabled={nudged.includes(m.id)} onClick={() => nudge(m)} aria-label={`Nudge ${m.name}`}>👋</button>
+                    </div>
                   )}
                 </div>
               );

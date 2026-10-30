@@ -4,10 +4,10 @@
 // that joins gets a member id + secret token, kept in `player.family`.
 // This file talks to the server and decides what goes on the board; it never changes items or XP.
 import { ACTIONS, ALL_SKILLS, SKILLS } from '../data/skills';
-import { getItem, type EquipSlot, type SkillId } from '../data/items';
+import { getItem, ITEMS, type EquipSlot, type SkillId } from '../data/items';
 import { PET_MAP } from '../data/pets';
 import { PUSH_SERVER, pushSubscription } from './push';
-import type { PlayerState } from './player';
+import type { ItemStack, PlayerState } from './player';
 import { levelForXp } from './xp';
 
 export interface FamilyLink {
@@ -34,7 +34,44 @@ export interface FamilyMember { id: string; name: string; updated: number; snap:
 export interface FamilyMoment { id: number; member: string; kind: string; text: string; at: number; cheers: string[] }
 /** This week's family goal (the server adds up everyone's counts). */
 export interface FamilyGoal { week: string; kind: string; label: string; steps: number[]; total: number; by: Record<string, number> }
-export interface FamilyBoard { name: string; members: FamilyMember[]; feed: FamilyMoment[]; now: number; goal?: FamilyGoal }
+export interface FamilyBoard {
+  name: string; members: FamilyMember[]; feed: FamilyMoment[]; now: number; goal?: FamilyGoal;
+  /** 🎁 Gifts waiting for you, and which of your sent gifts the server now has. */
+  gifts?: Gift[]; sent?: string[];
+}
+
+// ----- 🎁 Gifts (v0.0.1.57) -----
+/** A gift on its way: already taken out of your save, sent with the next check-in. */
+export interface GiftOut { id: string; to: string; toName: string; items: ItemStack[]; coins: number; label: string; at: number }
+/** A gift waiting for you (or one of yours that came back). */
+export interface Gift { id: string; from: string; fromName: string; toName: string; items: ItemStack[]; coins: number; at: number; returned: boolean }
+export const MAX_GIFT_STACKS = 20;
+
+/** Why an item can't be sent (null = it can). Gems only ever come from bosses; Relics are one of a kind. */
+export function whyCantGift(id: string): string | null {
+  const it = ITEMS[id];
+  if (!it) return 'Unknown item';
+  if (it.gem || it.category === 'gem') return 'Gems only come from bosses';
+  if (it.relic) return 'Relics are one of a kind';
+  if (it.category === 'currency') return "Starlight can't be sent";
+  return null;
+}
+/** "500 Moonsilver ore", "500 Moonsilver ore and 2 more things", "1,000 coins". */
+export function giftLabel(items: ItemStack[], coins: number): string {
+  const parts = items.map((s) => `${s.qty.toLocaleString()} ${getItem(s.id).name}`);
+  if (coins) parts.push(`${coins.toLocaleString()} coins`);
+  if (parts.length <= 2) return parts.join(' and ');
+  return `${parts[0]} and ${parts.length - 1} more things`;
+}
+export function newGiftId(): string {
+  const b = crypto.getRandomValues(new Uint8Array(12));
+  return btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+/** Gifts on the board you haven't unwrapped yet. */
+export function giftsWaiting(p: PlayerState, b: FamilyBoard | null): Gift[] {
+  const got = new Set(p.giftsGot ?? []);
+  return (b?.gifts ?? []).filter((g) => !got.has(g.id));
+}
 
 // ----- 🏆 Weekly family goal + 🔥 Hearth Together (v0.0.1.56) -----
 /** Your own counts for this week's family goal (logs chopped, monsters defeated…), and steps claimed. */
@@ -130,6 +167,8 @@ export function familyMoment(p: PlayerState, kind: string, text: string): void {
   if (pending.length > 20) pending = pending.slice(-20);
   flushSoon?.();
 }
+/** Check in again within a few seconds (after sending or unwrapping a gift). */
+export function syncSoon() { flushSoon?.(); }
 /** The app sets this so a moment gets sent within a few seconds. */
 export function onFamilyMoment(fn: (() => void) | null) { flushSoon = fn; }
 
@@ -179,7 +218,8 @@ export async function syncFamily(p: PlayerState): Promise<FamilyBoard> {
   pending = [];
   try {
     const wk = thisWeek(p);
-    return await post<FamilyBoard>('sync', { ...auth(link), name: link.me, snap: familySnap(p), events, sub: pushSubscription() ?? undefined, week: { week: wk.week, n: wk.n } });
+    return await post<FamilyBoard>('sync', { ...auth(link), name: link.me, snap: familySnap(p), events, sub: pushSubscription() ?? undefined, week: { week: wk.week, n: wk.n },
+      send: (p.giftsOut ?? []).slice(0, 5), ack: (p.giftsGot ?? []).slice(-40) });
   } catch (e) {
     pending = [...events, ...pending].slice(-20); // try those moments again next time
     throw e;

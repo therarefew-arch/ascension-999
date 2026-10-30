@@ -365,6 +365,15 @@ function repair(raw: any): PlayerState {
     if (fw.n && typeof fw.n === 'object') for (const [k, v] of Object.entries(fw.n)) if (typeof v === 'number' && Number.isFinite(v) && v > 0) n[k.slice(0, 20)] = Math.floor(v);
     p.familyWeek = { week: fw.week, n, claimed: Math.max(0, Math.min(3, Math.floor(Number(fw.claimed) || 0))) };
   }
+  // 🎁 Gifts on their way + gifts unwrapped (v0.0.1.57)
+  const stacks = (v: unknown) => (Array.isArray(v) ? v : []).filter((s) => s && typeof s.id === 'string' && Number.isInteger(s.qty) && s.qty > 0).map((s) => ({ id: s.id as string, qty: s.qty as number }));
+  if (Array.isArray(raw?.giftsOut)) {
+    p.giftsOut = raw.giftsOut.filter((g: Record<string, unknown>) => g && typeof g.id === 'string' && typeof g.to === 'string').map((g: Record<string, unknown>) => ({
+      id: g.id as string, to: g.to as string, toName: String(g.toName ?? ''), items: stacks(g.items), coins: Math.max(0, Math.floor(Number(g.coins) || 0)),
+      label: String(g.label ?? ''), at: Number(g.at) || Date.now(),
+    }));
+  }
+  if (Array.isArray(raw?.giftsGot)) p.giftsGot = raw.giftsGot.filter((x: unknown) => typeof x === 'string').slice(-60);
   if (typeof raw?.hearth === 'string' && /^\d{4}-\d\d-\d\d$/.test(raw.hearth)) p.hearth = raw.hearth;
   // 📌 Kept-in-bag items (v22)
   if (Array.isArray(raw?.keep)) p.keep = Array.from(new Set(raw.keep.filter((id: unknown) => typeof id === 'string' && !!ITEMS[id as string])));
