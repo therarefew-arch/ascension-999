@@ -569,3 +569,48 @@ adventurer name chosen in game.
 
 **Build order:** Part 1 — server, join by link, family board + feed + cheers/nudges. Part 2 — weekly goal +
 Hearth Together. Part 3 — gifts.
+
+## 🧭 Expeditions — the at-home adventure (agreed with the owner, 2026-10-30)
+
+**Why:** idling is great at work, but at home the game wasn't the one the owner reached for. Expeditions give the
+idle game a purpose: **at work your skills stock the pantry, at home you go on the adventure you packed for.**
+
+**Owner's choices:** fights where you **pick each move** (turn-based, never rushed) · **bring a guildmate's hero**
+along as a helper · runs of **about 20–30 minutes** (can be paused and continued) · rewards: **boss gems & big
+loot, lore & mysteries, lost recipes, rare Cottage pieces & pets**.
+
+**Starting out** (Combat screen → 🧭 Expeditions card)
+- Pick one of your discovered towns; each has its own wild place to explore (e.g. Pocketvale → the Whispering
+  Woods). Its monsters, music colours and lore are that town's.
+- **Pack your satchel**: 8 supply slots from bag + bank — food (heals), meals/brews (buffs for the run),
+  arrows/runes for your style. Supplies are used up; nothing else can be lost.
+- Optional: pick a **guildmate's hero** to come along (part 4).
+- No energy, no limits: start as many as you like.
+
+**The map** (Slay-the-Spire style): ~10 steps of branching paths, then the boss. You see the road ahead and
+pick your way:
+- ⚔️ **Fight** — 1–3 of the town's monsters. 💀 **Elite** — a tough one, better loot + a Boon.
+- 🔥 **Camp** — rest (heal) *or* sharpen up (a small boost for the rest of the run).
+- ❓ **Event** — a short scene with a choice, often a skill check using your real skill levels ("Mining 200:
+  pry the vein open"). Many carry lore.
+- 🧺 **Cache** — loot. ⛲ **Shrine** — a Boon for a price. 🛒 **Pedlar's cousin** — trade supplies.
+- 👑 **Boss** at the end — the town's expedition boss.
+
+**Fights (pick each move)**: you (+ helper) vs 1–3 monsters. Monsters show what they'll do next (attack,
+big hit, guard…) so you can plan. Each turn: **Attack** · **Guard** (block most of the next hit, build Focus) ·
+**Special** (spend Focus — Melee *Cleave* hits all, Ranged *Volley* uses arrows, Magic casts an element from
+runes) · **Supply** (eat/drink something packed). Your strength comes from your real gear + combat levels;
+fights last a few turns. **Boons** (pick 1 of 3 after elites, shrines and camps) shape each run.
+Knocked out = you're carried home **with everything found so far**. Every tap makes a sound.
+
+**Rewards** (all through `giveLoot`): combat XP per fight (like normal combat, a bit better per minute), the
+town's monster loot, coins; **boss**: gems (bosses may drop gems), big loot, and rare finds below.
+- 🏡 **Rare Cottage pieces** (one per town, from that town's expedition) and 🐾 **pets** (one per expedition boss,
+  + a Pet Parade champion).
+- 📜 **Lore**: expedition notes per town (the Traveller/Mira thread, Lunaria's bell, the Frontier).
+- 📖 **Lost recipes**: new meals, brews and gear that your skills can then make at home (saved per save).
+
+**Build order:** Part 1 — the expedition itself: map, turn-based fights, camps/events/caches/shrines, supplies,
+Boons, XP + loot, knock-out home, pause & continue, one area per town using its monsters. Part 2 — expedition
+bosses with gems, pets, Cottage pieces and lore. Part 3 — lost recipes. Part 4 — guildmate heroes (built from
+their real gear/levels on the guild board; they get a small thank-you reward through the loot system).
