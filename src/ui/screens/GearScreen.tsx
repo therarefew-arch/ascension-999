@@ -13,6 +13,7 @@ import { game, useGame } from '../../core/store';
 import { DiffChips, Sheet, StatCompare } from '../components';
 import { ItemIcon } from '../icons';
 import { ReforgePanel, StarforgeCard } from '../Starforge';
+import { OutfitCard } from '../Outfit';
 
 const WHERE_TO_GET: Partial<Record<EquipSlot, string>> = {
   pickaxe: 'Craft one at the Workshop.',
@@ -176,6 +177,7 @@ export function GearScreen() {
   return (
     <div className="screen">
       <h1 className="screen-title">GEAR</h1>
+      <OutfitCard />
       <Loadouts />
       <h2 className="section-title">ARMOUR &amp; WEAPONS</h2>
       <SlotGrid slots={ARMOUR_SLOTS} onPick={setPicking} />

@@ -64,6 +64,7 @@ import { ascendRelic, breakDown, breakDownAllFine, craftAscended, reforge, whyCa
 import type { RelicKey } from '../data/relics';
 import { masteryReached } from './mastery';
 import type { BonusKey } from '../data/ascended';
+import { outfit } from './outfit';
 
 /** Gaps longer than this count as "away" and show the summary card. */
 const AWAY_THRESHOLD_MS = 60 * 1000;
@@ -1334,6 +1335,25 @@ export const game = {
     save();
     emit();
     return id;
+  },
+
+  /** 🧳 Outfit me: make and put on everything for a town's tier in one tap. Returns how many pieces changed. */
+  outfit(tier: number): number {
+    const p = snap.player;
+    const { plan, report } = outfit(p, tier, true);
+    const done = plan.lines.filter((l) => l.status === 'make' || l.status === 'wear').length;
+    if (!done) { fail('Nothing to make or put on yet'); return 0; }
+    trackRequests(p, report);
+    trackTutorial(p, report);
+    play('craft');
+    play('smith');
+    toast(`🧳 Outfitted for ${plan.town}: ${done} piece${done === 1 ? '' : 's'} ready`, 'good');
+    announceLevels(report);
+    if (report.levelUps.length) checkGoals();
+    announceAscended(report);
+    save();
+    emit();
+    return done;
   },
 
   // ----- Gear -----

@@ -1660,3 +1660,23 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .title-begin { text-align: center; margin-top: 18px; color: #fde68a; letter-spacing: 4px; font-family: var(--mono); font-size: 0.9rem;
   text-shadow: 0 0 12px rgba(251, 191, 36, 0.6); animation: title-begin 1.8s ease-in-out infinite; }
 @keyframes title-begin { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+
+/* 🧳 Outfit me (Gear screen) */
+.outfit { margin-bottom: 14px; }
+.outfit h3 { margin: 0 0 4px; }
+.outfit-towns { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 10px 0 4px; padding-bottom: 2px; }
+.outfit-towns::-webkit-scrollbar { display: none; }
+.outfit-town { flex: none; font-size: 0.75rem; padding: 5px 10px; border-radius: 99px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-weight: 700; }
+.outfit-town.on { color: #fde68a; border-color: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.35); }
+.outfit-sum { margin: 8px 0 4px; }
+.outfit-missing { margin: 4px 0; line-height: 1.8; }
+.outfit-need { display: inline-flex; align-items: center; gap: 3px; margin-right: 10px; white-space: nowrap; font-family: var(--mono); }
+.outfit-actions { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
+.outfit-actions .btn { width: 100%; }
+.outfit-lines { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
+.outfit-line { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.03); }
+.outfit-line.ok { opacity: 0.55; }
+.outfit-line.blocked { opacity: 0.8; }
+.outfit-mark { width: 20px; text-align: center; }
+.outfit-text { display: flex; flex-direction: column; min-width: 0; }
+.outfit-text .tiny { overflow-wrap: anywhere; }
