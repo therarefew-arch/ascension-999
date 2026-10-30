@@ -3,4 +3,4 @@
 export const GAME_VERSION = 'v0.0.1.55';
 
 /** One line about what the latest update added. */
-export const VERSION_NOTE = '👪 Family: Profile → Family — start a family, share the invite link, see each other's adventurers, cheer big moments and nudge each other to play';
+export const VERSION_NOTE = '👪 Family: Profile → Family — start a family, share the invite link, see everyone’s adventurers, cheer big moments and nudge each other to play';
