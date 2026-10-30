@@ -3,7 +3,7 @@
 // - POST /schedule   the game sends a phone's upcoming notifications when you leave it ([] = cancel).
 // - GET  /inbox      the phone's background helper (public/sw.js) picks up messages after a push wakes it.
 // - every minute     sends a "wake up" push to each phone that has something due.
-// - /family/*        👪 Family (v0.0.1.55): create / join by invite link, the family board + feed, cheers, nudges.
+// - /family/*        👪 Family (v0.0.1.55): create / join by invite link, the family board + feed, cheers, nudges; v0.0.1.56: the weekly family goal.
 //
 // Pushes carry no data (so no encryption is needed): the phone fetches the text from /inbox.
 // Nothing personal is stored — just the phone's push address and the next few game messages.
@@ -104,6 +104,7 @@ async function sendDue(env: Env): Promise<void> {
     env.DB.prepare('DELETE FROM feed WHERE family NOT IN (SELECT DISTINCT family FROM members)'),
     env.DB.prepare('DELETE FROM families WHERE id NOT IN (SELECT DISTINCT family FROM members) AND created < ?').bind(now - DAY),
     env.DB.prepare('DELETE FROM cheers WHERE feed NOT IN (SELECT id FROM feed)'),
+    env.DB.prepare('DELETE FROM goals WHERE updated < ? OR member NOT IN (SELECT id FROM members)').bind(now - 21 * DAY),
   ]);
 }
 
@@ -139,8 +140,45 @@ function pushTo(env: Env, device: string | null, title: string, body: string): D
   return [env.DB.prepare("INSERT INTO notes (device, at, title, body, tag) VALUES (?, ?, ?, ?, 'a999family')").bind(device, Date.now(), title.slice(0, 120), body.slice(0, 300))];
 }
 
-/** Everything the Family tab shows. */
-async function board(env: Env, family: string) {
+// ----- Weekly family goal (v0.0.1.56) -----
+// One goal a week (picked from the family id + the week), sized by how many are in the family. Each game
+// counts its own actions for the week and sends the counts with every check-in; rewards are claimed in game.
+const GOALS: { kind: string; label: string; per: [number, number, number] }[] = [
+  { kind: 'woodcutting', label: 'Chop logs', per: [1500, 5000, 12000] },
+  { kind: 'mining', label: 'Mine ore', per: [1500, 5000, 12000] },
+  { kind: 'fishing', label: 'Catch fish', per: [1500, 5000, 12000] },
+  { kind: 'cooking', label: 'Cook meals', per: [1000, 3500, 8000] },
+  { kind: 'smithing', label: 'Smith bars and gear', per: [800, 2500, 6000] },
+  { kind: 'crafting', label: 'Craft things', per: [800, 2500, 6000] },
+  { kind: 'kills', label: 'Defeat monsters', per: [300, 1000, 2500] },
+  { kind: 'any', label: 'Get things done (any skill)', per: [4000, 12000, 30000] },
+];
+const GOAL_KINDS = new Set(GOALS.map((g) => g.kind));
+const MEDALS = ['🥉 Bronze', '🥈 Silver', '🥇 Gold'];
+const WEEK_RE = /^\d{4}-\d\d-\d\d$/;
+const weekOf = (v: unknown) => (typeof v === 'string' && WEEK_RE.test(v) ? v : null);
+
+function pickGoal(family: string, week: string) {
+  let h = 0;
+  for (const c of family + week) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return GOALS[h % GOALS.length];
+}
+async function goalFor(env: Env, family: string, week: string, memberCount: number) {
+  const g = pickGoal(family, week);
+  const { results } = await env.DB.prepare('SELECT member, counts FROM goals WHERE family = ? AND week = ?').bind(family, week).all<{ member: string; counts: string }>();
+  const by: Record<string, number> = {};
+  let total = 0;
+  for (const r of results) {
+    const n = Number((safeJson(r.counts) as Record<string, unknown>)[g.kind]) || 0;
+    by[r.member] = n;
+    total += n;
+  }
+  return { week, kind: g.kind, label: g.label, steps: g.per.map((x) => x * Math.max(1, memberCount)), total, by };
+}
+const stepsDone = (g: { steps: number[]; total: number }) => g.steps.filter((s) => g.total >= s).length;
+
+/** Everything the Family tab shows (with this week's goal when the game says which week it is). */
+async function board(env: Env, family: string, week: string | null = null) {
   const fam = await env.DB.prepare('SELECT name FROM families WHERE id = ?').bind(family).first<{ name: string }>();
   const { results: members } = await env.DB.prepare('SELECT id, name, snap, updated, joined FROM members WHERE family = ? ORDER BY joined').bind(family)
     .all<{ id: string; name: string; snap: string; updated: number; joined: number }>();
@@ -151,6 +189,7 @@ async function board(env: Env, family: string) {
     ? (await env.DB.prepare(`SELECT feed, member FROM cheers WHERE feed IN (${ids.map(() => '?').join(',')})`).bind(...ids).all<{ feed: number; member: string }>()).results
     : [];
   return {
+    goal: week ? await goalFor(env, family, week, members.length) : undefined,
     name: fam?.name ?? 'Family',
     members: members.map((m) => ({ id: m.id, name: m.name, updated: m.updated, snap: safeJson(m.snap) })),
     feed: feed.map((e) => ({ ...e, cheers: cheers.filter((c) => c.feed === e.id).map((c) => c.member) })),
@@ -178,7 +217,7 @@ async function family(req: Request, url: URL, env: Env): Promise<Response> {
 
   if (path === 'create') {
     const f = randomId(16), m = randomId(9), t = randomId(24);
-    const name = cleanName(d.family, 'Our Family');
+    const name = cleanName(d.family, 'Our Guild');
     await env.DB.batch([
       env.DB.prepare('INSERT INTO families (id, name, created) VALUES (?, ?, ?)').bind(f, name, now),
       env.DB.prepare('INSERT INTO members (id, family, token, name, updated, joined) VALUES (?, ?, ?, ?, ?, ?)').bind(m, f, t, cleanName(d.name, 'Adventurer'), now, now),
@@ -189,14 +228,14 @@ async function family(req: Request, url: URL, env: Env): Promise<Response> {
   if (path === 'join') {
     const f = str(d.f, 40);
     const fam = f ? await env.DB.prepare('SELECT name FROM families WHERE id = ?').bind(f).first<{ name: string }>() : null;
-    if (!fam) return json({ error: 'That family no longer exists' }, 404);
+    if (!fam) return json({ error: 'That guild no longer exists' }, 404);
     const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM members WHERE family = ?').bind(f).first<{ n: number }>();
-    if ((n?.n ?? 0) >= MAX_MEMBERS) return json({ error: `That family is full (${MAX_MEMBERS} members)` }, 409);
+    if ((n?.n ?? 0) >= MAX_MEMBERS) return json({ error: `That guild is full (${MAX_MEMBERS} members)` }, 409);
     const m = randomId(9), t = randomId(24);
     const name = cleanName(d.name, 'Adventurer');
     await env.DB.batch([
       env.DB.prepare('INSERT INTO members (id, family, token, name, updated, joined) VALUES (?, ?, ?, ?, ?, ?)').bind(m, f, t, name, now, now),
-      env.DB.prepare('INSERT INTO feed (family, member, kind, text, at) VALUES (?, ?, ?, ?, ?)').bind(f, m, 'join', 'joined the family!', now),
+      env.DB.prepare('INSERT INTO feed (family, member, kind, text, at) VALUES (?, ?, ?, ?, ?)').bind(f, m, 'join', 'joined the guild!', now),
     ]);
     return json({ f, m, t, name: fam.name });
   }
@@ -224,26 +263,54 @@ async function family(req: Request, url: URL, env: Env): Promise<Response> {
       stmts.push(env.DB.prepare('INSERT INTO feed (family, member, kind, text, at) VALUES (?, ?, ?, ?, ?)')
         .bind(me.family, me.id, str(e.kind, 20) || 'moment', text, Number.isFinite(at) && at <= now && at > now - 2 * DAY ? Math.round(at) : now));
     }
+    // This week's counts for the family goal.
+    const wk = weekOf((d.week as { week?: unknown } | undefined)?.week);
+    let before: Awaited<ReturnType<typeof goalFor>> | null = null;
+    let count = 1;
+    if (wk) {
+      const raw = (d.week as { n?: unknown }).n;
+      const n: Record<string, number> = {};
+      if (raw && typeof raw === 'object') {
+        for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+          if (GOAL_KINDS.has(k) && typeof v === 'number' && Number.isFinite(v) && v > 0) n[k] = Math.min(10_000_000, Math.floor(v));
+        }
+      }
+      count = (await env.DB.prepare('SELECT COUNT(*) AS n FROM members WHERE family = ?').bind(me.family).first<{ n: number }>())?.n ?? 1;
+      before = await goalFor(env, me.family, wk, count);
+      stmts.push(env.DB.prepare('INSERT INTO goals (member, family, week, counts, updated) VALUES (?, ?, ?, ?, ?) ON CONFLICT(member, week) DO UPDATE SET counts = excluded.counts, family = excluded.family, updated = excluded.updated')
+        .bind(me.id, me.family, wk, JSON.stringify(n), now));
+    }
     await env.DB.batch(stmts);
-    if (events.length) {
+    let crossed = false;
+    if (wk && before) {
+      const after = await goalFor(env, me.family, wk, count);
+      const was = stepsDone(before), is = stepsDone(after);
+      if (is > was) {
+        crossed = true;
+        await env.DB.prepare('INSERT INTO feed (family, member, kind, text, at) VALUES (?, ?, ?, ?, ?)')
+          .bind(me.family, me.id, 'goal', `pushed the guild past ${MEDALS[is - 1]} on this week's goal — ${after.label}!`, now).run();
+      }
+    }
+    if (events.length || crossed) {
       // Keep the feed short.
       await env.DB.prepare('DELETE FROM feed WHERE family = ? AND id NOT IN (SELECT id FROM feed WHERE family = ? ORDER BY at DESC LIMIT ?)').bind(me.family, me.family, FEED_KEEP).run();
     }
-    return json(await board(env, me.family));
+    return json(await board(env, me.family, wk));
   }
 
   if (path === 'cheer') {
+    const wk = weekOf(d.wk);
     const id = Number(d.feed);
     const ev = await env.DB.prepare('SELECT member, text FROM feed WHERE id = ? AND family = ?').bind(id, me.family).first<{ member: string; text: string }>();
     if (!ev || ev.member === me.id) return empty(400);
     const done = await env.DB.prepare('SELECT 1 AS x FROM cheers WHERE feed = ? AND member = ?').bind(id, me.id).first();
-    if (done) return json(await board(env, me.family));
+    if (done) return json(await board(env, me.family, wk));
     const owner = await env.DB.prepare('SELECT device FROM members WHERE id = ?').bind(ev.member).first<{ device: string | null }>();
     await env.DB.batch([
       env.DB.prepare('INSERT INTO cheers (feed, member) VALUES (?, ?)').bind(id, me.id),
       ...pushTo(env, owner?.device ?? null, `🎉 ${me.name} cheered for you!`, `You ${ev.text}`),
     ]);
-    return json(await board(env, me.family));
+    return json(await board(env, me.family, wk));
   }
 
   if (path === 'nudge') {
@@ -254,13 +321,16 @@ async function family(req: Request, url: URL, env: Env): Promise<Response> {
     if (done) return json({ ok: false, why: 'Already nudged today' });
     await env.DB.batch([
       env.DB.prepare('INSERT INTO nudges (from_m, to_m, day) VALUES (?, ?, ?)').bind(me.id, to.id, day),
-      ...pushTo(env, to.device, `👋 ${me.name} says come play!`, 'Your family is out adventuring in Ascension 999.'),
+      ...pushTo(env, to.device, `👋 ${me.name} says come play!`, 'Your guild is out adventuring in Ascension 999.'),
     ]);
     return json({ ok: true, push: !!to.device });
   }
 
   if (path === 'leave') {
-    await env.DB.prepare('DELETE FROM members WHERE id = ?').bind(me.id).run();
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM members WHERE id = ?').bind(me.id),
+      env.DB.prepare('DELETE FROM goals WHERE member = ?').bind(me.id),
+    ]);
     const left = await env.DB.prepare('SELECT COUNT(*) AS n FROM members WHERE family = ?').bind(me.family).first<{ n: number }>();
     if (!left?.n) {
       await env.DB.batch([
@@ -269,7 +339,7 @@ async function family(req: Request, url: URL, env: Env): Promise<Response> {
         env.DB.prepare('DELETE FROM families WHERE id = ?').bind(me.family),
       ]);
     } else {
-      await env.DB.prepare('INSERT INTO feed (family, member, kind, text, at) VALUES (?, ?, ?, ?, ?)').bind(me.family, me.id, 'leave', 'left the family.', now).run();
+      await env.DB.prepare('INSERT INTO feed (family, member, kind, text, at) VALUES (?, ?, ?, ?, ?)').bind(me.family, me.id, 'leave', 'left the guild.', now).run();
     }
     return json({ ok: true });
   }

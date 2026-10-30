@@ -3,7 +3,7 @@
 import type { EquipSlot, SkillId } from '../data/items';
 import type { FightState } from './combat';
 import type { Region } from '../data/tiers';
-import type { FamilyLink } from './family';
+import type { FamilyLink, FamilyWeek } from './family';
 import type { TownRequest } from './cozy';
 import type { Bounty } from './bounties';
 import type { ActiveBuff } from './buffs';
@@ -142,6 +142,10 @@ export interface PlayerState {
   starlight: number;
   /** 👪 Your family (v0.0.1.55): member id + secret token for the family board. Not set = not in a family. */
   family?: FamilyLink;
+  /** 🏆 Your counts toward this week's family goal + steps claimed (v0.0.1.56). */
+  familyWeek?: FamilyWeek;
+  /** 🔥 Hearth Together: the local day someone else in your family played (+5% XP that day). */
+  hearth?: string;
 }
 
 export interface Loadout {

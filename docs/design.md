@@ -513,7 +513,9 @@ Ironmoor region, weekly boss with "Defeated" screen, NPC Trading Post and shops 
 ### Later phases — not built
 Everything else above.
 
-## 👪 Family (planned — agreed with the owner, 2026-10-30)
+## 👪 Family → 🏰 Guild (agreed with the owner, 2026-10-30; parts 1–2 built in v0.0.1.55–56)
+
+**Renamed "Guild" for players (owner, v0.0.1.56).** The code and saves still say "family".
 
 **Why:** the game is a great companion game, but at home the owner and his family drift to other games.
 Playing *together* is the strongest pull (owner: WoW, party games with family; brother: Path of Exile 2;

@@ -13,6 +13,7 @@ import type { PlayerState } from '../../core/player';
 import { bestAction, timeToLevel, timeToNextLevel, visibleActions } from '../../core/rates';
 import { goalChoices } from '../../core/cozy';
 import { xpBoost } from '../../core/boosts';
+import { hearthLit } from '../../core/family';
 import { activeBuffs, buffText } from '../../core/buffs';
 import { mountainStirs, STIR_XP_MULT } from '../../core/cinderpeak';
 import { RipePicking } from '../HerbloreGame';
@@ -50,7 +51,8 @@ export function BoostRow({ skill }: { skill: SkillId }) {
   const now = Date.now();
   const meals = activeBuffs(player, now).filter((a) => a.buff.skill === skill || a.buff.skill === 'all' || (a.buff.skill === 'combat' && COMBAT_SKILLS.includes(skill)));
   const stirring = skill === 'mining' && player.location === 'Cinderpeak' && mountainStirs(now).active;
-  if (b.total <= 1.001 && seasoned === 0 && uses === 0 && !meals.length && !stirring) return null;
+  const hearth = hearthLit(player, now);
+  if (b.total <= 1.001 && seasoned === 0 && uses === 0 && !meals.length && !stirring && !hearth) return null;
   const pct = (m: number) => `+${Math.round((m - 1) * 100)}%`;
   return (
     <div className="boost-row">
@@ -65,6 +67,7 @@ export function BoostRow({ skill }: { skill: SkillId }) {
           🪓 Seasoned +{seasoned}% speed{toNext ? ` · next in ${toNext.toLocaleString()}` : ' · max'}
         </span>
       )}
+      {hearth && <span className="boost-chip hearth" title="Someone else in your guild played today: +5% XP in every skill">🔥 Hearth Together +5%</span>}
       {b.zeal > 1.001 && <span className="boost-chip zeal" title="Early levels are faster: ×3 below 90, fading to normal by 180">🌱 ×{b.zeal.toFixed(1).replace('.0', '')} early levels</span>}
       {b.catchUp > 1.001 && b.highestSkill && <span className="boost-chip catch" title="Skills behind your highest skill get +10% XP per 10 levels behind (up to +100%)">🧭 {pct(b.catchUp)} catching up to {SKILLS[b.highestSkill].name}</span>}
       {b.zeal * b.catchUp > b.total + 0.001 && <span className="small dim">(max ×{b.total})</span>}

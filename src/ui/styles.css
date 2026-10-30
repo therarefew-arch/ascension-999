@@ -1459,6 +1459,7 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .boost-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 99px; font-size: 0.72rem; font-weight: 800; border: 1.5px solid; }
 .boost-chip.zeal { color: #bbf7d0; border-color: #166534; background: #052e1a; }
 .boost-chip.catch { color: #bae6fd; border-color: #075985; background: #082f49; }
+.boost-chip.hearth { color: #fecaca; border-color: #9f1239; background: #2a0a12; }
 .boost-chip.seasoned { color: #fde68a; border-color: #92610f; background: #241a08; }
 .boost-chip.stir { color: #fff7ed; border-color: #ea580c; background: #431407; animation: stir-glow 1.6s ease-in-out infinite alternate; }
 
@@ -1703,3 +1704,19 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .fam-cheer { flex: none; border: 1px solid var(--line); background: transparent; border-radius: 99px; padding: 4px 9px; font-size: 1rem; }
 .fam-cheer.on { border-color: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.35); opacity: 0.7; }
 .fam-leave { text-align: center; margin: 18px 0 8px; }
+
+/* 🏆 Weekly family goal + 🔥 Hearth Together (v0.0.1.56) */
+.fam-hearth { margin: 8px 0 0; }
+.fam-hearth.on { color: #fca5a5; }
+.fam-goal { margin-bottom: 10px; }
+.fam-goal h3 { margin: 0; font-size: 1rem; overflow-wrap: anywhere; }
+.fam-goal-bar { position: relative; height: 12px; margin: 12px 0 4px; border-radius: 99px; background: #1c1917; border: 1px solid #44403c; overflow: visible; }
+.fam-goal-fill { position: absolute; inset: 0 auto 0 0; border-radius: 99px; background: linear-gradient(90deg, #b45309, #fbbf24); }
+.fam-goal-mark { position: absolute; top: -7px; transform: translateX(-50%); font-size: 0.95rem; line-height: 1; filter: grayscale(1) opacity(0.55); }
+.fam-goal-mark.done { filter: none; }
+.fam-goal-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0 6px; }
+.fam-goal-step { text-align: center; padding: 6px 4px; border-radius: 10px; border: 1px solid #44403c; background: #1c1917; }
+.fam-goal-step.done { border-color: #a16207; background: #241a08; }
+.fam-goal-step b { display: block; font-size: 0.8rem; }
+.fam-goal-by { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; }
+.fam-goal .btn-hero { width: 100%; margin-top: 8px; }

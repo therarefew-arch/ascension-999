@@ -15,6 +15,7 @@ import { HOT_SPRING_MULT, inHotSprings } from './cinderpeak';
 import { rollFestivalToken } from './festivals';
 import { RELIC, RELIC_ASC, relicAsc, relicOn } from './relics';
 import { ascBonus } from './ascBonus';
+import { familyCount } from './family';
 
 export const FIGHT_PREFIX = 'fight:';
 export const isFightId = (actionId: string | undefined | null) => !!actionId && actionId.startsWith(FIGHT_PREFIX);
@@ -271,6 +272,7 @@ export function advanceFight(
       if (f.monsterHp <= 0) {
         cr.kills++;
         f.kills++;
+        familyCount(p, 'kills'); // 🏆 weekly family goal
         let loot = rollLoot(monster.lootTable, rng);
         // ✨ Pedlar's Patchwork Coat: a little more coin from every monster.
         if (relicOn(p, 'patchwork_coat')) {

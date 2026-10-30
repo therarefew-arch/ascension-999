@@ -145,7 +145,7 @@ export function ProfileScreen({ onGear, startTab = 'character' }: { onGear: () =
           <button className={`tab-pill ${tab === 'character' ? 'on' : ''}`} onClick={() => setTab('character')}><UiIcon name="gear" size={14} /> CHARACTER</button>
           <button className={`tab-pill ${tab === 'stats' ? 'on' : ''}`} onClick={() => setTab('stats')}><UiIcon name="trophy" size={14} /> STATS</button>
           <button className={`tab-pill ${tab === 'pets' ? 'on' : ''}`} onClick={() => setTab('pets')}><UiIcon name="heart" size={14} /> PETS</button>
-          <button className={`tab-pill ${tab === 'family' ? 'on' : ''}`} onClick={() => setTab('family')}>👪 FAMILY</button>
+          <button className={`tab-pill ${tab === 'family' ? 'on' : ''}`} onClick={() => setTab('family')}>🏰 GUILD</button>
           <button className={`tab-pill ${tab === 'settings' ? 'on' : ''}`} onClick={() => setTab('settings')}><UiIcon name="settings" size={14} /> SETTINGS</button>
         </div>
         {tab === 'character' && <Character onGear={onGear} />}

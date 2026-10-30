@@ -8,6 +8,7 @@ import { addXp, equippedToolTier, skillLevel, toolSpeedMult } from './idle';
 import { equipmentStats } from './equipment';
 import { TOOL_TIERS } from '../data/items';
 import { rollFestivalToken } from './festivals';
+import { familyCount } from './family';
 import { countInBag, removeFromBag } from './inventory';
 import { giveLoot, rollLoot, rollPet } from './loot';
 import type { PlayerState } from './player';
@@ -77,6 +78,7 @@ export function harvest(p: PlayerState, i: number, report: ProgressReport, now =
   // 🎪 Harvesting is worth a few festival rolls (it's a big, slow action).
   for (let k = 0; k < 5; k++) rollFestivalToken(p, report, now);
   report.actions++;
+  familyCount(p, 'farming');
   const pet = rollPet(p, 'farming');
   if (pet) report.pets.push(pet);
   p.farm.plots[i] = null;

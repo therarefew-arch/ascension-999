@@ -14,6 +14,7 @@ import { LOCAL_SKILLS, regionOpen, WOODS } from '../data/tiers';
 import type { IdleSlot, PlayerState } from './player';
 import { MAX_XP, levelForXp } from './xp';
 import { xpBoost } from './boosts';
+import { familyCount, HEARTH_XP, hearthLit } from './family';
 import { FIND_ITEM, LOOT_TABLES } from '../data/lootTables';
 import { buffSpeedPct, buffXpMult } from './buffs';
 import { cottageFirePct, cottageXpMult } from './cottage';
@@ -386,6 +387,7 @@ export function completeAction(
   rollFestivalToken(p, report, opts.at ?? Date.now());
   addXp(p, action, report, Math.round(action.xp * (opts.xpMult ?? 1) * (stirring ? STIR_XP_MULT : 1)));
   report.actions++;
+  familyCount(p, action.skill); // 🏆 weekly family goal
   const pet = rollPet(p, action.skill);
   if (pet) report.pets.push(pet);
   return true;
@@ -399,6 +401,8 @@ export function addXp(p: PlayerState, action: { skill: SkillId }, report: Progre
   if (petBoosts(p.activePet, action.skill)) xp = xp * (1 + PET_XP_BONUS);
   // A lit bonfire warms everyone up: +5% XP to all skills.
   if (p.bonfire && p.bonfire.until > Date.now()) xp = xp * 1.05;
+  // 🔥 Hearth Together: someone else in your family played today.
+  if (hearthLit(p)) xp = xp * (1 + HEARTH_XP);
   // 🍵 Brews from Cooking, and 🏡 Cottage furniture.
   xp = xp * buffXpMult(p, action.skill) * cottageXpMult(p, action.skill);
   // 🎪 The season's festival skill gets +10%.

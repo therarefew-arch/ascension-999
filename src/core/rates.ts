@@ -4,6 +4,7 @@ import { ACTIONS, actionsForSkill, type ActionDef } from '../data/skills';
 import { actionDuration, skillLevel } from './idle';
 import type { PlayerState } from './player';
 import { levelForXp, levelProgress, MAX_LEVEL, XP_AT } from './xp';
+import { HEARTH_XP, hearthLit } from './family';
 import { catchUpMult, MAX_BOOST, xpBoost, zealMult } from './boosts';
 import { PET_XP_BONUS, petBoosts } from '../data/pets';
 import { buffXpMult } from './buffs';
@@ -88,5 +89,6 @@ function extraMult(p: PlayerState, skill: SkillId) {
   let m = 1;
   if (petBoosts(p.activePet, skill)) m *= 1 + PET_XP_BONUS;
   if (p.bonfire && p.bonfire.until > Date.now()) m *= 1.05;
+  if (hearthLit(p)) m *= 1 + HEARTH_XP;
   return m * buffXpMult(p, skill) * cottageXpMult(p, skill);
 }

@@ -53,3 +53,13 @@ CREATE TABLE IF NOT EXISTS nudges (
   day TEXT NOT NULL,
   PRIMARY KEY (from_m, to_m, day)
 );
+-- 👪 Weekly family goal (v0.0.1.56): each member's counts for the week (logs chopped, monsters defeated…).
+CREATE TABLE IF NOT EXISTS goals (
+  member TEXT NOT NULL,
+  family TEXT NOT NULL,
+  week TEXT NOT NULL,         -- the Monday the week started, e.g. 2026-10-26
+  counts TEXT NOT NULL,       -- {"woodcutting": 1200, "kills": 40, "any": 3000, …}
+  updated INTEGER NOT NULL,
+  PRIMARY KEY (member, week)
+);
+CREATE INDEX IF NOT EXISTS goals_family ON goals (family, week);

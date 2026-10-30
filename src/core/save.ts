@@ -358,6 +358,14 @@ function repair(raw: any): PlayerState {
   if (fam && typeof fam === 'object' && ['f', 'm', 't', 'family', 'me'].every((k) => typeof fam[k] === 'string' && fam[k])) {
     p.family = { f: fam.f, m: fam.m, t: fam.t, family: fam.family.slice(0, 24), me: fam.me.slice(0, 24) };
   }
+  // 🏆 Weekly family goal counts + 🔥 Hearth Together day (v0.0.1.56, no version bump)
+  const fw = raw?.familyWeek;
+  if (fw && typeof fw === 'object' && typeof fw.week === 'string' && /^\d{4}-\d\d-\d\d$/.test(fw.week)) {
+    const n: Record<string, number> = {};
+    if (fw.n && typeof fw.n === 'object') for (const [k, v] of Object.entries(fw.n)) if (typeof v === 'number' && Number.isFinite(v) && v > 0) n[k.slice(0, 20)] = Math.floor(v);
+    p.familyWeek = { week: fw.week, n, claimed: Math.max(0, Math.min(3, Math.floor(Number(fw.claimed) || 0))) };
+  }
+  if (typeof raw?.hearth === 'string' && /^\d{4}-\d\d-\d\d$/.test(raw.hearth)) p.hearth = raw.hearth;
   // 📌 Kept-in-bag items (v22)
   if (Array.isArray(raw?.keep)) p.keep = Array.from(new Set(raw.keep.filter((id: unknown) => typeof id === 'string' && !!ITEMS[id as string])));
   // Fishing Journal + festivals (v21)

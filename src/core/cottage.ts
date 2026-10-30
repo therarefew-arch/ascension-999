@@ -32,6 +32,8 @@ export interface Furniture {
   needsLunaria?: boolean;
   /** Festival keepsakes come from the festival stall instead of being built. */
   festival?: FestivalId;
+  /** 👪 Earned with your family (a 🥇 week) instead of being built. */
+  family?: boolean;
   blurb: string;
 }
 
@@ -102,7 +104,12 @@ export const FESTIVAL_FURNITURE: Furniture[] = FESTIVALS.map((fe) => ({
   id: fe.decoration.id, name: fe.decoration.name, emoji: fe.decoration.emoji, x: FESTIVAL_SPOTS[fe.id][0], y: FESTIVAL_SPOTS[fe.id][1],
   skill: 'crafting', level: 1, tier: 0, cost: [], perk: { kind: 'xp', skill: 'all', pct: 1 }, festival: fe.id, blurb: fe.decoration.blurb,
 }));
-export const ALL_FURNITURE = [...FURNITURE, ...FESTIVAL_FURNITURE];
+/** 👪 The family keepsake: earned on your first 🥇 Gold family week (v0.0.1.56). */
+export const FAMILY_FURNITURE: Furniture[] = [
+  { id: 'family_portrait', name: 'Guild portrait', emoji: '🖼️', x: 38, y: 8, skill: 'crafting', level: 1, tier: 0, cost: [],
+    perk: { kind: 'xp', skill: 'all', pct: 1 }, family: true, blurb: 'Everyone squeezed into one frame, someone blinking. It makes the cottage feel full.' },
+];
+export const ALL_FURNITURE = [...FURNITURE, ...FESTIVAL_FURNITURE, ...FAMILY_FURNITURE];
 export const FURNITURE_MAP: Record<string, Furniture> = Object.fromEntries(ALL_FURNITURE.map((f) => [f.id, f]));
 
 const baseXp = (t: number) => (t === 0 ? 8 : t === 1 ? 12 : tierXp(t));
@@ -117,6 +124,7 @@ export function whyCantBuild(p: PlayerState, id: string): string | null {
   if (!f) return 'Unknown furniture';
   if (p.cottage.includes(id)) return 'Already built';
   if (f.festival) return 'Find it at the festival stall';
+  if (f.family) return 'Earned on a 🥇 Gold guild week';
   const region = furnitureRegion(f);
   if (!regionOpen(region) || !p.regions.includes(region)) return `Discover ${region} first`;
   if (f.needsLunaria && !p.lunaria.restored) return 'Bring Lunaria home first';

@@ -65,7 +65,10 @@ import type { RelicKey } from '../data/relics';
 import { masteryReached } from './mastery';
 import type { BonusKey } from '../data/ascended';
 import { outfit } from './outfit';
-import { familyLevelMoment, familyMoment, itemName, type FamilyLink } from './family';
+import {
+  FAMILY_KEEPSAKE, familyLevelMoment, familyMoment, goalReward, itemName, lastBoard, MEDAL_NAMES, MEDALS, playedToday, setBoard, thisWeek, dayKey,
+  type FamilyBoard, type FamilyLink,
+} from './family';
 
 /** Gaps longer than this count as "away" and show the summary card. */
 const AWAY_THRESHOLD_MS = 60 * 1000;
@@ -1367,9 +1370,48 @@ export const game = {
 
   /** 👪 Join / leave a family (the Family tab talks to the server first). */
   setFamily(link: FamilyLink | null) {
-    if (link) snap.player.family = link; else delete snap.player.family;
+    if (link) snap.player.family = link; else { delete snap.player.family; delete snap.player.hearth; }
     save();
     emit();
+  },
+
+  /** A new family board arrived: show it, and light 🔥 Hearth Together if someone else played today. */
+  familyBoard(b: FamilyBoard | null) {
+    setBoard(b);
+    const p = snap.player;
+    if (!b || !p.family) return;
+    const today = dayKey();
+    if (p.hearth !== today && playedToday(b, p.family.m).length) {
+      p.hearth = today;
+      toast('🔥 Hearth Together: your guild played today — +5% XP', 'good');
+      save();
+      emit();
+    }
+  },
+
+  /** 🏆 Claim the next step of this week's family goal (coins + a rare find; 🥇 also the family portrait, once). */
+  claimFamilyGoal() {
+    const p = snap.player;
+    const goal = lastBoard()?.goal;
+    const wk = thisWeek(p);
+    if (!p.family || !goal || goal.week !== wk.week) return fail('The family board is still loading');
+    const step = wk.claimed;
+    if (step >= 3) return fail('All three steps claimed this week');
+    if (goal.total < goal.steps[step]) return fail(`Your guild needs ${goal.steps[step].toLocaleString()} for ${MEDAL_NAMES[step]}`);
+    const best = Math.max(...ALL_SKILLS.map((s) => skillLevel(p, s)));
+    const r = goalReward(best, step);
+    const loot: ItemStack[] = [{ id: 'coins', qty: r.coins }];
+    if (r.find) loot.push({ id: ['bird_nest', 'geode', 'message_bottle'][Math.floor(Math.random() * 3)], qty: 1 });
+    giveLoot(p, loot, { overflowToBank: true });
+    p.familyWeek = { ...wk, claimed: step + 1 };
+    let keepsake = false;
+    if (r.keepsake && !p.cottage.includes(FAMILY_KEEPSAKE)) { p.cottage.push(FAMILY_KEEPSAKE); keepsake = true; }
+    play('levelup');
+    if (step === 2) celebrate();
+    toast(`${MEDALS[step]} ${MEDAL_NAMES[step]} claimed: ${r.coins.toLocaleString()} coins + ${getItem(loot[1].id).name}${keepsake ? ' + 🖼️ Guild portrait for your Cottage' : ''}`, 'good');
+    save();
+    emit();
+    return null;
   },
 
   // ----- Gear -----
