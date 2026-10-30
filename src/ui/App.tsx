@@ -20,6 +20,7 @@ import { TitleScreen } from './TitleScreen';
 import { BankScreen } from './screens/BankScreen';
 import { GearScreen } from './screens/GearScreen';
 import { ProfileScreen, type ProfileTab } from './screens/ProfileScreen';
+import { FamilyInvite, useFamilySync } from './Family';
 import { PET_MAP } from '../data/pets';
 import { SkillScreen, SkillStrip } from './screens/SkillScreen';
 import { TownScreen } from './screens/TownScreen';
@@ -120,6 +121,7 @@ export function App() {
   const [itemView, setItemView] = useState<{ id: string; from: ItemPlace } | null>(null);
   const closeItem = useCallback(() => setItemView(null), []);
   const closeBag = useCallback(() => setBagOpen(false), []);
+  useFamilySync();
 
   // Sound can only start after the first tap (browser rule).
   // Each town has its own song; it crossfades when you arrive somewhere new.
@@ -209,6 +211,7 @@ export function App() {
       {itemView && <ItemSheet id={itemView.id} from={itemView.from} onClose={closeItem} onReroll={(next) => setItemView({ id: next, from: 'bag' })} />}
       {idleOpen && <IdleSlots onClose={() => setIdleOpen(false)} />}
       {away && <AwayCard away={away} />}
+      {!away && <FamilyInvite />}
     </div>
   );
 }

@@ -15,3 +15,41 @@ CREATE TABLE IF NOT EXISTS notes (
 );
 CREATE INDEX IF NOT EXISTS notes_due ON notes (sent, at);
 CREATE INDEX IF NOT EXISTS notes_device ON notes (device);
+
+-- 👪 Family (v0.0.1.55): small groups joined by an invite link. No accounts — each member gets a secret token.
+CREATE TABLE IF NOT EXISTS families (
+  id TEXT PRIMARY KEY,        -- long random id (it's in the invite link)
+  name TEXT NOT NULL,
+  created INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS members (
+  id TEXT PRIMARY KEY,
+  family TEXT NOT NULL,
+  token TEXT NOT NULL,        -- secret, kept in that player's save
+  name TEXT NOT NULL,
+  snap TEXT NOT NULL DEFAULT '{}', -- a small summary of their adventurer (town, levels, idle…)
+  device TEXT,                -- their phone's push id, if notifications are on
+  updated INTEGER NOT NULL,
+  joined INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS members_family ON members (family);
+CREATE TABLE IF NOT EXISTS feed (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  family TEXT NOT NULL,
+  member TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  text TEXT NOT NULL,
+  at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS feed_family ON feed (family, at);
+CREATE TABLE IF NOT EXISTS cheers (
+  feed INTEGER NOT NULL,
+  member TEXT NOT NULL,
+  PRIMARY KEY (feed, member)
+);
+CREATE TABLE IF NOT EXISTS nudges (
+  from_m TEXT NOT NULL,
+  to_m TEXT NOT NULL,
+  day TEXT NOT NULL,
+  PRIMARY KEY (from_m, to_m, day)
+);

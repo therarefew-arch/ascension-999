@@ -117,4 +117,9 @@ export async function sendTestPush(): Promise<{ ok: boolean; msg: string }> {
   }
 }
 
+/** This phone's push address (sent with the Family check-in so cheers and nudges can reach you). */
+export function pushSubscription(): { endpoint: string } | null {
+  try { const raw = localStorage.getItem(SUB_KEY); return raw ? { endpoint: JSON.parse(raw).endpoint } : null; } catch { return null; }
+}
+
 export const hasPushSubscription =() => { try { return !!localStorage.getItem(SUB_KEY); } catch { return false; } };

@@ -65,6 +65,7 @@ import type { RelicKey } from '../data/relics';
 import { masteryReached } from './mastery';
 import type { BonusKey } from '../data/ascended';
 import { outfit } from './outfit';
+import { familyLevelMoment, familyMoment, itemName, type FamilyLink } from './family';
 
 /** Gaps longer than this count as "away" and show the summary card. */
 const AWAY_THRESHOLD_MS = 60 * 1000;
@@ -155,6 +156,8 @@ function announceLevels(report: ProgressReport) {
     toast(milestone && lv.to % 10 === 0 ? `🎉 ${SKILLS[lv.skill].name} level ${lv.to}!` : `${SKILLS[lv.skill].name} level ${lv.to}!`, 'level');
     if (milestone) celebrate();
     // ✦ A mastery step (800 / 900 / 999).
+    const fm = familyLevelMoment(lv.skill, lv.from, lv.to);
+    if (fm) familyMoment(snap.player, lv.to >= 999 ? 'master' : 'level', fm);
     const m = masteryReached(lv.from, lv.to);
     if (m) toast(`✦ ${SKILLS[lv.skill].name} ${m.name}: ${m.text(SKILLS[lv.skill].name)}`, 'level');
   }
@@ -166,7 +169,7 @@ function announceAscended(report: ProgressReport) {
     const a = getItem(id).ascended!;
     play(a.grade.key === 'g' || a.grade.key === 'd' ? 'levelup' : 'rune');
     toast(`🌟 Ascended find: ${getItem(id).name}!`, a.grade.key === 'f' ? 'good' : 'level');
-    if (a.grade.key === 'g' || a.grade.key === 'd') celebrate();
+    if (a.grade.key === 'g' || a.grade.key === 'd') { celebrate(); familyMoment(snap.player, 'ascended', `found an Ascended ${itemName(id)}!`); }
   }
 }
 
@@ -174,6 +177,7 @@ function announcePets(report: ProgressReport) {
   for (const id of report.pets) {
     play('levelup');
     toast(`🎉 New pet: ${PET_MAP[id].emoji} ${PET_MAP[id].name}!`, 'level');
+    familyMoment(snap.player, 'pet', `got a new pet: ${PET_MAP[id].emoji} ${PET_MAP[id].name}!`);
   }
 }
 
@@ -207,7 +211,7 @@ function tick(now = Date.now()) {
   if (arrival) {
     play(arrival.firstVisit ? 'levelup' : 'welcome');
     toast(arrival.firstVisit ? `🗺️ You discovered ${arrival.arrived}! Its resources are unlocked.` : `Welcome to ${arrival.arrived}`, arrival.firstVisit ? 'level' : 'good');
-    if (arrival.firstVisit) celebrate();
+    if (arrival.firstVisit) { celebrate(); familyMoment(p, 'town', `discovered ${arrival.arrived}!`); }
     announceLore(syncLore(p));
     save();
     emit();
@@ -301,6 +305,7 @@ function tick(now = Date.now()) {
   for (const c of report.rareFish ?? []) {
     const f = RARE_FISH_MAP[c.id];
     play('match');
+    if (c.first || c.record) familyMoment(p, 'fish', c.first ? `caught their first ${f.name.toLowerCase()} ${f.emoji} (${c.cm} cm)!` : `caught a record ${f.name.toLowerCase()} ${f.emoji}: ${c.cm} cm!`);
     toast(c.first ? `${f.emoji} New in your Fishing Journal: ${f.name}! (${c.cm} cm)` : c.record ? `${f.emoji} A record ${f.name.toLowerCase()}: ${c.cm} cm!` : `${f.emoji} You caught a ${f.name.toLowerCase()} (${c.cm} cm)`, c.first || c.record ? 'level' : 'good');
   }
   const found = rollLoreFind(p, report.actions);
@@ -309,6 +314,7 @@ function tick(now = Date.now()) {
     const won = s.reason.endsWith('defeated!');
     play(won ? 'levelup' : 'error');
     toast(won ? `🏆 ${s.reason}` : `Stopped: ${s.reason}`, won ? 'level' : 'bad');
+    if (won) familyMoment(p, 'boss', `defeated ${s.reason.replace(/ defeated!$/, '')}!`);
   }
   emit();
 }
@@ -925,7 +931,7 @@ export const game = {
     for (const s of loot) { const m = merged.find((x) => x.id === s.id); if (m) m.qty += s.qty; else merged.push({ ...s }); }
     const leftover = giveLoot(p, merged);
     const pet = r.won && grantPet(p, 'pet_lumen');
-    if (r.won) celebrate();
+    if (r.won) { celebrate(); familyMoment(p, 'dawn', 'kept the lantern lit until dawn!'); }
     trackRequests(p, report, 1);
     trackTutorial(p, report);
     announceLevels(report);
@@ -951,7 +957,7 @@ export const game = {
     if (full) loot.push({ id: ['bird_nest', 'geode', 'message_bottle'][Math.floor(Math.random() * 3)], qty: 1 });
     const leftover = giveLoot(p, loot);
     const pet = full && grantPet(p, 'pet_confetti');
-    if (full) celebrate();
+    if (full) { celebrate(); familyMoment(p, 'parade', 'won a full Pet Parade!'); }
     const report = emptyReport(null);
     if (r.wins > 0) trackRequests(p, report, 1);
     trackTutorial(p, report);
@@ -987,7 +993,7 @@ export const game = {
     for (const s of loot) { const m = merged.find((x) => x.id === s.id); if (m) m.qty += s.qty; else merged.push({ ...s }); }
     const leftover = giveLoot(p, merged);
     const pet = r.won && grantPet(p, 'pet_lookout');
-    if (r.won) celebrate();
+    if (r.won) { celebrate(); familyMoment(p, 'wall', `held the wall in ${r.region ?? p.location}!`); }
     trackRequests(p, report, 1);
     trackTutorial(p, report);
     announceLevels(report);
@@ -1354,6 +1360,16 @@ export const game = {
     save();
     emit();
     return done;
+  },
+
+  /** The current player (for checks outside React, e.g. the family check-in). */
+  player(): PlayerState { return snap.player; },
+
+  /** 👪 Join / leave a family (the Family tab talks to the server first). */
+  setFamily(link: FamilyLink | null) {
+    if (link) snap.player.family = link; else delete snap.player.family;
+    save();
+    emit();
   },
 
   // ----- Gear -----

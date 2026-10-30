@@ -3,6 +3,7 @@
 import type { EquipSlot, SkillId } from '../data/items';
 import type { FightState } from './combat';
 import type { Region } from '../data/tiers';
+import type { FamilyLink } from './family';
 import type { TownRequest } from './cozy';
 import type { Bounty } from './bounties';
 import type { ActiveBuff } from './buffs';
@@ -139,6 +140,8 @@ export interface PlayerState {
   pedlar: { favour: number; opened: number };
   /** 🌟 Starlight (the Ascension's crafting currency, levels 750+). */
   starlight: number;
+  /** 👪 Your family (v0.0.1.55): member id + secret token for the family board. Not set = not in a family. */
+  family?: FamilyLink;
 }
 
 export interface Loadout {

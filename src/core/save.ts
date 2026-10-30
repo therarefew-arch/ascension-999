@@ -353,6 +353,11 @@ function repair(raw: any): PlayerState {
   }
   // 🌟 Starlight (no version bump: older saves start with none)
   if (typeof raw?.starlight === 'number' && raw.starlight > 0) p.starlight = Math.floor(raw.starlight);
+  // 👪 Family membership (no version bump: older saves simply aren't in one)
+  const fam = raw?.family;
+  if (fam && typeof fam === 'object' && ['f', 'm', 't', 'family', 'me'].every((k) => typeof fam[k] === 'string' && fam[k])) {
+    p.family = { f: fam.f, m: fam.m, t: fam.t, family: fam.family.slice(0, 24), me: fam.me.slice(0, 24) };
+  }
   // 📌 Kept-in-bag items (v22)
   if (Array.isArray(raw?.keep)) p.keep = Array.from(new Set(raw.keep.filter((id: unknown) => typeof id === 'string' && !!ITEMS[id as string])));
   // Fishing Journal + festivals (v21)
