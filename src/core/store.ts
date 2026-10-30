@@ -44,11 +44,13 @@ import type { ItemStack } from './player';
 /** What the bag/bank looked like before the last sort (for ↶ Undo). Not saved. */
 let lastBagLayout: (ItemStack | null)[] | null = null;
 let lastBankOrder: string[] | null = null;
-import { giveLoot, grantPet, lootFits, rollGemReroll, rollLoot, satchelOn, validateLootTables } from './loot';
+import { giveLoot, grantPet, lootFits, rollGemReroll, rollLoot, rollPet, satchelOn, validateLootTables } from './loot';
 import { BLOCK_WINDOW_MS, eatFood, endFight, fightSlot, maxHp, regenHp, startFight, weaponStyle } from './combat';
 import { lootRolls, nightXp, STUB_COINS } from './lanternWatch';
 import { paradeCoins, WINS_NEEDED as PARADE_WINS } from './petParade';
 import { wallXp } from './holdWall';
+import { newRun, townBoss, townMonsters, whyCantStart, XP_SECS, type Reward, type Run } from './expedition';
+import { gatherXpPerHour, REGIONS, tierForLevel } from '../data/tiers';
 import { REROLL_COST, socketGem, unsocketGem } from './equipment';
 import { countInBag, countInBank, removeFromBag, removeFromBank } from './inventory';
 import { MONSTER_MAP, MONSTERS } from '../data/monsters';
@@ -66,7 +68,7 @@ import { masteryReached } from './mastery';
 import type { BonusKey } from '../data/ascended';
 import { outfit } from './outfit';
 import {
-  FAMILY_KEEPSAKE, familyLevelMoment, giftLabel, giftsWaiting, MAX_GIFT_STACKS, newGiftId, syncSoon, whyCantGift, type FamilyMember, familyMoment, goalReward, itemName, lastBoard, MEDAL_NAMES, MEDALS, playedToday, setBoard, thisWeek, dayKey,
+  FAMILY_KEEPSAKE, familyCount, familyLevelMoment, giftLabel, giftsWaiting, MAX_GIFT_STACKS, newGiftId, syncSoon, whyCantGift, type FamilyMember, familyMoment, goalReward, itemName, lastBoard, MEDAL_NAMES, MEDALS, playedToday, setBoard, thisWeek, dayKey,
   type FamilyBoard, type FamilyLink,
 } from './family';
 
@@ -1006,6 +1008,108 @@ export const game = {
       won: r.won, xp: gained, coins: merged.find((s) => s.id === 'coins')?.qty ?? 0,
       items: merged.filter((s) => s.id !== 'coins'), leftover: leftover.reduce((s, x) => s + x.qty, 0), pet,
     };
+  },
+
+  // ----- 🧭 Expeditions -----
+  /** Set off: the packed things leave your bag (then bank) and go in the expedition satchel. */
+  expeditionStart(region: Region, pack: ItemStack[]): Run | null {
+    const p = snap.player;
+    const list = pack.filter((x) => x.qty > 0);
+    const why = whyCantStart(p, region, list);
+    if (why) { fail(why); return null; }
+    const need = new Map<string, number>();
+    for (const x of list) need.set(x.id, (need.get(x.id) ?? 0) + x.qty);
+    for (const [id, n] of need) if (countInBag(p.inventory, id) + countInBank(p, id) < n) { fail(`Not enough ${getItem(id).name}`); return null; }
+    for (const [id, n] of need) {
+      const fromBag = removeFromBag(p.inventory, id, n);
+      if (fromBag < n) removeFromBank(p, id, n - fromBag);
+    }
+    const run = newRun(p, region, list);
+    play('levelup');
+    save();
+    emit();
+    return run;
+  },
+
+  /**
+   * Gives what an expedition step earned: combat XP (paced like the town's gathering XP, a bit better per
+   * minute than fighting normally), the monsters' own loot, cache rolls, rare finds and skill XP — all
+   * through the loot system (whatever doesn't fit goes to the bank). Adds it to `run.found`.
+   */
+  expeditionReward(run: Run, reward: Reward | null): ItemStack[] {
+    if (!reward) return [];
+    const p = snap.player;
+    const report = emptyReport(null);
+    const townTier = REGIONS.indexOf(run.region);
+    const perSec = (skill: SkillId) => gatherXpPerHour(Math.min(tierForLevel(skillLevel(p, skill)), townTier)) / 3600;
+    const loot: ItemStack[] = [];
+    const mobs = townMonsters(run.region);
+    let secs = 0;
+    for (const k of reward.kills ?? []) {
+      const m = MONSTER_MAP[k.m];
+      if (!m) continue;
+      secs += k.boss ? XP_SECS.boss : k.elite ? XP_SECS.elite : XP_SECS.kill;
+      const rolls = k.boss ? 1 : k.elite ? 3 : 1;
+      for (let i = 0; i < rolls; i++) loot.push(...rollLoot(m.lootTable));
+      if (k.boss) {
+        // The town's mini boss guards the end of the road (gems can drop — only bosses ever drop gems).
+        for (let i = 0; i < 2 && mobs.length; i++) loot.push(...rollLoot(mobs[Math.floor(Math.random() * mobs.length)].lootTable));
+        const pet = m.pet ? rollPet(p, 'combat', Math.random, m.pet) : null;
+        if (pet) { run.found.pet = pet; report.pets.push(pet); toast(`🐾 ${PET_MAP[pet]?.name ?? 'A pet'} wants to come home with you!`, 'level'); }
+      }
+      run.found.kills++;
+      familyCount(p, 'kills');
+      const br = emptyReport(null);
+      br.combat = { kills: 1, damageDealt: 0, damageTaken: 0, foodEaten: 0 };
+      trackBounties(p, br, m.id);
+    }
+    for (let i = 0; i < (reward.rolls ?? 0) && mobs.length; i++) loot.push(...rollLoot(mobs[Math.floor(Math.random() * mobs.length)].lootTable));
+    if (reward.find) loot.push({ id: reward.find, qty: 1 });
+    const gain = (skill: SkillId, xp: number) => {
+      xp = Math.round(xp);
+      if (xp <= 0) return;
+      addXp(p, { skill }, report, xp);
+      run.found.xp[skill] = (run.found.xp[skill] ?? 0) + xp;
+    };
+    if (secs) {
+      const style = run.style;
+      const xp = perSec(style) * secs;
+      gain(style, xp);
+      gain('health', xp / 3);
+      gain('defense', xp / 4);
+    }
+    if (reward.skillXp) gain(reward.skillXp, perSec(reward.skillXp) * XP_SECS.event);
+    const merged: ItemStack[] = [];
+    for (const x of loot) { const m = merged.find((y) => y.id === x.id); if (m) m.qty += x.qty; else merged.push({ ...x }); }
+    giveLoot(p, merged, { overflowToBank: true });
+    for (const x of merged) {
+      const f = run.found.items.find((y) => y.id === x.id);
+      if (f) f.qty += x.qty; else run.found.items.push({ ...x });
+    }
+    if (merged.some((x) => getItem(x.id).gem)) { play('enchant'); toast('💎 A gem!', 'level'); }
+    announceLevels(report);
+    save();
+    emit();
+    return merged;
+  },
+
+  /** The expedition is over (won, knocked out or headed home): unused supplies come back. */
+  expeditionEnd(run: Run) {
+    const p = snap.player;
+    const back = run.satchel.filter((x) => x.qty > 0).map((x) => ({ id: x.id, qty: x.qty }));
+    if (back.length) giveLoot(p, back, { overflowToBank: true });
+    run.satchel = [];
+    if (run.end === 'won') {
+      celebrate();
+      const boss = townBoss(run.region);
+      if (boss) familyMoment(p, 'boss', `defeated ${boss.name} on an expedition!`);
+    }
+    const report = emptyReport(null);
+    if (run.found.kills > 0) trackRequests(p, report, 1);
+    trackTutorial(p, report);
+    save();
+    emit();
+    return back;
   },
 
   // ----- Combat -----

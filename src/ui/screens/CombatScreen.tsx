@@ -20,6 +20,7 @@ import { hasSavedNight, LanternWatch } from '../LanternWatch';
 import { HoldWall, hasSavedWall } from '../HoldWall';
 import { WAVES as WALL_WAVES } from '../../core/holdWall';
 import { RoadUp } from '../RoadUp';
+import { ExpeditionLaunch } from '../Expedition';
 
 const STYLE_ICON = { melee: 'melee', ranged: 'ranged', magic: 'magic' } as const;
 const STYLE_NAME: Record<CombatStyle, string> = { melee: 'Melee', ranged: 'Ranged', magic: 'Magic' };
@@ -314,7 +315,8 @@ export function CombatScreen({ onItem }: { onItem: (id: string) => void }) {
               <HpBar hp={player.hp} max={max} tone="green" />
               <p className="small muted">Triangle: Melee beats Ranged · Ranged beats Magic · Magic beats Melee. Your weapon sets your style. You heal slowly out of combat, and eat food automatically when low.</p>
             </div>
-            <button className="lw-launch" onClick={() => setWatch(true)}>
+            <ExpeditionLaunch />
+            <button className="lw-launch" style={{ marginTop: 8 }} onClick={() => setWatch(true)}>
               <span className="lw-launch-emoji">🏮</span>
               <span className="grow"><b>Lantern Watch</b><span className="small muted">{hasSavedNight(slot)
                 ? '💾 You have a saved night — tap to carry on.'

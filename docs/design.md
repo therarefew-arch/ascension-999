@@ -610,6 +610,8 @@ town's monster loot, coins; **boss**: gems (bosses may drop gems), big loot, and
 - 📜 **Lore**: expedition notes per town (the Traveller/Mira thread, Lunaria's bell, the Frontier).
 - 📖 **Lost recipes**: new meals, brews and gear that your skills can then make at home (saved per save).
 
+**Built so far:** Part 1 in v0.0.1.59 (the town's mini boss stands in at the end until part 2; map is 14 steps + boss so runs reach ~15–25 min).
+
 **Build order:** Part 1 — the expedition itself: map, turn-based fights, camps/events/caches/shrines, supplies,
 Boons, XP + loot, knock-out home, pause & continue, one area per town using its monsters. Part 2 — expedition
 bosses with gems, pets, Cottage pieces and lore. Part 3 — lost recipes. Part 4 — guildmate heroes (built from

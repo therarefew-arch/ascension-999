@@ -75,30 +75,35 @@ export function maxHp(p: PlayerState): number {
   return 20 + 4 * lvl(p, 'health') + (equipmentStats(p).health ?? 0);
 }
 
-/** Best arrows/runes in the bag for the current weapon (null for melee or none). */
-export function currentAmmo(p: PlayerState): string | null {
+/** Can the current weapon shoot/cast this ammo? */
+export function ammoFits(p: PlayerState, id: string): boolean {
   const style = weaponStyle(p);
-  if (style === 'melee') return null;
+  const a = ITEMS[id]?.ammo;
+  if (!a || style === 'melee' || a.style !== style) return false;
+  if (style === 'ranged') return true;
   // Elemental staffs only cast with runes of their own element (✨ the Starweaver Staff casts with any).
   const element = p.equipment.weapon ? getItem(p.equipment.weapon).equip?.element : undefined;
   // 🌟 Ascended staffs cast with any rune too.
   const anyRune = relicOn(p, 'starweaver_staff') || !!(p.equipment.weapon && ITEMS[p.equipment.weapon]?.ascended);
+  return anyRune || a.element === element;
+}
+
+/** Best arrows/runes in the bag for the current weapon (null for melee or none). */
+export function currentAmmo(p: PlayerState): string | null {
   let best: string | null = null;
   for (const s of p.inventory) {
-    if (!s) continue;
-    const a = ITEMS[s.id]?.ammo;
-    if (!a || a.style !== style) continue;
-    if (style === 'magic' && !anyRune && a.element !== element) continue;
-    if (!best || a.power > ITEMS[best].ammo!.power) best = s.id;
+    if (!s || !ammoFits(p, s.id)) continue;
+    if (!best || ITEMS[s.id].ammo!.power > ITEMS[best].ammo!.power) best = s.id;
   }
   return best;
 }
 
-export function combatStats(p: PlayerState, monster?: MonsterDef) {
+/** `ammoOverride`: use this ammo instead of the bag's best (🧭 Expeditions use what you packed). */
+export function combatStats(p: PlayerState, monster?: MonsterDef, ammoOverride?: string | null) {
   const style = weaponStyle(p);
   const stats = equipmentStats(p);
   const styleLevel = lvl(p, style);
-  const ammo = currentAmmo(p);
+  const ammo = ammoOverride !== undefined ? ammoOverride : currentAmmo(p);
   const ammoPower = ammo ? ITEMS[ammo].ammo!.power : 0;
   const weapon = p.equipment.weapon ? getItem(p.equipment.weapon) : null;
   const mStyle = monster ? monsterStyle(monster) : 'melee';
