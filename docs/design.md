@@ -610,7 +610,7 @@ town's monster loot, coins; **boss**: gems (bosses may drop gems), big loot, and
 - 📜 **Lore**: expedition notes per town (the Traveller/Mira thread, Lunaria's bell, the Frontier).
 - 📖 **Lost recipes**: new meals, brews and gear that your skills can then make at home (saved per save).
 
-**Built so far:** Part 1 in v0.0.1.59 (map is 14 steps + boss so runs reach ~15–25 min). Part 2 in v0.0.1.60: 11 expedition bosses (The Whispering Oak, The Lamp-Eater, The Bog Lantern, Captain Barnacle, The Lamplighter, The Ashhorn Ram, The Yeti of the Pass, The Ribbon Heron, Starhorn, Old Nimbus, Old Tusk) — each a gem every win, a rare pet, a rare Cottage piece and a lore note.
+**Built so far:** Part 1 in v0.0.1.59 (map is 14 steps + boss so runs reach ~15–25 min). Part 2 in v0.0.1.60: 11 expedition bosses (The Whispering Oak, The Lamp-Eater, The Bog Lantern, Captain Barnacle, The Lamplighter, The Ashhorn Ram, The Yeti of the Pass, The Ribbon Heron, Starhorn, Old Nimbus, Old Tusk) — each a gem every win, a rare pet, a rare Cottage piece and a lore note. Part 3 in v0.0.1.61: 22 lost recipes (per town a stronger 1-hour meal or brew + a charm that brings a Boon on expeditions), taught by the boss (50%) or a cache (10%).
 
 **Build order:** Part 1 — the expedition itself: map, turn-based fights, camps/events/caches/shrines, supplies,
 Boons, XP + loot, knock-out home, pause & continue, one area per town using its monsters. Part 2 — expedition

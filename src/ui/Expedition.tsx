@@ -17,6 +17,8 @@ import { levelForXp } from '../core/xp';
 import { getItem, type CombatStyle } from '../data/items';
 import { EXP_BOSS_MOVE, MONSTER_MAP, monsterStyle } from '../data/monsters';
 import { PET_MAP } from '../data/pets';
+import { lostRecipesOf } from '../data/lostRecipes';
+import { ACTIONS } from '../data/skills';
 import { EXPEDITION_FURNITURE, FURNITURE_MAP } from '../core/cottage';
 import { SKILLS } from '../data/skills';
 import { REGIONS, type Region } from '../data/tiers';
@@ -161,7 +163,7 @@ function Setup({ onStart }: { onStart: (r: Run) => void }) {
           </button>
         ))}
       </div>
-      <p className="tiny muted">Food heals (more if it's from a farther town) · meals heal and give +15% damage for a fight · brews give +3 Focus · {style === 'ranged' ? 'arrows for your bow' : style === 'magic' ? 'runes for your staff' : 'melee needs no ammo'}. Only what you use is gone — the rest comes home.</p>
+      <p className="tiny muted">Food heals (more if it's from a farther town) · meals heal and give +15% damage for a fight · brews give +3 Focus · 📖 charms bring a Boon (never used up) · {style === 'ranged' ? 'arrows for your bow' : style === 'magic' ? 'runes for your staff' : 'melee needs no ammo'}. Only what you use is gone — the rest comes home.</p>
       <div className="ex-pick">
         {have.length === 0 && <p className="small muted">No food, meals, brews or ammo in your bag or bank. Cook something first!</p>}
         {have.map(([id, n]) => {
@@ -192,7 +194,7 @@ function BossPrizes({ region, pet }: { region: Region; pet?: string }) {
   return (
     <span className="small muted">
       Boss prizes: 💎 a gem every time{p && <> · {p.emoji} {p.name}{player.pets.includes(p.id) ? ' ✓' : ' (rare)'}</>}
-      {piece && <> · {piece.emoji} {piece.name}{player.cottage.includes(piece.id) ? ' ✓' : ''}</>} · 📜 a lost note{wins > 0 ? ' · beaten ' + wins + '×' : ''}
+      {piece && <> · {piece.emoji} {piece.name}{player.cottage.includes(piece.id) ? ' ✓' : ''}</>} · 📜 a lost note · 📖 lost recipes ({lostRecipesOf(region).filter((id) => player.recipes?.includes(id)).length}/2){wins > 0 ? ' · beaten ' + wins + '×' : ''}
     </span>
   );
 }
@@ -341,9 +343,9 @@ function Satchel({ run, onUse, onClose }: { run: Run; onUse: (i: number) => void
       {run.satchel.length === 0 && <p className="tiny muted">Empty.</p>}
       <div className="ex-bag-list">
         {run.satchel.map((s, i) => (
-          <button key={s.id + i} className="ex-bag-row" disabled={s.kind === 'ammo'} onClick={() => onUse(i)}>
+          <button key={s.id + i} className="ex-bag-row" disabled={s.kind === 'ammo' || s.kind === 'charm'} onClick={() => onUse(i)}>
             <ItemIcon id={s.id} size={26} />
-            <span className="grow tiny">{getItem(s.id).name}<span className="muted"> · {s.kind === 'ammo' ? 'used when you attack' : s.kind === 'brew' ? '+3 Focus' : `+${s.heal} health${s.kind === 'meal' ? ', +15% dmg' : ''}`}</span></span>
+            <span className="grow tiny">{getItem(s.id).name}<span className="muted"> · {s.kind === 'ammo' ? 'used when you attack' : s.kind === 'charm' ? `Boon: ${BOONS[getItem(s.id).charm as keyof typeof BOONS]?.name ?? ''} (kept)` : s.kind === 'brew' ? '+3 Focus' : `+${s.heal} health${s.kind === 'meal' ? ', +15% dmg' : ''}`}</span></span>
             <span className="mono tiny">×{s.qty}</span>
           </button>
         ))}
@@ -452,6 +454,7 @@ function Done({ run, onClose }: { run: Run; onClose: () => void }) {
       {run.found.pet && <p className="small gold">🐾 {PET_MAP[run.found.pet]?.emoji} {PET_MAP[run.found.pet]?.name} came home with you!</p>}
       {run.found.cottage && <p className="small gold">🏡 {FURNITURE_MAP[run.found.cottage]?.emoji} {FURNITURE_MAP[run.found.cottage]?.name} — it's waiting in your Cottage!</p>}
       {run.found.lore && <p className="small">📜 New note in your Journal: <b>{run.found.lore}</b></p>}
+      {(run.found.recipes ?? []).map((id) => <p key={id} className="small gold">📖 Lost recipe learned: <b>{ACTIONS[id]?.name}</b> — make it in {ACTIONS[id]?.skill === 'cooking' ? 'Cooking' : 'Crafting → Charms'}</p>)}
       {xp.length > 0 && <div className="ex-xp">{xp.map(([s, n]) => <span key={s} className="tiny"><b>{SKILLS[s as keyof typeof SKILLS].name}</b> +{Math.round(n!).toLocaleString()} XP</span>)}</div>}
       {run.found.items.length > 0 && <div className="ex-found static">{run.found.items.map((s) => <span key={s.id} className="ex-found-item"><ItemIcon id={s.id} size={26} /><span className="tiny mono">{s.qty.toLocaleString()}</span></span>)}</div>}
       {(run.returned?.length ?? 0) > 0 && <p className="tiny muted">Unused supplies went back to your bag (or bank): {merge(run.returned!).map((s) => `${s.qty} ${getItem(s.id).name}`).join(', ')}.</p>}

@@ -374,6 +374,8 @@ function repair(raw: any): PlayerState {
     }));
   }
   if (Array.isArray(raw?.giftsGot)) p.giftsGot = raw.giftsGot.filter((x: unknown) => typeof x === 'string').slice(-60);
+  // 📖 Lost recipes learned (v0.0.1.61)
+  if (Array.isArray(raw?.recipes)) p.recipes = raw.recipes.filter((x: unknown) => typeof x === 'string' && !!ACTIONS[x as string]?.lost);
   // 🧭 Expedition boss wins per town (v0.0.1.60)
   if (raw?.expeditionWins && typeof raw.expeditionWins === 'object') {
     p.expeditionWins = {};

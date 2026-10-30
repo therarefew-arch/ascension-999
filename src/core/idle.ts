@@ -183,6 +183,7 @@ export function whyCantDo(p: PlayerState, action: ActionDef, opts: { manual?: bo
   if (opts.manual && isLocalGather(action) && p.location !== action.region) {
     return `Play this in ${action.region} — you can still idle it from here`;
   }
+  if (action.lost && !(p.recipes ?? []).includes(action.id)) return `📖 A lost recipe — learn it on the ${action.region ?? ''} expedition`;
   if (skillLevel(p, action.skill) < action.level) return `Needs level ${action.level}`;
   if (action.needsTool !== undefined && equippedToolTier(p, action.skill) < action.needsTool) {
     return toolNeededText(action.skill, action.needsTool);

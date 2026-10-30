@@ -5,9 +5,10 @@ import { RARE_FISH } from './rareFish';
 import { FESTIVALS, TREAT_BUFF } from './festivals';
 import { ASC_RELIC_TIER, RELICS, relicItemId, type RelicKey } from './relics';
 import { ASCENSION_LEVEL, BONUSES, isAscendedId, parseAscended, type AscParts } from './ascended';
+import { CHARMS, LOST_MEALS } from './lostRecipes';
 
 export type ItemCategory = 'ore' | 'bar' | 'log' | 'material' | 'fish' | 'food' | 'weapon' | 'armour' | 'tool' | 'gem' | 'ammo' | 'currency' | 'treasure'
-  | 'herb' | 'crop' | 'seed' | 'meal';
+  | 'herb' | 'crop' | 'seed' | 'meal' | 'charm';
 export type CombatStyle = 'melee' | 'ranged' | 'magic';
 export type GemType = 'ruby' | 'sapphire' | 'emerald';
 export type GemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'starborn';
@@ -146,6 +147,8 @@ export interface ItemDef {
   upgrade?: UpgradeInfo;
   /** Food: how many hit points it restores. */
   heals?: number;
+  /** 🧭 Expedition charm: the Boon it brings along (a BoonId in core/expedition.ts). */
+  charm?: string;
   /** Arrows and runes: used up by Ranged/Magic attacks; power adds to max hit. */
   ammo?: { style: 'ranged' | 'magic'; power: number; element?: Element };
   /** Gems: socket into a gear slot. Higher rarity = better stat rolls. */
@@ -591,6 +594,8 @@ for (let t = 0; t < TIER_COUNT; t++) {
 export interface MealDef {
   id: string; name: string; emoji: string; tab: 'Meals' | 'Brews'; level: number; tierNum: number;
   inputs: { item: string; qty: number }[]; buff: Buff; description: string;
+  /** 📖 A lost recipe: only once learned on an expedition (data/lostRecipes.ts). */
+  lost?: boolean;
 }
 export const MEALS: MealDef[] = [
   { id: 'miners_pasty', name: "Miner's pasty", emoji: '🥟', tab: 'Meals', level: 10, tierNum: 0,
@@ -675,9 +680,16 @@ export const MEALS: MealDef[] = [
     inputs: [{ item: 'dried_worldroot', qty: 3 }, { item: 'worldpumpkin', qty: 1 }], buff: { skill: 'all', kind: 'xp', pct: 6, minutes: 30 },
     description: 'Tastes like rain on old earth. You feel very small, and very much at home.' },
 ];
+MEALS.push(...LOST_MEALS);
 for (const m of MEALS) {
   items.push({ id: m.id, name: m.name, category: 'meal', tier: 'oak', icon: 'log', emoji: m.emoji, stackable: true, tierNum: m.tierNum,
     region: tierRegion(m.tierNum), buff: m.buff, description: m.description });
+}
+
+// ----- 🧭 Expedition charms (lost recipes, made in Crafting) -----
+for (const c of CHARMS) {
+  items.push({ id: c.id, name: c.name, category: 'charm', tier: 'gold', icon: 'coins', emoji: c.emoji, stackable: true, tierNum: c.tierNum,
+    region: c.region, charm: c.boon, description: `${c.description} Pack it on an expedition to start with its Boon — it's never used up.` });
 }
 
 // ----- 🌟 Ascended items (levels 750+) -----

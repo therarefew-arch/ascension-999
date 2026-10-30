@@ -91,7 +91,7 @@ export const BOONS: Record<BoonId, { emoji: string; name: string; text: string }
 const BOON_IDS = Object.keys(BOONS) as BoonId[];
 
 /** A satchel slot. `heal` is fixed when packed. */
-export interface Supply { id: string; qty: number; heal: number; kind: 'food' | 'meal' | 'brew' | 'ammo' }
+export interface Supply { id: string; qty: number; heal: number; kind: 'food' | 'meal' | 'brew' | 'ammo' | 'charm' }
 
 /** What the store should give for something you just did. */
 export interface Reward {
@@ -103,6 +103,8 @@ export interface Reward {
   find?: string;
   /** Gathering-skill XP from a skill check. */
   skillXp?: SkillId;
+  /** 📖 Chance to learn one of this town's lost recipes. */
+  recipe?: number;
 }
 
 export interface EventChoice { label: string; need?: { skill: SkillId; level: number }; needFood?: boolean; result: string; heal?: number; hurt?: number; boon?: boolean; rolls?: number; find?: string; skillXp?: SkillId; sharpen?: boolean }
@@ -139,7 +141,7 @@ export interface Run {
   /** Short story of what just happened (newest last). */
   log: string[];
   /** Everything found so far (filled in by the store). */
-  found: { items: ItemStack[]; xp: Partial<Record<SkillId, number>>; kills: number; pet?: string; cottage?: string; lore?: string };
+  found: { items: ItemStack[]; xp: Partial<Record<SkillId, number>>; kills: number; pet?: string; cottage?: string; lore?: string; recipes?: string[] };
   end?: 'won' | 'ko' | 'home';
   /** The store has given back unused supplies (and what they were). */
   settled?: boolean;
@@ -176,11 +178,12 @@ export function supplyKind(p: PlayerState, id: string): Supply['kind'] | null {
   const it = ITEMS[id];
   if (!it) return null;
   if (it.ammo) return ammoFits(p, id) ? 'ammo' : null;
+  if (it.charm) return 'charm';
   if (it.buff) return it.buff.kind === 'xp' ? 'brew' : 'meal';
   if (it.heals) return 'food';
   return null;
 }
-export const slotMax = (kind: Supply['kind']) => (kind === 'ammo' ? SLOT_MAX.ammo : SLOT_MAX.food);
+export const slotMax = (kind: Supply['kind']) => (kind === 'ammo' ? SLOT_MAX.ammo : kind === 'charm' ? 1 : SLOT_MAX.food);
 
 /** Why you can't set off (null = you can). */
 export function whyCantStart(p: PlayerState, region: Region, pack: ItemStack[]): string | null {
@@ -218,6 +221,14 @@ export function newRun(p: PlayerState, region: Region, pack: ItemStack[], seed =
     hp, maxHp: hp, focus: 0, boons: [], sharpen: 0, satchel, power, log: [], found: { items: [], xp: {}, kills: 0 },
   };
   r.map = makeMap(r);
+  // 🧭 Packed charms bring their Boons along.
+  for (const s of satchel) {
+    const b = ITEMS[s.id]?.charm as BoonId | undefined;
+    if (s.kind === 'charm' && b && BOONS[b] && !r.boons.includes(b)) {
+      r.boons.push(b);
+      if (b === 'hearty') { const extra = Math.round(r.maxHp * 0.2); r.maxHp += extra; r.hp += extra; }
+    }
+  }
   say(r, `You set off into ${AREAS[region].name}.`);
   return r;
 }
@@ -349,7 +360,7 @@ export function goTo(r: Run, id: number): Reward | null {
     case 'cache': {
       r.phase = 'cache';
       say(r, 'You find a forgotten cache!');
-      return { rolls: 3 + (has(r, 'forager') ? 1 : 0) };
+      return { rolls: 3 + (has(r, 'forager') ? 1 : 0), recipe: 0.1 };
     }
   }
   return null;
@@ -516,7 +527,7 @@ function winFight(r: Run): Reward {
   r.fight = undefined;
   r.focus = 0;
   if (has(r, 'wind')) r.hp = Math.min(r.maxHp, r.hp + Math.round(r.maxHp * 0.15));
-  const reward: Reward = { kills: foes.map((f) => ({ m: f.m, elite: f.elite, boss: f.boss })), rolls: has(r, 'forager') ? 1 : 0 };
+  const reward: Reward = { kills: foes.map((f) => ({ m: f.m, elite: f.elite, boss: f.boss })), rolls: has(r, 'forager') ? 1 : 0, recipe: node.kind === 'boss' ? 0.5 : undefined };
   if (node.kind === 'boss') {
     r.phase = 'done';
     r.end = 'won';
@@ -537,6 +548,7 @@ export function useSupply(r: Run, i: number): string | null {
   const s = r.satchel[i];
   if (!s || s.qty < 1) return 'Nothing there';
   if (s.kind === 'ammo') return 'Arrows and runes are used when you attack';
+  if (s.kind === 'charm') return 'Charms work just by being packed';
   if (r.phase === 'fight' && r.fight?.usedSupply) return 'One snack a turn';
   if (r.phase === 'done') return 'The expedition is over';
   const name = ITEMS[s.id].name;

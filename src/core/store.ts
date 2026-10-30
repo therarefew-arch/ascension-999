@@ -51,6 +51,7 @@ import { paradeCoins, WINS_NEEDED as PARADE_WINS } from './petParade';
 import { wallXp } from './holdWall';
 import { COTTAGE_CHANCE, COTTAGE_SURE_BY, newRun, townBoss, townMonsters, whyCantStart, XP_SECS, type Reward, type Run } from './expedition';
 import { EXPEDITION_FURNITURE } from './cottage';
+import { lostRecipesOf } from '../data/lostRecipes';
 import { gatherXpPerHour, REGIONS, tierForLevel } from '../data/tiers';
 import { REROLL_COST, socketGem, unsocketGem } from './equipment';
 import { countInBag, countInBank, removeFromBag, removeFromBank } from './inventory';
@@ -1091,6 +1092,18 @@ export const game = {
       gain('defense', xp / 4);
     }
     if (reward.skillXp) gain(reward.skillXp, perSec(reward.skillXp) * XP_SECS.event);
+    // 📖 A lost recipe of this town (two each), learned for good.
+    if (reward.recipe && Math.random() < reward.recipe) {
+      const left = lostRecipesOf(run.region).filter((id) => !(p.recipes ?? []).includes(id));
+      if (left.length) {
+        const id = left[Math.floor(Math.random() * left.length)];
+        (p.recipes ??= []).push(id);
+        (run.found.recipes ??= []).push(id);
+        const a = ACTIONS[id];
+        play('rune');
+        toast(`📖 A lost recipe: ${a.name}! Make it at home in ${a.skill === 'cooking' ? 'Cooking' : 'Crafting → Charms'}.`, 'level');
+      }
+    }
     const merged: ItemStack[] = [];
     for (const x of loot) { const m = merged.find((y) => y.id === x.id); if (m) m.qty += x.qty; else merged.push({ ...x }); }
     giveLoot(p, merged, { overflowToBank: true });

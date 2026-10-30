@@ -5,6 +5,7 @@ import {
 } from './items';
 import { FISH, HERBS, METALS, TIER_COUNT, tierLevel, tierRegion, tierTimeMs, tierXp, WOODS, type Region } from './tiers';
 import type { SoundKey } from '../audio/soundList';
+import { CHARMS, charmInputs } from './lostRecipes';
 
 export interface SkillDef {
   id: SkillId;
@@ -67,6 +68,8 @@ export interface ActionDef {
   upgrades?: string;
   /** Region this belongs to. Actions in regions that aren't built yet are locked. */
   region?: Region;
+  /** 📖 A lost recipe: locked until learned on an expedition (`player.recipes`). */
+  lost?: boolean;
 }
 
 const actions: ActionDef[] = [];
@@ -140,9 +143,10 @@ for (const m of MEALS) {
   add({
     id: `cook_${m.id}`, skill: 'cooking', name: m.name, tab: m.tab, level: m.level,
     durationMs: 4000, xp: Math.round(gatherXp(m.tierNum) * 3),
-    inputs: m.inputs, output: { item: m.id, qty: 1 }, iconItem: m.id, sound: 'sizzle', region: tierRegion(m.tierNum),
+    inputs: m.inputs, output: { item: m.id, qty: 1 }, iconItem: m.id, sound: 'sizzle', region: tierRegion(m.tierNum), lost: m.lost,
   });
 }
+
 
 // ----- 🌿 Herblore: forage wild herbs on location (sometimes a seed too), then dry them for brews -----
 for (let t = 0; t < TIER_COUNT; t++) {
@@ -247,6 +251,16 @@ for (const g of ENHANCEABLE) {
       kind: 'enhance', upgrades: upgradeId(g.id, n), region: g.region,
     });
   }
+}
+
+// ----- 🧭 Crafting: expedition charms (lost recipes) -----
+for (const c of CHARMS) {
+  const t = c.tierNum;
+  add({
+    id: `craft_${c.id}`, skill: 'crafting', name: c.name, tab: 'Charms', level: tierLevel(t) + 15,
+    durationMs: 6000, xp: Math.round(gatherXp(t) * 8), inputs: charmInputs(t), output: { item: c.id, qty: 1 }, iconItem: c.id,
+    sound: 'craft', region: tierRegion(t), lost: true,
+  });
 }
 
 export const ACTIONS: Record<string, ActionDef> = Object.fromEntries(actions.map((a) => [a.id, a]));

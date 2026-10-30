@@ -110,7 +110,7 @@ export function ItemSheet({ id, from, onClose, onReroll }: { id: string; from: I
           <section className="block">
             <p className="small"><b>{buffText(item.buff)}</b> for {item.buff.minutes} minutes{item.buff.kind === 'speed' ? ' — actions go faster' : ''}.</p>
             {from === 'bag'
-              ? <button className="btn btn-primary btn-lg btn-wide" onClick={() => game.consumeBuff(id)}>{item.category === 'meal' && /tea|tonic|brew/.test(item.id) ? '🍵 Drink it' : '🍽️ Eat it'}</button>
+              ? <button className="btn btn-primary btn-lg btn-wide" onClick={() => game.consumeBuff(id)}>{item.category === 'meal' && (item.buff?.kind === 'xp' || /tea|tonic|brew/.test(item.id)) ? '🍵 Drink it' : '🍽️ Eat it'}</button>
               : <p className="small muted">Withdraw it to your bag to {/tea|tonic|brew/.test(item.id) ? 'drink' : 'eat'} it.</p>}
           </section>
         )}

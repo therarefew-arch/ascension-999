@@ -65,7 +65,7 @@ export interface TownRequest {
 /** Gathering/processing actions the player can actually do right now (for "collect" requests). */
 function doableItemActions(p: PlayerState): ActionDef[] {
   return ACTION_LIST.filter((a) =>
-    a.output && !a.kind && !a.requires && (a.skill === 'mining' || a.skill === 'woodcutting' || a.skill === 'fishing' || a.skill === 'smithing' || a.skill === 'cooking')
+    a.output && !a.kind && !a.requires && !a.lost && (a.skill === 'mining' || a.skill === 'woodcutting' || a.skill === 'fishing' || a.skill === 'smithing' || a.skill === 'cooking')
     && (!a.region || (regionOpen(a.region) && p.regions.includes(a.region)))
     && levelForXp(p.skills[a.skill].xp) >= a.level
     && getItem(a.output.item).stackable,
