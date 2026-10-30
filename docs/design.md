@@ -512,3 +512,58 @@ Ironmoor region, weekly boss with "Defeated" screen, NPC Trading Post and shops 
 
 ### Later phases — not built
 Everything else above.
+
+## 👪 Family (planned — agreed with the owner, 2026-10-30)
+
+**Why:** the game is a great companion game, but at home the owner and his family drift to other games.
+Playing *together* is the strongest pull (owner: WoW, party games with family; brother: Path of Exile 2;
+wife: a mahjong game). Family keeps it cozy: no strangers, no chat moderation, no passwords.
+
+**Owner's choices:** join by **invite link** · first version has a **family board, weekly family goal,
+gifts (any items and coins) and cheers & nudges** · a **small family XP bonus**.
+
+**How joining works**
+- Profile → **Family** tab → "Start a family" (pick a name, e.g. "The Oak Family"). The game makes a
+  long random family id and an **invite link** (`…/ascension-999/?family=<id>`), shared with the phone's
+  share sheet (text message, WhatsApp…).
+- Opening the link opens the game; after picking a save slot it asks "Join The Oak Family?".
+- Membership is **per save slot** (each slot is its own adventurer). Each member gets a secret token kept
+  in the save; the server checks it on every write. Leaving is one tap; up to 8 members.
+- No accounts: lose the save → rejoin from the link. Backup codes keep the membership.
+
+**Family board** (Family tab)
+- Everyone's avatar, name, town, total level, best skill, what they're idling and when they last played.
+- A short **family feed** of big moments: a new town, every 10th level, a mini boss / Road Up boss down,
+  an Ascended Divine/Godforged find, a new pet, a full Pet Parade, a rare fish. Tap a moment to 🎉 cheer it.
+- The game sends a small snapshot while it's open (every few minutes and on big moments) and loads the
+  board when the tab opens. Works offline: you just see the last board.
+
+**Weekly family goal** (resets Monday)
+- One goal a week from a list (chop 20,000 logs, cook 5,000 meals, defeat 2,000 monsters, win 15 Hold the
+  Wall waves, catch 10 rare fish…), sized by family size and levels. Everyone's normal play counts.
+- Three steps (🥉 🥈 🥇); each member claims each step's reward: coins scaled by their best skill, a rare
+  find, and on 🥇 a family keepsake (a Cottage piece, once) — all through the loot system.
+
+**Gifts** (owner: any items and coins)
+- From a member's card: pick items from your bag/bank (or coins) and send. They leave your save at once
+  and wait on the server; the other person gets a 🎁 on the Town screen and claims it next time they play
+  (through `giveLoot`, overflow to the bank — never lost). Unclaimed gifts return after 14 days.
+- Can't be sent: **gems** (gems only come from bosses — keeps that rule simple), Relics, pets, quest
+  keys/lore items, Starlight. Ascended items and everything else can.
+- Gifts are logged in the feed ("Brother sent you 500 Moonsilver ore").
+
+**Cheers & nudges**
+- 🎉 Cheer a moment: the other person gets a push notification ("Your wife cheered your new town!") and
+  sees it in the feed.
+- 👋 Nudge: "Come play!" push to a member, once a day per member. Uses the existing push system; only if
+  that phone allowed notifications.
+
+**Family bonus — 🔥 Hearth Together:** +5% XP in every skill on a day when someone *else* in your family has
+also played (local day). Small, cozy, never required. (Counts with other boosts like the bonfire.)
+
+**Server:** the existing Cloudflare Worker + D1 in `push-server/` gets new tables (families, members,
+feed, cheers, gifts, goal progress) and routes. Payloads stay small; no personal data beyond the
+adventurer name chosen in game.
+
+**Build order:** Part 1 — server, join by link, family board + feed + cheers/nudges. Part 2 — weekly goal +
+Hearth Together. Part 3 — gifts.
