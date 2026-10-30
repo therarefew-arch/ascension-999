@@ -232,7 +232,12 @@ export const leaveFamily = (l: FamilyLink) => post<{ ok: boolean }>('leave', aut
 
 /** The invite link for a family. */
 export function inviteLink(f: string): string {
-  return `${location.origin}${import.meta.env.BASE_URL}?family=${encodeURIComponent(f)}`;
+  // Built from this page's own address (BASE_URL is './', which dropped the /ascension-999/ part → 404).
+  const u = new URL(location.href);
+  u.search = '';
+  u.hash = '';
+  u.searchParams.set('family', f);
+  return u.toString();
 }
 
 // ----- The last board, shared with the Family tab -----
