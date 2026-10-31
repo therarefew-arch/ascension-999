@@ -52,6 +52,8 @@ import { wallXp } from './holdWall';
 import { AREAS, COTTAGE_CHANCE, COTTAGE_SURE_BY, newRun, type HeroSnap, townBoss, townMonsters, whyCantStart, XP_SECS, type Reward, type Run } from './expedition';
 import { EXPEDITION_FURNITURE } from './cottage';
 import { lostRecipesOf } from '../data/lostRecipes';
+import { growRelics } from './relics';
+import { RELIC_MAP } from '../data/relics';
 const HERO_THANKS_A_DAY = 3;
 import { gatherXpPerHour, REGIONS, tierForLevel } from '../data/tiers';
 import { REROLL_COST, socketGem, unsocketGem } from './equipment';
@@ -213,6 +215,15 @@ function tick(now = Date.now()) {
   const p = snap.player;
   const gap = now - p.lastActiveAt;
   if (gap <= 0) return;
+
+  // ✨ Relics grow with you (a new town, or levels to use its gear).
+  const grown = growRelics(p);
+  if (grown.length) {
+    play('enchant');
+    toast(grown.length === 1 ? `✨ ${RELIC_MAP[grown[0].key].name} awakened to ${REGIONS[grown[0].tier]} strength!` : `✨ ${grown.length} Relics awakened to ${REGIONS[grown[0].tier]} strength!`, 'level');
+    save();
+    emit();
+  }
 
   // Finished walking to another town?
   const arrival = checkArrival(p, now);

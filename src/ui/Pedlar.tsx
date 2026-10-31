@@ -92,7 +92,7 @@ export function PedlarCard() {
               <div key={r.key} className="pd-relic"><span className="pd-relic-emoji">{r.emoji}</span><span className="grow small"><b>{r.name}</b> <span className="dim">· {t >= ASC_RELIC_TIER ? '🌟 Ascended' : `${REGIONS[t]} strength`}</span><span className="muted">{t >= ASC_RELIC_TIER ? r.ascTrait : r.trait}</span></span></div>
             );
           })}
-          <p className="small dim">Find a Relic again in a farther town’s crate and it awakens to that town’s strength.</p>
+          <p className="small dim">Relics grow with you: each one awakens to the farthest town you’ve discovered, once you’re high enough level to use that town’s gear.</p>
         </div>
       )}
 

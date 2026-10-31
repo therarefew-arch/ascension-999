@@ -26,11 +26,11 @@ export interface CrateDef {
 }
 
 export const CRATES: CrateDef[] = [
-  { key: 'rough', name: 'Rough Crate', emoji: '📦', base: 500, dud: 0.4, treasure: 0.07, relic: 0.004, jackpot: 3.2,
+  { key: 'rough', name: 'Rough Crate', emoji: '📦', base: 500, dud: 0.4, treasure: 0.07, relic: 0.001, jackpot: 3.2,
     blurb: 'Splintery planks and a lot of straw. Cheap, and often just that.' },
-  { key: 'ironbound', name: 'Iron-bound Crate', emoji: '🗃️', base: 5_000, dud: 0.3, treasure: 0.1, relic: 0.015, jackpot: 2.8,
+  { key: 'ironbound', name: 'Iron-bound Crate', emoji: '🗃️', base: 5_000, dud: 0.3, treasure: 0.1, relic: 0.005, jackpot: 2.8,
     blurb: 'Heavy, with a rusty lock. Something solid rattles inside.' },
-  { key: 'gilded', name: 'Gilded Coffer', emoji: '🎁', base: 50_000, dud: 0.2, treasure: 0.14, relic: 0.05, jackpot: 2.2,
+  { key: 'gilded', name: 'Gilded Coffer', emoji: '🎁', base: 50_000, dud: 0.2, treasure: 0.14, relic: 0.015, jackpot: 2.2,
     blurb: 'Gold leaf, a wax seal, and the Pedlar won\'t say where it\'s from.' },
 ];
 export const CRATE_MAP = Object.fromEntries(CRATES.map((c) => [c.key, c])) as Record<CrateKey, CrateDef>;
@@ -154,9 +154,9 @@ export interface CrateResult {
   toBank: boolean;
 }
 
-/** Relics this crate could hold: ones you don't have yet, or have from a nearer town (they awaken). */
-export function relicsAvailable(p: PlayerState, tier: number): RelicKey[] {
-  return RELICS.filter((r) => (p.relics[r.key] ?? -1) < tier).map((r) => r.key);
+/** Relics this crate could hold: only ones you don't have yet (v0.0.1.65 — owned Relics grow by themselves now). */
+export function relicsAvailable(p: PlayerState, _tier: number): RelicKey[] {
+  return RELICS.filter((r) => p.relics[r.key] === undefined).map((r) => r.key);
 }
 
 /** Buys and pries open a crate. Returns what was inside, or a reason it can't be opened. */

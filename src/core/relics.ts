@@ -1,8 +1,10 @@
 // ✨ Relic traits: small checks the skills and combat code ask ("is the Tidecaller Rod equipped?").
 // A Relic only works while it's worn in its gear slot. The Relics themselves are in data/relics.ts.
 import { ITEMS } from '../data/items';
-import { RELIC_MAP, type RelicKey } from '../data/relics';
+import { ASC_RELIC_TIER, RELIC_MAP, RELICS, relicItemId, type RelicKey } from '../data/relics';
+import { REGIONS } from '../data/tiers';
 import type { PlayerState } from './player';
+import { levelForXp } from './xp';
 
 /** Is this Relic worn right now? */
 export function relicOn(p: PlayerState, key: RelicKey): boolean {
@@ -62,4 +64,30 @@ export function replaceRelic(p: PlayerState, oldId: string, newId: string): bool
   for (const s of p.inventory) if (s && s.id === oldId) { s.id = newId; return true; }
   for (const s of p.bank) if (s.id === oldId) { s.id = newId; return true; }
   return false;
+}
+
+/**
+ * ✨ Relics grow with you (v0.0.1.65, owner: they fell behind the crafted tools). Every Relic you own
+ * awakens, in place, to the farthest town you've discovered whose gear you're high enough level to use —
+ * so a Relic tool always counts as the tool you need. Ascended Relics are already beyond every town.
+ */
+export function growRelics(p: PlayerState): { key: RelicKey; tier: number }[] {
+  const best = Math.max(0, ...p.regions.map((x) => REGIONS.indexOf(x)));
+  const grown: { key: RelicKey; tier: number }[] = [];
+  for (const def of RELICS) {
+    const cur = p.relics[def.key];
+    if (cur === undefined || cur >= ASC_RELIC_TIER || cur >= best) continue;
+    let target = cur;
+    for (let t = best; t > cur; t--) {
+      const req = ITEMS[relicItemId(def.key, t)]?.equip?.req;
+      if (!req || levelForXp(p.skills[req.skill].xp) >= req.level) { target = t; break; }
+    }
+    if (target <= cur) continue;
+    const had = findRelic(p, def.key);
+    if (had && replaceRelic(p, had.id, relicItemId(def.key, target))) {
+      p.relics[def.key] = target;
+      grown.push({ key: def.key, tier: target });
+    }
+  }
+  return grown;
 }
