@@ -1,6 +1,9 @@
 // Details for one item, with the actions that make sense where it is (bag, bank, or worn).
 import { useEffect } from 'react';
-import { getItem, MAX_UPGRADE, SLOT_LABELS } from '../data/items';
+import { getItem, MAX_UPGRADE, MEALS, SLOT_LABELS } from '../data/items';
+
+/** Brews (Cooking → Brews) are drunk; everything else, festival treats included, is eaten. */
+const DRINKS = new Set(MEALS.filter((m) => m.tab === 'Brews').map((m) => m.id));
 import { SKILLS } from '../data/skills';
 import { maxHp } from '../core/combat';
 import { REROLL_COST } from '../core/equipment';
@@ -110,7 +113,7 @@ export function ItemSheet({ id, from, onClose, onReroll }: { id: string; from: I
           <section className="block">
             <p className="small"><b>{buffText(item.buff)}</b> for {item.buff.minutes} minutes{item.buff.kind === 'speed' ? ' — actions go faster' : ''}.</p>
             {from === 'bag'
-              ? <button className="btn btn-primary btn-lg btn-wide" onClick={() => game.consumeBuff(id)}>{item.category === 'meal' && (item.buff?.kind === 'xp' || /tea|tonic|brew/.test(item.id)) ? '🍵 Drink it' : '🍽️ Eat it'}</button>
+              ? <button className="btn btn-primary btn-lg btn-wide" onClick={() => game.consumeBuff(id)}>{DRINKS.has(item.id) ? '🍵 Drink it' : '🍽️ Eat it'}</button>
               : <p className="small muted">Withdraw it to your bag to {/tea|tonic|brew/.test(item.id) ? 'drink' : 'eat'} it.</p>}
           </section>
         )}
