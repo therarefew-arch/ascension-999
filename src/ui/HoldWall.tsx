@@ -47,7 +47,7 @@ const stamp = (ctx: CanvasRenderingContext2D, emoji: string, size: number, x: nu
 };
 
 /** Each town's colours: grass, grass patch, road edge, road, trees. */
-const LOOK: Record<string, { g1: string; g2: string; edge: string; road: string; deco: string[]; gate: string }> = {
+export const LOOK: Record<string, { g1: string; g2: string; edge: string; road: string; deco: string[]; gate: string }> = {
   Pocketvale: { g1: '#4d7c3a', g2: '#558a40', edge: '#7a5a34', road: '#b08a58', deco: ['🌳', '🌷', '🌾', '🌲'], gate: '🏰' },
   Ironmoor: { g1: '#5b6b4a', g2: '#64744f', edge: '#5a4a3c', road: '#8d7a66', deco: ['🪨', '🌲', '⛏️', '🪨'], gate: '🏯' },
   Coalhaven: { g1: '#4a5248', g2: '#525a50', edge: '#3a3632', road: '#6e6560', deco: ['🪨', '🌲', '🏚️', '🪨'], gate: '🏰' },

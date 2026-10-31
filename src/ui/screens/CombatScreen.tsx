@@ -21,6 +21,7 @@ import { HoldWall, hasSavedWall } from '../HoldWall';
 import { WAVES as WALL_WAVES } from '../../core/holdWall';
 import { RoadUp } from '../RoadUp';
 import { ExpeditionLaunch } from '../Expedition';
+import { DungeonLaunch } from '../Dungeon';
 
 const STYLE_ICON = { melee: 'melee', ranged: 'ranged', magic: 'magic' } as const;
 const STYLE_NAME: Record<CombatStyle, string> = { melee: 'Melee', ranged: 'Ranged', magic: 'Magic' };
@@ -316,6 +317,7 @@ export function CombatScreen({ onItem }: { onItem: (id: string) => void }) {
               <p className="small muted">Triangle: Melee beats Ranged · Ranged beats Magic · Magic beats Melee. Your weapon sets your style. You heal slowly out of combat, and eat food automatically when low.</p>
             </div>
             <ExpeditionLaunch />
+            <DungeonLaunch />
             <button className="lw-launch" style={{ marginTop: 8 }} onClick={() => setWatch(true)}>
               <span className="lw-launch-emoji">🏮</span>
               <span className="grow"><b>Lantern Watch</b><span className="small muted">{hasSavedNight(slot)

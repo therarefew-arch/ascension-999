@@ -275,7 +275,7 @@ export function supplyHeal(p: PlayerState, id: string, region: Region, hpMax: nu
 }
 
 /** Expected hit per turn, both ways, in real combat terms. */
-function rawPower(p: PlayerState, m: MonsterDef, ammo: string | null) {
+export function rawPower(p: PlayerState, m: MonsterDef, ammo: string | null) {
   const s = combatStats(p, m, ammo);
   return {
     hit: Math.max(0.5, (TURN_MS / s.speedMs) * s.accuracy * (1 + s.maxHit) / 2),
