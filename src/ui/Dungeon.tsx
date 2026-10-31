@@ -619,7 +619,7 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
   });
 
-  const hold = (k: keyof Input, tapSound?: SoundKey) => ({
+  const hold = (k: 'left' | 'right' | 'jump' | 'attack' | 'down', tapSound?: SoundKey) => ({
     onPointerDown: (e: React.PointerEvent) => { e.preventDefault(); (e.target as HTMLElement).setPointerCapture?.(e.pointerId); input.current[k] = true; if (tapSound) sound.play(tapSound, { volume: 0.35, rate: 1.3 }); },
     onPointerUp: () => { input.current[k] = false; },
     onPointerCancel: () => { input.current[k] = false; },
@@ -664,9 +664,7 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
       {run.combo >= 3 && <div key={run.combo} className="dg-combo"><b>{run.combo}</b><span>HITS</span></div>}
       <div className="dg-controls">
         <div className="dg-pad">
-          <button className="dg-btn dir" {...hold('left', 'tick')} aria-label="Left">◀</button>
-          <button className="dg-btn dir" {...hold('right', 'tick')} aria-label="Right">▶</button>
-          <button className="dg-btn small" {...hold('down', 'tick')} aria-label="Down (hold with Jump to drop down)">▼</button>
+          <Thumbstick input={input} />
           <button className="dg-btn small snack" disabled={run.snacks <= 0} onClick={() => { if (eatSnack(run)) sound.play('eat'); else sound.play('error', { volume: 0.5 }); }} aria-label={`Snack (${run.snacks} left)`}>🍖<span className="dg-n">{run.snacks}</span></button>
         </div>
         <div className="dg-act">
@@ -703,6 +701,47 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
       {book && <SkillBook player={player} bar={bar} onBar={saveBar} style={run.style} onClose={() => { sound.play('click'); setBook(false); }} />}
     </div>,
     document.body,
+  );
+}
+
+// ----- 🕹️ Thumbstick (owner's wish, v0.0.1.71): drag sideways to walk (a small tilt walks slowly),
+// pull down to drop through a ledge with Jump. It follows your thumb wherever you first touch inside it.
+const STICK_R = 46;
+function Thumbstick({ input }: { input: React.MutableRefObject<Input> }) {
+  const base = useRef<HTMLDivElement>(null);
+  const [knob, setKnob] = useState<{ x: number; y: number } | null>(null);
+  const centre = useRef({ x: 0, y: 0 });
+  const down = useRef(false);
+  const set = (dx: number, dy: number) => {
+    const len = Math.hypot(dx, dy);
+    const k = len > STICK_R ? STICK_R / len : 1;
+    const x = dx * k, y = dy * k;
+    setKnob({ x, y });
+    // A little dead zone in the middle, then the tilt sets the speed.
+    const nx = x / STICK_R;
+    const mx = Math.abs(nx) < 0.18 ? 0 : Math.sign(nx) * Math.min(1, 0.35 + (Math.abs(nx) - 0.18) * 1.1);
+    input.current.moveX = mx;
+    input.current.left = mx < 0;
+    input.current.right = mx > 0;
+    input.current.down = y / STICK_R > 0.55;
+  };
+  const end = () => { down.current = false; setKnob(null); input.current.moveX = 0; input.current.left = false; input.current.right = false; input.current.down = false; };
+  return (
+    <div ref={base} className={`dg-stick ${knob ? 'on' : ''}`} role="slider" aria-label="Move: drag left or right, down to drop through a ledge" aria-valuenow={Math.round((knob?.x ?? 0) / STICK_R * 100)}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* keep going without capture */ }
+        const r = base.current!.getBoundingClientRect();
+        centre.current = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        down.current = true;
+        sound.play('tick', { volume: 0.35, rate: 1.3 });
+        set(e.clientX - centre.current.x, e.clientY - centre.current.y);
+      }}
+      onPointerMove={(e) => { if (down.current) set(e.clientX - centre.current.x, e.clientY - centre.current.y); }}
+      onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end}>
+      <span className="dg-stick-arrows" aria-hidden>‹ ›</span>
+      <span className="dg-stick-knob" style={{ transform: `translate(${knob?.x ?? 0}px, ${knob?.y ?? 0}px)` }} />
+    </div>
   );
 }
 

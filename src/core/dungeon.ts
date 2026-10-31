@@ -51,7 +51,8 @@ export interface Fx { x: number; y: number; t: number; kind: 'slash' | 'spin' | 
 /** A little particle: sparks, dust, poofs (purely for looks). */
 export interface Part { x: number; y: number; vx: number; vy: number; t: number; life: number; c: string; s: number; grav: number }
 
-export interface Input { left: boolean; right: boolean; jump: boolean; attack: boolean; down?: boolean }
+/** `moveX` (−1…1) comes from the thumbstick: a small tilt walks slowly, a full push runs. */
+export interface Input { left: boolean; right: boolean; jump: boolean; attack: boolean; down?: boolean; moveX?: number }
 
 export interface Dungeon {
   region: Region; style: CombatStyle; worldW: number; arenaX: number;
@@ -361,7 +362,7 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   h.atkT = Math.max(0, h.atkT - dt);
 
   // Move
-  const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+  const dir = input.moveX !== undefined && input.moveX !== 0 ? Math.max(-1, Math.min(1, input.moveX)) : (input.right ? 1 : 0) - (input.left ? 1 : 0);
   if (h.dashT > 0) {
     h.dashT -= dt;
     const before = h.x;
