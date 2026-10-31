@@ -49,9 +49,10 @@ import { BLOCK_WINDOW_MS, eatFood, endFight, fightSlot, maxHp, regenHp, startFig
 import { lootRolls, nightXp, STUB_COINS } from './lanternWatch';
 import { paradeCoins, WINS_NEEDED as PARADE_WINS } from './petParade';
 import { wallXp } from './holdWall';
-import { COTTAGE_CHANCE, COTTAGE_SURE_BY, newRun, townBoss, townMonsters, whyCantStart, XP_SECS, type Reward, type Run } from './expedition';
+import { AREAS, COTTAGE_CHANCE, COTTAGE_SURE_BY, newRun, type HeroSnap, townBoss, townMonsters, whyCantStart, XP_SECS, type Reward, type Run } from './expedition';
 import { EXPEDITION_FURNITURE } from './cottage';
 import { lostRecipesOf } from '../data/lostRecipes';
+const HERO_THANKS_A_DAY = 3;
 import { gatherXpPerHour, REGIONS, tierForLevel } from '../data/tiers';
 import { REROLL_COST, socketGem, unsocketGem } from './equipment';
 import { countInBag, countInBank, removeFromBag, removeFromBank } from './inventory';
@@ -1013,8 +1014,16 @@ export const game = {
   },
 
   // ----- 🧭 Expeditions -----
+  /** 🤝 Guildmates whose heroes can come along (from the last guild board). */
+  expeditionHeroes(): HeroSnap[] {
+    const p = snap.player;
+    const b = lastBoard();
+    if (!p.family || !b) return [];
+    return b.members.filter((m) => m.id !== p.family!.m && m.snap?.hero && m.snap.eq)
+      .map((m) => ({ id: m.id, name: m.name, eq: m.snap.eq!, lv: m.snap.hero!.lv, ammo: m.snap.hero!.ammo, pet: m.snap.pet }));
+  },
   /** Set off: the packed things leave your bag (then bank) and go in the expedition satchel. */
-  expeditionStart(region: Region, pack: ItemStack[]): Run | null {
+  expeditionStart(region: Region, pack: ItemStack[], hero?: HeroSnap): Run | null {
     const p = snap.player;
     const list = pack.filter((x) => x.qty > 0);
     const why = whyCantStart(p, region, list);
@@ -1026,7 +1035,7 @@ export const game = {
       const fromBag = removeFromBag(p.inventory, id, n);
       if (fromBag < n) removeFromBank(p, id, n - fromBag);
     }
-    const run = newRun(p, region, list);
+    const run = newRun(p, region, list, undefined, hero && p.family && hero.id !== p.family.m ? hero : undefined);
     play('levelup');
     save();
     emit();
@@ -1128,6 +1137,23 @@ export const game = {
       celebrate();
       const boss = townBoss(run.region);
       if (boss) familyMoment(p, 'boss', `defeated ${boss.name} on an expedition!`);
+    }
+    // 🤝 A thank-you for the guildmate whose hero came along (sent as a gift with the next check-in;
+    // they unwrap it through the loot system). Up to 3 a day, and only after a real fight.
+    if (run.helper && p.family && run.found.kills > 0 && !run.thanked) {
+      const day = dayKey();
+      const t = p.heroThanks?.day === day ? p.heroThanks : { day, n: 0 };
+      if (t.n < HERO_THANKS_A_DAY) {
+        const best = Math.max(...ALL_SKILLS.map((s) => skillLevel(p, s)));
+        const coins = Math.round((30 + best * 0.9) * (run.end === 'won' ? 4 : 2));
+        const items = [{ id: ['bird_nest', 'geode', 'message_bottle'][Math.floor(Math.random() * 3)], qty: 1 }];
+        const label = `${giftLabel(items, coins)} — thanks for coming along to ${AREAS[run.region].name}!`;
+        (p.giftsOut ??= []).push({ id: newGiftId(), to: run.helper.id, toName: run.helper.name, items, coins, label, at: Date.now() });
+        p.heroThanks = { day, n: t.n + 1 };
+        familyMoment(p, 'hero', `took ${run.helper.name}'s hero along to ${AREAS[run.region].name}${run.end === 'won' ? ' — and won!' : '!'}`);
+        syncSoon();
+      }
+      run.thanked = true;
     }
     const report = emptyReport(null);
     if (run.found.kills > 0) trackRequests(p, report, 1);

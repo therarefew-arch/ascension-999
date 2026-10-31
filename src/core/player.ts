@@ -146,6 +146,8 @@ export interface PlayerState {
   familyWeek?: FamilyWeek;
   /** 🔥 Hearth Together: the local day someone else in your family played (+5% XP that day). */
   hearth?: string;
+  /** 🤝 Thank-you gifts sent to guildmates' heroes today (max 3 a day). */
+  heroThanks?: { day: string; n: number };
   /** 📖 Lost recipes learned on expeditions (action ids). */
   recipes?: string[];
   /** 🧭 Expedition bosses beaten, per town. */

@@ -29,6 +29,8 @@ export interface FamilySnap {
   idle?: string[];
   eq?: Partial<Record<EquipSlot, string>>;
   pet?: string;
+  /** 🧭 For expedition heroes (v0.0.1.62): melee, ranged, magic, defense, health levels + best arrows/runes. */
+  hero?: { lv: number[]; ammo?: string };
 }
 export interface FamilyMember { id: string; name: string; updated: number; snap: FamilySnap }
 export interface FamilyMoment { id: number; member: string; kind: string; text: string; at: number; cheers: string[] }
@@ -153,7 +155,17 @@ export function familySnap(p: PlayerState): FamilySnap {
   if (p.fight?.monsterId) idle.unshift('Fighting');
   const eq: Partial<Record<EquipSlot, string>> = {};
   for (const s of LOOK_SLOTS) if (p.equipment[s]) eq[s] = p.equipment[s];
-  return { town: p.location, total, best, idle: [...new Set(idle)].slice(0, 3), eq, pet: p.activePet ? PET_MAP[p.activePet]?.emoji : undefined };
+  // 🧭 What a guildmate needs to bring your hero on an expedition.
+  const lv = (['melee', 'ranged', 'magic', 'defense', 'health'] as SkillId[]).map((s) => levelForXp(p.skills[s].xp));
+  const style = p.equipment.weapon ? ITEMS[p.equipment.weapon]?.equip?.style : undefined;
+  let ammo: string | undefined;
+  if (style && style !== 'melee') {
+    for (const s of [...p.inventory, ...p.bank]) {
+      const a = s ? ITEMS[s.id]?.ammo : undefined;
+      if (a && a.style === style && (!ammo || a.power > ITEMS[ammo].ammo!.power)) ammo = s!.id;
+    }
+  }
+  return { town: p.location, total, best, idle: [...new Set(idle)].slice(0, 3), eq, pet: p.activePet ? PET_MAP[p.activePet]?.emoji : undefined, hero: { lv, ammo } };
 }
 
 // ----- Big moments: queued while playing, sent with the next check-in -----
@@ -281,5 +293,5 @@ export function seen(at: number, now: number): string {
 
 /** An emoji for each kind of moment. */
 export const MOMENT_ICON: Record<string, string> = {
-  join: '👋', leave: '🚪', town: '🗺️', level: '⭐', master: '✦', boss: '🏆', ascended: '🌟', pet: '🐾', parade: '🎪', wall: '🛡️', dawn: '🏮', fish: '🐟', goal: '🏆',
+  hero: '🤝', join: '👋', leave: '🚪', town: '🗺️', level: '⭐', master: '✦', boss: '🏆', ascended: '🌟', pet: '🐾', parade: '🎪', wall: '🛡️', dawn: '🏮', fish: '🐟', goal: '🏆',
 };

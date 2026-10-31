@@ -3,7 +3,7 @@
 // This file is the whole engine (no drawing, seeded rng) so it can be tested. Rewards are handed to
 // the store as `Reward`s (`game.expeditionReward`), which gives XP and loot through the loot system.
 // Knocked out = carried home with everything found so far. Only packed supplies you use are gone.
-import { ITEMS, type CombatStyle, type SkillId } from '../data/items';
+import { ITEMS, type CombatStyle, type EquipSlot, type SkillId } from '../data/items';
 import { EXPEDITION_BOSSES, MONSTERS, MONSTER_MAP, type MonsterDef } from '../data/monsters';
 import { METALS, REGIONS, TIER_LEVELS, type Region } from '../data/tiers';
 import { ammoFits, combatStats, foodHeal, maxHp, weaponStyle } from './combat';
@@ -132,6 +132,8 @@ export interface Run {
   satchel: Supply[];
   /** Your expected hit / their expected hit per turn, per monster (worked out when you set off). */
   power: Record<string, { hit: number; hurt: number }>;
+  /** 🤝 A guildmate's hero along for the ride: strikes your target every turn. */
+  helper?: { id: string; name: string; style: CombatStyle; pet?: string; hit: Record<string, number> };
   fight?: { foes: Foe[]; turn: number; usedSupply: boolean; attacked: boolean; fed: boolean; target: number };
   event?: string;
   /** Events met this run. */
@@ -143,6 +145,8 @@ export interface Run {
   /** Everything found so far (filled in by the store). */
   found: { items: ItemStack[]; xp: Partial<Record<SkillId, number>>; kills: number; pet?: string; cottage?: string; lore?: string; recipes?: string[] };
   end?: 'won' | 'ko' | 'home';
+  /** 🤝 The guildmate has been sent their thank-you. */
+  thanked?: boolean;
   /** The store has given back unused supplies (and what they were). */
   settled?: boolean;
   returned?: ItemStack[];
@@ -201,7 +205,29 @@ export function whyCantStart(p: PlayerState, region: Region, pack: ItemStack[]):
 }
 
 /** Sets off. The store takes the packed things out of your bag/bank first. */
-export function newRun(p: PlayerState, region: Region, pack: ItemStack[], seed = Math.floor(Math.random() * 2 ** 31)): Run {
+/** 🤝 A guildmate's hero, as the guild board shows it (their worn gear, combat levels and best ammo). */
+export interface HeroSnap { id: string; name: string; eq: Partial<Record<EquipSlot, string>>; lv: number[]; ammo?: string; pet?: string }
+/** A hero hits for this share of what they'd do alone — at most 15% of a fair fighter for the town. */
+export const HELPER_SHARE = 0.15;
+export function makeHelper(region: Region, hero: HeroSnap): NonNullable<Run['helper']> {
+  const p = newPlayer(0);
+  (['melee', 'ranged', 'magic', 'defense', 'health'] as const).forEach((s, i) => {
+    p.skills[s].xp = XP_AT[Math.max(1, Math.min(999, Math.floor(hero.lv[i] ?? 1)))];
+  });
+  for (const [slot, id] of Object.entries(hero.eq ?? {})) if (id && ITEMS[id]?.equip) p.equipment[slot as EquipSlot] = id;
+  const style = weaponStyle(p);
+  const ammo = hero.ammo && ITEMS[hero.ammo]?.ammo?.style === style ? hero.ammo : null;
+  const fair = fairPower(region);
+  const hit: Record<string, number> = {};
+  for (const m of [...townMonsters(region), townBoss(region)!]) {
+    let raw = rawPower(p, { ...m, style }, ammo).hit;
+    if (style !== 'melee' && !ammo) raw *= NO_AMMO_MULT;
+    hit[m.id] = Math.min(raw, fair[m.id].rawHit) * HELPER_SHARE;
+  }
+  return { id: hero.id, name: hero.name.slice(0, 24), style, pet: hero.pet, hit };
+}
+
+export function newRun(p: PlayerState, region: Region, pack: ItemStack[], seed = Math.floor(Math.random() * 2 ** 31), hero?: HeroSnap): Run {
   const hp = maxHp(p);
   const satchel: Supply[] = pack.map((s) => ({ id: s.id, qty: s.qty, heal: supplyHeal(p, s.id, region, hp), kind: supplyKind(p, s.id)! }));
   const ammo = bestAmmo(satchel);
@@ -221,6 +247,7 @@ export function newRun(p: PlayerState, region: Region, pack: ItemStack[], seed =
     hp, maxHp: hp, focus: 0, boons: [], sharpen: 0, satchel, power, log: [], found: { items: [], xp: {}, kills: 0 },
   };
   r.map = makeMap(r);
+  if (hero) r.helper = makeHelper(region, hero);
   // 🧭 Packed charms bring their Boons along.
   for (const s of satchel) {
     const b = ITEMS[s.id]?.charm as BoonId | undefined;
@@ -259,7 +286,7 @@ function rawPower(p: PlayerState, m: MonsterDef, ammo: string | null) {
  * The fair fighter for a town (its strongest monster's level + 15, the town's own metal gear, no style edge):
  * expedition monsters get their health and hits from this, so every town plays about the same.
  */
-const fairCache = new Map<Region, Record<string, { hp: number; hurt: number; rawHurt: number }>>();
+const fairCache = new Map<Region, Record<string, { hp: number; hurt: number; rawHurt: number; rawHit: number }>>();
 export function fairPower(region: Region) {
   let out = fairCache.get(region);
   if (out) return out;
@@ -276,11 +303,11 @@ export function fairPower(region: Region) {
   for (const [i, m] of ms.entries()) {
     const raw = rawPower(p, { ...m, style: 'melee' }, null);
     const rank = ms.length > 1 ? i / (ms.length - 1) : 1;
-    out[m.id] = { hp: raw.hit * (FAIR.turns[0] + (FAIR.turns[1] - FAIR.turns[0]) * rank), hurt: hpMax * (FAIR.hurt[0] + (FAIR.hurt[1] - FAIR.hurt[0]) * rank), rawHurt: raw.hurt };
+    out[m.id] = { hp: raw.hit * (FAIR.turns[0] + (FAIR.turns[1] - FAIR.turns[0]) * rank), hurt: hpMax * (FAIR.hurt[0] + (FAIR.hurt[1] - FAIR.hurt[0]) * rank), rawHurt: raw.hurt, rawHit: raw.hit };
   }
   if (boss) {
     const raw = rawPower(p, { ...boss, style: 'melee' }, null);
-    out[boss.id] = { hp: raw.hit * FAIR.bossTurns, hurt: hpMax * FAIR.bossHurt, rawHurt: raw.hurt };
+    out[boss.id] = { hp: raw.hit * FAIR.bossTurns, hurt: hpMax * FAIR.bossHurt, rawHurt: raw.hurt, rawHit: raw.hit };
   }
   fairCache.set(region, out);
   return out;
@@ -448,6 +475,8 @@ export type Move = 'attack' | 'guard' | 'special';
 export interface TurnResult {
   /** Damage each foe took (by index), and what each did to you. */
   dealt: number[];
+  /** 🤝 What the guildmate's hero did. */
+  helped?: { i: number; dmg: number };
   taken: { i: number; dmg: number; kind: IntentKind }[];
   won: boolean;
   ko: boolean;
@@ -487,6 +516,20 @@ export function playTurn(r: Run, move: Move, target = r.fight?.target ?? 0): Tur
   for (const [i, d] of dealt.entries()) foes[i].hp -= d;
   const names = dealt.map((d, i) => (d ? `${foes[i].name} −${d}` : '')).filter(Boolean);
   say(r, move === 'guard' ? 'You raise your guard.' : `${move === 'special' ? SPECIAL_NAME[r.style].name + '! ' : ''}${names.join(', ') || 'You miss'}`);
+  // 🤝 The guildmate's hero strikes the monster you're aiming at.
+  let helped: TurnResult['helped'];
+  if (r.helper) {
+    const ti = foes[target]?.hp > 0 ? target : foes.findIndex((f) => f.hp > 0);
+    if (ti >= 0) {
+      const f = foes[ti];
+      const base = (r.helper.hit[f.m] ?? 0) * (f.intent === 'guard' ? 0.5 : 1);
+      const d = Math.min(f.hp, Math.max(1, Math.round(base * (0.85 + rand(r) * 0.3))));
+      f.hp -= d;
+      dealt[ti] += d;
+      helped = { i: ti, dmg: d };
+      say(r, `${r.helper.name} strikes ${f.name} −${d}`);
+    }
+  }
 
   // Their turn.
   const taken: TurnResult['taken'] = [];
@@ -514,11 +557,11 @@ export function playTurn(r: Run, move: Move, target = r.fight?.target ?? 0): Tur
     r.end = 'ko';
     r.fight = undefined;
     say(r, 'You are knocked out… and carried home safe, with everything you found.');
-    return { dealt, taken, won: false, ko: true, reward: null };
+    return { dealt, helped, taken, won: false, ko: true, reward: null };
   }
-  if (!alive(r).length) return { dealt, taken, won: true, ko: false, reward: winFight(r) };
+  if (!alive(r).length) return { dealt, helped, taken, won: true, ko: false, reward: winFight(r) };
   if (foes[fight.target].hp <= 0) fight.target = foes.findIndex((f) => f.hp > 0);
-  return { dealt, taken, won: false, ko: false, reward: null };
+  return { dealt, helped, taken, won: false, ko: false, reward: null };
 }
 
 function winFight(r: Run): Reward {

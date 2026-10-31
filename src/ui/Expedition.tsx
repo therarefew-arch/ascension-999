@@ -105,6 +105,8 @@ function Setup({ onStart }: { onStart: (r: Run) => void }) {
   const towns = REGIONS.filter((r) => player.regions.includes(r) && townBoss(r));
   const [town, setTown] = useState<Region>(towns.includes(player.location) ? player.location : towns[0] ?? 'Pocketvale');
   const [pack, setPack] = useState<ItemStack[]>([]);
+  const heroes = useMemo(() => game.expeditionHeroes(), []);
+  const [hero, setHero] = useState<string | null>(null);
   const style = weaponStyle(player);
   const boss = townBoss(town);
   const [lo, hi] = levelRange(town);
@@ -130,7 +132,7 @@ function Setup({ onStart }: { onStart: (r: Run) => void }) {
   };
   const remove = (i: number) => { sound.play('whoosh', { volume: 0.5 }); setPack(pack.filter((_, j) => j !== i)); };
   const start = () => {
-    const r = game.expeditionStart(town, pack);
+    const r = game.expeditionStart(town, pack, heroes.find((h) => h.id === hero));
     if (r) { sound.play('levelup'); onStart(r); }
   };
   const needAmmo = style !== 'melee' && !pack.some((s) => supplyKind(player, s.id) === 'ammo');
@@ -155,6 +157,25 @@ function Setup({ onStart }: { onStart: (r: Run) => void }) {
           {fair > 0 && <span className="green"> — good against the boss!</span>}
         </span>
       </div>
+      {player.family && (
+        <>
+          <h3 className="ex-h">🤝 Bring a guildmate's hero <span className="tiny muted">(optional)</span></h3>
+          {heroes.length === 0
+            ? <p className="tiny muted">No guildmates' heroes yet — they show up here once your guildmates have played this version (open Profile → Guild to refresh).</p>
+            : <div className="ex-towns">
+                <button className={`ex-town ${hero === null ? 'on' : ''}`} onClick={() => { sound.play('tick'); setHero(null); }}><span>🚶</span><span className="tiny">Just me</span></button>
+                {heroes.map((h) => {
+                  const st = h.eq.weapon ? getItem(h.eq.weapon).equip?.style ?? 'melee' : 'melee';
+                  return (
+                    <button key={h.id} className={`ex-town ${hero === h.id ? 'on' : ''}`} onClick={() => { sound.play('tick', { rate: 1.2 }); setHero(h.id); }}>
+                      <span>{HERO[st]}{h.pet ?? ''}</span><span className="tiny">{h.name}</span><span className="tiny muted">{STYLE_NAME[st]} {Math.max(...h.lv)}</span>
+                    </button>
+                  );
+                })}
+              </div>}
+          {hero && <p className="tiny muted">Their hero strikes the monster you aim at every turn. After a real fight they get a little thank-you gift (up to 3 a day).</p>}
+        </>
+      )}
       <h3 className="ex-h">Pack your satchel <span className="tiny muted">({pack.length}/{SATCHEL_SLOTS} · tap to unpack)</span></h3>
       <div className="ex-satchel">
         {Array.from({ length: SATCHEL_SLOTS }, (_, i) => pack[i]).map((s, i) => (
@@ -247,6 +268,7 @@ function Journey({ run, commit }: { run: Run; commit: (r: Run | null) => void })
         </div>
         <button className="ex-bagbtn" onClick={() => { sound.play('click'); setBag(!bag); }} aria-label="Satchel">🎒<span className="tiny mono">{run.satchel.reduce((n, s) => n + (s.kind === 'ammo' ? 0 : s.qty), 0)}</span></button>
       </div>
+      {run.helper && <div className="ex-boons"><span className="ex-boon ex-helper">🤝 {HERO[run.helper.style]}{run.helper.pet ?? ''} {run.helper.name}</span></div>}
       {run.boons.length > 0 && <div className="ex-boons">{run.boons.map((b) => <span key={b} className="ex-boon" title={BOONS[b].text}>{BOONS[b].emoji} {BOONS[b].name}</span>)}{run.sharpen > 0 && <span className="ex-boon">🪨 +{run.sharpen * 8}%</span>}</div>}
       {bag && <Satchel run={run} onUse={eat} onClose={() => setBag(false)} />}
 
@@ -422,6 +444,7 @@ function FightView({ run, last, onMove, onBag, onTarget }: { run: Run; last: { r
       </div>
       <div className="ex-you">
         {last && hurt > 0 && <span key={last.key} className="ex-pop you">−{hurt}</span>}
+        {last?.res.helped && run.helper && <span key={'h' + last.key} className="tiny ex-helped">🤝 {run.helper.name} struck {run.fight!.foes[last.res.helped.i]?.name} −{last.res.helped.dmg}<br /></span>}
         <span className="tiny muted">Coming at you: <b className={incoming > run.hp ? 'red' : ''}>{incoming}</b>{incoming >= run.hp * 0.3 && incoming > 0 ? ' — maybe guard?' : ''}</span>
       </div>
       <div className="ex-moves">
@@ -457,6 +480,7 @@ function Done({ run, onClose }: { run: Run; onClose: () => void }) {
       {(run.found.recipes ?? []).map((id) => <p key={id} className="small gold">📖 Lost recipe learned: <b>{ACTIONS[id]?.name}</b> — make it in {ACTIONS[id]?.skill === 'cooking' ? 'Cooking' : 'Crafting → Charms'}</p>)}
       {xp.length > 0 && <div className="ex-xp">{xp.map(([s, n]) => <span key={s} className="tiny"><b>{SKILLS[s as keyof typeof SKILLS].name}</b> +{Math.round(n!).toLocaleString()} XP</span>)}</div>}
       {run.found.items.length > 0 && <div className="ex-found static">{run.found.items.map((s) => <span key={s.id} className="ex-found-item"><ItemIcon id={s.id} size={26} /><span className="tiny mono">{s.qty.toLocaleString()}</span></span>)}</div>}
+      {run.helper && <p className="small">🤝 {run.helper.name}'s hero came along{run.thanked && run.found.kills > 0 ? ' — a thank-you gift is on its way to them' : ''}.</p>}
       {(run.returned?.length ?? 0) > 0 && <p className="tiny muted">Unused supplies went back to your bag (or bank): {merge(run.returned!).map((s) => `${s.qty} ${getItem(s.id).name}`).join(', ')}.</p>}
       <button className="btn btn-hero" onClick={() => { sound.play('click'); onClose(); }}>BACK TO TOWN</button>
     </div>
