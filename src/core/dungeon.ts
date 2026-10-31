@@ -41,8 +41,10 @@ export interface Mob {
   boss?: boolean; slamT?: number; slamCd?: number;
   /** Knockback slide speed (px/ms) and a little hop when struck. */
   kb?: number; hop?: number;
+  /** v0.0.1.72: a spitter glows for `windT` ms before it fires; ledge monsters can hop down (`vy`). */
+  windT?: number; vy?: number;
 }
-export interface Shot { x: number; y: number; vx: number; vy: number; dmg: number; mine: boolean; pierce: boolean; kind: 'arrow' | 'bolt' | 'fire' | 'spit'; ttl: number; hit: number[]; mult?: number; blast?: boolean; hits?: number }
+export interface Shot { x: number; y: number; vx: number; vy: number; dmg: number; mine: boolean; pierce: boolean; kind: 'arrow' | 'bolt' | 'fire' | 'spit'; ttl: number; hit: number[]; mult?: number; blast?: boolean; hits?: number; target?: number }
 export interface Pop { x: number; y: number; text: string; t: number; kind: 'hit' | 'crit' | 'hurt' | 'heal' | 'info'; mob?: number; stack?: number }
 /** A hit waiting to land (multi-hit skills space their hits out). */
 export interface QueuedHit { at: number; mob: number; mult: number; knock: number }
@@ -250,9 +252,46 @@ function inFront(d: Dungeon, reach: number, height = 70, both = false): Mob[] {
   const box = { x1, x2, y1: h.y - height, y2: h.y + 6 };
   return alive(d).filter((m) => overlap(box, mobBox(m))).sort((a, b) => Math.abs(a.x - h.x) - Math.abs(b.x - h.x));
 }
-function shoot(d: Dungeon, kind: Shot['kind'], mult: number, opts: Partial<Shot> = {}) {
+/** 🎯 Aim help (v0.0.1.72, owner: "my attacks go over their heads… they're on the platform above me"):
+ * the nearest monster ahead — on your row, or up to two ledges above / one below. Same-row ones win ties. */
+function aimTarget(d: Dungeon, reach = 270): Mob | undefined {
   const h = d.hero;
-  d.shots.push({ x: h.x + h.face * 14, y: h.y - 34, vx: h.face * (kind === 'arrow' ? 0.62 : 0.48), vy: 0, dmg: 0, mine: true, pierce: false, kind, ttl: 900, hit: [], mult, ...opts });
+  let best: Mob | undefined, bestScore = Infinity;
+  for (const m of alive(d)) {
+    const ahead = (m.x - h.x) * h.face;
+    const up = h.y - m.y;
+    if (ahead < -12 || ahead > reach || up > ROW_GAP * 2 + 25 || up < -ROW_GAP - 25) continue;
+    const score = Math.abs(ahead) + Math.abs(up) * 1.2;
+    if (score < bestScore) { best = m; bestScore = score; }
+  }
+  return best;
+}
+/** The angle (radians) from a point to a monster's middle, leading it a little if it's walking. */
+function angleTo(s: { x: number; y: number }, m: Mob, speed: number, face: number): number {
+  const dist = Math.hypot(m.x - s.x, m.y - m.h / 2 - s.y);
+  const lead = m.hitT > 0 || m.kb ? 0 : m.dir * m.speed * (dist / speed);
+  const dx = Math.max(24, (m.x + lead - s.x) * face);
+  return Math.max(-1.0, Math.min(0.75, Math.atan2(m.y - m.h / 2 - s.y, dx)));
+}
+function shoot(d: Dungeon, kind: Shot['kind'], mult: number, opts: Partial<Shot> = {}, spread = 0) {
+  const h = d.hero;
+  const sp = Math.abs(opts.vx ?? (kind === 'arrow' ? 0.62 : 0.48));
+  const s: Shot = { x: h.x + h.face * 14, y: h.y - 34, vx: 0, vy: 0, dmg: 0, mine: true, pierce: false, kind, ttl: 900, hit: [], mult, ...opts };
+  const t = aimTarget(d);
+  const a = (t ? angleTo(s, t, sp, h.face) : 0) + spread;
+  s.vx = h.face * sp * Math.cos(a);
+  s.vy = sp * Math.sin(a);
+  if (t && kind !== 'arrow') s.target = t.id; // magic gently homes in
+  d.shots.push(s);
+}
+/** Your swings and shots pop monster spit they touch (a calm way out of a crowded moment). */
+function popSpit(d: Dungeon, box: { x1: number; x2: number; y1: number; y2: number }): boolean {
+  let any = false;
+  for (const s of d.shots) if (!s.mine && s.ttl > 0 && s.x > box.x1 && s.x < box.x2 && s.y > box.y1 && s.y < box.y2) {
+    s.ttl = 0; any = true;
+    burst(d, s.x, s.y, 5, ['#d9f99d', '#a3e635', '#ffffff'], 0.12, 0.0004, 2, 300);
+  }
+  return any;
 }
 function hurtHero(d: Dungeon, dmg: number, from: number) {
   const h = d.hero;
@@ -294,9 +333,9 @@ export function castSkill(d: Dungeon, i: number): string | null {
     case 'double_shot': for (let k = 0; k < 4; k++) shoot(d, 'arrow', 0.75, { y: h.y - 30 - (k % 2) * 6, x: h.x + h.face * (14 - k * 16) }); return 'whoosh';
     case 'piercing_arrow': shoot(d, 'arrow', 0.9, { pierce: true, vx: h.face * 0.8, hits: 2 }); return 'shing';
     case 'arrow_rain': { const x = h.x + h.face * 120; for (let k = 0; k < 4; k++) d.fx.push({ x, y: GROUND, t: -k * 300, kind: 'rain', w: 150 }); return 'whoosh'; }
-    case 'leap_shot': h.vx = -h.face * 0.45; h.vy = -0.7; h.onGround = false; h.invT = Math.max(h.invT, 400); for (const vy of [-0.06, 0, 0.06]) shoot(d, 'arrow', 1.2, { vy }); return 'whoosh';
+    case 'leap_shot': h.vx = -h.face * 0.45; h.vy = -0.7; h.onGround = false; h.invT = Math.max(h.invT, 400); for (const a of [-0.14, 0, 0.14]) shoot(d, 'arrow', 1.2, {}, a); return 'whoosh';
     case 'magic_claw': {
-      const t = alive(d).filter((m) => Math.abs(m.x - h.x) < 200 && Math.abs(m.y - h.y) < 110 && Math.sign(m.x - h.x) !== -h.face).sort((a, b) => Math.abs(a.x - h.x) - Math.abs(b.x - h.x))[0];
+      const t = aimTarget(d, 210);
       if (t) { multiHit(d, t, 4, 0.7, 8); for (let k = 0; k < 4; k++) d.fx.push({ x: t.x, y: t.y - t.h / 2, t: -k * HIT_GAP, kind: 'claw', w: 30 }); }
       else shoot(d, 'bolt', 1);
       return 'rune';
@@ -405,6 +444,7 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
     if (d.style === 'melee') {
       const t = inFront(d, 62)[0];
       if (t) { hitMob(d, t, 1); sounds.push('hit'); } else sounds.push('whoosh');
+      if (popSpit(d, { x1: h.x - (h.face < 0 ? 66 : 8), x2: h.x + (h.face > 0 ? 66 : 8), y1: h.y - 78, y2: h.y + 4 })) sounds.push('tick');
       d.fx.push({ x: h.x + h.face * 30, y: h.y - 32, t: 0, kind: 'slash', w: 46 });
     } else { shoot(d, d.style === 'ranged' ? 'arrow' : 'bolt', 1); sounds.push(d.style === 'ranged' ? 'whoosh' : 'rune'); }
   }
@@ -433,9 +473,22 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
     s.y += s.vy * dt;
     s.ttl -= dt;
     if (s.mine) {
+      // Magic bolts curve gently toward the monster they were aimed at.
+      if (s.target !== undefined) {
+        const t = d.mobs.find((m) => m.id === s.target && m.hp > 0);
+        if (t) {
+          const sp = Math.hypot(s.vx, s.vy);
+          const a = Math.atan2(t.y - t.h / 2 - s.y, t.x - s.x);
+          const k = Math.min(1, dt * 0.012);
+          s.vx += (Math.cos(a) * sp - s.vx) * k;
+          s.vy += (Math.sin(a) * sp - s.vy) * k;
+        }
+      }
+      popSpit(d, { x1: s.x - 9, x2: s.x + 9, y1: s.y - 9, y2: s.y + 9 });
       for (const m of alive(d)) {
         if (s.hit.includes(m.id)) continue;
-        if (Math.abs(s.x - m.x) < m.w / 2 + 6 && s.y > m.y - m.h - 6 && s.y < m.y + 4) {
+        // A forgiving box: small monsters (rats, crabs) are easy to hit too.
+        if (Math.abs(s.x - m.x) < m.w / 2 + 6 && s.y > m.y - Math.max(m.h, 30) - 10 && s.y < m.y + 8) {
           if (s.blast) {
             for (const o of alive(d).filter((o) => Math.abs(o.x - s.x) < 85 && Math.abs(o.y - m.y) < 95).slice(0, MAX_TARGETS)) { hitMob(d, o, s.mult ?? 1, 12); multiHit(d, o, 2, 0.4, 2, 380); }
             d.fx.push({ x: s.x, y: s.y, t: 0, kind: 'boom', w: 80 });
@@ -475,13 +528,44 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
     m.x = Math.max(m.min, Math.min(m.max, m.x));
     // Touch
     if (overlap(heroBox(h), mobBox(m)) && h.dashT <= 0) { if (h.invT <= 0) sounds.push('hurt'); hurtHero(d, m.touch, m.x); }
-    // Spit / arrows from the ranged and magic ones
+    // Spit from the ranged and magic ones — calmed down in v0.0.1.72 (owner: "their attacks become like a
+    // bullet hell"): only from your own row and close by, a glow first, no more than 2 flying at once
+    // (the boss gets 1 of its own), and your swings/shots can pop them.
     m.atkCd -= dt;
-    if (m.shoots && m.atkCd <= 0 && Math.abs(dx) < 280 && Math.abs(h.y - m.y) < 120 && (!m.boss || h.x >= d.arenaX)) {
-      m.atkCd = m.boss ? 2200 : 2600 + rand(d) * 1200;
-      const sp = 0.22;
-      const ty = h.y - HERO_H / 2 - (m.y - m.h / 2);
-      d.shots.push({ x: m.x, y: m.y - m.h / 2, vx: Math.sign(dx) * sp, vy: Math.max(-0.08, Math.min(0.08, ty / 1200)), dmg: m.touch * 0.9, mine: false, pierce: false, kind: 'spit', ttl: 2200, hit: [] });
+    if (m.windT) {
+      m.windT -= dt;
+      if (m.windT <= 0) {
+        m.windT = 0;
+        const sp = m.boss ? 0.22 : 0.19;
+        m.dir = dx > 0 ? 1 : -1;
+        d.shots.push({ x: m.x + m.dir * m.w * 0.3, y: Math.min(m.y - 14, h.y - HERO_H / 2), vx: m.dir * sp, vy: 0, dmg: m.touch * 0.9, mine: false, pierce: false, kind: 'spit', ttl: 1600, hit: [], target: m.boss ? -1 : undefined });
+        sounds.push('whoosh');
+      }
+    } else if (m.shoots && m.atkCd <= 0 && Math.abs(dx) < (m.boss ? 300 : 220) && Math.abs(h.y - m.y) < 45 && (!m.boss || h.x >= d.arenaX)) {
+      const flying = d.shots.filter((s) => !s.mine && (m.boss ? s.target === -1 : s.target !== -1)).length;
+      if (flying < (m.boss ? 1 : 2)) { m.windT = m.boss ? 500 : 550; m.atkCd = m.boss ? 2400 : 3400 + rand(d) * 1800; }
+      else m.atkCd = 400; // someone else is spitting — wait a moment
+    }
+    // 🪂 Monsters on a ledge hop down to meet you when you walk underneath.
+    if (!m.boss && m.vy === undefined && m.y < GROUND && h.y > m.y + 40 && h.y - m.y < ROW_GAP * 2 + 30 && Math.abs(dx) < 75 && m.hitT <= 0) {
+      m.vy = -0.35; m.dir = dx > 0 ? 1 : -1;
+      pop(d, m.x, m.y - m.h - 6, '!', 'info');
+    }
+    if (m.vy !== undefined) {
+      const before = m.y;
+      m.vy += GRAV * dt;
+      m.y += m.vy * dt;
+      m.x += m.dir * 0.06 * dt;
+      if (m.vy > 0) {
+        const land = d.plats.find((pl) => pl.y > before + 1 && m.x >= pl.x1 && m.x <= pl.x2 && before <= pl.y && m.y >= pl.y && (pl.y >= GROUND || pl.y >= h.y - 5));
+        if (land) {
+          m.y = land.y; m.vy = undefined;
+          if (land.y >= GROUND) { m.min = Math.max(m.w / 2, m.x - 130); m.max = Math.min(d.arenaX - 40, m.x + 130); }
+          else { m.min = land.x1 + m.w / 2; m.max = land.x2 - m.w / 2; }
+          burst(d, m.x, m.y, 5, ['#ffffff', '#e7e5e4'], 0.09, -0.00005, 4, 380);
+        }
+      }
+      if (m.y > GROUND) { m.y = GROUND; m.vy = undefined; m.min = Math.max(m.w / 2, m.x - 130); m.max = Math.min(d.arenaX - 40, m.x + 130); }
     }
     // 👑 The boss's big slam: it glows first — jump over it!
     if (m.boss && h.x >= d.arenaX) {

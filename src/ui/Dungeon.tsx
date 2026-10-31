@@ -453,6 +453,12 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
     g.drawImage(s, Math.round(-s.width * k / 2), -s.height * k, s.width * k, s.height * k);
     g.restore();
     if (m.boss && living) { const crown = sprite('👑', 22); g.drawImage(crown, m.x - crown.width / 2, m.y + float - s.height * k - 26 + Math.sin(d.t / 300) * 3); }
+    if (living && (m.windT ?? 0) > 0) {
+      // About to spit: a green glow swells at its mouth so you can see it coming
+      const q = 1 - (m.windT ?? 0) / 550;
+      g.fillStyle = `rgba(190,242,100,${0.25 + 0.45 * q})`;
+      g.beginPath(); g.arc(m.x + m.dir * m.w * 0.3, Math.min(m.y - 14, d.hero.y - 29) + float, 3 + q * 6, 0, Math.PI * 2); g.fill();
+    }
     if (m.boss && (m.slamT ?? 0) > 0) {
       g.strokeStyle = `rgba(248,113,113,${0.4 + 0.4 * Math.sin(d.t / 60)})`; g.lineWidth = 3;
       g.beginPath(); g.ellipse(m.x, GROUND + 2, 170, 14, 0, 0, Math.PI * 2); g.stroke();
@@ -464,7 +470,7 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
   }
   // Shots
   for (const s of d.shots) {
-    if (s.kind === 'arrow') { g.strokeStyle = '#e7e5e4'; g.lineWidth = 2; g.beginPath(); g.moveTo(s.x - Math.sign(s.vx) * 14, s.y); g.lineTo(s.x, s.y); g.stroke(); g.fillStyle = '#a8a29e'; g.fillRect(s.x - 2, s.y - 2, 4, 4); }
+    if (s.kind === 'arrow') { const sp = Math.hypot(s.vx, s.vy) || 1; g.strokeStyle = '#e7e5e4'; g.lineWidth = 2; g.beginPath(); g.moveTo(s.x - (s.vx / sp) * 14, s.y - (s.vy / sp) * 14); g.lineTo(s.x, s.y); g.stroke(); g.fillStyle = '#a8a29e'; g.fillRect(s.x - 2, s.y - 2, 4, 4); }
     else { g.fillStyle = s.kind === 'fire' ? '#f97316' : s.kind === 'spit' ? '#a3e635' : look.orb; g.beginPath(); g.arc(s.x, s.y, s.kind === 'fire' ? 8 : 5, 0, Math.PI * 2); g.fill(); }
   }
   // Hero (with a little shadow at its feet)
