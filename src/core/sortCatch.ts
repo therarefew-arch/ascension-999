@@ -1,12 +1,12 @@
 // 🧺 Sort the Catch (Fishing) — v3 (v0.0.1.63, owner's picture: a tile-stack game).
 // A big pile of catch tiles, all face-up, stacked in overlapping layers. A tile can be picked when no
 // other tile lies on top of it (covered tiles look darker).
-// - Picked tiles go into the basket: 4 slots, the same fish stacks in one slot. Three alike clear for
+// - Picked tiles go into the basket: 4 slots. Two alike clear (v0.0.1.64, owner: "it should clear in 2") for
 //   Fishing XP. Picking a 5th different fish overflows the basket — the round ends, you keep the XP
 //   (and ↩️ Undo can still save it). Misses never cost anything.
-// - Every three fills the combo bar (7); a full bar adds +0.5× to the XP multiplier (max 3×).
+// - Every pair fills the combo bar (7); a full bar adds +0.5× to the XP multiplier (max 3×).
 // - Helpers per crate: 🔀 Shuffle (the fish on the board swap around, still solvable), 🔍 Hint, ↩️ Undo.
-// Boards are built so they can always be cleared (fish are dealt three at a time in a pick-able order).
+// Boards are built so they can always be cleared (fish are dealt in pairs in a pick-able order).
 
 /** A tile: x, y in half-tile steps (so tiles can sit half over each other), z = layer. */
 export interface Tile { id: number; x: number; y: number; z: number; face: number }
@@ -14,6 +14,8 @@ export interface Slot { face: number; ids: number[] }
 
 export const FACES = ['🐟', '🦐', '🦀', '🐚', '⭐', '🐙', '🐠', '⚓', '🐡', '🦑', '🐢', '🪸'];
 export const BASKET = 4;
+/** How many alike clear. */
+export const MATCH = 2;
 export const COMBO_BAR = 7;
 export const HELPERS = { shuffle: 2, hint: 3, undo: 3 } as const;
 /** Board size in tiles (base layer). */
@@ -42,7 +44,7 @@ function layout(rng: () => number): { x: number; y: number; z: number }[] {
   for (let y = 1; y < ROWS - 1; y++) for (let x = 1; x < COLS - 1; x++) top.push({ x: x * 2, y: y * 2, z: 2 });
   // Leave some holes in the upper layers so every crate looks different.
   s.push(...shuffled(mid, rng).slice(0, 22), ...shuffled(top, rng).slice(0, 8));
-  while (s.length % 3) s.pop();
+  while (s.length % MATCH) s.pop();
   return s;
 }
 
@@ -51,7 +53,7 @@ export function newBoard(rng: () => number = Math.random): Tile[] {
   for (let attempt = 0; attempt < 200; attempt++) {
     const tiles = layout(rng).map((p) => ({ id: nextId++, ...p, face: 0 }));
     const kinds = shuffled(FACES.map((_, i) => i), rng).slice(0, BOARD_FACES);
-    const triples = Array.from({ length: tiles.length / 3 }, (_, i) => kinds[i % kinds.length]);
+    const triples = Array.from({ length: tiles.length / MATCH }, (_, i) => kinds[i % kinds.length]);
     if (dealExact(tiles, [], triples, rng)) return tiles;
   }
   throw new Error('Could not build a board');
@@ -60,12 +62,12 @@ export function newBoard(rng: () => number = Math.random): Tile[] {
 /** 🔀 Shuffle: the same fish on the board swap places — and it still works out. */
 export function shuffleBoard(tiles: Tile[], basket: Slot[], rng: () => number = Math.random): Tile[] {
   const copy = tiles.map((t) => ({ ...t }));
-  // Fish still on the board (besides those finishing the basket's stacks), as whole threes.
+  // Fish still on the board (besides those finishing the basket's stacks), as whole pairs.
   const counts = new Map<number, number>();
   for (const t of tiles) counts.set(t.face, (counts.get(t.face) ?? 0) + 1);
-  for (const s of basket) counts.set(s.face, (counts.get(s.face) ?? 0) - (3 - s.ids.length));
+  for (const s of basket) counts.set(s.face, (counts.get(s.face) ?? 0) - (MATCH - s.ids.length));
   const kinds: number[] = [];
-  for (const [f, n] of counts) for (let i = 0; i < Math.floor(n / 3); i++) kinds.push(f);
+  for (const [f, n] of counts) for (let i = 0; i < Math.floor(n / MATCH); i++) kinds.push(f);
   for (let a = 0; a < 50; a++) {
     const tryTiles = copy.map((t) => ({ ...t }));
     if (dealExact(tryTiles, basket, kinds, rng)) return tryTiles;
@@ -75,7 +77,7 @@ export function shuffleBoard(tiles: Tile[], basket: Slot[], rng: () => number = 
 /**
  * Gives out fish so the pile can always be cleared: tiles are taken in a random order that only ever
  * picks free tiles, and fish are dealt along that order — first whatever finishes the basket's stacks,
- * then three of a kind at a time.
+ * then a pair at a time.
  */
 function dealExact(spots: Tile[], basket: Slot[], triples: number[], rng: () => number): boolean {
   const order: Tile[] = [];
@@ -88,40 +90,37 @@ function dealExact(spots: Tile[], basket: Slot[], triples: number[], rng: () => 
     left.splice(left.indexOf(t), 1);
   }
   const seq: number[] = [];
-  for (const s of basket) for (let i = s.ids.length; i < 3; i++) seq.push(s.face);
-  for (const f of shuffled(triples, rng)) seq.push(f, f, f);
+  for (const s of basket) for (let i = s.ids.length; i < MATCH; i++) seq.push(s.face);
+  for (const f of shuffled(triples, rng)) for (let k = 0; k < MATCH; k++) seq.push(f);
   if (seq.length !== order.length) return false;
   order.forEach((t, i) => { t.face = seq[i]; });
   return true;
 }
 
-/** Puts a tile in the basket. Returns the new basket and the fish that made a three (cleared). */
+/** Puts a tile in the basket. Returns the new basket and the fish that made a pair (cleared). */
 export function addToBasket(basket: Slot[], t: { id: number; face: number }): { basket: Slot[]; cleared: number | null } {
   const b = basket.map((s) => ({ face: s.face, ids: [...s.ids] }));
   const slot = b.find((s) => s.face === t.face);
   if (slot) slot.ids.push(t.id); else b.push({ face: t.face, ids: [t.id] });
-  const full = b.find((s) => s.ids.length >= 3);
+  const full = b.find((s) => s.ids.length >= MATCH);
   if (full) return { basket: b.filter((s) => s !== full), cleared: full.face };
   return { basket: b, cleared: null };
 }
 /** More different fish than slots = the basket overflows. */
 export const isBust = (basket: Slot[]) => basket.length > BASKET;
 
-/** 🔍 A good tile to pick next: one that finishes a stack, else one of three free alike, else a free one of a fish in the basket. */
+/** 🔍 A good tile to pick next: one that finishes a pair, else one of two free alike, else a free one of a fish in the basket. */
 export function hintTile(tiles: Tile[], basket: Slot[]): Tile | null {
   const free = tiles.filter((t) => isFree(t, tiles));
   const byFace = (f: number) => free.filter((t) => t.face === f);
-  for (const need of [2, 1]) {
-    for (const s of basket) if (s.ids.length === need && byFace(s.face).length >= 3 - need) return byFace(s.face)[0];
-  }
+  for (const s of basket) if (byFace(s.face).length >= MATCH - s.ids.length) return byFace(s.face)[0];
   if (basket.length < BASKET) {
-    for (const t of free) if (byFace(t.face).length >= 3) return t;
     for (const t of free) if (byFace(t.face).length >= 2) return t;
   }
   return free.find((t) => basket.some((s) => s.face === t.face)) ?? (basket.length < BASKET ? free[0] ?? null : null);
 }
 
-/** Fishing XP for clearing a three, from the recipe's XP. */
-export const tripleXp = (baseXp: number) => Math.max(1, Math.round(baseXp * 1.5));
+/** Fishing XP for clearing a pair, from the recipe's XP (pairs come 1.5× as often as threes did). */
+export const matchXp = (baseXp: number) => Math.max(1, Math.round(baseXp));
 /** XP multiplier from full combo bars (+0.5× each, up to 3×). */
 export const comboMult = (bars: number) => Math.min(3, 1 + 0.5 * bars);

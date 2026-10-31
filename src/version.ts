@@ -1,6 +1,6 @@
 // The game's version, shown on the title screen and in Settings.
 // Bump the last number with every update that goes live (v0.0.1.2 → v0.0.1.3 → …).
-export const GAME_VERSION = 'v0.0.1.63';
+export const GAME_VERSION = 'v0.0.1.64';
 
 /** One line about what the latest update added. */
-export const VERSION_NOTE = '🧺 Sort the Catch is a tile pile now: pick free tiles, stack fish in a 4-slot basket, build combos — with Shuffle, Hint and Undo';
+export const VERSION_NOTE = '🧺 Sort the Catch: two of a fish now clear the basket (instead of three)';

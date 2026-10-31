@@ -1,12 +1,12 @@
 // Fishing: Reel It In, or "Sort the Catch" — a tile-stack game (rules in core/sortCatch.ts, v3 in v0.0.1.63).
-// Pick free tiles off the pile into a 4-slot basket; three of a fish clear for Fishing XP.
+// Pick free tiles off the pile into a 4-slot basket; two of a fish clear for Fishing XP.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { sound } from '../audio/sound';
 import { musicFor } from '../audio/soundList';
 import type { ActionDef } from '../data/skills';
 import { whyCantDo } from '../core/idle';
 import {
-  addToBasket, BASKET, COLS, COMBO_BAR, comboMult, FACES, HELPERS, hintTile, isBust, isFree, newBoard, ROWS, shuffleBoard, tripleXp,
+  addToBasket, BASKET, COLS, COMBO_BAR, comboMult, FACES, HELPERS, hintTile, isBust, isFree, newBoard, ROWS, shuffleBoard, matchXp,
   type Slot, type Tile,
 } from '../core/sortCatch';
 import { game, useGame } from '../core/store';
@@ -24,7 +24,7 @@ export function TileMatch({ action }: { action: ActionDef }) {
   const [basket, setBasket] = useState<Slot[]>([]);
   const [history, setHistory] = useState<{ tile: Tile; basket: Slot[] }[]>([]);
   const [phase, setPhase] = useState<'play' | 'bust' | 'clear'>('play');
-  const [threes, setThrees] = useState(0);
+  const [pairs, setPairs] = useState(0);
   const [score, setScore] = useState(0);
   const [helpers, setHelpers] = useState<Record<keyof typeof HELPERS, number>>({ ...HELPERS });
   const [hint, setHint] = useState<number | null>(null);
@@ -53,7 +53,7 @@ export function TileMatch({ action }: { action: ActionDef }) {
   }, []);
   const th = Math.round(tw * 1.22);
 
-  const mult = comboMult(Math.floor(threes / COMBO_BAR));
+  const mult = comboMult(Math.floor(pairs / COMBO_BAR));
 
   const tap = (t: Tile) => {
     if (blocked || phase !== 'play') return;
@@ -66,15 +66,15 @@ export function TileMatch({ action }: { action: ActionDef }) {
     setTiles(left);
     setBasket(res.basket);
     if (res.cleared !== null) {
-      const xp = Math.round(tripleXp(action.xp) * mult);
+      const xp = Math.round(matchXp(action.xp) * mult);
       game.minigameXp(action.id, xp);
-      setThrees((n) => n + 1);
+      setPairs((n) => n + 1);
       setScore((s) => s + xp);
-      setHistory([]); // a cleared three can't be undone
+      setHistory([]); // a cleared pair can't be undone
       setPop({ face: res.cleared, at: Date.now() });
       window.setTimeout(() => { sound.play('match', { volume: 0.8 }); sound.play('clack', { rate: 1.4, volume: 0.5 }); }, 160);
-      if ((threes + 1) % COMBO_BAR === 0) { push(`Combo! ×${comboMult(Math.floor((threes + 1) / COMBO_BAR))} XP`, 'combo'); window.setTimeout(() => sound.play('levelup', { volume: 0.5 }), 300); }
-      else push(`Three ${FACES[res.cleared]}! +${xp.toLocaleString()} XP`, 'good');
+      if ((pairs + 1) % COMBO_BAR === 0) { push(`Combo! ×${comboMult(Math.floor((pairs + 1) / COMBO_BAR))} XP`, 'combo'); window.setTimeout(() => sound.play('levelup', { volume: 0.5 }), 300); }
+      else push(`A pair of ${FACES[res.cleared]}! +${xp.toLocaleString()} XP`, 'good');
     } else {
       setHistory((h) => [...h, { tile: t, basket }]);
     }
@@ -119,7 +119,7 @@ export function TileMatch({ action }: { action: ActionDef }) {
   };
 
   const fresh = () => {
-    setTiles(newBoard()); setBasket([]); setHistory([]); setPhase('play'); setThrees(0); setScore(0); setHelpers({ ...HELPERS }); setHint(null);
+    setTiles(newBoard()); setBasket([]); setHistory([]); setPhase('play'); setPairs(0); setScore(0); setHelpers({ ...HELPERS }); setHint(null);
     [0, 1, 2].forEach((i) => window.setTimeout(() => sound.play('clack', { rate: 0.8 + i * 0.15, volume: 0.5 }), i * 70));
   };
 
@@ -144,7 +144,7 @@ export function TileMatch({ action }: { action: ActionDef }) {
           {basket.length > BASKET && <span className="st-slot full over">{FACES[basket[BASKET].face]}</span>}
         </div>
         <div className="st-combo">
-          <div className="st-bar"><div style={{ width: `${((threes % COMBO_BAR) / COMBO_BAR) * 100}%` }} /><span className="mono">{threes % COMBO_BAR}/{COMBO_BAR}</span></div>
+          <div className="st-bar"><div style={{ width: `${((pairs % COMBO_BAR) / COMBO_BAR) * 100}%` }} /><span className="mono">{pairs % COMBO_BAR}/{COMBO_BAR}</span></div>
           <b className="st-mult mono">{mult.toFixed(1)}x</b>
         </div>
       </div>
@@ -163,7 +163,7 @@ export function TileMatch({ action }: { action: ActionDef }) {
               </button>
             );
           })}
-          {pop && Date.now() - pop.at < 700 && <span key={pop.at} className="st-pop">{FACES[pop.face]}{FACES[pop.face]}{FACES[pop.face]}</span>}
+          {pop && Date.now() - pop.at < 700 && <span key={pop.at} className="st-pop">{FACES[pop.face]}{FACES[pop.face]}</span>}
           {phase === 'clear' && <div className="st-done">🧺 All sorted!</div>}
           {phase === 'bust' && <div className="st-done bust">🧺💥 The basket overflowed!<span className="small">You keep the XP you earned.{helpers.undo > 0 && history.length > 0 ? ' Tap ↩️ to take that one back.' : ''}</span></div>}
         </div>
@@ -181,13 +181,13 @@ export function TileMatch({ action }: { action: ActionDef }) {
       <div className="mg-panel">
         <div className="mg-row">
           <span className="mg-label">Sort the Catch</span>
-          <span className="mg-hint">{blocked ?? `${tiles.length} tiles left · ${threes} threes`}</span>
+          <span className="mg-hint">{blocked ?? `${tiles.length} tiles left · ${pairs} pair${pairs === 1 ? "" : "s"}`}</span>
         </div>
         <button className="btn btn-hero btn-lg btn-wide" onClick={fresh}><UiIcon name="play" size={18} /> {phase === 'play' ? 'Fresh catch' : 'Next catch'}</button>
         <p className="mg-foot">
-          Tap any tile that nothing is lying on (covered tiles look darker). It goes in your basket — the same fish stack together.
-          Three alike clear for <b>{tripleXp(action.xp).toLocaleString()} Fishing XP</b> × your combo. The basket has {BASKET} slots — a 5th different fish overflows it.
-          Every {COMBO_BAR} threes adds +0.5× XP (up to 3×). Shuffle, Hint and Undo refill with every crate. Sort the whole crate for bonus fish.
+          Tap any tile that nothing is lying on (covered tiles look darker). It goes in your basket.
+          Two alike clear for <b>{matchXp(action.xp).toLocaleString()} Fishing XP</b> × your combo. The basket has {BASKET} slots — a 5th different fish overflows it.
+          Every {COMBO_BAR} pairs adds +0.5× XP (up to 3×). Shuffle, Hint and Undo refill with every crate. Sort the whole crate for bonus fish.
         </p>
       </div>
     </div>
