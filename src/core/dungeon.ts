@@ -40,6 +40,9 @@ export interface Shot { x: number; y: number; vx: number; vy: number; dmg: numbe
 export interface Pop { x: number; y: number; text: string; t: number; kind: 'hit' | 'crit' | 'hurt' | 'heal' | 'info' }
 export interface Fx { x: number; y: number; t: number; kind: 'slash' | 'spin' | 'boom' | 'zap' | 'rain' | 'slam'; w?: number; x2?: number; y2?: number }
 
+/** A little particle: sparks, dust, poofs (purely for looks). */
+export interface Part { x: number; y: number; vx: number; vy: number; t: number; life: number; c: string; s: number; grav: number }
+
 export interface Input { left: boolean; right: boolean; jump: boolean; attack: boolean; down?: boolean }
 
 export interface Dungeon {
@@ -50,6 +53,9 @@ export interface Dungeon {
   cd: Record<string, number>; bar: (string | null)[];
   snacks: number; kills: number; t: number; phase: 'play' | 'won' | 'ko'; jumpHeld: boolean; rs: number; nextId: number;
   bossId: string;
+  /** ✨ Game feel (v0.0.1.69): particles, a tiny freeze on hits, screen shake, a hit combo and banners. */
+  parts: Part[]; freeze: number; shake: number; combo: number; comboT: number;
+  banner: { text: string; sub: string; t: number } | null; bossSeen: boolean;
 }
 
 // ----- Skills (the skill book) -----
@@ -125,6 +131,7 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
     region, style, worldW: 0, arenaX: 0, plats: [], mobs: [], shots: [], pops: [], fx: [], hit,
     hero: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp, maxHp: hp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0 },
     cd: {}, bar: bar.slice(0, BAR_SIZE), snacks: SNACKS, kills: 0, t: 0, phase: 'play', jumpHeld: false, rs: seed, nextId: 1, bossId: boss.id,
+    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false,
   };
   // The path: ground all the way, and floating ledges at three heights.
   const pathEnd = 2700;
@@ -167,12 +174,23 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
     min: d.arenaX + 60, max: d.worldW - 60, speed: 0.05, touch: touch[boss.id], shoots: boss.style !== 'melee', atkCd: 2500, hitT: 0, dead: 0,
     boss: true, slamT: 0, slamCd: 4000,
   });
+  d.banner = { text: '', sub: '', t: 0 }; // the screen fills in the area name
   return d;
 }
 
 // ----- Helpers -----
 const pop = (d: Dungeon, x: number, y: number, text: string, kind: Pop['kind']) => { d.pops.push({ x, y, text, t: 0, kind }); if (d.pops.length > 30) d.pops.shift(); };
-const alive = (d: Dungeon) => d.mobs.filter((m) => !m.dead);
+/** Monsters still fighting. (Bug fix v0.0.1.69: a monster whose fade-out had finished used to count as alive
+ * again — it walked about invisibly and could still bump into you. Now hp decides, and finished ones are removed.) */
+const alive = (d: Dungeon) => d.mobs.filter((m) => m.hp > 0);
+export function burst(d: Dungeon, x: number, y: number, n: number, c: string[], speed = 0.18, grav = 0.0006, size = 3, life = 500) {
+  for (let i = 0; i < n; i++) {
+    const a = rand(d) * Math.PI * 2;
+    const v = speed * (0.4 + rand(d) * 0.8);
+    d.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - speed * 0.6, t: 0, life: life * (0.6 + rand(d) * 0.6), c: c[i % c.length], s: size, grav });
+  }
+  if (d.parts.length > 220) d.parts.splice(0, d.parts.length - 220);
+}
 const heroBox = (h: Hero) => ({ x1: h.x - HERO_W / 2, x2: h.x + HERO_W / 2, y1: h.y - HERO_H, y2: h.y });
 const mobBox = (m: Mob) => ({ x1: m.x - m.w / 2, x2: m.x + m.w / 2, y1: m.y - m.h, y2: m.y });
 const overlap = (a: { x1: number; x2: number; y1: number; y2: number }, b: { x1: number; x2: number; y1: number; y2: number }) => a.x1 < b.x2 && a.x2 > b.x1 && a.y1 < b.y2 && a.y2 > b.y1;
@@ -181,17 +199,26 @@ export const bossDef = (d: Dungeon) => MONSTER_MAP[d.bossId];
 
 /** Hit a monster. Returns the damage. */
 function hitMob(d: Dungeon, m: Mob, mult: number, knock = 6): number {
-  if (m.dead) return 0;
+  if (m.hp <= 0) return 0;
   const crit = rand(d) < 0.12;
   const dmg = Math.max(1, Math.round(d.hit[m.m] * mult * (0.85 + rand(d) * 0.3) * (crit ? 1.6 : 1)));
   m.hp -= dmg;
   m.hitT = 180;
   if (!m.boss) m.x = Math.max(m.min, Math.min(m.max, m.x + Math.sign(m.x - d.hero.x || 1) * knock));
   pop(d, m.x, m.y - m.h - 6, dmg.toLocaleString(), crit ? 'crit' : 'hit');
+  // ✨ Feel: sparks, a tiny freeze, a shake on crits, and the hit combo.
+  burst(d, m.x - Math.sign(m.x - d.hero.x || 1) * m.w * 0.3, m.y - m.h / 2, crit ? 8 : 4, crit ? ['#fff7e0', '#fbbf24', '#f43f5e'] : ['#fff7e0', '#fde68a', '#fb923c'], crit ? 0.3 : 0.2, 0.0008, 3, 300);
+  d.freeze = Math.max(d.freeze, crit ? 70 : 35);
+  if (crit) d.shake = Math.max(d.shake, 3);
+  d.combo++;
+  d.comboT = 2200;
   if (m.hp <= 0) {
-    m.dead = 450;
+    m.dead = 500;
     d.kills++;
-    if (m.boss) { d.phase = 'won'; pop(d, m.x, m.y - m.h - 30, 'VICTORY!', 'info'); }
+    const MONSTER = MONSTER_MAP[m.m];
+    burst(d, m.x, m.y - m.h / 2, 12, ['#ffffff', '#e7e5e4', '#d6d3d1'], 0.12, -0.0001, 6, 650);
+    burst(d, m.x, m.y - m.h / 2, 10, [MONSTER.colors.body, MONSTER.colors.accent, MONSTER.colors.dark], 0.26, 0.0012, 3, 700);
+    if (m.boss) { d.phase = 'won'; d.freeze = 300; d.shake = 10; pop(d, m.x, m.y - m.h - 30, 'VICTORY!', 'info'); burst(d, m.x, m.y - m.h, 40, ['#fde68a', '#f472b6', '#60a5fa', '#4ade80'], 0.4, 0.0009, 4, 1400); }
   }
   return dmg;
 }
@@ -215,6 +242,9 @@ function hurtHero(d: Dungeon, dmg: number, from: number) {
   if (dmg <= 0) { pop(d, h.x, h.y - HERO_H - 8, 'Blocked', 'info'); h.invT = 400; return; }
   h.hp -= dmg;
   h.invT = 900;
+  d.shake = Math.max(d.shake, 4);
+  d.combo = 0;
+  burst(d, h.x, h.y - HERO_H / 2, 6, ['#c084fc', '#f0abfc', '#ffffff'], 0.2, 0.0008, 3, 350);
   h.vx = Math.sign(h.x - from || -h.face) * 0.25;
   h.vy = -0.45;
   h.onGround = false;
@@ -275,9 +305,16 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   const h = d.hero;
   for (const k of Object.keys(d.cd)) d.cd[k] = Math.max(0, d.cd[k] - dt);
   d.pops = d.pops.filter((p) => (p.t += dt) < 900);
+  d.shake = Math.max(0, d.shake - dt * 0.02);
+  for (const p of d.parts) { p.t += dt; p.vy += p.grav * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
+  d.parts = d.parts.filter((p) => p.t < p.life);
+  if (d.banner) { d.banner.t += dt; if (d.banner.t > 2600) d.banner = null; }
+  if (d.comboT > 0) { d.comboT -= dt; if (d.comboT <= 0) d.combo = 0; }
+  // A tiny freeze on hits makes them feel weighty.
+  if (d.freeze > 0) { d.freeze -= dt; return sounds; }
   d.fx = d.fx.filter((f) => (f.t += dt) < 400);
   if (d.phase !== 'play') {
-    for (const m of d.mobs) if (m.dead) m.dead = Math.max(0, m.dead - dt);
+    for (const m of d.mobs) if (m.hp <= 0) m.dead = Math.max(0, m.dead - dt);
     return sounds;
   }
   h.invT = Math.max(0, h.invT - dt);
@@ -302,7 +339,7 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   }
   if (input.jump && !d.jumpHeld && h.onGround) {
     if (input.down && h.y < GROUND) { h.y += 4; h.onGround = false; } // drop through a ledge
-    else { h.vy = JUMP_V; h.onGround = false; sounds.push('jump'); }
+    else { h.vy = JUMP_V; h.onGround = false; sounds.push('jump'); burst(d, h.x, h.y, 5, ['#ffffff', '#e7e5e4'], 0.08, -0.00005, 4, 380); }
   }
   d.jumpHeld = input.jump;
   h.walkT = h.onGround && h.vx ? h.walkT + dt : 0;
@@ -311,12 +348,16 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   h.vy += GRAV * dt;
   h.y += h.vy * dt;
   h.onGround = false;
+  const falling = h.vy;
   if (h.vy >= 0) {
     for (const pl of d.plats) {
       if (h.x >= pl.x1 - 4 && h.x <= pl.x2 + 4 && prevFeet <= pl.y + 1 && h.y >= pl.y) { h.y = pl.y; h.vy = 0; h.onGround = true; break; }
     }
   }
   if (h.y > GROUND) { h.y = GROUND; h.vy = 0; h.onGround = true; }
+  if (h.onGround && falling > 0.35) burst(d, h.x, h.y, 6, ['#ffffff', '#e7e5e4'], 0.09, -0.00005, 4, 400);
+  // 👑 Entering the boss's clearing
+  if (!d.bossSeen && h.x > d.arenaX - 20) { d.bossSeen = true; d.banner = { text: MONSTER_MAP[d.bossId].name, sub: '👑 Boss', t: 0 }; sounds.push('creak'); }
 
   // Basic attack (hold to keep swinging)
   if (input.attack && h.atkCd <= 0 && h.dashT <= 0) {
@@ -379,7 +420,7 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
 
   // Monsters
   for (const m of d.mobs) {
-    if (m.dead) { m.dead = Math.max(0, m.dead - dt); continue; }
+    if (m.hp <= 0) { m.dead = Math.max(0, m.dead - dt); continue; }
     m.hitT = Math.max(0, m.hitT - dt);
     const dx = h.x - m.x;
     const sameRow = Math.abs(h.y - m.y) < 40;
@@ -408,6 +449,8 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
         if (m.slamT! <= 0) {
           d.fx.push({ x: m.x, y: GROUND, t: 0, kind: 'slam', w: 340 });
           sounds.push('boom');
+          d.shake = 9;
+          for (let k = -4; k <= 4; k++) burst(d, m.x + k * 38, GROUND, 2, ['#e7e5e4', '#a8a29e'], 0.14, 0.0006, 5, 600);
           if (h.onGround && Math.abs(h.x - m.x) < 170) hurtHero(d, m.touch * 2.6, m.x);
           m.slamCd = 3800 + rand(d) * 1500;
         }
@@ -417,6 +460,8 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
       }
     }
   }
+  // Finished fading out? Gone for good.
+  d.mobs = d.mobs.filter((m) => m.hp > 0 || m.dead > 0);
   return sounds;
 }
 

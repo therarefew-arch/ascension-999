@@ -117,7 +117,6 @@ export function drawHero(g: CanvasRenderingContext2D, look: Look, x: number, y: 
 }
 
 // ----- Monsters (emoji sprites, flipped to face where they walk) -----
-const MOB_EMOJI: Record<string, string> = { rat: '🐀', sprite: '🧚', bandit: '🥷', boar: '🐗', bear: '🐻', treant: '🌳', crab: '🦀', bird: '🦅', ghost: '👻', goat: '🐐', lizard: '🦎', tortoise: '🐢', wyrm: '🐉' };
 const spriteCache = new Map<string, HTMLCanvasElement>();
 function sprite(emoji: string, size: number): HTMLCanvasElement {
   const key = `${emoji}@${size}`;
@@ -254,12 +253,137 @@ function drawLedge(g: CanvasRenderingContext2D, t: Theme, x1: number, x2: number
   g.fillStyle = t.dirt[2]; g.fillRect(x1, y + 21, x2 - x1, 3);
 }
 
+// ----- 👾 Pixel-art monsters (v0.0.1.69): drawn from little pixel maps in each monster's own colours,
+// with a dark outline, a 2-step walk, and a white flash when hit. b = body, d = dark, a = accent, e = eye, w = white.
+const MOB_PIX: Record<string, string[][]> = {
+  rat: [[
+    '...........dd...', '..........dbbd..', '.ddddddddddbbbd.', 'dbbbbbbbbbbbebbd', 'dbbbbbbbbbbbbbaa', 'adbbbbbbbbbbbdd.', 'a.dddddddddddd..', '..d.d......d.d..',
+  ], ['...........dd...', '..........dbbd..', '.ddddddddddbbbd.', 'dbbbbbbbbbbbebbd', 'dbbbbbbbbbbbbbaa', 'adbbbbbbbbbbbdd.', 'a.dddddddddddd..', '...d.d....d.d...']],
+  sprite: [[
+    'ww........ww', 'www.aaaa.www', '.wwabbbbaww.', '..abebbeba..', '..abbbbbba..', '..abbddbba..', '...abbbba...', '....dbbd....', '.....dd.....',
+  ], ['.w........w.', 'www.aaaa.www', 'wwwabbbbawww', '..abebbeba..', '..abbbbbba..', '..abbddbba..', '...abbbba...', '....dbbd....', '.....dd.....']],
+  bandit: [[
+    '....dddd....', '...dbbbbd...', '...dbbewd...', '...dbbbbd...', '....dddd....', '..dbbbbbbd..', '.dbbbaabbbd.', '.dbbbbbbbbd.', '..dbbbbbbd..', '..ddbbbbdd..', '...db..bd...', '...db..bd...', '...dd..dd...',
+  ], ['....dddd....', '...dbbbbd...', '...dbbewd...', '...dbbbbd...', '....dddd....', '..dbbbbbbd..', '.dbbbaabbbd.', '.dbbbbbbbbd.', '..dbbbbbbd..', '..ddbbbbdd..', '..db....bd..', '..db....bd..', '..dd....dd..']],
+  boar: [[
+    '..dd.......d....', '.dbbdddddddbd...', 'dbbbbbbbbbbbbd..', 'dbbbbbbbbbbebbd.', 'dbbbbbbbbbbbbbaa', 'dbbbbbbbbbbbbbad', '.dbbbbbbbbbbbdd.', '..dddddddddddd..', '..dd.dd...dd.dd.', '..dd.dd...dd.dd.',
+  ], ['..dd.......d....', '.dbbdddddddbd...', 'dbbbbbbbbbbbbd..', 'dbbbbbbbbbbebbd.', 'dbbbbbbbbbbbbbaa', 'dbbbbbbbbbbbbbad', '.dbbbbbbbbbbbdd.', '..dddddddddddd..', '.dd..dd..dd..dd.', '.d...d....d...d.']],
+  bear: [[
+    '..........dd....', '.........dbbd.d.', '...dddddddbbbdbd', '..dbbbbbbbbbbbed', '.dbbbbbbbbbbbbaa', 'dbbbbbbbbbbbbbad', 'dbbbbbbbbbbbbdd.', 'dbbbbbbbbbbbbd..', '.dbbbbbbbbbbd...', '..ddd.dd.ddd....', '..dd..dd..dd....',
+  ], ['..........dd....', '.........dbbd.d.', '...dddddddbbbdbd', '..dbbbbbbbbbbbed', '.dbbbbbbbbbbbbaa', 'dbbbbbbbbbbbbbad', 'dbbbbbbbbbbbbdd.', 'dbbbbbbbbbbbbd..', '.dbbbbbbbbbbd...', '.ddd..dd..ddd...', '.dd...dd...dd...']],
+  treant: [[
+    '...aaa..aaa...', '..aabaaaabaa..', '.aabbbaabbbaa.', 'aabbbbbbbbbbaa', '.aabbbbbbbbaa.', '...dddddddd...', '...dbbbbbbd...', '...dbebbebd...', '...dbbbbbbd...', '...dbbddbbd...', '...dbbbbbbd...', '..ddbbbbbbdd..', '.dd.dbbbbd.dd.', '....dd..dd....',
+  ], ['...aaa..aaa...', '..aabaaaabaa..', '.aabbbaabbbaa.', 'aabbbbbbbbbbaa', '.aabbbbbbbbaa.', '...dddddddd...', '...dbbbbbbd...', '...dbebbebd...', '...dbbbbbbd...', '...dbbddbbd...', '...dbbbbbbd...', '..ddbbbbbbdd..', '..dddbbbbddd..', '...dd....dd...']],
+  crab: [[
+    '.dd..........dd.', 'daad........daad', '.dd..........dd.', '..d..dddddd..d..', '...ddbbbbbbdd...', '..dbbebbbbebbd..', '..dbbbbbbbbbbd..', '...dbbbbbbbbd...', '..d.d.d..d.d.d..', '.d..d.d..d.d..d.',
+  ], ['dd............dd', 'aad..........daa', 'dd............dd', '..d..dddddd..d..', '...ddbbbbbbdd...', '..dbbebbbbebbd..', '..dbbbbbbbbbbd..', '...dbbbbbbbbd...', '.d.d.d....d.d.d.', 'd..d.d....d.d..d']],
+  bird: [[
+    '......ddd.....', '.....dbbbd....', '....dbbbebaa..', '....dbbbbbd...', 'dddddbbbbbd...', '.dbbbbbbbbd...', '..dbbbbbbd....', '...ddbbbd.....', '.....a..a.....', '....aa.aa.....',
+  ], ['d.....ddd.....', 'dd...dbbbd....', '.dd.dbbbebaa..', '..ddbbbbbbd...', '...dbbbbbbd...', '...dbbbbbbd...', '...dbbbbbd....', '...ddbbbd.....', '.....a..a.....', '....aa.aa.....']],
+  ghost: [[
+    '...dddddd...', '..dbbbbbbd..', '.dbbbbbbbbd.', '.dbbebbebbd.', '.dbbbbbbbbd.', '.dbbbaabbbd.', '.dbbbbbbbbd.', '.dbbbbbbbbd.', '.dbdbbdbbdb.', '.d.d.dd.d.d.',
+  ], ['...dddddd...', '..dbbbbbbd..', '.dbbbbbbbbd.', '.dbbebbebbd.', '.dbbbbbbbbd.', '.dbbbaabbbd.', '.dbbbbbbbbd.', '.dbbbbbbbbd.', '.bdbbdbbdbd.', '..d.dd.d.d..']],
+  goat: [[
+    '..........a.a.', '..........aa..', '........dbbd..', '........dbebd.', '..ddddddbbbbbd', '.dbbbbbbbbbdd.', 'dbbbbbbbbbbd..', 'dbbbbbbbbbbd..', '.dbbbbbbbbd...', '..dd.dd.dd.dd.', '..dd.dd.dd.dd.', '..aa.aa.aa.aa.',
+  ], ['..........a.a.', '..........aa..', '........dbbd..', '........dbebd.', '..ddddddbbbbbd', '.dbbbbbbbbbdd.', 'dbbbbbbbbbbd..', 'dbbbbbbbbbbd..', '.dbbbbbbbbd...', '.dd..dd.dd..dd', '.dd..dd.dd..dd', '.aa..aa.aa..aa']],
+  lizard: [[
+    '..............ddd.', 'aa..dddddddddbbebd', '.adbbbbbbbbbbbbbbd', '..ddbbbbbbbbbbbdd.', '....dd.dd...dd.dd.', '....d...d...d...d.',
+  ], ['..............ddd.', 'aa..dddddddddbbebd', '.adbbbbbbbbbbbbbbd', '..ddbbbbbbbbbbbdd.', '...dd.dd.....dd.dd', '...d...d.....d...d']],
+  tortoise: [[
+    '....aaaaaaa.....', '..aadaadaadaa...', '.aaaaaaaaaaaa.dd', 'aaaaaaaaaaaaadbe', 'ddddddddddddddbb', '.dbb..dbb.dbb.dd', '.dbb..dbb.dbb...',
+  ], ['....aaaaaaa.....', '..aadaadaadaa...', '.aaaaaaaaaaaa.dd', 'aaaaaaaaaaaaadbe', 'ddddddddddddddbb', 'dbb..dbb..dbb.dd', 'dbb..dbb..dbb...']],
+  wyrm: [[
+    '................dd..', '...............dbbd.', '..aa.aa.......dbbebd', '.abbaabba....dbbbbaa', 'abbbbbbbbaa.dbbbbd..', 'dbbbbbbbbbbbbbbbd...', '.dbbbbbbbbbbbbbd....', '..ddbbbbbbbbbdd.....', '....dd.dd.dd.dd.....', '....d..d..d..d......',
+  ], ['................dd..', '...............dbbd.', '.aa..aa.......dbbebd', 'abbaabbba....dbbbbaa', 'abbbbbbbbaa.dbbbbd..', 'dbbbbbbbbbbbbbbbd...', '.dbbbbbbbbbbbbbd....', '..ddbbbbbbbbbdd.....', '...dd.dd...dd.dd....', '...d..d.....d..d....']],
+};
+const FLOATS = new Set(['sprite', 'ghost', 'bird']);
+const OUTLINE = '#1b1424';
+function pixMob(art: string, colors: { body: string; dark: string; accent: string }, frame: number, flash: boolean): HTMLCanvasElement {
+  const key = `${art}|${colors.body}|${colors.dark}|${colors.accent}|${frame}|${flash}`;
+  let c = artCache.get(key);
+  if (c) return c;
+  const rows = (MOB_PIX[art] ?? MOB_PIX.rat)[frame % 2];
+  const w = Math.max(...rows.map((r) => r.length)), h = rows.length;
+  c = document.createElement('canvas');
+  c.width = w + 2; c.height = h + 2;
+  const g = c.getContext('2d')!;
+  const col = (ch: string) => (flash ? (ch === 'e' ? '#fde68a' : '#ffffff') : ch === 'b' ? colors.body : ch === 'd' ? colors.dark : ch === 'a' ? colors.accent : ch === 'e' ? '#111111' : ch === 'w' ? '#e0f2fe' : null);
+  // Outline first: every filled pixel's neighbours in dark
+  g.fillStyle = OUTLINE;
+  rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch !== '.') { g.fillRect(x, y + 1, 3, 1); g.fillRect(x + 1, y, 1, 3); } }));
+  rows.forEach((r, y) => [...r].forEach((ch, x) => { const cc = col(ch); if (cc) { g.fillStyle = cc; g.fillRect(x + 1, y + 1, 1, 1); } }));
+  if (!flash) {
+    // Light from the top-left: a highlight where nothing is above, a shade where nothing is below.
+    const at = (x: number, y: number) => (rows[y]?.[x] ?? '.');
+    rows.forEach((r, y) => [...r].forEach((ch, x) => {
+      if (ch !== 'b' && ch !== 'a') return;
+      if (at(x, y - 1) === '.' || at(x - 1, y) === '.') { g.fillStyle = 'rgba(255,255,255,0.28)'; g.fillRect(x + 1, y + 1, 1, 1); }
+      else if (at(x, y + 1) === '.' || at(x, y + 1) === 'd' || at(x + 1, y) === '.') { g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(x + 1, y + 1, 1, 1); }
+    }));
+    // Glowing eyes
+    rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch === 'e') { g.fillStyle = 'rgba(253,224,71,0.9)'; g.fillRect(x + 1, y + 1, 1, 1); } }));
+  }
+  artCache.set(key, c);
+  return c;
+}
+
+// ----- 🌦️ Ambient weather per town -----
+const WEATHER: Record<string, { n: number; c: string[]; vx: number; vy: number; s: number; glow?: boolean; sway?: number }> = {
+  Pocketvale: { n: 14, c: ['#86cc5c', '#c6e86a', '#e8a84c'], vx: -0.012, vy: 0.022, s: 3, sway: 18 },
+  Ironmoor: { n: 18, c: ['#d6d3d1', '#a8a29e'], vx: 0.004, vy: -0.006, s: 2 },
+  Coalhaven: { n: 26, c: ['#78716c', '#a8a29e', '#57534e'], vx: 0.01, vy: 0.012, s: 2 },
+  Bluecliff: { n: 12, c: ['#ffffff', '#e0f2fe'], vx: -0.03, vy: 0.004, s: 2, sway: 6 },
+  Lunaria: { n: 14, c: ['#fde68a', '#bef264'], vx: 0.004, vy: -0.004, s: 3, glow: true, sway: 14 },
+  Cinderpeak: { n: 22, c: ['#fb923c', '#fbbf24', '#ef4444'], vx: 0.006, vy: -0.03, s: 2, glow: true, sway: 8 },
+  Frosthold: { n: 34, c: ['#ffffff', '#e0f2fe'], vx: -0.006, vy: 0.03, s: 3, sway: 10 },
+  Voidreach: { n: 20, c: ['#c4b5fd', '#f0abfc', '#ffffff'], vx: 0, vy: -0.008, s: 2, glow: true, sway: 6 },
+  'Starfall Crater': { n: 20, c: ['#fde68a', '#ffffff', '#fbbf24'], vx: -0.004, vy: 0.01, s: 2, glow: true, sway: 6 },
+  'Celestine Spires': { n: 12, c: ['#ffffff', '#f0f9ff'], vx: -0.02, vy: 0.008, s: 3, sway: 16 },
+  'Primordial Rift': { n: 18, c: ['#bef264', '#86efac', '#fef9c3'], vx: 0.004, vy: -0.01, s: 3, glow: true, sway: 12 },
+};
+function drawWeather(g: CanvasRenderingContext2D, region: string, t: number, cam: number, top: number, side: number) {
+  const W = WEATHER[region];
+  if (!W) return;
+  const spanX = VIEW_W + 2 * side + 40, spanY = VIEW_H + top;
+  for (let i = 0; i < W.n; i++) {
+    const sp = 0.6 + hash(i * 9.1) * 0.8;
+    let x = hash(i) * spanX + t * W.vx * sp - cam * (0.3 + hash(i * 2.3) * 0.5) + Math.sin(t / 900 + i) * (W.sway ?? 0);
+    let y = hash(i * 4.7) * spanY + t * W.vy * sp;
+    x = ((x % spanX) + spanX) % spanX - side - 20;
+    y = ((y % spanY) + spanY) % spanY - top;
+    const c = W.c[i % W.c.length];
+    if (W.glow) { g.globalAlpha = 0.25 + 0.25 * Math.sin(t / 300 + i * 1.7); g.fillStyle = c; g.fillRect(x - W.s, y - W.s, W.s * 3, W.s * 3); }
+    g.globalAlpha = W.glow ? 0.6 + 0.4 * Math.sin(t / 300 + i * 1.7) : 0.85;
+    g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), W.s, W.s);
+  }
+  g.globalAlpha = 1;
+}
+
+// ----- Hero with a pixel outline (drawn on a small canvas first) -----
+let heroCan: HTMLCanvasElement | null = null, heroTint: HTMLCanvasElement | null = null;
+function drawHeroOutlined(g: CanvasRenderingContext2D, look: Look, x: number, y: number, face: 1 | -1, o: { walk: number; atk: number; air: boolean; blink: boolean; iron: boolean; t: number }) {
+  const W = 140, H = 140, fx = 70, fy = 120;
+  if (!heroCan) { heroCan = document.createElement('canvas'); heroCan.width = W; heroCan.height = H; heroTint = document.createElement('canvas'); heroTint.width = W; heroTint.height = H; }
+  const hg = heroCan.getContext('2d')!, tg = heroTint!.getContext('2d')!;
+  hg.clearRect(0, 0, W, H);
+  drawHero(hg, look, fx, fy, face, { ...o, blink: false });
+  tg.globalCompositeOperation = 'source-over'; tg.clearRect(0, 0, W, H); tg.drawImage(heroCan, 0, 0);
+  tg.globalCompositeOperation = 'source-in'; tg.fillStyle = OUTLINE; tg.fillRect(0, 0, W, H);
+  const ox = Math.round(x) - fx, oy = Math.round(y) - fy;
+  const a = g.globalAlpha;
+  if (o.blink) g.globalAlpha = 0.45;
+  for (const [dx, dy] of [[-2, 0], [2, 0], [0, -2], [0, 2]]) g.drawImage(heroTint!, ox + dx, oy + dy);
+  g.drawImage(heroCan, ox, oy);
+  g.globalAlpha = a;
+}
+
 // ----- Drawing the world -----
 function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number, top = 0, side = 0) {
   const T = THEME[d.region] ?? THEME.Pocketvale;
   drawBackdrop(g, T, cam, top, side);
   g.save();
-  g.translate(-Math.round(cam), 0);
+  const sx = d.shake > 0.2 ? (Math.random() - 0.5) * d.shake * 2 : 0, sy = d.shake > 0.2 ? (Math.random() - 0.5) * d.shake * 2 : 0;
+  g.translate(-Math.round(cam) + Math.round(sx), Math.round(sy));
   // Big trees and bushes along the path (world-attached, like the reference)
   for (let i = 0; i < 18; i++) {
     const wx = 120 + i * 190 + Math.floor(hash(i * 7) * 80);
@@ -282,25 +406,29 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
   }
   // Monsters
   for (const m of d.mobs) {
-    if (m.dead === 0 && m.hp <= 0) continue;
+    if (m.hp <= 0 && m.dead <= 0) continue;
     const def = MONSTER_MAP[m.m];
-    const s = sprite(MOB_EMOJI[def.art] ?? '👾', m.boss ? 84 : Math.max(m.w, m.h));
-    if (m.boss && !m.dead) {
+    const living = m.hp > 0;
+    const frame = Math.floor((d.t + m.id * 137) / (m.boss ? 320 : 200)) % 2;
+    const s = pixMob(def.art, def.colors, frame, m.hitT > 90 && living);
+    const k = Math.max(3, Math.round((m.boss ? m.w * 1.25 : m.w * 1.35) / (s.width - 2)));
+    const float = FLOATS.has(def.art) ? Math.sin(d.t / 260 + m.id) * 4 - 8 : 0;
+    if (m.boss && living) {
       g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(m.x, m.y + 2, 44, 8, 0, 0, Math.PI * 2); g.fill();
-      const crown = sprite('👑', 22); g.drawImage(crown, m.x - crown.width / 2, m.y - m.h - 30 + Math.sin(d.t / 300) * 3);
     }
+    if (!m.boss && living && !FLOATS.has(def.art)) { g.fillStyle = 'rgba(0,0,0,0.22)'; g.beginPath(); g.ellipse(m.x, m.y + 1, m.w * 0.42, 3, 0, 0, Math.PI * 2); g.fill(); }
     g.save();
-    g.translate(m.x, m.y - m.h / 2 + (m.hitT > 0 ? -2 : 0));
-    if (m.dir > 0) g.scale(-1, 1);
-    if (m.dead) g.globalAlpha = m.dead / 450;
-    else if (m.hitT > 0) g.globalAlpha = 0.6;
-    g.drawImage(s, -s.width / 2, -s.height / 2);
+    g.translate(Math.round(m.x), Math.round(m.y + float + (m.hitT > 0 ? -2 : 0)));
+    if (m.dir < 0) g.scale(-1, 1);
+    if (!living) { const q = 1 - m.dead / 500; g.globalAlpha = Math.max(0, m.dead / 500); g.scale(1 + q * 0.5, 1 - q * 0.4); }
+    g.drawImage(s, Math.round(-s.width * k / 2), -s.height * k, s.width * k, s.height * k);
     g.restore();
+    if (m.boss && living) { const crown = sprite('👑', 22); g.drawImage(crown, m.x - crown.width / 2, m.y + float - s.height * k - 26 + Math.sin(d.t / 300) * 3); }
     if (m.boss && (m.slamT ?? 0) > 0) {
       g.strokeStyle = `rgba(248,113,113,${0.4 + 0.4 * Math.sin(d.t / 60)})`; g.lineWidth = 3;
       g.beginPath(); g.ellipse(m.x, GROUND + 2, 170, 14, 0, 0, Math.PI * 2); g.stroke();
     }
-    if (!m.boss && !m.dead && m.hp < m.maxHp) {
+    if (!m.boss && living && m.hp < m.maxHp) {
       g.fillStyle = '#1c1917'; g.fillRect(m.x - 18, m.y - m.h - 10, 36, 5);
       g.fillStyle = '#ef4444'; g.fillRect(m.x - 18, m.y - m.h - 10, 36 * Math.max(0, m.hp / m.maxHp), 5);
     }
@@ -313,7 +441,7 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
   // Hero (with a little shadow at its feet)
   const h = d.hero;
   g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(h.x, (h.onGround ? h.y : Math.min(GROUND, h.y + 60)) + 1, 14, 4, 0, 0, Math.PI * 2); g.fill();
-  drawHero(g, look, h.x, h.y, h.face, { walk: h.walkT, atk: h.atkT / 240, air: !h.onGround, blink: h.invT > 0 && Math.floor(d.t / 90) % 2 === 0, iron: h.ironT > 0, t: d.t });
+  drawHeroOutlined(g, look, h.x, h.y, h.face, { walk: h.walkT, atk: h.atkT / 240, air: !h.onGround, blink: h.invT > 0 && Math.floor(d.t / 90) % 2 === 0, iron: h.ironT > 0, t: d.t });
   // Effects
   for (const f of d.fx) {
     const k = Math.max(0, f.t) / 400;
@@ -334,6 +462,14 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
     else if (f.kind === 'slam') { g.strokeStyle = '#f87171'; g.lineWidth = 5; g.beginPath(); g.ellipse(f.x, f.y, (f.w ?? 300) / 2 * (0.4 + k * 0.6), 16, 0, 0, Math.PI * 2); g.stroke(); }
     g.globalAlpha = 1;
   }
+  // Sparks, dust and poofs
+  for (const p of d.parts) {
+    g.globalAlpha = Math.max(0, 1 - p.t / p.life);
+    g.fillStyle = p.c;
+    const sz = Math.max(1, Math.round(p.s * (1 - p.t / p.life * 0.5)));
+    g.fillRect(Math.round(p.x - sz / 2), Math.round(p.y - sz / 2), sz, sz);
+  }
+  g.globalAlpha = 1;
   // Damage numbers (MapleStory-style)
   g.textAlign = 'center'; g.lineJoin = 'round';
   for (const p of d.pops) {
@@ -346,6 +482,7 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
   }
   g.globalAlpha = 1;
   g.restore();
+  drawWeather(g, d.region, d.t, cam, top, side);
 }
 
 // ----- The screen -----
@@ -472,6 +609,17 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
         ) : <div className="dg-bar path"><div style={{ width: `${pathProgress(run) * 100}%` }} /></div>}
       </div>
 
+      {run.banner && (() => {
+        const b = run.banner!;
+        const op = Math.min(1, b.t / 300, (2600 - b.t) / 600);
+        return (
+          <div className="dg-banner" style={{ opacity: Math.max(0, op) }}>
+            <span className="dg-banner-sub">{b.sub || `${AREAS[region].emoji} ${region}`}</span>
+            <span className="dg-banner-text">{b.text || AREAS[region].name[0].toUpperCase() + AREAS[region].name.slice(1)}</span>
+          </div>
+        );
+      })()}
+      {run.combo >= 3 && <div key={run.combo} className="dg-combo"><b>{run.combo}</b><span>HITS</span></div>}
       <div className="dg-controls">
         <div className="dg-pad">
           <button className="dg-btn dir" {...hold('left', 'tick')} aria-label="Left">◀</button>

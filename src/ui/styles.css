@@ -1926,3 +1926,12 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
   .dg-btn.jump { width: 52px; height: 52px; }
   .dg-btn.attack { width: 72px; height: 72px; }
 }
+/* 🧪 Dungeon polish (v0.0.1.69): banners + combo */
+.dg-banner { position: absolute; left: 0; right: 0; top: 26%; display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none; text-align: center; padding: 10px 0;
+  background: linear-gradient(90deg, transparent, rgba(5, 7, 15, 0.55) 20%, rgba(5, 7, 15, 0.55) 80%, transparent); }
+.dg-banner-sub { font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; color: #fde68a; text-shadow: 0 2px 0 #000; }
+.dg-banner-text { font-size: clamp(1.4rem, 7vw, 2rem); font-weight: 900; color: #fff; letter-spacing: 0.04em; text-shadow: 0 3px 0 #1b1424, 0 0 18px rgba(253, 230, 138, 0.5); padding: 0 16px; }
+.dg-combo { position: absolute; right: calc(14px + var(--sar)); top: calc(84px + var(--sat)); display: flex; align-items: baseline; gap: 4px; pointer-events: none; animation: dgCombo 0.25s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+.dg-combo b { font-size: 2rem; font-weight: 900; color: #fde68a; -webkit-text-stroke: 1.5px #7c2d12; text-shadow: 0 3px 0 #7c2d12; font-family: ui-rounded, system-ui, sans-serif; }
+.dg-combo span { font-size: 0.8rem; font-weight: 900; color: #fb923c; text-shadow: 0 2px 0 #000; letter-spacing: 0.08em; }
+@keyframes dgCombo { from { transform: scale(1.5); } to { transform: scale(1); } }
