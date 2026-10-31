@@ -64,6 +64,7 @@ export function drawHero(g: CanvasRenderingContext2D, look: Look, x: number, y: 
   g.save();
   g.translate(Math.round(x), Math.round(y));
   if (face < 0) g.scale(-1, 1);
+  if (o.atk > 0) g.translate(Math.round(Math.sin((1 - o.atk) * Math.PI) * 4), 0);
   if (look.glow || o.iron) {
     const r = g.createRadialGradient(0, -36, 4, 0, -36, 46);
     r.addColorStop(0, o.iron ? 'rgba(148,163,184,0.45)' : 'rgba(253,230,138,0.35)');
@@ -101,15 +102,40 @@ export function drawHero(g: CanvasRenderingContext2D, look: Look, x: number, y: 
   const hand = { x: (12 - 8) * S, y: (14 + bob - 24) * S };
   g.save();
   g.translate(hand.x, hand.y);
-  const swing = o.atk > 0 ? (look.weapon === 'sword' || look.weapon === 'fists' ? -1.9 + (1 - o.atk) * 2.9 : -0.2) : -0.35;
-  g.rotate(look.weapon === 'staff' || look.weapon === 'bow' ? (o.atk > 0 ? -0.25 : 0) : swing);
+  // p goes 0 → 1 through the attack (short and snappy)
+  const p = o.atk > 0 ? 1 - o.atk : -1;
+  const ease = (v: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, v)), 3);
   const q = (cx: number, cy: number, w: number, h: number, c: string) => { g.fillStyle = c; g.fillRect(cx * S, cy * S, w * S, h * S); };
   const wt = look.wpn ?? tone(30, 10, 60);
-  if (look.weapon === 'sword') { q(-1, -1, 2, 2, '#5b4636'); q(-2, -2, 4, 1, wt.dark); q(-0.5, -12, 1, 10, wt.light); q(0.5, -12, 0.5, 10, wt.base); }
-  else if (look.weapon === 'bow') { q(1, -8, 1, 2, wt.base); q(2, -6, 1, 12, wt.base); q(1, 6, 1, 2, wt.base); q(o.atk > 0 ? -1 : 1, -6, 0.5, 12, '#e7e5e4'); }
-  else if (look.weapon === 'staff') {
+  if (look.weapon === 'sword' || look.weapon === 'fists') {
+    // Wind up behind, then a fast swing down and forward, leaving afterimages
+    const angleAt = (v: number) => (v < 0 ? -0.35 : v < 0.22 ? -1.9 - v * 1.4 : -2.2 + ease((v - 0.22) / 0.78) * 3.4);
+    const blade = (a: number, alpha: number, ghost: boolean) => {
+      g.save(); g.rotate(a); g.globalAlpha *= alpha;
+      if (look.weapon === 'sword') {
+        if (ghost) q(-0.5, -12, 1.5, 10, '#fff7e0');
+        else { q(-1, -1, 2, 2, '#5b4636'); q(-2, -2, 4, 1, wt.dark); q(-0.5, -12, 1, 10, wt.light); q(0.5, -12, 0.5, 10, wt.base); }
+      } else if (!ghost) q(-1, -2, 2, 2, SKIN);
+      g.restore();
+    };
+    if (p > 0.25 && p < 0.95) { blade(angleAt(p - 0.16), 0.22, true); blade(angleAt(p - 0.08), 0.4, true); }
+    blade(angleAt(p), 1, false);
+  } else if (look.weapon === 'bow') {
+    // Draw the string back with an arrow nocked, then release (the string snaps forward)
+    const drawn = p >= 0 && p < 0.55;
+    g.translate(p >= 0 ? S : 0, 0);
+    q(1, -8, 1, 2, wt.base); q(2, -6, 1, 12, wt.base); q(1, 6, 1, 2, wt.base);
+    const pull = drawn ? -1 - ease(p / 0.55) * 3 : 1;
+    q(pull, -6, 0.5, 6, '#e7e5e4'); q(pull, 0, 0.5, 6, '#e7e5e4');
+    if (drawn) { q(pull, -0.5, 6 - pull, 0.5, '#d6d3d1'); q(5, -1, 1, 1.5, '#a8a29e'); }
+  } else if (look.weapon === 'staff') {
+    // Thrust the staff forward; the orb flares as the spell leaves it
+    const thrust = p >= 0 ? Math.sin(p * Math.PI) : 0;
+    g.translate(thrust * 6, -thrust * 2);
+    g.rotate(p >= 0 ? 0.25 - thrust * 0.5 : 0);
     q(0, -13, 1, 22, wt.base); q(-1, -16, 3, 3, look.orb);
-    if (o.t % 600 < 300) { g.globalAlpha *= 0.6; q(-1.5, -16.5, 4, 4, look.orb); g.globalAlpha = o.blink ? 0.45 : 1; }
+    const flare = p > 0.2 && p < 0.7 ? 1 : o.t % 600 < 300 ? 0.5 : 0;
+    if (flare) { const a = g.globalAlpha; g.globalAlpha *= 0.6 * flare; q(-2.5, -17.5, 6, 6, look.orb); g.globalAlpha = a; }
   }
   g.restore();
   px(11, 10 + bob, 2, 3, body.base); px(12, 13 + bob, 1, 2, SKIN);
@@ -134,7 +160,10 @@ function sprite(emoji: string, size: number): HTMLCanvasElement {
   return c;
 }
 
-const POP_STYLE = { hit: ['#fb923c', 15], crit: ['#f43f5e', 19], hurt: ['#c084fc', 16], heal: ['#4ade80', 16], info: ['#fde68a', 14] } as const;
+/** Damage number look: fill, outline, size. Crits are bigger with a bright gold edge. */
+const POP_STYLE = {
+  hit: ['#ffb347', '#3b1d0b', 19], crit: ['#ff4d6d', '#fff1a8', 25], hurt: ['#c084fc', '#2e1065', 18], heal: ['#4ade80', '#052e16', 18], info: ['#fde68a', '#1c1917', 15],
+} as const;
 const SOUND_OF: Record<string, [SoundKey, number]> = {
   jump: ['whoosh', 1.4], hit: ['hit', 1], whoosh: ['whoosh', 1], boom: ['boom', 1], shing: ['shing', 1], rune: ['rune', 1], ignite: ['ignite', 1],
   enchant: ['enchant', 1], block: ['block', 1], levelup: ['levelup', 1], tick: ['tick', 1.2], hurt: ['hurt', 1], creak: ['creak', 0.8],
@@ -307,7 +336,7 @@ function pixMob(art: string, colors: { body: string; dark: string; accent: strin
   c = document.createElement('canvas');
   c.width = w + 2; c.height = h + 2;
   const g = c.getContext('2d')!;
-  const col = (ch: string) => (flash ? (ch === 'e' ? '#fde68a' : '#ffffff') : ch === 'b' ? colors.body : ch === 'd' ? colors.dark : ch === 'a' ? colors.accent : ch === 'e' ? '#111111' : ch === 'w' ? '#e0f2fe' : null);
+  const col = (ch: string) => (ch === '.' ? null : flash ? (ch === 'e' ? '#fde68a' : '#ffffff') : ch === 'b' ? colors.body : ch === 'd' ? colors.dark : ch === 'a' ? colors.accent : ch === 'e' ? '#111111' : ch === 'w' ? '#e0f2fe' : null);
   // Outline first: every filled pixel's neighbours in dark
   g.fillStyle = OUTLINE;
   rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch !== '.') { g.fillRect(x, y + 1, 3, 1); g.fillRect(x + 1, y, 1, 3); } }));
@@ -418,7 +447,7 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
     }
     if (!m.boss && living && !FLOATS.has(def.art)) { g.fillStyle = 'rgba(0,0,0,0.22)'; g.beginPath(); g.ellipse(m.x, m.y + 1, m.w * 0.42, 3, 0, 0, Math.PI * 2); g.fill(); }
     g.save();
-    g.translate(Math.round(m.x), Math.round(m.y + float + (m.hitT > 0 ? -2 : 0)));
+    g.translate(Math.round(m.x), Math.round(m.y + float - (m.hop ? Math.sin((m.hop / 120) * Math.PI) * 5 : 0)));
     if (m.dir < 0) g.scale(-1, 1);
     if (!living) { const q = 1 - m.dead / 500; g.globalAlpha = Math.max(0, m.dead / 500); g.scale(1 + q * 0.5, 1 - q * 0.4); }
     g.drawImage(s, Math.round(-s.width * k / 2), -s.height * k, s.width * k, s.height * k);
@@ -446,7 +475,7 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
   for (const f of d.fx) {
     const k = Math.max(0, f.t) / 400;
     g.globalAlpha = 1 - k;
-    if (f.kind === 'slash') {
+    if (f.kind === 'slash' && f.t >= 0) {
       // A cream swoosh that tapers off (like the reference's sword trails)
       const r = (f.w ?? 50) * 0.75, cx = f.x - h.face * (f.w ?? 50) / 2;
       for (let i = 0; i < 6; i++) {
@@ -454,6 +483,12 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
         const a0 = h.face > 0 ? -1.1 + i * 0.12 : Math.PI + 1.1 - i * 0.12; const a1 = h.face > 0 ? 0.7 - i * 0.05 : Math.PI - 0.7 + i * 0.05;
         g.arc(cx, f.y, r - i * 2, Math.min(a0, a1), Math.max(a0, a1)); g.stroke();
       }
+    }
+    else if (f.kind === 'claw' && f.t >= 0) {
+      g.strokeStyle = '#e9d5ff'; g.lineWidth = 3;
+      for (let i = -1; i <= 1; i++) { g.beginPath(); g.moveTo(f.x - 14 + i * 8, f.y - 16); g.lineTo(f.x + 10 + i * 8, f.y + 14); g.stroke(); }
+      g.strokeStyle = '#c084fc'; g.lineWidth = 1.5;
+      for (let i = -1; i <= 1; i++) { g.beginPath(); g.moveTo(f.x - 12 + i * 8, f.y - 14); g.lineTo(f.x + 8 + i * 8, f.y + 12); g.stroke(); }
     }
     else if (f.kind === 'spin') { g.strokeStyle = '#e0f2fe'; g.lineWidth = 3; g.beginPath(); g.arc(f.x, f.y, (f.w ?? 70) * (0.6 + k * 0.4), 0, Math.PI * 2); g.stroke(); }
     else if (f.kind === 'boom') { g.fillStyle = '#fb923c'; g.beginPath(); g.arc(f.x, f.y, (f.w ?? 80) * (0.3 + k * 0.7), 0, Math.PI * 2); g.fill(); }
@@ -473,12 +508,19 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
   // Damage numbers (MapleStory-style)
   g.textAlign = 'center'; g.lineJoin = 'round';
   for (const p of d.pops) {
-    const [c, size] = POP_STYLE[p.kind];
-    const lift = p.t * 0.04;
-    g.globalAlpha = Math.min(1, 2 - p.t / 450);
-    g.font = `900 ${size}px ui-rounded, system-ui, sans-serif`;
-    g.lineWidth = 4; g.strokeStyle = '#1c1917'; g.strokeText(p.text, p.x, p.y - lift);
-    g.fillStyle = c; g.fillText(p.text, p.x, p.y - lift);
+    const [c, edge, size] = POP_STYLE[p.kind];
+    const lift = p.t * 0.018;
+    const y = p.y - (p.stack ?? 0) * (size - 1) - lift;
+    const pop = p.t < 110 ? 1.75 - 0.75 * (p.t / 110) : 1;
+    g.globalAlpha = p.t < 620 ? 1 : Math.max(0, 1 - (p.t - 620) / 280);
+    g.save();
+    g.translate(p.x, y);
+    g.scale(pop, pop);
+    g.font = `900 ${size}px ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif`;
+    if (p.kind === 'crit') { g.lineWidth = 7; g.strokeStyle = '#7f1d1d'; g.strokeText(p.text, 0, 0); }
+    g.lineWidth = p.kind === 'crit' ? 4 : 5; g.strokeStyle = edge; g.strokeText(p.text, 0, 0);
+    g.fillStyle = c; g.fillText(p.text, 0, 0);
+    g.restore();
   }
   g.globalAlpha = 1;
   g.restore();
@@ -652,7 +694,7 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
           <div className="dg-panel">
             <div className="dg-big">{run.phase === 'won' ? '🏆' : '😵‍💫'}</div>
             <b className="gold">{run.phase === 'won' ? `You beat ${bossDef(run).name}!` : 'Knocked out!'}</b>
-            <p className="small muted center">{run.kills} monsters beaten. This is a preview to try the controls and looks — no rewards yet.</p>
+            <p className="small muted center">{run.kills} monster{run.kills === 1 ? "" : "s"} beaten. This is a preview to try the controls and looks — no rewards yet.</p>
             <button className="btn btn-hero" onClick={again}>PLAY AGAIN</button>
             <button className="btn" onClick={() => { sound.play('click'); onClose(); }}>Leave</button>
           </div>

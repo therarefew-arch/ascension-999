@@ -23,7 +23,11 @@ const SPEED = 0.2;
 export const HERO_W = 22;
 export const HERO_H = 58;
 /** Time between basic attacks (ms). */
-export const ATTACK_MS: Record<CombatStyle, number> = { melee: 430, ranged: 520, magic: 560 };
+export const ATTACK_MS: Record<CombatStyle, number> = { melee: 320, ranged: 370, magic: 400 };
+/** Gap between the hits of a multi-hit skill (ms). */
+export const HIT_GAP = 85;
+/** Most monsters one skill can hit at once. */
+export const MAX_TARGETS = 6;
 export const SNACKS = 3;
 
 export interface Plat { x1: number; x2: number; y: number }
@@ -35,10 +39,14 @@ export interface Mob {
   id: number; m: string; x: number; y: number; w: number; h: number; hp: number; maxHp: number; dir: 1 | -1;
   min: number; max: number; speed: number; touch: number; shoots: boolean; atkCd: number; hitT: number; dead: number;
   boss?: boolean; slamT?: number; slamCd?: number;
+  /** Knockback slide speed (px/ms) and a little hop when struck. */
+  kb?: number; hop?: number;
 }
-export interface Shot { x: number; y: number; vx: number; vy: number; dmg: number; mine: boolean; pierce: boolean; kind: 'arrow' | 'bolt' | 'fire' | 'spit'; ttl: number; hit: number[]; mult?: number; blast?: boolean }
-export interface Pop { x: number; y: number; text: string; t: number; kind: 'hit' | 'crit' | 'hurt' | 'heal' | 'info' }
-export interface Fx { x: number; y: number; t: number; kind: 'slash' | 'spin' | 'boom' | 'zap' | 'rain' | 'slam'; w?: number; x2?: number; y2?: number }
+export interface Shot { x: number; y: number; vx: number; vy: number; dmg: number; mine: boolean; pierce: boolean; kind: 'arrow' | 'bolt' | 'fire' | 'spit'; ttl: number; hit: number[]; mult?: number; blast?: boolean; hits?: number }
+export interface Pop { x: number; y: number; text: string; t: number; kind: 'hit' | 'crit' | 'hurt' | 'heal' | 'info'; mob?: number; stack?: number }
+/** A hit waiting to land (multi-hit skills space their hits out). */
+export interface QueuedHit { at: number; mob: number; mult: number; knock: number }
+export interface Fx { x: number; y: number; t: number; kind: 'slash' | 'spin' | 'boom' | 'zap' | 'rain' | 'slam' | 'claw'; w?: number; x2?: number; y2?: number }
 
 /** A little particle: sparks, dust, poofs (purely for looks). */
 export interface Part { x: number; y: number; vx: number; vy: number; t: number; life: number; c: string; s: number; grav: number }
@@ -56,22 +64,23 @@ export interface Dungeon {
   /** ✨ Game feel (v0.0.1.69): particles, a tiny freeze on hits, screen shake, a hit combo and banners. */
   parts: Part[]; freeze: number; shake: number; combo: number; comboT: number;
   banner: { text: string; sub: string; t: number } | null; bossSeen: boolean;
+  queue: QueuedHit[];
 }
 
 // ----- Skills (the skill book) -----
 export interface SkillDef { id: string; name: string; emoji: string; style: CombatStyle | 'defense'; level: number; cdMs: number; text: string }
 export const SKILLS: SkillDef[] = [
-  { id: 'power_strike', name: 'Power Strike', emoji: '💥', style: 'melee', level: 1, cdMs: 3000, text: 'A heavy blow: 2.4× damage to the monster in front.' },
-  { id: 'slash_blast', name: 'Slash Blast', emoji: '🌙', style: 'melee', level: 50, cdMs: 4500, text: 'A wide sweep: 1.4× damage to every monster close in front.' },
-  { id: 'dash_strike', name: 'Dash Strike', emoji: '💨', style: 'melee', level: 110, cdMs: 6000, text: 'Dash forward, hitting everything you pass for 1.6×.' },
+  { id: 'power_strike', name: 'Triple Strike', emoji: '💥', style: 'melee', level: 1, cdMs: 2600, text: 'Three lightning-fast hits on the monster in front (0.95× each).' },
+  { id: 'slash_blast', name: 'Crescent Sweep', emoji: '🌙', style: 'melee', level: 50, cdMs: 4000, text: 'A wide sweep: 2 hits on up to 6 monsters in front (0.75× each).' },
+  { id: 'dash_strike', name: 'Dash Strike', emoji: '💨', style: 'melee', level: 110, cdMs: 5500, text: 'Dash forward, hitting everything you pass twice (0.8× each).' },
   { id: 'whirlwind', name: 'Whirlwind', emoji: '🌀', style: 'melee', level: 175, cdMs: 10000, text: 'Spin for 1.5s, hitting all around you again and again.' },
-  { id: 'double_shot', name: 'Double Shot', emoji: '🏹', style: 'ranged', level: 1, cdMs: 2500, text: 'Two arrows at once, 1.0× each.' },
-  { id: 'piercing_arrow', name: 'Piercing Arrow', emoji: '➶', style: 'ranged', level: 50, cdMs: 5000, text: 'An arrow that flies through every monster in its path, 1.8×.' },
-  { id: 'arrow_rain', name: 'Arrow Rain', emoji: '🌧️', style: 'ranged', level: 110, cdMs: 8000, text: 'Arrows rain down ahead of you: 4 waves of 1.2× to all there.' },
-  { id: 'leap_shot', name: 'Leap Shot', emoji: '🦘', style: 'ranged', level: 175, cdMs: 6000, text: 'Spring backwards out of reach and fire a 2× arrow.' },
-  { id: 'magic_claw', name: 'Magic Claw', emoji: '🪄', style: 'magic', level: 1, cdMs: 2500, text: 'Two quick bolts, 1.1× each.' },
-  { id: 'fireball', name: 'Fireball', emoji: '🔥', style: 'magic', level: 50, cdMs: 5000, text: 'A fireball that bursts on the first monster: 2× to all nearby.' },
-  { id: 'chain_lightning', name: 'Chain Lightning', emoji: '⚡', style: 'magic', level: 110, cdMs: 6000, text: 'Lightning leaps between up to 4 nearby monsters, 1.5× each.' },
+  { id: 'double_shot', name: 'Quad Shot', emoji: '🏹', style: 'ranged', level: 1, cdMs: 2400, text: 'Four arrows in a quick volley at the monster ahead (0.75× each).' },
+  { id: 'piercing_arrow', name: 'Piercing Arrow', emoji: '➶', style: 'ranged', level: 50, cdMs: 4500, text: 'An arrow that flies through up to 6 monsters in its path, hitting each twice (0.9×).' },
+  { id: 'arrow_rain', name: 'Arrow Rain', emoji: '🌧️', style: 'ranged', level: 110, cdMs: 8000, text: 'Arrows rain down ahead of you: 4 waves of 1.2× on up to 6 monsters there.' },
+  { id: 'leap_shot', name: 'Leap Shot', emoji: '🦘', style: 'ranged', level: 175, cdMs: 6000, text: 'Spring backwards out of reach and fire a fan of 3 arrows (1.2× each).' },
+  { id: 'magic_claw', name: 'Arcane Claw', emoji: '🪄', style: 'magic', level: 1, cdMs: 2400, text: 'Magic claws rake the nearest monster 4 times (0.7× each).' },
+  { id: 'fireball', name: 'Fireball', emoji: '🔥', style: 'magic', level: 50, cdMs: 4500, text: 'Bursts on the first monster: 1.6× on up to 6 nearby, then they burn for 2 more hits.' },
+  { id: 'chain_lightning', name: 'Chain Lightning', emoji: '⚡', style: 'magic', level: 110, cdMs: 6000, text: 'Lightning leaps between up to 6 nearby monsters, hitting each twice (0.8×).' },
   { id: 'teleport', name: 'Teleport', emoji: '✨', style: 'magic', level: 175, cdMs: 4000, text: 'Blink forward a long way (great for escaping).' },
   { id: 'iron_body', name: 'Iron Body', emoji: '🛡️', style: 'defense', level: 1, cdMs: 18000, text: 'Take half damage for 6 seconds.' },
   { id: 'second_wind', name: 'Second Wind', emoji: '💚', style: 'defense', level: 50, cdMs: 30000, text: 'Heal 25% of your health.' },
@@ -131,7 +140,7 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
     region, style, worldW: 0, arenaX: 0, plats: [], mobs: [], shots: [], pops: [], fx: [], hit,
     hero: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp, maxHp: hp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0 },
     cd: {}, bar: bar.slice(0, BAR_SIZE), snacks: SNACKS, kills: 0, t: 0, phase: 'play', jumpHeld: false, rs: seed, nextId: 1, bossId: boss.id,
-    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false,
+    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false, queue: [],
   };
   // The path: ground all the way, and floating ledges at three heights.
   const pathEnd = 2700;
@@ -179,7 +188,12 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
 }
 
 // ----- Helpers -----
-const pop = (d: Dungeon, x: number, y: number, text: string, kind: Pop['kind']) => { d.pops.push({ x, y, text, t: 0, kind }); if (d.pops.length > 30) d.pops.shift(); };
+const pop = (d: Dungeon, x: number, y: number, text: string, kind: Pop['kind'], mob?: number) => {
+  // Hits on the same monster stack upward, one above the other (multi-hit skills make a tower of numbers).
+  const stack = mob === undefined ? 0 : d.pops.filter((p) => p.mob === mob && p.t < 600).length;
+  d.pops.push({ x, y, text, t: 0, kind, mob, stack });
+  if (d.pops.length > 40) d.pops.shift();
+};
 /** Monsters still fighting. (Bug fix v0.0.1.69: a monster whose fade-out had finished used to count as alive
  * again — it walked about invisibly and could still bump into you. Now hp decides, and finished ones are removed.) */
 const alive = (d: Dungeon) => d.mobs.filter((m) => m.hp > 0);
@@ -203,9 +217,9 @@ function hitMob(d: Dungeon, m: Mob, mult: number, knock = 6): number {
   const crit = rand(d) < 0.12;
   const dmg = Math.max(1, Math.round(d.hit[m.m] * mult * (0.85 + rand(d) * 0.3) * (crit ? 1.6 : 1)));
   m.hp -= dmg;
-  m.hitT = 180;
-  if (!m.boss) m.x = Math.max(m.min, Math.min(m.max, m.x + Math.sign(m.x - d.hero.x || 1) * knock));
-  pop(d, m.x, m.y - m.h - 6, dmg.toLocaleString(), crit ? 'crit' : 'hit');
+  m.hitT = 200;
+  if (!m.boss) { m.kb = Math.sign(m.x - d.hero.x || d.hero.face) * knock * 0.025; m.hop = 120; }
+  pop(d, m.x, m.y - m.h - 6, dmg.toLocaleString(), crit ? 'crit' : 'hit', m.id);
   // ✨ Feel: sparks, a tiny freeze, a shake on crits, and the hit combo.
   burst(d, m.x - Math.sign(m.x - d.hero.x || 1) * m.w * 0.3, m.y - m.h / 2, crit ? 8 : 4, crit ? ['#fff7e0', '#fbbf24', '#f43f5e'] : ['#fff7e0', '#fde68a', '#fb923c'], crit ? 0.3 : 0.2, 0.0008, 3, 300);
   d.freeze = Math.max(d.freeze, crit ? 70 : 35);
@@ -222,6 +236,11 @@ function hitMob(d: Dungeon, m: Mob, mult: number, knock = 6): number {
   }
   return dmg;
 }
+/** A multi-hit: `hits` strikes on one monster, spaced out so each number pops on its own. */
+function multiHit(d: Dungeon, m: Mob, hits: number, mult: number, knock = 6, delay = 0) {
+  for (let i = 0; i < hits; i++) d.queue.push({ at: d.t + delay + i * HIT_GAP, mob: m.id, mult, knock: i === hits - 1 ? knock : 2 });
+}
+
 /** Monsters inside a box in front of the hero. */
 function inFront(d: Dungeon, reach: number, height = 70, both = false): Mob[] {
   const h = d.hero;
@@ -262,20 +281,30 @@ export function castSkill(d: Dungeon, i: number): string | null {
   d.cd[id] = s.cdMs;
   h.atkT = 260;
   switch (id) {
-    case 'power_strike': { const t = inFront(d, 70)[0]; if (t) hitMob(d, t, 2.4, 14); d.fx.push({ x: h.x + h.face * 34, y: h.y - 30, t: 0, kind: 'slash', w: 60 }); return 'boom'; }
-    case 'slash_blast': for (const m of inFront(d, 110, 90)) hitMob(d, m, 1.4, 10); d.fx.push({ x: h.x + h.face * 50, y: h.y - 30, t: 0, kind: 'slash', w: 110 }); return 'shing';
+    case 'power_strike': {
+      const t = inFront(d, 74)[0];
+      if (t) multiHit(d, t, 3, 0.95, 14);
+      for (let k = 0; k < 3; k++) d.fx.push({ x: h.x + h.face * 34, y: h.y - 30 - k * 6, t: -k * HIT_GAP, kind: 'slash', w: 60 - k * 6 });
+      return 'boom';
+    }
+    case 'slash_blast': for (const m of inFront(d, 115, 95).slice(0, MAX_TARGETS)) multiHit(d, m, 2, 0.75, 10); d.fx.push({ x: h.x + h.face * 50, y: h.y - 30, t: 0, kind: 'slash', w: 110 }); d.fx.push({ x: h.x + h.face * 50, y: h.y - 30, t: -HIT_GAP, kind: 'slash', w: 120 }); return 'shing';
     case 'dash_strike': h.dashT = 220; h.invT = Math.max(h.invT, 300); return 'whoosh';
     case 'whirlwind': h.spinT = 1500; return 'whoosh';
-    case 'double_shot': shoot(d, 'arrow', 1); shoot(d, 'arrow', 1, { y: h.y - 26 }); return 'whoosh';
-    case 'piercing_arrow': shoot(d, 'arrow', 1.8, { pierce: true, vx: h.face * 0.8 }); return 'shing';
+    case 'double_shot': for (let k = 0; k < 4; k++) shoot(d, 'arrow', 0.75, { y: h.y - 30 - (k % 2) * 6, x: h.x + h.face * (14 - k * 16) }); return 'whoosh';
+    case 'piercing_arrow': shoot(d, 'arrow', 0.9, { pierce: true, vx: h.face * 0.8, hits: 2 }); return 'shing';
     case 'arrow_rain': { const x = h.x + h.face * 120; for (let k = 0; k < 4; k++) d.fx.push({ x, y: GROUND, t: -k * 300, kind: 'rain', w: 150 }); return 'whoosh'; }
-    case 'leap_shot': h.vx = -h.face * 0.45; h.vy = -0.7; h.onGround = false; h.invT = Math.max(h.invT, 400); shoot(d, 'arrow', 2); return 'whoosh';
-    case 'magic_claw': shoot(d, 'bolt', 1.1); shoot(d, 'bolt', 1.1, { y: h.y - 24, vx: h.face * 0.42 }); return 'rune';
-    case 'fireball': shoot(d, 'fire', 2, { blast: true }); return 'ignite';
+    case 'leap_shot': h.vx = -h.face * 0.45; h.vy = -0.7; h.onGround = false; h.invT = Math.max(h.invT, 400); for (const vy of [-0.06, 0, 0.06]) shoot(d, 'arrow', 1.2, { vy }); return 'whoosh';
+    case 'magic_claw': {
+      const t = alive(d).filter((m) => Math.abs(m.x - h.x) < 200 && Math.abs(m.y - h.y) < 110 && Math.sign(m.x - h.x) !== -h.face).sort((a, b) => Math.abs(a.x - h.x) - Math.abs(b.x - h.x))[0];
+      if (t) { multiHit(d, t, 4, 0.7, 8); for (let k = 0; k < 4; k++) d.fx.push({ x: t.x, y: t.y - t.h / 2, t: -k * HIT_GAP, kind: 'claw', w: 30 }); }
+      else shoot(d, 'bolt', 1);
+      return 'rune';
+    }
+    case 'fireball': shoot(d, 'fire', 1.6, { blast: true }); return 'ignite';
     case 'chain_lightning': {
       let from = { x: h.x, y: h.y - 30 };
-      const near = alive(d).filter((m) => Math.abs(m.x - h.x) < 230 && Math.abs(m.y - h.y) < 140).sort((a, b) => Math.abs(a.x - h.x) - Math.abs(b.x - h.x)).slice(0, 4);
-      for (const m of near) { hitMob(d, m, 1.5); d.fx.push({ x: from.x, y: from.y, x2: m.x, y2: m.y - m.h / 2, t: 0, kind: 'zap' }); from = { x: m.x, y: m.y - m.h / 2 }; }
+      const near = alive(d).filter((m) => Math.abs(m.x - h.x) < 240 && Math.abs(m.y - h.y) < 150).sort((a, b) => Math.abs(a.x - h.x) - Math.abs(b.x - h.x)).slice(0, MAX_TARGETS);
+      near.forEach((m, k) => { multiHit(d, m, 2, 0.8, 6, k * 50); d.fx.push({ x: from.x, y: from.y, x2: m.x, y2: m.y - m.h / 2, t: -k * 50, kind: 'zap' }); from = { x: m.x, y: m.y - m.h / 2 }; });
       return near.length ? 'enchant' : 'rune';
     }
     case 'teleport': h.x = Math.max(20, Math.min(d.worldW - 20, h.x + h.face * 170)); h.invT = Math.max(h.invT, 300); return 'rune';
@@ -313,6 +342,15 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   // A tiny freeze on hits makes them feel weighty.
   if (d.freeze > 0) { d.freeze -= dt; return sounds; }
   d.fx = d.fx.filter((f) => (f.t += dt) < 400);
+  // Multi-hit strikes landing one after another
+  if (d.queue.length && d.phase === 'play') {
+    const due = d.queue.filter((q) => q.at <= d.t);
+    d.queue = d.queue.filter((q) => q.at > d.t);
+    for (const q of due) {
+      const m = d.mobs.find((x) => x.id === q.mob && x.hp > 0);
+      if (m) { hitMob(d, m, q.mult, q.knock); sounds.push('hit'); }
+    }
+  }
   if (d.phase !== 'play') {
     for (const m of d.mobs) if (m.hp <= 0) m.dead = Math.max(0, m.dead - dt);
     return sounds;
@@ -329,7 +367,7 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
     const before = h.x;
     h.x = Math.max(12, Math.min(d.worldW - 12, h.x + h.face * 0.9 * dt));
     const box = { x1: Math.min(before, h.x) - 14, x2: Math.max(before, h.x) + 14, y1: h.y - HERO_H, y2: h.y };
-    for (const m of alive(d)) if (overlap(box, mobBox(m)) && !(m as Mob & { dashed?: number }).dashed) { hitMob(d, m, 1.6, 16); (m as Mob & { dashed?: number }).dashed = 1; }
+    for (const m of alive(d)) if (overlap(box, mobBox(m)) && !(m as Mob & { dashed?: number }).dashed) { multiHit(d, m, 2, 0.8, 16); (m as Mob & { dashed?: number }).dashed = 1; }
     if (h.dashT <= 0) for (const m of d.mobs) delete (m as Mob & { dashed?: number }).dashed;
   } else if (h.invT > 600 && !h.onGround) {
     // knocked back: keep the push
@@ -382,7 +420,7 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   // Arrow Rain lands in waves
   for (const f of d.fx) {
     if (f.kind === 'rain' && f.t >= 0 && f.t - dt < 0) {
-      for (const m of alive(d)) if (Math.abs(m.x - f.x) < (f.w ?? 150) / 2) hitMob(d, m, 1.2, 4);
+      for (const m of alive(d).filter((o) => Math.abs(o.x - f.x) < (f.w ?? 150) / 2).slice(0, MAX_TARGETS)) hitMob(d, m, 1.2, 4);
       sounds.push('tick');
     }
   }
@@ -398,16 +436,16 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
         if (s.hit.includes(m.id)) continue;
         if (Math.abs(s.x - m.x) < m.w / 2 + 6 && s.y > m.y - m.h - 6 && s.y < m.y + 4) {
           if (s.blast) {
-            for (const o of alive(d)) if (Math.abs(o.x - s.x) < 80 && Math.abs(o.y - m.y) < 90) hitMob(d, o, s.mult ?? 1, 12);
+            for (const o of alive(d).filter((o) => Math.abs(o.x - s.x) < 85 && Math.abs(o.y - m.y) < 95).slice(0, MAX_TARGETS)) { hitMob(d, o, s.mult ?? 1, 12); multiHit(d, o, 2, 0.4, 2, 380); }
             d.fx.push({ x: s.x, y: s.y, t: 0, kind: 'boom', w: 80 });
             sounds.push('boom');
             s.ttl = 0;
             break;
           }
-          hitMob(d, m, s.mult ?? 1);
+          if ((s.hits ?? 1) > 1) multiHit(d, m, s.hits!, s.mult ?? 1, 6); else hitMob(d, m, s.mult ?? 1);
           sounds.push('hit');
           s.hit.push(m.id);
-          if (!s.pierce) { s.ttl = 0; break; }
+          if (!s.pierce || s.hit.length >= MAX_TARGETS) { s.ttl = 0; break; }
         }
       }
     } else if (overlap(heroBox(h), { x1: s.x - 5, x2: s.x + 5, y1: s.y - 5, y2: s.y + 5 })) {
@@ -422,6 +460,8 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   for (const m of d.mobs) {
     if (m.hp <= 0) { m.dead = Math.max(0, m.dead - dt); continue; }
     m.hitT = Math.max(0, m.hitT - dt);
+    if (m.hop) m.hop = Math.max(0, m.hop - dt);
+    if (m.kb) { m.x = Math.max(m.min, Math.min(m.max, m.x + m.kb * dt)); m.kb *= Math.pow(0.985, dt); if (Math.abs(m.kb) < 0.01) m.kb = 0; }
     const dx = h.x - m.x;
     const sameRow = Math.abs(h.y - m.y) < 40;
     const near = Math.abs(dx) < (m.boss ? 420 : 200) && (sameRow || m.boss);
