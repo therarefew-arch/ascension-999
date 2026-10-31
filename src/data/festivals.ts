@@ -20,7 +20,8 @@ export interface FestivalDef {
   /** The skill that gets +10% XP during the festival. */
   skill: SkillId;
   token: { id: string; name: string; emoji: string };
-  treat: { id: string; name: string; emoji: string; description: string };
+  /** `drink: true` = it says "Drink it" (e.g. a cocoa or cider); otherwise it's eaten. */
+  treat: { id: string; name: string; emoji: string; description: string; drink?: boolean };
   decoration: { id: string; name: string; emoji: string; blurb: string };
   pet: { id: string; name: string; emoji: string; blurb: string };
 }

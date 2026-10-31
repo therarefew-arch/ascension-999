@@ -2,9 +2,10 @@
 import { useEffect } from 'react';
 import { getItem, MAX_UPGRADE, MEALS, SLOT_LABELS } from '../data/items';
 
-/** Brews (Cooking → Brews) are drunk; everything else, festival treats included, is eaten. */
-const DRINKS = new Set(MEALS.filter((m) => m.tab === 'Brews').map((m) => m.id));
+/** Brews (Cooking → Brews) and festival treats marked `drink` are drunk; everything else is eaten. */
+const DRINKS = new Set([...MEALS.filter((m) => m.tab === 'Brews').map((m) => m.id), ...FESTIVALS.filter((f) => f.treat.drink).map((f) => f.treat.id)]);
 import { SKILLS } from '../data/skills';
+import { FESTIVALS } from '../data/festivals';
 import { maxHp } from '../core/combat';
 import { REROLL_COST } from '../core/equipment';
 import { canEquip } from '../core/equipment';
@@ -114,7 +115,7 @@ export function ItemSheet({ id, from, onClose, onReroll }: { id: string; from: I
             <p className="small"><b>{buffText(item.buff)}</b> for {item.buff.minutes} minutes{item.buff.kind === 'speed' ? ' — actions go faster' : ''}.</p>
             {from === 'bag'
               ? <button className="btn btn-primary btn-lg btn-wide" onClick={() => game.consumeBuff(id)}>{DRINKS.has(item.id) ? '🍵 Drink it' : '🍽️ Eat it'}</button>
-              : <p className="small muted">Withdraw it to your bag to {/tea|tonic|brew/.test(item.id) ? 'drink' : 'eat'} it.</p>}
+              : <p className="small muted">Withdraw it to your bag to {DRINKS.has(item.id) ? 'drink' : 'eat'} it.</p>}
           </section>
         )}
         {item.heals && from === 'bag' && (
