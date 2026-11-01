@@ -380,6 +380,10 @@ function repair(raw: any): PlayerState {
   // 📖 Lost recipes learned (v0.0.1.61)
   if (Array.isArray(raw?.recipes)) p.recipes = raw.recipes.filter((x: unknown) => typeof x === 'string' && !!ACTIONS[x as string]?.lost);
   // 🧭 Expedition boss wins per town (v0.0.1.60)
+  if (raw?.dungeonBossAt && typeof raw.dungeonBossAt === 'object') {
+    p.dungeonBossAt = {};
+    for (const [r, n] of Object.entries(raw.dungeonBossAt)) if ((REGIONS as readonly string[]).includes(r) && typeof n === 'number' && Number.isFinite(n)) p.dungeonBossAt[r as Region] = n;
+  }
   if (raw?.expeditionWins && typeof raw.expeditionWins === 'object') {
     p.expeditionWins = {};
     for (const [r, n] of Object.entries(raw.expeditionWins)) if ((REGIONS as readonly string[]).includes(r) && Number.isInteger(n) && (n as number) > 0) p.expeditionWins[r as Region] = n as number;

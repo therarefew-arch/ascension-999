@@ -29,6 +29,11 @@ export const HIT_GAP = 85;
 /** Most monsters one skill can hit at once. */
 export const MAX_TARGETS = 6;
 export const SNACKS = 3;
+/** 🏰 Rewards (v0.0.1.76): XP per monster, in seconds of the town's gathering XP — paced for fast real-time
+ * fights (a 2-minute run ≈ normal fighting; quick runs a little better). Each monster also rolls its own loot. */
+export const DUNGEON_XP_SECS = { kill: 6, elite: 6, boss: 25, event: 0 } as const;
+/** After a win the boss's treasure (gem, pet chance, Cottage piece) rests this long — like a mini boss respawning. */
+export const BOSS_REST_MS = 20 * 60_000;
 
 export interface Plat { x1: number; x2: number; y: number }
 export interface Hero {
@@ -70,6 +75,8 @@ export interface Dungeon {
   queue: QueuedHit[];
   /** 🍓 Wild berry patches on the highest ledges: walk into one to heal. */
   treats: { x: number; y: number; got: boolean }[];
+  /** 🏰 Monsters beaten since the screen last paid out (the screen hands them to `game.dungeonReward`). */
+  fallen: { m: string; boss?: boolean }[];
 }
 /** Ledges go up to this many rows above the ground. */
 export const MAX_ROW = 5;
@@ -149,7 +156,7 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
     region, style, worldW: 0, arenaX: 0, plats: [], mobs: [], shots: [], pops: [], fx: [], hit,
     hero: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp, maxHp: hp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0 },
     cd: {}, bar: bar.slice(0, BAR_SIZE), snacks: SNACKS, kills: 0, t: 0, phase: 'play', jumpHeld: false, rs: seed, nextId: 1, bossId: boss.id,
-    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false, queue: [], treats: [],
+    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false, queue: [], treats: [], fallen: [],
   };
   // The path: ground all the way, and floating ledges at three heights.
   const pathEnd = 2700;
@@ -268,6 +275,7 @@ function hitMob(d: Dungeon, m: Mob, mult: number, knock = 6): number {
   if (m.hp <= 0) {
     m.dead = 500;
     d.kills++;
+    d.fallen.push(m.boss ? { m: m.m, boss: true } : { m: m.m });
     const MONSTER = MONSTER_MAP[m.m];
     burst(d, m.x, m.y - m.h / 2, 12, ['#ffffff', '#e7e5e4', '#d6d3d1'], 0.12, -0.0001, 6, 650);
     burst(d, m.x, m.y - m.h / 2, 10, [MONSTER.colors.body, MONSTER.colors.accent, MONSTER.colors.dark], 0.26, 0.0012, 3, 700);

@@ -9,7 +9,11 @@ import {
   BAR_SIZE, HERO_H, bossDef, bossOf, defaultBar, eatSnack, GROUND, newDungeon, pathProgress, SKILL_MAP, SKILLS, step, castSkill, VIEW_H, VIEW_W,
   whyCantUseSkill, type Dungeon as Run, type Input,
 } from '../core/dungeon';
-import { AREAS } from '../core/expedition';
+import { AREAS, type Run as ExRun } from '../core/expedition';
+import { FURNITURE_MAP } from '../core/cottage';
+import { PET_MAP } from '../data/pets';
+import { SKILLS as SKILL_INFO } from '../data/skills';
+import { ItemIcon } from './icons';
 import { game, useGame } from '../core/store';
 import { ITEMS, type CombatStyle } from '../data/items';
 import { MONSTER_MAP } from '../data/monsters';
@@ -551,11 +555,15 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
 // ----- The screen -----
 export function DungeonLaunch() {
   const [open, setOpen] = useState(false);
+  const { player } = useGame();
+  const region = player.location;
+  const bossAt = game.dungeonBossReadyAt(region);
   return (
     <>
       <button className="lw-launch dg-launch" onClick={() => { sound.play('click'); setOpen(true); }}>
-        <span className="lw-launch-emoji">🧪</span>
-        <span className="grow"><b>Dungeon <span className="dg-tag">preview</span></b><span className="small muted">Try the side-scrolling dungeon: your hero in your gear, real-time fights, and a skill book. (No rewards yet.)</span></span>
+        <span className="lw-launch-emoji">🗝️</span>
+        <span className="grow"><b>Dungeon</b><span className="small muted">Fight your way through {AREAS[region].name} in real time, in your own gear, with your skill book. Monsters drop their loot; the boss guards a gem.</span>
+          <span className="tiny dg-launch-boss">{bossAt ? `👑 Boss treasure back in ${Math.max(1, Math.ceil((bossAt - Date.now()) / 60_000))} min` : '👑 Boss treasure ready'}</span></span>
         <span className="lw-launch-go">▶</span>
       </button>
       {open && <DungeonScreen onClose={() => setOpen(false)} />}
@@ -575,6 +583,10 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
   const look = useRef(lookOf(player));
   const root = useRef<HTMLDivElement>(null);
   const controls = useRef<HTMLDivElement>(null);
+  // 🏰 What this run has earned so far (paid out as monsters fall) and whether the boss's treasure was resting.
+  const found = useRef<ExRun['found']>({ items: [], xp: {}, kills: 0 });
+  const ended = useRef(false);
+  const rested = useRef(false);
   const camY = useRef<number | null>(null);
   useNoScroll(root);
   // ↔️ Sideways: turned with CSS on a phone held upright; wide windows are already landscape.
@@ -612,7 +624,8 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
       if (!book) {
         const before = run.phase;
         for (const s of step(run, dt, input.current)) playSound(s);
-        if (run.phase !== before) { playSound(run.phase === 'won' ? 'levelup' : 'hurt'); if (run.phase === 'won') sound.play('levelup', { rate: 1.25 }); else sound.play('fail'); }
+        if (run.fallen.length) pay();
+        if (run.phase !== before) { finish(run.phase === 'won'); playSound(run.phase === 'won' ? 'levelup' : 'hurt'); if (run.phase === 'won') sound.play('levelup', { rate: 1.25 }); else sound.play('fail'); }
       }
       const c = canvas.current;
       if (c) {
@@ -684,7 +697,24 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
     const s = castSkill(run, i);
     if (s) playSound(s); else sound.play('tick', { rate: 0.7, volume: 0.4 });
   };
-  const again = () => { sound.play('click'); look.current = lookOf(game.player()); camY.current = null; setRun(newDungeon(game.player(), region, bar)); };
+  // 🏰 Pay for beaten monsters through the game (loot system, bank overflow, gems only from the boss).
+  const pay = () => {
+    if (!run.fallen.length) return;
+    const kills = run.fallen.splice(0);
+    if (kills.some((k) => k.boss)) rested.current = game.dungeonBossReadyAt(region) > 0;
+    game.dungeonReward(found.current, region, run.style, kills);
+  };
+  const finish = (won: boolean) => {
+    pay();
+    if (ended.current || (!won && found.current.kills === 0)) return;
+    ended.current = true;
+    game.dungeonEnd(found.current, region, won);
+  };
+  const leave = () => { sound.play('click'); finish(false); onClose(); };
+  const payRef = useRef(finish);
+  payRef.current = finish;
+  useEffect(() => () => payRef.current(false), []); // closing the screen any other way still pays
+  const again = () => { sound.play('click'); found.current = { items: [], xp: {}, kills: 0 }; ended.current = false; rested.current = false; look.current = lookOf(game.player()); camY.current = null; setRun(newDungeon(game.player(), region, bar)); };
   const saveBar = (b: (string | null)[]) => { setBar(b); writeBar(slot, b); run.bar = b; };
 
   const h = run.hero;
@@ -698,7 +728,7 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
       <div className="dg-hud">
         <div className="dg-hp"><div style={{ width: `${(100 * h.hp) / h.maxHp}%` }} /><span className="mono">{Math.max(0, Math.round(h.hp)).toLocaleString()} / {h.maxHp.toLocaleString()}</span></div>
         <button className="dg-icon" onClick={() => { sound.play('click'); setBook(true); }} aria-label="Skill book">📖</button>
-        <button className="dg-icon" onClick={() => { sound.play('click'); onClose(); }} aria-label="Leave">✕</button>
+        <button className="dg-icon" onClick={leave} aria-label="Leave (you keep what you found)">✕</button>
       </div>
       <div className="dg-sub">
         <span className="small">{AREAS[region].emoji} {AREAS[region].name[0].toUpperCase() + AREAS[region].name.slice(1)}</span>
@@ -745,15 +775,35 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
           <div className="dg-panel">
             <div className="dg-big">{run.phase === 'won' ? '🏆' : '😵‍💫'}</div>
             <b className="gold">{run.phase === 'won' ? `You beat ${bossDef(run).name}!` : 'Knocked out!'}</b>
-            <p className="small muted center">{run.kills} monster{run.kills === 1 ? "" : "s"} beaten. This is a preview to try the controls and looks — no rewards yet.</p>
-            <button className="btn btn-hero" onClick={again}>PLAY AGAIN</button>
-            <button className="btn" onClick={() => { sound.play('click'); onClose(); }}>Leave</button>
+            {run.phase === 'ko' && <p className="small muted center">Carried home safe — you keep everything you found.</p>}
+            <DungeonFound found={found.current} rested={run.phase === 'won' && rested.current} region={region} />
+            <div className="dg-panel-btns">
+              <button className="btn btn-hero" onClick={again}>PLAY AGAIN</button>
+              <button className="btn" onClick={leave}>Leave</button>
+            </div>
           </div>
         </div>
       )}
       {book && <SkillBook player={player} bar={bar} onBar={saveBar} style={run.style} onClose={() => { sound.play('click'); setBook(false); }} />}
     </div>,
     document.body,
+  );
+}
+
+/** 🏰 What a run earned: XP, loot, and the boss's treasure (pet, Cottage piece, lore note). */
+function DungeonFound({ found, rested, region }: { found: ExRun['found']; rested: boolean; region: string }) {
+  const xp = Object.entries(found.xp).filter(([, n]) => (n ?? 0) > 0);
+  const at = game.dungeonBossReadyAt(region as Run['region']);
+  return (
+    <div className="dg-found">
+      <p className="small">⚔️ {found.kills} monster{found.kills === 1 ? '' : 's'} beaten</p>
+      {rested && <p className="tiny muted center">👑 Its treasure was resting{at ? ` — back in ${Math.max(1, Math.ceil((at - Date.now()) / 60_000))} min` : ''}. You still got its XP and some loot.</p>}
+      {found.pet && <p className="small gold">🐾 {PET_MAP[found.pet]?.emoji} {PET_MAP[found.pet]?.name} came home with you!</p>}
+      {found.cottage && <p className="small gold">🏡 {FURNITURE_MAP[found.cottage]?.emoji} {FURNITURE_MAP[found.cottage]?.name} — it's waiting in your Cottage!</p>}
+      {found.lore && <p className="small">📜 New note in your Journal: <b>{found.lore}</b></p>}
+      {xp.length > 0 && <div className="ex-xp">{xp.map(([s, n]) => <span key={s} className="tiny"><b>{SKILL_INFO[s as keyof typeof SKILL_INFO].name}</b> +{Math.round(n!).toLocaleString()} XP</span>)}</div>}
+      {found.items.length > 0 && <div className="ex-found static">{found.items.map((it) => <span key={it.id} className="ex-found-item"><ItemIcon id={it.id} size={24} /><span className="tiny mono">{it.qty.toLocaleString()}</span></span>)}</div>}
+    </div>
   );
 }
 

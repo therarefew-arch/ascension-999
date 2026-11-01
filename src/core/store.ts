@@ -49,6 +49,7 @@ import { BLOCK_WINDOW_MS, eatFood, endFight, fightSlot, maxHp, regenHp, startFig
 import { lootRolls, nightXp, STUB_COINS } from './lanternWatch';
 import { paradeCoins, WINS_NEEDED as PARADE_WINS } from './petParade';
 import { wallXp } from './holdWall';
+import { BOSS_REST_MS, DUNGEON_XP_SECS } from './dungeon';
 import { AREAS, COTTAGE_CHANCE, COTTAGE_SURE_BY, newRun, type HeroSnap, townBoss, townMonsters, whyCantStart, XP_SECS, type Reward, type Run } from './expedition';
 import { EXPEDITION_FURNITURE } from './cottage';
 import { lostRecipesOf } from '../data/lostRecipes';
@@ -1058,8 +1059,10 @@ export const game = {
    * minute than fighting normally), the monsters' own loot, cache rolls, rare finds and skill XP — all
    * through the loot system (whatever doesn't fit goes to the bank). Adds it to `run.found`.
    */
-  expeditionReward(run: Run, reward: Reward | null): ItemStack[] {
+  expeditionReward(run: Pick<Run, 'region' | 'style' | 'found'>, reward: Reward | null, opts: { xpSecs?: { kill: number; elite: number; boss: number; event: number }; bossPrizes?: boolean } = {}): ItemStack[] {
     if (!reward) return [];
+    const XP_SECS_ = opts.xpSecs ?? XP_SECS;
+    const bossPrizes = opts.bossPrizes ?? true;
     const p = snap.player;
     const report = emptyReport(null);
     const townTier = REGIONS.indexOf(run.region);
@@ -1070,10 +1073,13 @@ export const game = {
     for (const k of reward.kills ?? []) {
       const m = MONSTER_MAP[k.m];
       if (!m) continue;
-      secs += k.boss ? XP_SECS.boss : k.elite ? XP_SECS.elite : XP_SECS.kill;
-      const rolls = k.boss ? 1 : k.elite ? 3 : 1;
+      secs += k.boss ? XP_SECS_.boss : k.elite ? XP_SECS_.elite : XP_SECS_.kill;
+      // A resting boss (Dungeon, v0.0.1.76) gives no treasure — never its gem table — just three ordinary rolls.
+      const resting = k.boss && !bossPrizes;
+      const rolls = resting ? 0 : k.boss ? 1 : k.elite ? 3 : 1;
       for (let i = 0; i < rolls; i++) loot.push(...rollLoot(m.lootTable));
-      if (k.boss) {
+      if (resting) for (let i = 0; i < 3 && mobs.length; i++) loot.push(...rollLoot(mobs[Math.floor(Math.random() * mobs.length)].lootTable));
+      if (k.boss && !resting) {
         // 👑 The expedition boss: its own loot (always a gem — bosses are the only gem source), a pet roll,
         // sometimes its rare Cottage piece, and its lore note the first time.
         for (let i = 0; i < 2 && mobs.length; i++) loot.push(...rollLoot(mobs[Math.floor(Math.random() * mobs.length)].lootTable));
@@ -1111,7 +1117,7 @@ export const game = {
       gain('health', xp / 3);
       gain('defense', xp / 4);
     }
-    if (reward.skillXp) gain(reward.skillXp, perSec(reward.skillXp) * XP_SECS.event);
+    if (reward.skillXp) gain(reward.skillXp, perSec(reward.skillXp) * XP_SECS_.event);
     // 📖 A lost recipe of this town (two each), learned for good.
     if (reward.recipe && Math.random() < reward.recipe) {
       const left = lostRecipesOf(run.region).filter((id) => !(p.recipes ?? []).includes(id));
@@ -1172,6 +1178,38 @@ export const game = {
     save();
     emit();
     return back;
+  },
+
+  // ----- 🏰 Dungeon (v0.0.1.76, owner chose "Rewards": make it a real mode) -----
+  /** Pays for monsters beaten in the dungeon, as they fall — through the same path as Expeditions (loot system,
+   * gems only from the boss, bank overflow). The boss's treasure only when it isn't resting (`BOSS_REST_MS`). */
+  dungeonReward(found: Run['found'], region: Region, style: Run['style'], kills: { m: string; boss?: boolean }[]): ItemStack[] {
+    const p = snap.player;
+    let bossPrizes = true;
+    if (kills.some((k) => k.boss)) {
+      bossPrizes = (p.dungeonBossAt?.[region] ?? 0) <= Date.now();
+      if (bossPrizes) (p.dungeonBossAt ??= {})[region] = Date.now() + BOSS_REST_MS;
+    }
+    return game.expeditionReward({ region, style, found }, { kills }, { xpSecs: DUNGEON_XP_SECS, bossPrizes });
+  },
+  /** When the dungeon boss has its treasure again (0 = now). */
+  dungeonBossReadyAt(region: Region): number {
+    const t = snap.player.dungeonBossAt?.[region] ?? 0;
+    return t > Date.now() ? t : 0;
+  },
+  /** The run is over (won, knocked out or left): cheer a win and count it for Town Requests. */
+  dungeonEnd(found: Run['found'], region: Region, won: boolean) {
+    const p = snap.player;
+    if (won) {
+      celebrate();
+      const boss = townBoss(region);
+      if (boss) familyMoment(p, 'boss', `defeated ${boss.name} in the dungeon!`);
+    }
+    const report = emptyReport(null);
+    if (found.kills > 0) trackRequests(p, report, 1);
+    trackTutorial(p, report);
+    save();
+    emit();
   },
 
   // ----- Combat -----
