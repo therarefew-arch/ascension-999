@@ -2105,3 +2105,23 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .dg-root.land .dg-book-list > .dg-book-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px 8px; }
 .dg-root.land .dg-book-tab { padding: 3px 2px; }
 .dg-root.land .dg-book-tab .tiny { display: inline; }
+
+/* 4️⃣ A 4th skill bubble (v0.0.1.84). Upright the bubbles are a little smaller so four fit beside Attack without
+   reaching into the thumbstick's half; sideways the 4th sits up-left of the 1st (still ≥25 px from everything). */
+.dg-act .dg-skill { width: 52px; height: 52px; font-size: 1.3rem; }
+.dg-act .dg-skill.s0 { right: 150px; bottom: 102px; }
+.dg-act .dg-skill.s1 { right: 90px; bottom: 134px; }
+.dg-act .dg-skill.s2 { right: 30px; bottom: 152px; }
+.dg-act .dg-skill.s3 { right: 144px; bottom: 170px; }
+@media (max-width: 360px) {
+  .dg-act .dg-skill { width: 44px; height: 44px; font-size: 1.1rem; }
+  .dg-act .dg-skill.s0 { right: 128px; bottom: 92px; }
+  .dg-act .dg-skill.s1 { right: 78px; bottom: 120px; }
+  .dg-act .dg-skill.s2 { right: 24px; bottom: 136px; }
+  .dg-act .dg-skill.s3 { right: 126px; bottom: 152px; }
+}
+.dg-root.land .dg-act .dg-skill { width: 58px; height: 58px; font-size: 1.45rem; }
+.dg-root.land .dg-act .dg-skill.s0 { right: 175px; bottom: 120px; }
+.dg-root.land .dg-act .dg-skill.s1 { right: 115px; bottom: 177px; }
+.dg-root.land .dg-act .dg-skill.s2 { right: 34px; bottom: 194px; }
+.dg-root.land .dg-act .dg-skill.s3 { right: 255px; bottom: 153px; }

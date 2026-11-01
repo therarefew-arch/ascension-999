@@ -32,7 +32,12 @@ const barKey = (slot: number | null) => `ui.skillbar.${slot ?? 0}`;
 function readBar(slot: number | null, p: PlayerState): (string | null)[] {
   try {
     const raw = JSON.parse(localStorage.getItem(barKey(slot)) ?? 'null');
-    if (Array.isArray(raw)) return Array.from({ length: BAR_SIZE }, (_, i) => (typeof raw[i] === 'string' && !whyCantUseSkill(p, raw[i]) ? raw[i] : null));
+    if (Array.isArray(raw)) {
+      const bar = Array.from({ length: BAR_SIZE }, (_, i) => (typeof raw[i] === 'string' && !whyCantUseSkill(p, raw[i]) ? raw[i] : null));
+      // A bar saved before the 4th bubble (v0.0.1.84): fill the new bubble with your best unused skill.
+      if (raw.length < BAR_SIZE) for (let i = raw.length; i < BAR_SIZE; i++) bar[i] = defaultBar(p).concat(SKILLS.filter((s) => !whyCantUseSkill(p, s.id)).reverse().map((s) => s.id)).find((id) => !bar.includes(id)) ?? null;
+      return bar;
+    }
   } catch { /* fresh */ }
   const d = defaultBar(p);
   return Array.from({ length: BAR_SIZE }, (_, i) => d[i] ?? null);
@@ -1116,7 +1121,7 @@ function RoomPlay({ run: dRun, land, onEnd }: { run: DungeonRun; land: boolean; 
       else if (k === 'arrowup' || k === 'w' || k === ' ') input.current.jump = on;
       else if (k === 'arrowdown' || k === 's') input.current.down = on;
       else if (k === 'j' || k === 'z') input.current.attack = on;
-      else if (on && ['1', '2', '3'].includes(k)) skill(Number(k) - 1);
+      else if (on && ['1', '2', '3', '4'].includes(k)) skill(Number(k) - 1);
       else return;
       e.preventDefault();
     };

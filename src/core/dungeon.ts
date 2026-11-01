@@ -191,7 +191,8 @@ export const SKILLS: SkillDef[] = [
   { id: 'undying', name: 'Undying', emoji: '💫', style: 'defense', level: 750, cdMs: 45000, text: 'Heal 10%, and for 6s nothing can knock you out.' },
 ];
 export const SKILL_MAP: Record<string, SkillDef> = Object.fromEntries(SKILLS.map((s) => [s.id, s]));
-export const BAR_SIZE = 3;
+/** Skill bubbles (v0.0.1.84, owner: yes to a 4th once there were 44 skills). */
+export const BAR_SIZE = 4;
 
 /** Why a skill can't go on your bar (null = it can). */
 export function whyCantUseSkill(p: PlayerState, id: string): string | null {
