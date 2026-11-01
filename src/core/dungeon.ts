@@ -8,6 +8,7 @@ import { MONSTER_MAP, type MonsterDef } from '../data/monsters';
 import { REGIONS, type Region } from '../data/tiers';
 import { maxHp, weaponStyle } from './combat';
 import { fairPower, rawPower, townBoss, townMonsters, TURN_MS } from './expedition';
+import type { RoomKind } from './dungeonRun';
 import type { PlayerState } from './player';
 import { levelForXp } from './xp';
 
@@ -29,6 +30,9 @@ export const HIT_GAP = 85;
 /** Most monsters one skill can hit at once. */
 export const MAX_TARGETS = 6;
 export const SNACKS = 3;
+/** v0.0.1.77 boss fix: the boss's touch and slam hurt less in the extraction dungeon (owner: "does a lot of damage"). */
+export const BOSS_TOUCH = 0.65;
+export const BOSS_SLAM = 1.7;
 /** 🏰 Rewards (v0.0.1.76): XP per monster, in seconds of the town's gathering XP — paced for fast real-time
  * fights (a 2-minute run ≈ normal fighting; quick runs a little better). Each monster also rolls its own loot. */
 export const DUNGEON_XP_SECS = { kill: 6, elite: 6, boss: 25, event: 0 } as const;
@@ -48,6 +52,8 @@ export interface Mob {
   kb?: number; hop?: number;
   /** v0.0.1.72: a spitter glows for `windT` ms before it fires; ledge monsters can hop down (`vy`). */
   windT?: number; vy?: number;
+  /** 💀 A tougher lair monster. */
+  elite?: boolean;
 }
 export interface Shot { x: number; y: number; vx: number; vy: number; dmg: number; mine: boolean; pierce: boolean; kind: 'arrow' | 'bolt' | 'fire' | 'spit'; ttl: number; hit: number[]; mult?: number; blast?: boolean; hits?: number; target?: number }
 export interface Pop { x: number; y: number; text: string; t: number; kind: 'hit' | 'crit' | 'hurt' | 'heal' | 'info'; mob?: number; stack?: number }
@@ -77,7 +83,14 @@ export interface Dungeon {
   treats: { x: number; y: number; got: boolean }[];
   /** 🏰 Monsters beaten since the screen last paid out (the screen hands them to `game.dungeonReward`). */
   fallen: { m: string; boss?: boolean }[];
+  /** 🗝️ Extraction rooms (v0.0.1.77): which room this is, the door at its far end, and treasure chests. */
+  room?: { kind: RoomKind; door: number };
+  chests: { x: number; y: number; open: boolean }[];
+  /** Chests opened since the screen last checked. */
+  opened: number;
 }
+/** One room of an extraction run: its kind, how deep it is (row), the health and food you walk in with. */
+export interface RoomSpec { kind: RoomKind; depth: number; hp: number; snacks: number }
 /** Ledges go up to this many rows above the ground. */
 export const MAX_ROW = 5;
 /** How much a 🍓 berry patch heals (share of max health). */
@@ -136,7 +149,7 @@ const SIZE: Record<string, [number, number]> = {
   rat: [34, 26], sprite: [30, 34], bandit: [32, 52], boar: [46, 34], bear: [48, 46], treant: [44, 60], crab: [40, 28],
   bird: [36, 34], ghost: [34, 42], goat: [40, 40], lizard: [44, 26], tortoise: [46, 32], wyrm: [56, 40],
 };
-export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[], seed = Math.floor(Math.random() * 2 ** 31)): Dungeon {
+export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[], seed = Math.floor(Math.random() * 2 ** 31), room?: RoomSpec): Dungeon {
   const style = weaponStyle(p);
   const fair = fairPower(region);
   const mobsDefs = townMonsters(region);
@@ -156,12 +169,17 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
     region, style, worldW: 0, arenaX: 0, plats: [], mobs: [], shots: [], pops: [], fx: [], hit,
     hero: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp, maxHp: hp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0 },
     cd: {}, bar: bar.slice(0, BAR_SIZE), snacks: SNACKS, kills: 0, t: 0, phase: 'play', jumpHeld: false, rs: seed, nextId: 1, bossId: boss.id,
-    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false, queue: [], treats: [], fallen: [],
+    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false, queue: [], treats: [], fallen: [], chests: [], opened: 0,
   };
+  if (room) { d.hero.hp = Math.max(1, Math.min(hp, room.hp)); d.snacks = room.snacks; }
+  const bossRoom = !room || room.kind === 'boss';
   // The path: ground all the way, and floating ledges at three heights.
-  const pathEnd = 2700;
+  // Rooms are shorter than the old single path; the boss's hall is a short walk then a wide arena (v0.0.1.77 boss fix:
+  // owner said there was nowhere to run — now it's wider, with ledges the boss can't reach).
+  const pathEnd = !room ? 2700 : room.kind === 'boss' ? 420 : room.kind === 'camp' ? 500 : 1250 + room.depth * 110;
   d.arenaX = pathEnd;
-  d.worldW = pathEnd + 560;
+  d.worldW = pathEnd + (!room ? 560 : room.kind === 'boss' ? 960 : 260);
+  if (room) d.room = { kind: room.kind, door: pathEnd + 150 };
   d.plats.push({ x1: 0, x2: d.worldW, y: GROUND });
   for (let x = 260; x < pathEnd - 200;) {
     const w = 150 + Math.floor(rand(d) * 140);
@@ -204,29 +222,39 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
   // Monsters along the way — the further you go, the tougher they get.
   const spawn = (def: MonsterDef, x: number, plat: Plat, rank: number) => {
     const [w, h] = SIZE[def.art] ?? [40, 40];
-    const mhp = Math.round((fair[def.id].rawHit * (ATTACK_MS[style] / TURN_MS)) * (3 + 3 * rank));
+    const elite = room?.kind === 'elite';
+    const mhp = Math.round((fair[def.id].rawHit * (ATTACK_MS[style] / TURN_MS)) * (3 + 3 * rank) * (elite ? 1.8 : 1));
     d.mobs.push({
-      id: d.nextId++, m: def.id, x, y: plat.y, w, h, hp: mhp, maxHp: mhp, dir: rand(d) < 0.5 ? 1 : -1,
-      min: plat.x1 + w / 2, max: plat.x2 - w / 2, speed: 0.035 + rand(d) * 0.03, touch: touch[def.id],
+      id: d.nextId++, m: def.id, x, y: plat.y, w: elite ? Math.round(w * 1.2) : w, h: elite ? Math.round(h * 1.2) : h, hp: mhp, maxHp: mhp, dir: rand(d) < 0.5 ? 1 : -1,
+      min: plat.x1 + w / 2, max: plat.x2 - w / 2, speed: 0.035 + rand(d) * 0.03, touch: touch[def.id] * (elite ? 1.25 : 1), elite: elite || undefined,
       shoots: def.style !== 'melee', atkCd: 1500 + rand(d) * 1500, hitT: 0, dead: 0,
     });
   };
-  for (let x = 330; x < pathEnd - 80; x += 150 + Math.floor(rand(d) * 90)) {
-    const progress = x / pathEnd;
+  const gap = room?.kind === 'treasure' || room?.kind === 'exit' ? 300 : room ? Math.max(130, 175 - room.depth * 8) : 150;
+  for (let x = 330; x < pathEnd - 80 && room?.kind !== 'camp'; x += gap + Math.floor(rand(d) * 90)) {
+    const progress = room ? Math.min(1, 0.25 + room.depth * 0.13 + (x / pathEnd) * 0.4) : x / pathEnd;
     const i = Math.min(mobsDefs.length - 1, Math.floor(rand(d) * Math.min(mobsDefs.length, 1 + Math.floor(progress * mobsDefs.length + 0.6))));
     const def = mobsDefs[i];
     const rank = mobsDefs.length > 1 ? i / (mobsDefs.length - 1) : 1;
     // Sometimes up on a ledge instead.
-    const ledges = d.plats.filter((pl) => pl.y < GROUND && pl.x1 < x && pl.x2 > x && pl.x2 - pl.x1 > 100);
+    const ledges = d.plats.filter((pl) => pl.y < GROUND && (!room || pl.y >= GROUND - 2 * ROW_GAP) && pl.x1 < x && pl.x2 > x && pl.x2 - pl.x1 > 100);
     const plat = ledges.length && rand(d) < 0.45 ? ledges[Math.floor(rand(d) * ledges.length)] : d.plats[0];
     spawn(def, plat === d.plats[0] ? x : (plat.x1 + plat.x2) / 2, plat === d.plats[0] ? { x1: x - 120, x2: x + 120, y: GROUND } : plat, rank);
+  }
+  // 💰 A chest at the end of a treasure room
+  if (room?.kind === 'treasure') d.chests.push({ x: pathEnd - 40, y: GROUND, open: false });
+  if (!bossRoom) { d.banner = { text: '', sub: '', t: 0 }; return d; }
+  // Ledges in the boss's hall to get out of its way (it can't reach them; its slam only hits you on the ground).
+  if (room) {
+    const a = d.arenaX;
+    d.plats.push({ x1: a + 110, x2: a + 270, y: GROUND - ROW_GAP }, { x1: a + 690, x2: a + 850, y: GROUND - ROW_GAP }, { x1: a + 380, x2: a + 580, y: GROUND - 2 * ROW_GAP }, { x1: a + 300, x2: a + 420, y: GROUND - ROW_GAP }, { x1: a + 540, x2: a + 660, y: GROUND - ROW_GAP });
   }
   // 👑 The boss waits in its clearing at the end.
   const bw = 96, bh = 96;
   const bhp = Math.round(fair[boss.id].rawHit * (ATTACK_MS[style] / TURN_MS) * 42);
   d.mobs.push({
-    id: d.nextId++, m: boss.id, x: d.arenaX + 360, y: GROUND, w: bw, h: bh, hp: bhp, maxHp: bhp, dir: -1,
-    min: d.arenaX + 60, max: d.worldW - 60, speed: 0.05, touch: touch[boss.id], shoots: boss.style !== 'melee', atkCd: 2500, hitT: 0, dead: 0,
+    id: d.nextId++, m: boss.id, x: d.arenaX + (room ? 600 : 360), y: GROUND, w: bw, h: bh, hp: bhp, maxHp: bhp, dir: -1,
+    min: d.arenaX + 60, max: d.worldW - 60, speed: 0.05, touch: touch[boss.id] * (room ? BOSS_TOUCH : 1), shoots: boss.style !== 'melee', atkCd: 2500, hitT: 0, dead: 0,
     boss: true, slamT: 0, slamCd: 4000,
   });
   d.banner = { text: '', sub: '', t: 0 }; // the screen fills in the area name
@@ -467,6 +495,7 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   h.walkT = h.onGround && h.vx ? h.walkT + dt : 0;
   const prevFeet = h.y;
   h.x = Math.max(12, Math.min(d.worldW - 12, h.x + h.vx * dt));
+  if (d.room && d.room.kind !== 'boss' && alive(d).length) h.x = Math.min(h.x, d.room.door - 30);
   h.vy += GRAV * dt;
   h.y += h.vy * dt;
   h.onGround = false;
@@ -478,6 +507,18 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   }
   if (h.y > GROUND) { h.y = GROUND; h.vy = 0; h.onGround = true; }
   if (h.onGround && falling > 0.35) burst(d, h.x, h.y, 6, ['#ffffff', '#e7e5e4'], 0.09, -0.00005, 4, 400);
+  // 💰 Chests
+  for (const c of d.chests) {
+    if (!c.open && Math.abs(c.x - h.x) < 24 && Math.abs(c.y - h.y) < 30) {
+      c.open = true;
+      d.opened++;
+      pop(d, c.x, c.y - 40, 'Treasure!', 'info');
+      burst(d, c.x, c.y - 14, 18, ['#fde68a', '#fbbf24', '#ffffff'], 0.25, 0.0008, 3, 700);
+      sounds.push('coin');
+    }
+  }
+  // 🚪 A room is done when its monsters are beaten and you walk through the door.
+  if (d.room && d.room.kind !== 'boss' && h.x >= d.room.door - 20 && !alive(d).length) { d.phase = 'won'; sounds.push('levelup'); }
   // 🍓 A berry patch up high
   for (const b of d.treats) {
     if (!b.got && Math.abs(b.x - h.x) < 20 && Math.abs(b.y - h.y) < 30) {
@@ -490,7 +531,7 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
     }
   }
   // 👑 Entering the boss's clearing
-  if (!d.bossSeen && h.x > d.arenaX - 20) { d.bossSeen = true; d.banner = { text: MONSTER_MAP[d.bossId].name, sub: '👑 Boss', t: 0 }; sounds.push('creak'); }
+  if (!d.bossSeen && h.x > d.arenaX - 20 && bossOf(d)) { d.bossSeen = true; d.banner = { text: MONSTER_MAP[d.bossId].name, sub: '👑 Boss', t: 0 }; sounds.push('creak'); }
 
   // Basic attack (hold to keep swinging)
   if (input.attack && h.atkCd <= 0 && h.dashT <= 0) {
@@ -631,7 +672,7 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
           sounds.push('boom');
           d.shake = 9;
           for (let k = -4; k <= 4; k++) burst(d, m.x + k * 38, GROUND, 2, ['#e7e5e4', '#a8a29e'], 0.14, 0.0006, 5, 600);
-          if (h.onGround && Math.abs(h.x - m.x) < 170) hurtHero(d, m.touch * 2.6, m.x);
+          if (h.onGround && h.y >= GROUND - 2 && Math.abs(h.x - m.x) < 170) hurtHero(d, m.touch * (d.room ? BOSS_SLAM / BOSS_TOUCH : 2.6), m.x);
           m.slamCd = 3800 + rand(d) * 1500;
         }
       } else {

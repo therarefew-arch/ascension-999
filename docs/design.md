@@ -616,3 +616,28 @@ town's monster loot, coins; **boss**: gems (bosses may drop gems), big loot, and
 Boons, XP + loot, knock-out home, pause & continue, one area per town using its monsters. Part 2 — expedition
 bosses with gems, pets, Cottage pieces and lore. Part 3 — lost recipes. Part 4 — guildmate heroes (built from
 their real gear/levels on the guild board; they get a small thank-you reward through the loot system).
+
+## 🗝️ The Dungeon — an extraction run (agreed with the owner, 2026-10-31)
+
+The real-time side-scrolling Dungeon (built v0.0.1.68–76) becomes an **extraction** mode. Expeditions stay as the calm,
+turn-based adventure where nothing is ever lost; the Dungeon is the risky action one.
+
+**Owner's choices**
+- **Gear up before entering**: bring anything — weapon, armour, any of the 9 tools, socketed gems, Relics, Ascended
+  items — or take off what you don't want to risk. Make it smooth: one menu with your slots, bag and bank, saved outfits.
+- **Knocked out = you lose everything you brought and found**: worn gear (and the gems in its slots), packed food, and the
+  run bag. (This is an exception to the game-wide "knocked out never loses items" rule — only in the Dungeon.)
+  XP earned on the way is kept. Leaving the game mid-room just puts you back at the map (that room's finds are lost).
+- **Get out** through 🚪 exit rooms on the map, or by beating the boss.
+- **A map of rooms**: clear a room, then choose 1 of 2 paths. Room kinds: ⚔️ fight, 💀 elite, 💰 treasure, 🔥 camp, 🚪 exit, 👑 boss.
+- Boss fix (owner: "does a lot of damage and not a lot of options where I can run to"): a bigger arena with ledges to
+  escape to, less damage.
+
+**Parts**
+1. Gear-up screen, the room map, the run bag, extract/death rules, boss fix.
+2. Rare resource nodes in rooms (ore veins, herb patches, fishing spots, old trees) — only harvestable with the right tool brought.
+3. Gold inside the dungeon and a 🧺 shopkeeper room (sell finds, buy supplies).
+4. **Each town's dungeon designed around its town** (owner, 2026-10-31: "the maps and setting should be designed around
+   each town dependent on which town you entered the dungeon for"). Already per town: sky/ground colours (`THEME`),
+   weather, music, monsters, boss. Still to do: town-made room layouts, hazards and room names (e.g. Bluecliff sea caves
+   with tide pools, Frosthold slippery ice, Cinderpeak lava vents, Lunaria foggy streets with the bell).

@@ -5,6 +5,7 @@ import { ACTIONS } from '../data/skills';
 import { INVENTORY_SLOTS, MAX_BAG_SLOTS, MAX_IDLE_SLOTS, SAVE_VERSION, newPlayer, type ItemStack, type Loadout, type PlayerState } from './player';
 import { PET_MAP } from '../data/pets';
 import { OPEN_REGIONS, REGIONS, type Region } from '../data/tiers';
+import { loadDungeonRun } from './dungeonRun';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
 import { levelForXp, MAX_LEVEL } from './xp';
 import { MONSTER_MAP } from '../data/monsters';
@@ -380,6 +381,7 @@ function repair(raw: any): PlayerState {
   // 📖 Lost recipes learned (v0.0.1.61)
   if (Array.isArray(raw?.recipes)) p.recipes = raw.recipes.filter((x: unknown) => typeof x === 'string' && !!ACTIONS[x as string]?.lost);
   // 🧭 Expedition boss wins per town (v0.0.1.60)
+  if (raw?.dungeonRun) p.dungeonRun = loadDungeonRun(raw.dungeonRun);
   if (raw?.dungeonBossAt && typeof raw.dungeonBossAt === 'object') {
     p.dungeonBossAt = {};
     for (const [r, n] of Object.entries(raw.dungeonBossAt)) if ((REGIONS as readonly string[]).includes(r) && typeof n === 'number' && Number.isFinite(n)) p.dungeonBossAt[r as Region] = n;

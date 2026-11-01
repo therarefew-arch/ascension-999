@@ -154,6 +154,8 @@ export interface PlayerState {
   expeditionWins?: Partial<Record<Region, number>>;
   /** 🏰 Dungeon (v0.0.1.76): when each town's dungeon boss has its treasure again (ms). */
   dungeonBossAt?: Partial<Record<Region, number>>;
+  /** 🗝️ The extraction run you're on (your worn gear is inside it while you're in the dungeon). */
+  dungeonRun?: import('./dungeonRun').DungeonRun;
   /** 🎁 Gifts you sent that the server hasn't confirmed yet (already taken out of your save). */
   giftsOut?: GiftOut[];
   /** 🎁 Ids of gifts you've unwrapped (so one is never unwrapped twice). */

@@ -50,6 +50,7 @@ import { lootRolls, nightXp, STUB_COINS } from './lanternWatch';
 import { paradeCoins, WINS_NEEDED as PARADE_WINS } from './petParade';
 import { wallXp } from './holdWall';
 import { BOSS_REST_MS, DUNGEON_XP_SECS } from './dungeon';
+import { addStacks, CAMP_HEAL, eatFood as eatRunFood, FOOD_MAX, newMap, type DungeonRun } from './dungeonRun';
 import { AREAS, COTTAGE_CHANCE, COTTAGE_SURE_BY, newRun, type HeroSnap, townBoss, townMonsters, whyCantStart, XP_SECS, type Reward, type Run } from './expedition';
 import { EXPEDITION_FURNITURE } from './cottage';
 import { lostRecipesOf } from '../data/lostRecipes';
@@ -1059,7 +1060,7 @@ export const game = {
    * minute than fighting normally), the monsters' own loot, cache rolls, rare finds and skill XP — all
    * through the loot system (whatever doesn't fit goes to the bank). Adds it to `run.found`.
    */
-  expeditionReward(run: Pick<Run, 'region' | 'style' | 'found'>, reward: Reward | null, opts: { xpSecs?: { kill: number; elite: number; boss: number; event: number }; bossPrizes?: boolean } = {}): ItemStack[] {
+  expeditionReward(run: Pick<Run, 'region' | 'style' | 'found'>, reward: Reward | null, opts: { xpSecs?: { kill: number; elite: number; boss: number; event: number }; bossPrizes?: boolean; into?: ItemStack[] } = {}): ItemStack[] {
     if (!reward) return [];
     const XP_SECS_ = opts.xpSecs ?? XP_SECS;
     const bossPrizes = opts.bossPrizes ?? true;
@@ -1132,7 +1133,8 @@ export const game = {
     }
     const merged: ItemStack[] = [];
     for (const x of loot) { const m = merged.find((y) => y.id === x.id); if (m) m.qty += x.qty; else merged.push({ ...x }); }
-    giveLoot(p, merged, { overflowToBank: true });
+    // 🗝️ In the extraction dungeon, finds go into the run bag (yours only if you get out).
+    if (opts.into) addStacks(opts.into, merged); else giveLoot(p, merged, { overflowToBank: true });
     for (const x of merged) {
       const f = run.found.items.find((y) => y.id === x.id);
       if (f) f.qty += x.qty; else run.found.items.push({ ...x });
@@ -1183,14 +1185,120 @@ export const game = {
   // ----- 🏰 Dungeon (v0.0.1.76, owner chose "Rewards": make it a real mode) -----
   /** Pays for monsters beaten in the dungeon, as they fall — through the same path as Expeditions (loot system,
    * gems only from the boss, bank overflow). The boss's treasure only when it isn't resting (`BOSS_REST_MS`). */
-  dungeonReward(found: Run['found'], region: Region, style: Run['style'], kills: { m: string; boss?: boolean }[]): ItemStack[] {
+  dungeonReward(found: Run['found'], region: Region, style: Run['style'], kills: { m: string; boss?: boolean }[], into?: ItemStack[]): ItemStack[] {
     const p = snap.player;
     let bossPrizes = true;
     if (kills.some((k) => k.boss)) {
       bossPrizes = (p.dungeonBossAt?.[region] ?? 0) <= Date.now();
       if (bossPrizes) (p.dungeonBossAt ??= {})[region] = Date.now() + BOSS_REST_MS;
     }
-    return game.expeditionReward({ region, style, found }, { kills }, { xpSecs: DUNGEON_XP_SECS, bossPrizes });
+    return game.expeditionReward({ region, style, found }, { kills }, { xpSecs: DUNGEON_XP_SECS, bossPrizes, into });
+  },
+
+  // ----- 🗝️ The extraction run (v0.0.1.77, owner's design: gear up, pick paths, get out or lose it all) -----
+  /** Go in: everything you wear (and its gems) goes in with you, plus up to FOOD_MAX packed food. */
+  dungeonEnter(region: Region, food: ItemStack[]): boolean {
+    const p = snap.player;
+    if (p.dungeonRun) { fail("You're already in the dungeon"); return false; }
+    if (!p.regions.includes(region)) { fail('Discover this town first'); return false; }
+    if (!townBoss(region)) { fail('Nothing to explore here yet'); return false; }
+    if (p.fight) { fail('Stop your fight first — your gear is busy'); return false; }
+    const list = food.filter((x) => x.qty > 0);
+    if (list.some((x) => !getItem(x.id).heals)) { fail('Only food can be packed'); return false; }
+    if (list.reduce((n, x) => n + x.qty, 0) > FOOD_MAX) { fail(`Pack at most ${FOOD_MAX} food`); return false; }
+    for (const x of list) if (countInBag(p.inventory, x.id) + countInBank(p, x.id) < x.qty) { fail(`Not enough ${getItem(x.id).name}`); return false; }
+    for (const x of list) { const got = removeFromBag(p.inventory, x.id, x.qty); if (got < x.qty) removeFromBank(p, x.id, x.qty - got); }
+    const run: DungeonRun = {
+      region, rows: newMap(), row: 0, at: 0, cleared: false, hp: maxHp(p),
+      gear: { ...p.equipment }, sockets: { ...p.sockets }, food: list.map((x) => ({ ...x })), bag: [], kills: 0, startedAt: Date.now(),
+    };
+    p.equipment = {};
+    p.sockets = {};
+    p.dungeonRun = run;
+    play('levelup');
+    save();
+    emit();
+    return true;
+  },
+  /** You as you are inside the dungeon (wearing the gear you brought) — for fighting and drawing. */
+  dungeonHero(): PlayerState | null {
+    const p = snap.player;
+    const r = p.dungeonRun;
+    return r ? { ...p, equipment: r.gear, sockets: r.sockets } : null;
+  },
+  /** Walk into room i of the next row. A 🔥 campfire heals right away. */
+  dungeonGo(i: number) {
+    const r = snap.player.dungeonRun;
+    if (!r || !r.cleared || r.row >= r.rows.length - 1 || !r.rows[r.row + 1][i]) return;
+    r.row++;
+    r.at = i;
+    r.cleared = false;
+    if (r.rows[r.row][i].kind === 'camp') {
+      const max = maxHp(game.dungeonHero()!);
+      r.hp = Math.min(max, r.hp + Math.round(max * CAMP_HEAL));
+      r.cleared = true;
+      play('levelup');
+    } else play('creak');
+    save();
+    emit();
+  },
+  /** 💰 A chest: a handful of the town's loot (deeper rooms, more), into the room's finds. */
+  dungeonChest(into: ItemStack[]) {
+    const r = snap.player.dungeonRun;
+    if (!r) return;
+    const mobs = townMonsters(r.region);
+    const loot: ItemStack[] = [];
+    for (let i = 0; i < 4 + r.row && mobs.length; i++) loot.push(...rollLoot(mobs[Math.floor(Math.random() * mobs.length)].lootTable));
+    addStacks(into, loot.filter((x) => !getItem(x.id).gem)); // gems only ever come from bosses
+    play('coin');
+  },
+  /** The room is done: its finds join the run bag, eaten food is gone. The boss's hall gets you out. */
+  dungeonRoomCleared(hp: number, snacksUsed: number, finds: ItemStack[], kills: number) {
+    const r = snap.player.dungeonRun;
+    if (!r || r.cleared) return;
+    addStacks(r.bag, finds);
+    eatRunFood(r, snacksUsed);
+    r.hp = Math.max(1, Math.round(hp));
+    r.kills += kills;
+    r.cleared = true;
+    if (r.rows[r.row][r.at].kind === 'boss') { game.dungeonExtract(true); return; }
+    save();
+    emit();
+  },
+  /** 🚪 Get out: your gear goes back on, and the run bag and leftover food come home through the loot system. */
+  dungeonExtract(won = false): ItemStack[] {
+    const p = snap.player;
+    const r = p.dungeonRun;
+    if (!r) return [];
+    const spill: ItemStack[] = [];
+    for (const [slot, id] of Object.entries(r.gear) as [EquipSlot, string][]) { if (!p.equipment[slot]) p.equipment[slot] = id; else spill.push({ id, qty: 1 }); }
+    for (const [slot, id] of Object.entries(r.sockets) as [EquipSlot, string][]) { if (!p.sockets[slot]) p.sockets[slot] = id; else spill.push({ id, qty: 1 }); }
+    const home = [...spill];
+    addStacks(home, r.food);
+    addStacks(home, r.bag);
+    if (home.length) giveLoot(p, home, { overflowToBank: true });
+    const bag = r.bag.map((x) => ({ ...x }));
+    delete p.dungeonRun;
+    celebrate();
+    toast(won ? '👑 You beat the boss and got out with everything!' : '🚪 You got out safe with everything you found!', 'level');
+    if (won) { const b = townBoss(r.region); if (b) familyMoment(p, 'boss', `defeated ${b.name} in the dungeon!`); }
+    const report = emptyReport(null);
+    if (r.kills > 0) trackRequests(p, report, 1);
+    trackTutorial(p, report);
+    save();
+    emit();
+    return bag;
+  },
+  /** Knocked out in the dungeon: everything you brought and found stays there. (XP earned is kept.) */
+  dungeonDie(): DungeonRun | null {
+    const p = snap.player;
+    const r = p.dungeonRun;
+    if (!r) return null;
+    delete p.dungeonRun;
+    play('fail');
+    save();
+    emit();
+    return r;
   },
   /** When the dungeon boss has its treasure again (0 = now). */
   dungeonBossReadyAt(region: Region): number {

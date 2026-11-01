@@ -9,17 +9,20 @@ import {
   BAR_SIZE, HERO_H, bossDef, bossOf, defaultBar, eatSnack, GROUND, newDungeon, pathProgress, SKILL_MAP, SKILLS, step, castSkill, VIEW_H, VIEW_W,
   whyCantUseSkill, type Dungeon as Run, type Input,
 } from '../core/dungeon';
-import { AREAS, type Run as ExRun } from '../core/expedition';
+import { AREAS, townBoss, type Run as ExRun } from '../core/expedition';
+import { addStacks, canExtract, foodCount, FOOD_MAX, nextChoices, ROOM_INFO, roomOf, type DungeonRun } from '../core/dungeonRun';
+import { maxHp } from '../core/combat';
+import { countInBag, countInBank } from '../core/inventory';
 import { FURNITURE_MAP } from '../core/cottage';
 import { PET_MAP } from '../data/pets';
 import { SKILLS as SKILL_INFO } from '../data/skills';
 import { ItemIcon } from './icons';
 import { game, useGame } from '../core/store';
-import { ITEMS, type CombatStyle } from '../data/items';
+import { ITEMS, type CombatStyle, type EquipSlot } from '../data/items';
 import { MONSTER_MAP } from '../data/monsters';
 import { METALS, WOODS } from '../data/tiers';
 import { useNoScroll } from './useNoScroll';
-import type { PlayerState } from '../core/player';
+import type { ItemStack, PlayerState } from '../core/player';
 
 // ----- Saving the skill bar on this device -----
 const barKey = (slot: number | null) => `ui.skillbar.${slot ?? 0}`;
@@ -170,7 +173,7 @@ const POP_STYLE = {
 } as const;
 const SOUND_OF: Record<string, [SoundKey, number]> = {
   jump: ['whoosh', 1.4], hit: ['hit', 1], whoosh: ['whoosh', 1], boom: ['boom', 1], shing: ['shing', 1], rune: ['rune', 1], ignite: ['ignite', 1],
-  enchant: ['enchant', 1], block: ['block', 1], levelup: ['levelup', 1], tick: ['tick', 1.2], hurt: ['hurt', 1], creak: ['creak', 0.8], eat: ['eat', 1.1],
+  enchant: ['enchant', 1], block: ['block', 1], levelup: ['levelup', 1], tick: ['tick', 1.2], hurt: ['hurt', 1], creak: ['creak', 0.8], eat: ['eat', 1.1], coin: ['coin', 1],
 };
 const playSound = (k: string) => { const s = SOUND_OF[k]; if (s) sound.play(s[0], { rate: s[1] * (0.95 + Math.random() * 0.1), volume: 0.7 }); };
 
@@ -428,15 +431,46 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
     g.drawImage(bu, Math.round((wx + 70) / U) * U, GROUND - bu.height + 3);
   }
   // The boss's clearing: a banner pole marks the way in
-  g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(d.arenaX, -top, d.worldW - d.arenaX, GROUND + top);
-  g.fillStyle = '#e7e5e4'; g.fillRect(d.arenaX - 2, GROUND - 120, 4, 120);
-  g.fillStyle = '#b91c1c'; g.fillRect(d.arenaX + 2, GROUND - 117, 30, 9); g.fillRect(d.arenaX + 2, GROUND - 108, 21, 6);
-  pixCircle(g, d.arenaX, GROUND - 123, 4, '#fde68a');
+  if (!d.room || d.room.kind === 'boss') {
+    g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(d.arenaX, -top, d.worldW - d.arenaX, GROUND + top);
+    g.fillStyle = '#e7e5e4'; g.fillRect(d.arenaX - 2, GROUND - 120, 4, 120);
+    g.fillStyle = '#b91c1c'; g.fillRect(d.arenaX + 2, GROUND - 117, 30, 9); g.fillRect(d.arenaX + 2, GROUND - 108, 21, 6);
+    pixCircle(g, d.arenaX, GROUND - 123, 4, '#fde68a');
+  }
   // Ground and ledges
   for (const pl of d.plats) {
     if (pl.y >= GROUND) { drawGround(g, T, cam - 12 - side, cam + VIEW_W + 12 + side, GROUND, Math.max(VIEW_H, bottom + 4)); continue; }
     if (pl.x2 < cam - side - 20 || pl.x1 > cam + VIEW_W + side + 20) continue;
     drawLedge(g, T, pl.x1, pl.x2, pl.y);
+  }
+  // 🚪 The room's door: locked (red) while monsters remain, warm light once open; a green portal in a way-out room
+  if (d.room && d.room.kind !== 'boss') {
+    const x = d.room.door, open = !d.mobs.some((m) => m.hp > 0), exit = d.room.kind === 'exit';
+    g.fillStyle = '#44403c'; g.fillRect(x - 30, GROUND - 92, 60, 92);
+    g.fillStyle = '#292524'; g.fillRect(x - 24, GROUND - 86, 48, 86);
+    if (open) {
+      const pulse = 0.6 + 0.4 * Math.sin(d.t / 260);
+      g.fillStyle = exit ? `rgba(74,222,128,${0.55 + 0.3 * pulse})` : `rgba(253,230,138,${0.5 + 0.3 * pulse})`;
+      g.fillRect(x - 22, GROUND - 84, 44, 84);
+      g.globalAlpha = 0.25 * pulse; g.fillStyle = exit ? '#4ade80' : '#fde68a';
+      g.beginPath(); g.arc(x, GROUND - 44, 60, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
+    } else {
+      g.fillStyle = '#7c2d12'; g.fillRect(x - 22, GROUND - 84, 44, 84);
+      g.fillStyle = '#b91c1c'; for (let i = 0; i < 3; i++) g.fillRect(x - 22, GROUND - 70 + i * 24, 44, 4);
+      g.fillStyle = '#fbbf24'; g.fillRect(x - 4, GROUND - 46, 8, 10);
+    }
+    const s = sprite(exit ? '🚪' : open ? '✨' : '🔒', 16);
+    g.drawImage(s, x - s.width / 2, GROUND - 112 + Math.sin(d.t / 400) * 2);
+  }
+  // 💰 Treasure chests
+  for (const c of d.chests) {
+    g.fillStyle = '#78350f'; g.fillRect(c.x - 16, c.y - 20, 32, 20);
+    g.fillStyle = '#fbbf24'; g.fillRect(c.x - 16, c.y - 12, 32, 3); g.fillRect(c.x - 3, c.y - 14, 6, 7);
+    if (c.open) { g.fillStyle = '#92400e'; g.fillRect(c.x - 16, c.y - 30, 32, 6); }
+    else {
+      g.fillStyle = '#92400e'; g.fillRect(c.x - 17, c.y - 26, 34, 8);
+      g.globalAlpha = 0.35 + 0.25 * Math.sin(d.t / 300); g.fillStyle = '#fde68a'; g.beginPath(); g.arc(c.x, c.y - 14, 26, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
+    }
   }
   // 🍓 Berry patches on the high ledges (a bush with berries; bare once eaten)
   for (const b of d.treats) {
@@ -553,41 +587,131 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
 }
 
 // ----- The screen -----
+/** 🗝️ Combat-screen card: gear up for a new extraction run, or carry on the one you're on. */
 export function DungeonLaunch() {
   const [open, setOpen] = useState(false);
   const { player } = useGame();
   const region = player.location;
-  const bossAt = game.dungeonBossReadyAt(region);
+  const run = player.dungeonRun;
+  const bossAt = game.dungeonBossReadyAt(run?.region ?? region);
+  const found = run ? run.bag.reduce((n, x) => n + x.qty, 0) : 0;
   return (
     <>
-      <button className="lw-launch dg-launch" onClick={() => { sound.play('click'); setOpen(true); }}>
+      <button className={`lw-launch dg-launch ${run ? 'on' : ''}`} onClick={() => { sound.play('click'); setOpen(true); }}>
         <span className="lw-launch-emoji">🗝️</span>
-        <span className="grow"><b>Dungeon</b><span className="small muted">Fight your way through {AREAS[region].name} in real time, in your own gear, with your skill book. Monsters drop their loot; the boss guards a gem.</span>
+        <span className="grow"><b>Dungeon</b>
+          {run
+            ? <span className="small muted">You're inside {AREAS[run.region].name} — room {run.row + 1} of {run.rows.length}, {found.toLocaleString()} thing{found === 1 ? '' : 's'} found. Your gear is in there with you. Tap to carry on.</span>
+            : <span className="small muted">An extraction run through {AREAS[region].name}: gear up, choose your path room by room, and get out through a 🚪 way out or past the boss. Knocked out? Everything you brought and found is lost.</span>}
           <span className="tiny dg-launch-boss">{bossAt ? `👑 Boss treasure back in ${Math.max(1, Math.ceil((bossAt - Date.now()) / 60_000))} min` : '👑 Boss treasure ready'}</span></span>
         <span className="lw-launch-go">▶</span>
       </button>
-      {open && <DungeonScreen onClose={() => setOpen(false)} />}
+      {open && (run ? <DungeonShell onClose={() => setOpen(false)} /> : <GearUp region={region} onClose={() => setOpen(false)} />)}
     </>
   );
 }
 
-export function DungeonScreen({ onClose }: { onClose: () => void }) {
-  const { player, slot } = useGame();
-  const region = player.location;
-  const [bar, setBar] = useState<(string | null)[]>(() => readBar(slot, player));
-  const [run, setRun] = useState<Run>(() => newDungeon(player, region, readBar(slot, player)));
-  const [book, setBook] = useState(false);
-  const [, setTick] = useState(0);
-  const canvas = useRef<HTMLCanvasElement>(null);
-  const input = useRef<Input>({ left: false, right: false, jump: false, attack: false, down: false });
-  const look = useRef(lookOf(player));
+// ----- 🎒 Gear up (owner: "bring anything in, or unpack what you don't want to bring… all the buttons needed in the
+// menu (bank, bag, equipment)… quick select pre-builds") -----
+const COMBAT_SLOTS: EquipSlot[] = ['weapon', 'shield', 'head', 'body', 'legs'];
+const TOOL_SLOTS: EquipSlot[] = ['pickaxe', 'axe', 'rod', 'hammer', 'knife', 'tinderbox', 'skillet', 'sickle', 'trowel'];
+const SLOT_NAME: Record<EquipSlot, string> = {
+  weapon: 'Weapon', shield: 'Shield', head: 'Helmet', body: 'Body', legs: 'Legs', pickaxe: 'Pickaxe', axe: 'Axe', rod: 'Fishing rod',
+  hammer: 'Hammer', knife: 'Knife', tinderbox: 'Tinderbox', skillet: 'Skillet', sickle: 'Sickle', trowel: 'Trowel',
+};
+function GearUp({ region, onClose }: { region: Run['region']; onClose: () => void }) {
+  const { player } = useGame();
+  const [openSlot, setOpenSlot] = useState<EquipSlot | null>(null);
+  const [food, setFood] = useState<Record<string, number>>({});
+  const [sure, setSure] = useState(false);
+  const owned = (id: string) => countInBag(player.inventory, id) + countInBank(player, id);
+  const ids = [...new Set([...player.inventory.filter(Boolean).map((s) => s!.id), ...player.bank.map((s) => s.id)])];
+  const foods = ids.filter((id) => ITEMS[id]?.heals).sort((a, b) => (ITEMS[b].heals ?? 0) - (ITEMS[a].heals ?? 0));
+  const packed = Object.values(food).reduce((n, k) => n + k, 0);
+  const worn = (Object.keys(player.equipment) as EquipSlot[]).filter((s) => player.equipment[s]);
+  const gems = (Object.keys(player.sockets) as EquipSlot[]).filter((s) => player.sockets[s]);
+  const add = (id: string, k: number) => {
+    const now = food[id] ?? 0;
+    const next = Math.max(0, Math.min(now + k, owned(id), now + (FOOD_MAX - packed)));
+    if (next === now) { sound.play('error', { volume: 0.4 }); return; }
+    sound.play('tick', { rate: k > 0 ? 1.3 : 0.9, volume: 0.5 });
+    setFood({ ...food, [id]: next });
+    setSure(false);
+  };
+  const slotRow = (slot: EquipSlot) => {
+    const id = player.equipment[slot];
+    const gem = player.sockets[slot];
+    const list = ids.filter((c) => c !== id && ITEMS[c]?.equip?.slot === slot);
+    return (
+      <div key={slot} className={`gu-slot-wrap ${openSlot === slot ? 'open' : ''}`}>
+        <button className={`gu-slot ${id ? 'on' : ''}`} onClick={() => { sound.play('click'); setOpenSlot(openSlot === slot ? null : slot); }}>
+          <span className="gu-slot-name tiny">{SLOT_NAME[slot]}</span>
+          {id ? <><ItemIcon id={id} size={24} /><span className="small grow gu-name">{ITEMS[id].name}</span></> : <span className="small muted grow">— stays home</span>}
+          {gem && <span className="gu-gem" title={ITEMS[gem]?.name}><ItemIcon id={gem} size={18} /></span>}
+          <span className="muted">{openSlot === slot ? '▴' : '▾'}</span>
+        </button>
+        {openSlot === slot && (
+          <div className="gu-pick">
+            {id && <button className="btn small" onClick={() => { game.unequip(slot); setSure(false); }}>🏠 Leave it at home</button>}
+            {gem && <button className="btn small" onClick={() => { game.unsocketGem(slot); setSure(false); }}>💎 Pop the gem out (keep it safe)</button>}
+            {list.map((c) => (
+              <button key={c} className="gu-cand" onClick={() => { game.equip(c); setSure(false); }}>
+                <ItemIcon id={c} size={22} /><span className="small grow">{ITEMS[c].name}</span><span className="tiny muted mono">×{owned(c)}</span>
+              </button>
+            ))}
+            {!list.length && <p className="tiny muted">{id ? 'Nothing else for this slot in your bag or bank.' : 'Nothing for this slot in your bag or bank.'}</p>}
+          </div>
+        )}
+      </div>
+    );
+  };
+  const enter = () => {
+    if (!sure) { setSure(true); sound.play('creak'); return; }
+    const list = Object.entries(food).filter(([, k]) => k > 0).map(([id, qty]) => ({ id, qty }));
+    if (game.dungeonEnter(region, list)) sound.play('levelup');
+  };
+  return createPortal(
+    <div className="gu-root">
+      <div className="gu-page">
+        <div className="row-between"><b className="gold">🗝️ Gear up — {AREAS[region].name}</b><button className="dg-icon" onClick={() => { sound.play('click'); onClose(); }} aria-label="Close">✕</button></div>
+        <div className="gu-warn small">
+          <b>⚠️ Everything you take in can be lost.</b> Knocked out = the gear you wear (and the gems in its slots), your packed food and everything you found stay in the dungeon. Get out through a 🚪 way out or past the boss to keep it all. XP you earn is always kept.
+        </div>
+        <h4 className="gu-h">👕 Saved outfits</h4>
+        <div className="gu-outfits">
+          {player.loadouts.map((l, i) => l && <button key={i} className="btn small" onClick={() => { game.applyLoadout(i); setSure(false); }}>{l.name}</button>)}
+          <button className="btn small" onClick={() => { for (const s of [...COMBAT_SLOTS, ...TOOL_SLOTS]) if (player.equipment[s]) game.unequip(s); sound.play('equip'); setSure(false); }}>🏠 Take everything off</button>
+        </div>
+        {!player.loadouts.some(Boolean) && <p className="tiny muted">Save outfits on the Gear screen to swap them on here in one tap.</p>}
+        <h4 className="gu-h">⚔️ Fighting gear</h4>
+        {COMBAT_SLOTS.map(slotRow)}
+        <h4 className="gu-h">⛏️ Tools <span className="tiny muted">(for rare finds inside — coming soon; tools you bring are away from your idle work)</span></h4>
+        {TOOL_SLOTS.map(slotRow)}
+        <h4 className="gu-h">🍖 Food <span className="tiny muted">{packed}/{FOOD_MAX} packed · each heals 30%</span></h4>
+        {foods.length ? foods.map((id) => (
+          <div key={id} className="gu-food">
+            <ItemIcon id={id} size={22} /><span className="small grow">{ITEMS[id].name} <span className="tiny muted">(have {owned(id)})</span></span>
+            <button className="btn small" onClick={() => add(id, -1)} aria-label="One less">−</button>
+            <b className="mono gu-n">{food[id] ?? 0}</b>
+            <button className="btn small" onClick={() => add(id, 1)} aria-label="One more">+</button>
+          </div>
+        )) : <p className="tiny muted">No food in your bag or bank — cook some first, or go in hungry.</p>}
+        <div className="gu-risk small">At risk: {worn.length} piece{worn.length === 1 ? '' : 's'} of gear{gems.length ? `, ${gems.length} gem${gems.length === 1 ? '' : 's'}` : ''}{packed ? `, ${packed} food` : ''}.</div>
+        <button className={`btn btn-hero gu-go ${sure ? 'sure' : ''}`} onClick={enter}>{sure ? 'TAP AGAIN TO GO IN — RISK IT ALL' : 'ENTER THE DUNGEON'}</button>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+// ----- The run: the turned screen holding the map, the rooms and the end -----
+type RunEnd = { kind: 'won' | 'out' | 'dead'; region: Run['region']; bag: ItemStack[]; found?: ExRun['found']; rested?: boolean; lost?: DungeonRun };
+function DungeonShell({ onClose }: { onClose: () => void }) {
+  const { player } = useGame();
+  const run = player.dungeonRun;
+  const [playing, setPlaying] = useState(false);
+  const [end, setEnd] = useState<RunEnd | null>(null);
   const root = useRef<HTMLDivElement>(null);
-  const controls = useRef<HTMLDivElement>(null);
-  // 🏰 What this run has earned so far (paid out as monsters fall) and whether the boss's treasure was resting.
-  const found = useRef<ExRun['found']>({ items: [], xp: {}, kills: 0 });
-  const ended = useRef(false);
-  const rested = useRef(false);
-  const camY = useRef<number | null>(null);
   useNoScroll(root);
   // ↔️ Sideways: turned with CSS on a phone held upright; wide windows are already landscape.
   const [size, setSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight, turn: wantsTurn() }));
@@ -595,19 +719,128 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
     const on = () => setSize({ w: window.innerWidth, h: window.innerHeight, turn: wantsTurn() });
     window.addEventListener('resize', on);
     window.addEventListener('orientationchange', on);
-    return () => { window.removeEventListener('resize', on); window.removeEventListener('orientationchange', on); };
+    const t = window.setInterval(on, 700); // some browsers miss the resize
+    return () => { window.removeEventListener('resize', on); window.removeEventListener('orientationchange', on); clearInterval(t); };
   }, []);
   const land = size.turn || size.w > size.h;
-  const landRef = useRef(land);
-  landRef.current = land;
-  const sizeRef = useRef(size);
-  sizeRef.current = size;
   view.rot = size.turn;
   view.root = root.current;
+  const region = run?.region ?? end?.region ?? player.location;
+  useEffect(() => { sound.playMusic(musicFor(region)); }, [region]);
+  useEffect(() => { if (!run && !end) onClose(); }, [run, end]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    sound.playMusic(musicFor(region));
-  }, [region]);
+  let body: React.ReactNode = null;
+  if (end) body = <RunEndPanel end={end} onClose={onClose} />;
+  else if (run && playing) body = <RoomPlay key={`${run.row}-${run.at}`} run={run} land={land} onEnd={(e) => { setPlaying(false); if (e) setEnd(e); }} />;
+  else if (run) body = <RunMap run={run} onEnter={() => { sound.play('creak'); setPlaying(true); }} onClose={onClose}
+    onExtract={() => { const r = run.region; const bag = game.dungeonExtract(false); setEnd({ kind: 'out', region: r, bag }); }} />;
+  return createPortal(
+    <div className={`dg-root ${land ? 'land' : ''} ${size.turn ? 'rot' : ''}`} ref={root}
+      style={size.turn ? { inset: 'auto', left: 0, top: 0, width: size.h, height: size.w, transformOrigin: '0 0', transform: `translate(${size.w}px, 0) rotate(90deg)` } : undefined}>
+      {body}
+    </div>,
+    document.body,
+  );
+}
+
+/** 🗺️ The map: rooms from the entrance (left) to the boss (right). Clear a room, then pick one of the next two. */
+function RunMap({ run, onEnter, onExtract, onClose }: { run: DungeonRun; onEnter: () => void; onExtract: () => void; onClose: () => void }) {
+  const hero = game.dungeonHero();
+  const max = hero ? maxHp(hero) : run.hp;
+  const choices = nextChoices(run);
+  const here = roomOf(run);
+  const items = run.bag.filter((x) => x.qty > 0);
+  return (
+    <div className="dg-map">
+      <div className="dg-map-top">
+        <b className="gold">🗝️ {AREAS[run.region].name[0].toUpperCase() + AREAS[run.region].name.slice(1)}</b>
+        <div className="dg-hp"><div style={{ width: `${(100 * run.hp) / max}%` }} /><span className="mono">{Math.round(run.hp).toLocaleString()} / {max.toLocaleString()}</span></div>
+        <span className="small">🍖 {foodCount(run)}</span>
+        <button className="dg-icon" onClick={() => { sound.play('click'); onClose(); }} aria-label="Pause (your run is saved)">⏸</button>
+      </div>
+      <div className="dg-map-rows">
+        {run.rows.map((row, r) => (
+          <div key={r} className="dg-map-col">
+            {row.map((room, i) => {
+              const isHere = r === run.row && i === run.at;
+              const can = r === run.row + 1 && run.cleared;
+              const past = r < run.row || (r === run.row && !isHere);
+              const info = ROOM_INFO[room.kind];
+              return (
+                <button key={i} className={`dg-room ${isHere ? 'here' : ''} ${can ? 'can' : ''} ${past ? 'past' : ''} ${isHere && run.cleared ? 'done' : ''}`}
+                  disabled={!can} onClick={() => { game.dungeonGo(i); if (room.kind !== 'camp') onEnter(); }} aria-label={`${info.name}: ${info.text}`}>
+                  <span className="dg-room-emoji">{info.emoji}</span>
+                  <span className="tiny">{info.name}</span>
+                  {isHere && <span className="dg-room-you">YOU</span>}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <div className="dg-map-bottom">
+        <div className="dg-map-bag">
+          <span className="tiny muted">Run bag</span>
+          {items.length ? items.slice(0, 14).map((x) => <span key={x.id} className="ex-found-item"><ItemIcon id={x.id} size={20} /><span className="tiny mono">{x.qty.toLocaleString()}</span></span>) : <span className="tiny muted">empty</span>}
+          {items.length > 14 && <span className="tiny muted">+{items.length - 14} more</span>}
+        </div>
+        <div className="dg-map-act">
+          {!run.cleared && <button className="btn btn-hero" onClick={onEnter}>{here.kind === 'boss' ? '👑 FACE THE BOSS' : `ENTER ${ROOM_INFO[here.kind].emoji} ${ROOM_INFO[here.kind].name.toUpperCase()}`}</button>}
+          {run.cleared && choices.length > 0 && <span className="small">Choose your next room ▶</span>}
+          {canExtract(run) && <button className="btn dg-out" onClick={() => { sound.play('levelup'); onExtract(); }}>🚪 LEAVE WITH YOUR LOOT</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** The end of a run: out with your loot, the boss beaten, or knocked out and everything lost. */
+function RunEndPanel({ end, onClose }: { end: RunEnd; onClose: () => void }) {
+  const lost = end.lost;
+  const lostItems: ItemStack[] = [];
+  if (lost) { for (const id of Object.values(lost.gear)) if (id) addStacks(lostItems, [{ id, qty: 1 }]); for (const id of Object.values(lost.sockets)) if (id) addStacks(lostItems, [{ id, qty: 1 }]); addStacks(lostItems, lost.food); addStacks(lostItems, lost.bag); }
+  const list = (xs: ItemStack[]) => <div className="ex-found static">{xs.map((it) => <span key={it.id} className="ex-found-item"><ItemIcon id={it.id} size={24} /><span className="tiny mono">{it.qty.toLocaleString()}</span></span>)}</div>;
+  return (
+    <div className="dg-over">
+      <div className="dg-panel">
+        <div className="dg-big">{end.kind === 'won' ? '🏆' : end.kind === 'out' ? '🚪' : '💀'}</div>
+        <b className="gold">{end.kind === 'won' ? `You beat ${townBoss(end.region)?.name ?? 'the boss'} and got out!` : end.kind === 'out' ? 'You got out with your loot!' : 'Knocked out — it all stays in the dungeon'}</b>
+        {end.kind === 'dead'
+          ? <><p className="small muted center">Lost: your gear, gems, food and finds. XP you earned on the way is kept.</p>{lostItems.length > 0 && list(lostItems)}</>
+          : <>{end.found && <DungeonFound found={end.found} rested={!!end.rested} region={end.region} />}
+              <p className="small">🎒 Brought home{end.bag.length ? ':' : ' — nothing this time.'}</p>{end.bag.length > 0 && list(end.bag)}
+              <p className="tiny muted center">Your gear is back on.</p></>}
+        <div className="dg-panel-btns"><button className="btn btn-hero" onClick={() => { sound.play('click'); onClose(); }}>BACK TO TOWN</button></div>
+      </div>
+    </div>
+  );
+}
+
+/** One room, played in real time. */
+function RoomPlay({ run: dRun, land, onEnd }: { run: DungeonRun; land: boolean; onEnd: (e: RunEnd | null) => void }) {
+  const { slot } = useGame();
+  const [hero] = useState(() => game.dungeonHero()!);
+  const region = dRun.region;
+  const room = roomOf(dRun);
+  const [startSnacks] = useState(() => foodCount(dRun));
+  const [bar, setBar] = useState<(string | null)[]>(() => readBar(slot, hero));
+  const [run] = useState<Run>(() => newDungeon(hero, region, readBar(slot, hero), room.seed, { kind: room.kind, depth: dRun.row, hp: dRun.hp, snacks: startSnacks }));
+  const [book, setBook] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const [, setTick] = useState(0);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const input = useRef<Input>({ left: false, right: false, jump: false, attack: false, down: false });
+  const look = useRef(lookOf(hero));
+  const controls = useRef<HTMLDivElement>(null);
+  // What this room has turned up (it joins the run bag only when the room is cleared) and what the boss gave.
+  const pending = useRef<ItemStack[]>([]);
+  const found = useRef<ExRun['found']>({ items: [], xp: {}, kills: 0 });
+  const ended = useRef(false);
+  const rested = useRef(false);
+  const camY = useRef<number | null>(null);
+  const landRef = useRef(land);
+  landRef.current = land;
+  const paused = book || confirm;
 
   // The game loop
   useEffect(() => {
@@ -621,11 +854,13 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
       clearTimeout(timer);
       const dt = now - last;
       last = now;
-      if (!book) {
+      // Frozen while the game is in the background (a phone in a pocket must never get you knocked out).
+      if (!paused && !ended.current && !document.hidden) {
         const before = run.phase;
         for (const s of step(run, dt, input.current)) playSound(s);
         if (run.fallen.length) pay();
-        if (run.phase !== before) { finish(run.phase === 'won'); playSound(run.phase === 'won' ? 'levelup' : 'hurt'); if (run.phase === 'won') sound.play('levelup', { rate: 1.25 }); else sound.play('fail'); }
+        while (run.opened > 0) { run.opened--; game.dungeonChest(pending.current); }
+        if (run.phase !== before) finish(run.phase === 'won');
       }
       const c = canvas.current;
       if (c) {
@@ -654,18 +889,12 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
         g.imageSmoothingEnabled = false;
         drawWorld(g, run, look.current, cam, oy / sc, ox / sc, camY.current + c.height / sc);
       }
-      if (now - hudAt > 120) {
-        hudAt = now;
-        setTick((n) => n + 1);
-        // Catch a turned phone or a resized window even if the browser didn't say so.
-        const s = sizeRef.current;
-        if (s.w !== window.innerWidth || s.h !== window.innerHeight) setSize({ w: window.innerWidth, h: window.innerHeight, turn: wantsTurn() });
-      }
+      if (now - hudAt > 120) { hudAt = now; setTick((n) => n + 1); }
       schedule();
     };
     schedule();
     return () => { cancelAnimationFrame(raf); clearTimeout(timer); };
-  }, [run, book]);
+  }, [run, paused]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keyboard (for testing on a computer)
   useEffect(() => {
@@ -697,41 +926,51 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
     const s = castSkill(run, i);
     if (s) playSound(s); else sound.play('tick', { rate: 0.7, volume: 0.4 });
   };
-  // 🏰 Pay for beaten monsters through the game (loot system, bank overflow, gems only from the boss).
+  // 🏰 Beaten monsters: XP right away (always kept); their loot goes into this room's finds.
   const pay = () => {
     if (!run.fallen.length) return;
     const kills = run.fallen.splice(0);
     if (kills.some((k) => k.boss)) rested.current = game.dungeonBossReadyAt(region) > 0;
-    game.dungeonReward(found.current, region, run.style, kills);
+    game.dungeonReward(found.current, region, run.style, kills, pending.current);
   };
   const finish = (won: boolean) => {
     pay();
-    if (ended.current || (!won && found.current.kills === 0)) return;
+    if (ended.current) return;
     ended.current = true;
-    game.dungeonEnd(found.current, region, won);
+    if (won) {
+      sound.play('levelup', { rate: 1.25 });
+      const boss = room.kind === 'boss';
+      const bag = dRun.bag.map((x) => ({ ...x }));
+      addStacks(bag, pending.current);
+      game.dungeonRoomCleared(run.hero.hp, startSnacks - run.snacks, pending.current, run.kills);
+      onEnd(boss ? { kind: 'won', region, bag, found: found.current, rested: rested.current } : null);
+    } else {
+      sound.play('fail');
+      const lost = game.dungeonDie();
+      onEnd({ kind: 'dead', region, bag: [], lost: lost ?? undefined });
+    }
   };
-  const leave = () => { sound.play('click'); finish(false); onClose(); };
-  const payRef = useRef(finish);
-  payRef.current = finish;
-  useEffect(() => () => payRef.current(false), []); // closing the screen any other way still pays
-  const again = () => { sound.play('click'); found.current = { items: [], xp: {}, kills: 0 }; ended.current = false; rested.current = false; look.current = lookOf(game.player()); camY.current = null; setRun(newDungeon(game.player(), region, bar)); };
   const saveBar = (b: (string | null)[]) => { setBar(b); writeBar(slot, b); run.bar = b; };
 
   const h = run.hero;
   const boss = bossOf(run);
   const bossOn = boss && h.x > run.arenaX - 40;
+  const leftMobs = run.mobs.filter((m) => m.hp > 0);
+  const left = leftMobs.length;
+  // Point the way to monsters you walked past (the door stays locked until they're beaten).
+  const where = left && leftMobs.every((m) => m.x < h.x - 150) ? ' ◀' : left && leftMobs.every((m) => m.x > h.x + 150) ? ' ▶' : left && leftMobs.every((m) => m.y < h.y - 40) ? ' ▲' : '';
+  const info = ROOM_INFO[room.kind];
 
-  return createPortal(
-    <div className={`dg-root ${land ? 'land' : ''} ${size.turn ? 'rot' : ''}`} ref={root}
-      style={size.turn ? { inset: 'auto', left: 0, top: 0, width: size.h, height: size.w, transformOrigin: '0 0', transform: `translate(${size.w}px, 0) rotate(90deg)` } : undefined}>
+  return (
+    <>
       <canvas ref={canvas} className="dg-canvas" />
       <div className="dg-hud">
         <div className="dg-hp"><div style={{ width: `${(100 * h.hp) / h.maxHp}%` }} /><span className="mono">{Math.max(0, Math.round(h.hp)).toLocaleString()} / {h.maxHp.toLocaleString()}</span></div>
         <button className="dg-icon" onClick={() => { sound.play('click'); setBook(true); }} aria-label="Skill book">📖</button>
-        <button className="dg-icon" onClick={leave} aria-label="Leave (you keep what you found)">✕</button>
+        <button className="dg-icon" onClick={() => { sound.play('click'); setConfirm(true); }} aria-label="Back to the map">🗺️</button>
       </div>
       <div className="dg-sub">
-        <span className="small">{AREAS[region].emoji} {AREAS[region].name[0].toUpperCase() + AREAS[region].name.slice(1)}</span>
+        <span className="small">{info.emoji} {info.name}{room.kind !== 'boss' && left > 0 ? ` · 👾 ${left} left${where}` : room.kind !== 'boss' ? ' · 🚪 the door is open' : ''}</span>
         {bossOn && boss ? (
           <div className="dg-boss"><b className="tiny">👑 {bossDef(run).name}</b><div className="dg-bar"><div style={{ width: `${(100 * Math.max(0, boss.hp)) / boss.maxHp}%` }} /></div></div>
         ) : <div className="dg-bar path"><div style={{ width: `${pathProgress(run) * 100}%` }} /></div>}
@@ -742,8 +981,8 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
         const op = Math.min(1, b.t / 300, (2600 - b.t) / 600);
         return (
           <div className="dg-banner" style={{ opacity: Math.max(0, op) }}>
-            <span className="dg-banner-sub">{b.sub || `${AREAS[region].emoji} ${region}`}</span>
-            <span className="dg-banner-text">{b.text || AREAS[region].name[0].toUpperCase() + AREAS[region].name.slice(1)}</span>
+            <span className="dg-banner-sub">{b.sub || `${AREAS[region].emoji} Room ${dRun.row + 1} of ${dRun.rows.length}`}</span>
+            <span className="dg-banner-text">{b.text || `${info.emoji} ${info.name}`}</span>
           </div>
         );
       })()}
@@ -752,41 +991,37 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
           answers anywhere on the left, and the skill bubbles sit in a curve around Attack with room between them. */}
       <div className="dg-controls" ref={controls}>
         <Thumbstick input={input} />
-        {/* 🍖 Back by your thumb (v0.0.1.74, owner: "I liked the food nearby my fingers") */}
+        {/* 🍖 Back by your thumb (v0.0.1.74, owner: "I liked the food nearby my fingers") — packed food now */}
         <button className="dg-btn dg-snack" disabled={run.snacks <= 0} onClick={() => { if (eatSnack(run)) sound.play('eat'); else sound.play('error', { volume: 0.5 }); }} aria-label={`Snack (${run.snacks} left)`}>🍖<span className="dg-n">{run.snacks}</span></button>
         <div className="dg-act">
-            {bar.map((id, i) => {
-              const s = id ? SKILL_MAP[id] : null;
-              const cd = id ? (run.cd[id] ?? 0) : 0;
-              return (
-                <button key={i} className={`dg-skill s${i} ${s ? '' : 'empty'}`} onPointerDown={(e) => { e.preventDefault(); if (s) skill(i); else { sound.play('click'); setBook(true); } }} aria-label={s ? s.name : 'Empty skill bubble'}
-                  style={{ ['--cd' as string]: s && cd > 0 ? `${(cd / s.cdMs) * 360}deg` : '0deg' }}>
-                  <span>{s ? s.emoji : '+'}</span>
-                </button>
-              );
-            })}
+          {bar.map((id, i) => {
+            const s = id ? SKILL_MAP[id] : null;
+            const cd = id ? (run.cd[id] ?? 0) : 0;
+            return (
+              <button key={i} className={`dg-skill s${i} ${s ? '' : 'empty'}`} onPointerDown={(e) => { e.preventDefault(); if (s) skill(i); else { sound.play('click'); setBook(true); } }} aria-label={s ? s.name : 'Empty skill bubble'}
+                style={{ ['--cd' as string]: s && cd > 0 ? `${(cd / s.cdMs) * 360}deg` : '0deg' }}>
+                <span>{s ? s.emoji : '+'}</span>
+              </button>
+            );
+          })}
           <button className="dg-btn jump" {...hold('jump', 'whoosh')} aria-label="Jump">⤒</button>
           <button className="dg-btn attack" {...hold('attack')} aria-label="Attack">{run.style === 'ranged' ? '🏹' : run.style === 'magic' ? '🪄' : '⚔️'}</button>
         </div>
       </div>
-
-      {run.phase !== 'play' && (
+      {confirm && (
         <div className="dg-over">
           <div className="dg-panel">
-            <div className="dg-big">{run.phase === 'won' ? '🏆' : '😵‍💫'}</div>
-            <b className="gold">{run.phase === 'won' ? `You beat ${bossDef(run).name}!` : 'Knocked out!'}</b>
-            {run.phase === 'ko' && <p className="small muted center">Carried home safe — you keep everything you found.</p>}
-            <DungeonFound found={found.current} rested={run.phase === 'won' && rested.current} region={region} />
+            <b className="gold">Back to the map?</b>
+            <p className="small muted center">This room starts over, and whatever it turned up is lost. XP you earned stays.</p>
             <div className="dg-panel-btns">
-              <button className="btn btn-hero" onClick={again}>PLAY AGAIN</button>
-              <button className="btn" onClick={leave}>Leave</button>
+              <button className="btn btn-hero" onClick={() => { sound.play('click'); setConfirm(false); }}>KEEP FIGHTING</button>
+              <button className="btn" onClick={() => { sound.play('click'); ended.current = true; onEnd(null); }}>Back to the map</button>
             </div>
           </div>
         </div>
       )}
-      {book && <SkillBook player={player} bar={bar} onBar={saveBar} style={run.style} onClose={() => { sound.play('click'); setBook(false); }} />}
-    </div>,
-    document.body,
+      {book && <SkillBook player={hero} bar={bar} onBar={saveBar} style={run.style} onClose={() => { sound.play('click'); setBook(false); }} />}
+    </>
   );
 }
 
