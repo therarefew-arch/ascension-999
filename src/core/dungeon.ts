@@ -94,6 +94,9 @@ export interface Dungeon {
   harvested: NodeKind[];
   /** Why you can't harvest each kind of spot (no entry = you can). */
   why: Partial<Record<NodeKind, string>>;
+  /** 💰 Gold piles lying about (v0.0.1.79), and how many were picked up since the screen last checked. */
+  golds: { x: number; y: number; got: boolean }[];
+  goldGot: number;
 }
 export type NodeKind = 'ore' | 'tree' | 'herb' | 'fish';
 export const NODE_KINDS: NodeKind[] = ['ore', 'tree', 'herb', 'fish'];
@@ -180,7 +183,7 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
     region, style, worldW: 0, arenaX: 0, plats: [], mobs: [], shots: [], pops: [], fx: [], hit,
     hero: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp, maxHp: hp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0 },
     cd: {}, bar: bar.slice(0, BAR_SIZE), snacks: SNACKS, kills: 0, t: 0, phase: 'play', jumpHeld: false, rs: seed, nextId: 1, bossId: boss.id,
-    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false, queue: [], treats: [], fallen: [], chests: [], opened: 0, nodes: [], harvested: [], why: room?.why ?? {},
+    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false, queue: [], treats: [], fallen: [], chests: [], opened: 0, nodes: [], harvested: [], why: room?.why ?? {}, golds: [], goldGot: 0,
   };
   if (room) { d.hero.hp = Math.max(1, Math.min(hp, room.hp)); d.snacks = room.snacks; }
   const bossRoom = !room || room.kind === 'boss';
@@ -260,6 +263,16 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
   if (room && room.kind !== 'boss' && room.kind !== 'camp') {
     if (rand(d) < 0.4) d.nodes.push({ x: Math.round(pathEnd * (0.4 + rand(d) * 0.25)), y: GROUND, kind: 'fish', done: false, prog: 0 });
     if (room.kind === 'treasure') d.nodes.push({ x: Math.round(pathEnd * 0.7), y: GROUND, kind: (['ore', 'tree', 'herb'] as NodeKind[])[Math.floor(rand(d) * 3)], done: false, prog: 0 });
+  }
+  // 💰 Gold piles: a few on the ground and the lower ledges (more in treasure rooms)
+  if (room && room.kind !== 'boss' && room.kind !== 'camp' && room.kind !== 'shop') {
+    const spots = d.plats.filter((pl) => pl.y >= GROUND - 2 * ROW_GAP && pl.x1 < pathEnd - 60);
+    const n = 2 + Math.floor(rand(d) * 3) + (room.kind === 'treasure' ? 3 : 0);
+    for (let i = 0; i < n && spots.length; i++) {
+      const pl = spots[Math.floor(rand(d) * spots.length)];
+      const lo = Math.max(pl.x1 + 16, 140), hi = Math.min(pl.x2 - 16, pathEnd - 40);
+      if (hi > lo) d.golds.push({ x: Math.round(lo + rand(d) * (hi - lo)), y: pl.y, got: false });
+    }
   }
   // 💰 A chest at the end of a treasure room
   if (room?.kind === 'treasure') d.chests.push({ x: pathEnd - 40, y: GROUND, open: false });
@@ -527,6 +540,15 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   }
   if (h.y > GROUND) { h.y = GROUND; h.vy = 0; h.onGround = true; }
   if (h.onGround && falling > 0.35) burst(d, h.x, h.y, 6, ['#ffffff', '#e7e5e4'], 0.09, -0.00005, 4, 400);
+  // 💰 Gold piles
+  for (const gp of d.golds) {
+    if (!gp.got && Math.abs(gp.x - h.x) < 18 && Math.abs(gp.y - h.y) < 30) {
+      gp.got = true;
+      d.goldGot++;
+      burst(d, gp.x, gp.y - 8, 8, ['#fde68a', '#fbbf24', '#ffffff'], 0.16, 0.0007, 2, 450);
+      sounds.push('coin');
+    }
+  }
   // 💰 Chests
   for (const c of d.chests) {
     if (!c.open && Math.abs(c.x - h.x) < 24 && Math.abs(c.y - h.y) < 30) {

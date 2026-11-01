@@ -13,7 +13,7 @@ import type { PlayerState } from './player';
 import { REGIONS, type Region } from '../data/tiers';
 import type { ItemStack } from './player';
 
-export type RoomKind = 'fight' | 'elite' | 'treasure' | 'camp' | 'exit' | 'boss';
+export type RoomKind = 'fight' | 'elite' | 'treasure' | 'camp' | 'exit' | 'shop' | 'boss';
 export interface Room { kind: RoomKind; seed: number }
 export interface DungeonRun {
   region: Region;
@@ -38,6 +38,7 @@ export const ROOM_INFO: Record<RoomKind, { emoji: string; name: string; text: st
   elite: { emoji: '💀', name: 'Lair', text: 'Tougher monsters, double loot.' },
   treasure: { emoji: '💰', name: 'Treasure room', text: 'A few guards and a chest.' },
   camp: { emoji: '🔥', name: 'Campfire', text: 'Rest: heal half your health.' },
+  shop: { emoji: '🧺', name: "Wick's stall", text: 'A tunnel trader: sell your finds for gold, buy food and healing draughts.' },
   exit: { emoji: '🚪', name: 'Way out', text: 'A few monsters, then you can leave with your loot — or press on.' },
   boss: { emoji: '👑', name: "The boss's hall", text: 'Beat it to get out with everything.' },
 };
@@ -53,13 +54,19 @@ const EXIT_ROWS = [2, 4];
 /** Lays out a fresh map. */
 export function newMap(rand: () => number = Math.random): Room[][] {
   const seed = () => Math.floor(rand() * 2 ** 31);
-  const pick = (): RoomKind => { const r = rand(); return r < 0.45 ? 'fight' : r < 0.65 ? 'elite' : r < 0.85 ? 'treasure' : 'camp'; };
+  const pick = (): RoomKind => { const r = rand(); return r < 0.4 ? 'fight' : r < 0.58 ? 'elite' : r < 0.75 ? 'treasure' : r < 0.87 ? 'camp' : 'shop'; };
   const rows: Room[][] = [[{ kind: 'fight', seed: seed() }]];
   for (let r = 1; r < ROWS - 1; r++) {
     let a = pick(), b = pick();
-    if (a === b && a === 'camp') b = 'fight';
+    if (a === b && (a === 'camp' || a === 'shop')) b = 'fight';
     if (EXIT_ROWS.includes(r)) { if (rand() < 0.5) a = 'exit'; else b = 'exit'; }
     rows.push([{ kind: a, seed: seed() }, { kind: b, seed: seed() }]);
+  }
+  // 🧺 Wick sets up somewhere in the middle rows at least once a run.
+  if (!rows.some((row) => row.some((x) => x.kind === 'shop'))) {
+    const r = 2 + Math.floor(rand() * 3);
+    const i = rows[r].findIndex((x) => x.kind !== 'exit');
+    rows[r][i < 0 ? 0 : i].kind = 'shop';
   }
   rows.push([{ kind: 'boss', seed: seed() }]);
   return rows;
@@ -71,6 +78,8 @@ export const nextChoices = (run: DungeonRun): Room[] => (run.cleared && run.row 
 /** You can leave with your loot: you're standing in a cleared 🚪 room. */
 export const canExtract = (run: DungeonRun) => run.cleared && roomOf(run).kind === 'exit';
 export const foodCount = (run: DungeonRun) => run.food.reduce((n, x) => n + x.qty, 0);
+/** 💰 Gold in the run bag. */
+export const bagGold = (run: DungeonRun) => run.bag.find((x) => x.id === 'coins')?.qty ?? 0;
 
 /** Adds stacks into a list, merging the same item. */
 export function addStacks(into: ItemStack[], add: ItemStack[]) {
@@ -120,7 +129,7 @@ export function whyCantHarvest(hero: PlayerState, region: Region, kind: NodeKind
 // ----- Kept in the save: the save loader keeps only what it recognises, so check everything. -----
 const isStacks = (v: unknown): v is ItemStack[] => Array.isArray(v) && v.every((x) => x && typeof x.id === 'string' && Number.isInteger(x.qty) && x.qty > 0);
 const isSlotMap = (v: unknown): v is Partial<Record<EquipSlot, string>> => !!v && typeof v === 'object' && Object.values(v as object).every((x) => typeof x === 'string');
-const KINDS: RoomKind[] = ['fight', 'elite', 'treasure', 'camp', 'exit', 'boss'];
+const KINDS: RoomKind[] = ['fight', 'elite', 'treasure', 'camp', 'exit', 'shop', 'boss'];
 export function loadDungeonRun(raw: unknown): DungeonRun | undefined {
   const r = raw as DungeonRun | null;
   if (!r || typeof r !== 'object') return undefined;

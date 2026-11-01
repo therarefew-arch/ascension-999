@@ -50,7 +50,8 @@ import { lootRolls, nightXp, STUB_COINS } from './lanternWatch';
 import { paradeCoins, WINS_NEEDED as PARADE_WINS } from './petParade';
 import { wallXp } from './holdWall';
 import { BOSS_REST_MS, DUNGEON_XP_SECS } from './dungeon';
-import { addStacks, CAMP_HEAL, canExtract, eatFood as eatRunFood, FOOD_MAX, gatherActionFor, HARVEST_FIND, HARVEST_YIELD, newMap, whyCantHarvest, type DungeonRun } from './dungeonRun';
+import { DRAUGHT_HEAL, draughtPrice, foodPrice, goldPile, trailFood, wickPays } from '../market/dungeonShop';
+import { addStacks, bagGold, CAMP_HEAL, canExtract, eatFood as eatRunFood, FOOD_MAX, gatherActionFor, HARVEST_FIND, HARVEST_YIELD, newMap, whyCantHarvest, type DungeonRun } from './dungeonRun';
 import type { NodeKind } from './dungeon';
 import { AREAS, COTTAGE_CHANCE, COTTAGE_SURE_BY, newRun, type HeroSnap, townBoss, townMonsters, whyCantStart, XP_SECS, type Reward, type Run } from './expedition';
 import { EXPEDITION_FURNITURE } from './cottage';
@@ -1234,7 +1235,8 @@ export const game = {
     r.row++;
     r.at = i;
     r.cleared = false;
-    if (r.rows[r.row][i].kind === 'camp') {
+    if (r.rows[r.row][i].kind === 'shop') { r.cleared = true; play('coin'); }
+    else if (r.rows[r.row][i].kind === 'camp') {
       const max = maxHp(game.dungeonHero()!);
       r.hp = Math.min(max, r.hp + Math.round(max * CAMP_HEAL));
       r.cleared = true;
@@ -1271,6 +1273,49 @@ export const game = {
     announceLevels(report);
     save();
     emit();
+  },
+  /** 💰 Gold piles picked up: into the room's finds. */
+  dungeonGold(into: ItemStack[], piles: number) {
+    const r = snap.player.dungeonRun;
+    if (!r || piles <= 0) return;
+    addStacks(into, [{ id: 'coins', qty: goldPile(r.region) * piles }]);
+  },
+  /** 🧺 Sell from the run bag to Wick (for gold that stays in the run bag). qty 0 = all of it. */
+  dungeonSell(id: string, qty = 0) {
+    const r = snap.player.dungeonRun;
+    if (!r || !(r.rows[r.row][r.at].kind === 'shop' && r.cleared)) return;
+    const st = r.bag.find((x) => x.id === id);
+    const each = wickPays(id);
+    if (!st || each <= 0) return;
+    const n = qty > 0 ? Math.min(qty, st.qty) : st.qty;
+    st.qty -= n;
+    r.bag = r.bag.filter((x) => x.qty > 0);
+    addStacks(r.bag, [{ id: 'coins', qty: each * n }]);
+    play('coin');
+    save();
+    emit();
+  },
+  /** 🧺 Buy from Wick with run-bag gold: trail food (up to the food limit) or a healing draught (heals at once). */
+  dungeonBuy(what: 'food' | 'draught'): boolean {
+    const r = snap.player.dungeonRun;
+    if (!r || !(r.rows[r.row][r.at].kind === 'shop' && r.cleared)) return false;
+    const cost = what === 'food' ? foodPrice(r.region) : draughtPrice(r.region);
+    if (bagGold(r) < cost) { fail('Not enough gold in your run bag'); return false; }
+    if (what === 'food') {
+      if (r.food.reduce((n, x) => n + x.qty, 0) >= FOOD_MAX) { fail(`You can carry ${FOOD_MAX} food at most`); return false; }
+      addStacks(r.food, [{ id: trailFood(r.region), qty: 1 }]);
+    } else {
+      const max = maxHp(game.dungeonHero()!);
+      if (r.hp >= max) { fail("You're already at full health"); return false; }
+      r.hp = Math.min(max, r.hp + Math.round(max * DRAUGHT_HEAL));
+    }
+    const g = r.bag.find((x) => x.id === 'coins')!;
+    g.qty -= cost;
+    r.bag = r.bag.filter((x) => x.qty > 0);
+    play(what === 'food' ? 'coin' : 'levelup');
+    save();
+    emit();
+    return true;
   },
   /** The room is done: its finds join the run bag, eaten food is gone. The boss's hall gets you out. */
   dungeonRoomCleared(hp: number, snacksUsed: number, finds: ItemStack[], kills: number) {

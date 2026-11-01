@@ -10,7 +10,8 @@ import {
   whyCantUseSkill, type Dungeon as Run, type Input,
 } from '../core/dungeon';
 import { AREAS, townBoss, type Run as ExRun } from '../core/expedition';
-import { addStacks, canExtract, foodCount, FOOD_MAX, nextChoices, ROOM_INFO, roomOf, whyCantHarvest, type DungeonRun } from '../core/dungeonRun';
+import { draughtPrice, DRAUGHT_HEAL, foodPrice, trailFood, wickPays } from '../market/dungeonShop';
+import { addStacks, bagGold, canExtract, foodCount, FOOD_MAX, nextChoices, ROOM_INFO, roomOf, whyCantHarvest, type DungeonRun } from '../core/dungeonRun';
 import { maxHp } from '../core/combat';
 import { countInBag, countInBank } from '../core/inventory';
 import { FURNITURE_MAP } from '../core/cottage';
@@ -517,6 +518,15 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
       g.strokeStyle = '#fde68a'; g.lineWidth = 3; g.beginPath(); g.arc(n.x, n.y - 82, 10, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * n.prog) / HARVEST_MS); g.stroke();
     }
   }
+  // 💰 Gold piles, glinting
+  for (const gp of d.golds) {
+    if (gp.got || gp.x < cam - side - 20 || gp.x > cam + VIEW_W + side + 20) continue;
+    const tw = 0.5 + 0.5 * Math.sin(d.t / 200 + gp.x);
+    g.fillStyle = '#b45309'; g.fillRect(gp.x - 9, gp.y - 4, 18, 4);
+    g.fillStyle = '#f59e0b'; g.fillRect(gp.x - 7, gp.y - 8, 14, 4); g.fillRect(gp.x - 4, gp.y - 11, 8, 3);
+    g.fillStyle = '#fde68a'; g.fillRect(gp.x - 5, gp.y - 8, 3, 2); g.fillRect(gp.x + 2, gp.y - 5, 3, 2);
+    g.globalAlpha = tw; g.fillStyle = '#ffffff'; g.fillRect(gp.x + 3, gp.y - 13, 2, 2); g.globalAlpha = 1;
+  }
   // 💰 Treasure chests
   for (const c of d.chests) {
     g.fillStyle = '#78350f'; g.fillRect(c.x - 16, c.y - 20, 32, 20);
@@ -765,6 +775,7 @@ function DungeonShell({ onClose }: { onClose: () => void }) {
   const { player } = useGame();
   const run = player.dungeonRun;
   const [playing, setPlaying] = useState(false);
+  const [shop, setShop] = useState(false);
   const [end, setEnd] = useState<RunEnd | null>(null);
   const root = useRef<HTMLDivElement>(null);
   useNoScroll(root);
@@ -787,7 +798,8 @@ function DungeonShell({ onClose }: { onClose: () => void }) {
   let body: React.ReactNode = null;
   if (end) body = <RunEndPanel end={end} onClose={onClose} />;
   else if (run && playing) body = <RoomPlay key={`${run.row}-${run.at}`} run={run} land={land} onEnd={(e) => { setPlaying(false); if (e) setEnd(e); }} />;
-  else if (run) body = <RunMap run={run} onEnter={() => { sound.play('creak'); setPlaying(true); }} onClose={onClose}
+  else if (run && shop) body = <WickStall run={run} onClose={() => { sound.play('click'); setShop(false); }} />;
+  else if (run) body = <RunMap run={run} onEnter={() => { sound.play('creak'); setPlaying(true); }} onClose={onClose} onShop={() => { sound.play('coin'); setShop(true); }}
     onExtract={() => { const r = run.region; const bag = game.dungeonExtract(false); setEnd({ kind: 'out', region: r, bag }); }} />;
   return createPortal(
     <div className={`dg-root ${land ? 'land' : ''} ${size.turn ? 'rot' : ''}`} ref={root}
@@ -799,17 +811,18 @@ function DungeonShell({ onClose }: { onClose: () => void }) {
 }
 
 /** 🗺️ The map: rooms from the entrance (left) to the boss (right). Clear a room, then pick one of the next two. */
-function RunMap({ run, onEnter, onExtract, onClose }: { run: DungeonRun; onEnter: () => void; onExtract: () => void; onClose: () => void }) {
+function RunMap({ run, onEnter, onExtract, onClose, onShop }: { run: DungeonRun; onEnter: () => void; onExtract: () => void; onClose: () => void; onShop: () => void }) {
   const hero = game.dungeonHero();
   const max = hero ? maxHp(hero) : run.hp;
   const choices = nextChoices(run);
   const here = roomOf(run);
-  const items = run.bag.filter((x) => x.qty > 0);
+  const items = run.bag.filter((x) => x.qty > 0 && x.id !== 'coins');
   return (
     <div className="dg-map">
       <div className="dg-map-top">
         <b className="gold">🗝️ {AREAS[run.region].name[0].toUpperCase() + AREAS[run.region].name.slice(1)}</b>
         <div className="dg-hp"><div style={{ width: `${(100 * run.hp) / max}%` }} /><span className="mono">{Math.round(run.hp).toLocaleString()} / {max.toLocaleString()}</span></div>
+        <span className="small mono dg-gold">💰 {bagGold(run).toLocaleString()}</span>
         <span className="small">🍖 {foodCount(run)}</span>
         <button className="dg-icon" onClick={() => { sound.play('click'); onClose(); }} aria-label="Pause (your run is saved)">⏸</button>
       </div>
@@ -823,7 +836,7 @@ function RunMap({ run, onEnter, onExtract, onClose }: { run: DungeonRun; onEnter
               const info = ROOM_INFO[room.kind];
               return (
                 <button key={i} className={`dg-room ${isHere ? 'here' : ''} ${can ? 'can' : ''} ${past ? 'past' : ''} ${isHere && run.cleared ? 'done' : ''}`}
-                  disabled={!can} onClick={() => { game.dungeonGo(i); if (room.kind !== 'camp') onEnter(); }} aria-label={`${info.name}: ${info.text}`}>
+                  disabled={!can} onClick={() => { game.dungeonGo(i); if (room.kind === 'shop') onShop(); else if (room.kind !== 'camp') onEnter(); }} aria-label={`${info.name}: ${info.text}`}>
                   <span className="dg-room-emoji">{info.emoji}</span>
                   <span className="tiny">{info.name}</span>
                   {isHere && <span className="dg-room-you">YOU</span>}
@@ -842,7 +855,53 @@ function RunMap({ run, onEnter, onExtract, onClose }: { run: DungeonRun; onEnter
         <div className="dg-map-act">
           {!run.cleared && <button className="btn btn-hero" onClick={onEnter}>{here.kind === 'boss' ? '👑 FACE THE BOSS' : `ENTER ${ROOM_INFO[here.kind].emoji} ${ROOM_INFO[here.kind].name.toUpperCase()}`}</button>}
           {run.cleared && choices.length > 0 && <span className="small">Choose your next room ▶</span>}
+          {run.cleared && here.kind === 'shop' && <button className="btn dg-shopbtn" onClick={onShop}>🧺 WICK'S STALL</button>}
           {canExtract(run) && <button className="btn dg-out" onClick={() => { sound.play('levelup'); onExtract(); }}>🚪 LEAVE WITH YOUR LOOT</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 🧺 Wick's stall: sell run-bag finds for gold, buy trail food or a healing draught. All in run-bag gold. */
+function WickStall({ run, onClose }: { run: DungeonRun; onClose: () => void }) {
+  useGame(); // redraw as gold changes
+  const hero = game.dungeonHero();
+  const max = hero ? maxHp(hero) : run.hp;
+  const gold = bagGold(run);
+  const items = run.bag.filter((x) => x.qty > 0 && wickPays(x.id) > 0);
+  const food = trailFood(run.region), fp = foodPrice(run.region), dp = draughtPrice(run.region);
+  const total = items.reduce((n, x) => n + wickPays(x.id) * x.qty, 0);
+  return (
+    <div className="dg-map dg-stall">
+      <div className="dg-map-top">
+        <b className="gold">🧺 Wick's stall</b>
+        <div className="dg-hp"><div style={{ width: `${(100 * run.hp) / max}%` }} /><span className="mono">{Math.round(run.hp).toLocaleString()} / {max.toLocaleString()}</span></div>
+        <span className="small mono dg-gold">💰 {gold.toLocaleString()}</span>
+        <span className="small">🍖 {foodCount(run)}/{FOOD_MAX}</span>
+        <button className="dg-icon" onClick={onClose} aria-label="Back to the map">🗺️</button>
+      </div>
+      <p className="tiny muted dg-wick">“Gold's no good to you if you don't make it out, friend. I pay a touch over the Trading Post — it's dark down here.”</p>
+      <div className="dg-stall-cols">
+        <div className="dg-stall-buy">
+          <b className="small">Buy</b>
+          <button className="dg-ware" disabled={gold < fp || foodCount(run) >= FOOD_MAX} onClick={() => game.dungeonBuy('food')}>
+            <ItemIcon id={food} size={26} /><span className="grow small">{ITEMS[food]?.name ?? 'Trail food'}<span className="tiny muted dg-ware-text">+1 food (heals 30%)</span></span><b className="mono small">💰 {fp.toLocaleString()}</b>
+          </button>
+          <button className="dg-ware" disabled={gold < dp || run.hp >= max} onClick={() => game.dungeonBuy('draught')}>
+            <span className="dg-ware-emoji">🧪</span><span className="grow small">Healing draught<span className="tiny muted dg-ware-text">heals {Math.round(DRAUGHT_HEAL * 100)}% now</span></span><b className="mono small">💰 {dp.toLocaleString()}</b>
+          </button>
+        </div>
+        <div className="dg-stall-sell">
+          <div className="row-between"><b className="small">Sell <span className="tiny muted">(tap to sell all of one)</span></b>
+            {items.length > 0 && <button className="btn small" onClick={() => { for (const x of items) game.dungeonSell(x.id); }}>SELL ALL · 💰 {total.toLocaleString()}</button>}</div>
+          <div className="dg-sell-grid">
+            {items.length ? items.map((x) => (
+              <button key={x.id} className="dg-sell" onClick={() => game.dungeonSell(x.id)} aria-label={`Sell ${x.qty} ${ITEMS[x.id]?.name} for ${wickPays(x.id) * x.qty}`}>
+                <ItemIcon id={x.id} size={24} /><span className="tiny mono">×{x.qty.toLocaleString()}</span><span className="tiny mono gold">{(wickPays(x.id) * x.qty).toLocaleString()}</span>
+              </button>
+            )) : <span className="tiny muted">Nothing to sell yet — your run bag only has gold.</span>}
+          </div>
         </div>
       </div>
     </div>
@@ -920,6 +979,7 @@ function RoomPlay({ run: dRun, land, onEnd }: { run: DungeonRun; land: boolean; 
         if (run.fallen.length) pay();
         while (run.opened > 0) { run.opened--; game.dungeonChest(pending.current); }
         while (run.harvested.length) game.dungeonHarvest(run.harvested.shift()!, pending.current);
+        if (run.goldGot) { game.dungeonGold(pending.current, run.goldGot); run.goldGot = 0; }
         if (run.phase !== before) finish(run.phase === 'won');
       }
       const c = canvas.current;
