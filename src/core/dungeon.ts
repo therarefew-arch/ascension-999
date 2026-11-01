@@ -35,7 +35,10 @@ export const SNACKS = 3;
 export const BOSS_TOUCH = 0.65;
 /** v0.0.1.81 (owner: "ease the monster damage"): how hard dungeon monsters hit, their spit, the boss and the town's
  * hazards all scale with this. Kept in an object so balance tests can try other values. */
-export const TUNE = { hurt: 0.6 };
+export const TUNE = { hurt: 0.75, deep: 0.06 };
+/** v0.0.1.82 (owner: "a little too easy"): base damage up to 75%, and every map row deeper adds TUNE.deep (row 6 ≈ +36%),
+ * so pushing on past an exit is a real risk. The boss's hall doesn't get the depth bonus (the boss is enough). */
+export const depthHurt = (room?: RoomSpec) => (room && room.kind !== 'boss' ? 1 + room.depth * TUNE.deep : 1);
 export const BOSS_SLAM = 1.7;
 /** 🏰 Rewards (v0.0.1.76): XP per monster, in seconds of the town's gathering XP — paced for fast real-time
  * fights (a 2-minute run ≈ normal fighting; quick runs a little better). Each monster also rolls its own loot. */
@@ -195,7 +198,7 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
     const even = rawPower(p, { ...m, style }, ammo);
     const you = { hit: Math.sqrt(edge.hit * even.hit), hurt: Math.sqrt(edge.hurt * even.hurt) };
     hit[m.id] = Math.max(1, you.hit * (ATTACK_MS[style] / TURN_MS));
-    touch[m.id] = fair[m.id].hurt * 1.4 * Math.min(3, Math.max(0.35, you.hurt / fair[m.id].rawHurt)) * TUNE.hurt;
+    touch[m.id] = fair[m.id].hurt * 1.4 * Math.min(3, Math.max(0.35, you.hurt / fair[m.id].rawHurt)) * TUNE.hurt * depthHurt(room);
   }
   const hp = maxHp(p);
   const d: Dungeon = {

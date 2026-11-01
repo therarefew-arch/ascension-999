@@ -14,6 +14,7 @@ import { DUNGEON_TOWNS } from '../data/dungeonTowns';
 import { draughtPrice, DRAUGHT_HEAL, foodPrice, trailFood, wickPays } from '../market/dungeonShop';
 import { addStacks, bagGold, canExtract, foodCount, FOOD_MAX, nextChoices, ROOM_INFO, roomOf, whyCantHarvest, type DungeonRun } from '../core/dungeonRun';
 import { maxHp } from '../core/combat';
+import { art, artCache, drawAtmos, drawFar, drawSky, hash, pixCircle, propArt, sceneryOf, U } from './dungeonScenery';
 import { countInBag, countInBank } from '../core/inventory';
 import { FURNITURE_MAP } from '../core/cottage';
 import { PET_MAP } from '../data/pets';
@@ -191,55 +192,23 @@ const THEME: Record<string, Theme> = {
   Cinderpeak: { sky: ['#7e3a28', '#e6964c'], cloud: ['#f2c494', '#d08a5a'], hills: ['#5c2e24', '#48231c'], grass: ['#8a8a3a', '#b4ae52'], dirt: ['#6a3a24', '#4f2a1c', '#3a1e16'], leaf: ['#565a28', '#787a34', '#a2a248'], trunk: '#4a2a1c' },
   Frosthold: { sky: ['#86b6e0', '#e2f2fa'], cloud: ['#ffffff', '#cfe2f2'], hills: ['#b6cee2', '#98b6d2'], grass: ['#e6f2fa', '#ffffff'], dirt: ['#8aa0b6', '#6a8098', '#4a5a70'], leaf: ['#2c5848', '#3e6e5e', '#e6f2fa'], trunk: '#5a4030' },
   Voidreach: { sky: ['#191330', '#4a3a7a'], cloud: ['#7c6caa', '#584a86'], hills: ['#2a2048', '#20183a'], grass: ['#6a4a9a', '#9a7ac8'], dirt: ['#3a2a5a', '#2a1e46', '#1e1434'], leaf: ['#463876', '#6656a0', '#a08ad0'], trunk: '#3a2a4a' },
-  'Starfall Crater': { sky: ['#dc9c3e', '#f8e2a2'], cloud: ['#fff6dc', '#f0d49c'], hills: ['#b88a3a', '#9a7030'], grass: ['#c6ae48', '#e8d070'], dirt: ['#8a6a3a', '#6a5030', '#4a3a26'], leaf: ['#86963a', '#a6b64a', '#d8d870'], trunk: '#6a4a2a' },
+  'Starfall Crater': { sky: ['#7a5ea8', '#efb88f'], cloud: ['#fff6dc', '#f0d49c'], hills: ['#b88a3a', '#9a7030'], grass: ['#c6ae48', '#e8d070'], dirt: ['#8a6a3a', '#6a5030', '#4a3a26'], leaf: ['#86963a', '#a6b64a', '#d8d870'], trunk: '#6a4a2a' },
   'Celestine Spires': { sky: ['#a4d6f8', '#f0f8ff'], cloud: ['#ffffff', '#d4e8f6'], hills: ['#c6deef', '#acc6e6'], grass: ['#d6ecf8', '#ffffff'], dirt: ['#a8c0d4', '#8aa4bc', '#6a849c'], leaf: ['#86bcd6', '#a6d2e6', '#e0f0f8'], trunk: '#8a7a6a' },
   'Primordial Rift': { sky: ['#286a4a', '#8ad2a2'], cloud: ['#daf2da', '#a8d8b0'], hills: ['#2a5a3a', '#1e4a2e'], grass: ['#489a38', '#78c858'], dirt: ['#5a3a26', '#45291c', '#301c16'], leaf: ['#1e5a26', '#2e7a34', '#5aa84a'], trunk: '#4a3020' },
 };
-const U = 3;
-const hash = (n: number) => { const x = Math.sin(n * 12.9898) * 43758.5453; return x - Math.floor(x); };
 const mix = (a: string, b: string, t: number) => {
   const p = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
   const [x, y] = [p(a.toLowerCase()), p(b.toLowerCase())];
   return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * t)).join(',')})`;
 };
-/** A chunky pixel circle (rows of 3-pixel steps). */
-function pixCircle(g: CanvasRenderingContext2D, cx: number, cy: number, r: number, c: string) {
-  g.fillStyle = c;
-  for (let dy = -r; dy <= r; dy += U) {
-    const half = Math.floor(Math.sqrt(Math.max(0, r * r - dy * dy)) / U) * U;
-    g.fillRect(Math.round(cx / U) * U - half, Math.round((cy + dy) / U) * U, half * 2, U);
-  }
-}
-const artCache = new Map<string, HTMLCanvasElement>();
-function art(key: string, w: number, h: number, paint: (g: CanvasRenderingContext2D) => void): HTMLCanvasElement {
-  let c = artCache.get(key);
-  if (!c) { c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d')!); artCache.set(key, c); }
-  return c;
-}
 /** A puffy cloud (3 shapes). */
 const cloudArt = (t: Theme, v: number) => art(`cloud${t.sky[0]}${v}`, 150, 60, (g) => {
   const blobs = [[40, 36, 18], [66, 28, 22], [94, 34, 18], [116, 40, 12], [24, 42, 10]].map(([x, y, r]) => [x + v * 6, y - (v % 2) * 3, r]);
   for (const [x, y, r] of blobs) pixCircle(g, x, y + 6, r, t.cloud[1]);
   for (const [x, y, r] of blobs) pixCircle(g, x, y, r, t.cloud[0]);
 });
-/** A big leafy tree (like the reference's oak). */
-const treeArt = (t: Theme, v: number) => art(`tree${t.sky[0]}${v}`, 132, 150, (g) => {
-  const cx = 66;
-  g.fillStyle = t.trunk; g.fillRect(cx - 12, 84, 24, 66);
-  g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(cx + 3, 84, 9, 66); g.fillRect(cx - 9, 105, 3, 21); g.fillRect(cx - 3, 126, 3, 12);
-  g.fillStyle = t.trunk; g.fillRect(cx - 21, 141, 9, 9); g.fillRect(cx + 12, 141, 9, 9);
-  const blobs = v === 0 ? [[66, 54, 40], [34, 66, 26], [98, 66, 26], [50, 34, 24], [84, 34, 24]] : [[66, 60, 34], [40, 72, 22], [92, 72, 22], [66, 32, 24]];
-  for (const [x, y, r] of blobs) pixCircle(g, x, y + 6, r, t.leaf[0]);
-  for (const [x, y, r] of blobs) pixCircle(g, x - 3, y, r - 6, t.leaf[1]);
-  for (let i = 0; i < 14; i++) pixCircle(g, 24 + hash(i + v * 30) * 84, 18 + hash(i * 3 + v) * 60, 6, t.leaf[2]);
-});
-const bushArt = (t: Theme) => art(`bush${t.sky[0]}`, 54, 30, (g) => {
-  for (const [x, y, r] of [[15, 21, 12], [30, 15, 15], [42, 21, 10]]) pixCircle(g, x, y + 3, r, t.leaf[0]);
-  for (const [x, y, r] of [[15, 18, 9], [30, 12, 12], [42, 18, 7]]) pixCircle(g, x, y, r, t.leaf[1]);
-  pixCircle(g, 27, 9, 4, t.leaf[2]);
-});
-
-function drawBackdrop(g: CanvasRenderingContext2D, t: Theme, cam: number, top: number, side: number) {
+function drawBackdrop(g: CanvasRenderingContext2D, t: Theme, region: string, now: number, cam: number, top: number, side: number) {
+  const sc = sceneryOf(region);
   // Sky in soft pixel bands
   const bands = 10;
   const y0 = -top, y1 = GROUND - 60;
@@ -248,6 +217,7 @@ function drawBackdrop(g: CanvasRenderingContext2D, t: Theme, cam: number, top: n
     g.fillRect(-side, Math.floor(y0 + (y1 - y0) * i / bands), VIEW_W + 2 * side, Math.ceil((y1 - y0) / bands) + 1);
   }
   g.fillStyle = t.sky[1]; g.fillRect(-side, y1, VIEW_W + 2 * side, GROUND - y1);
+  drawSky(g, region, now, cam, top, side, VIEW_W);
   // Clouds drifting slowly
   const nClouds = Math.max(8, Math.ceil((VIEW_W + 2 * side) / 60));
   for (let i = 0; i < nClouds; i++) {
@@ -258,6 +228,8 @@ function drawBackdrop(g: CanvasRenderingContext2D, t: Theme, cam: number, top: n
   }
   // Two rows of hills
   for (const [k, speed, base, amp] of [[0, 0.25, 150, 34], [1, 0.45, 90, 22]] as const) {
+    if (k === 0 && !sc.farHills) continue;
+    if (k === 1) drawFar(g, region, now, cam, side, VIEW_W);
     g.fillStyle = t.hills[k];
     for (let x = -side - (side % U); x < VIEW_W + side; x += U) {
       const wx = x + cam * speed;
@@ -489,9 +461,10 @@ function drawNode(g: CanvasRenderingContext2D, T: Theme, kind: NodeKind, x: numb
 }
 
 // ----- Drawing the world -----
-function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number, top = 0, side = 0, bottom = VIEW_H) {
+export function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number, top = 0, side = 0, bottom = VIEW_H) {
   const T = THEME[d.region] ?? THEME.Pocketvale;
-  drawBackdrop(g, T, cam, top, side);
+  drawBackdrop(g, T, d.region, d.t, cam, top, side);
+  const props = sceneryOf(d.region).props;
   g.save();
   const sx = d.shake > 0.2 ? (Math.random() - 0.5) * d.shake * 2 : 0, sy = d.shake > 0.2 ? (Math.random() - 0.5) * d.shake * 2 : 0;
   g.translate(-Math.round(cam) + Math.round(sx), Math.round(sy));
@@ -499,9 +472,9 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
   for (let i = 0; i < 18; i++) {
     const wx = 120 + i * 190 + Math.floor(hash(i * 7) * 80);
     if (wx < cam - side - 160 || wx > cam + VIEW_W + side + 160) continue;
-    const tr = treeArt(T, i % 2);
+    const tr = propArt(props[0], T, i % 2);
     g.drawImage(tr, Math.round((wx - tr.width / 2) / U) * U, GROUND - tr.height + 6);
-    const bu = bushArt(T);
+    const bu = propArt(props[1], T, i % 2);
     g.drawImage(bu, Math.round((wx + 70) / U) * U, GROUND - bu.height + 3);
   }
   // The boss's clearing: a banner pole marks the way in
@@ -603,7 +576,7 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
   // 🍓 Berry patches on the high ledges (a bush with berries; bare once eaten)
   for (const b of d.treats) {
     if (b.x < cam - side - 30 || b.x > cam + VIEW_W + side + 30) continue;
-    const bu = bushArt(T);
+    const bu = propArt('bush', T, 0);
     g.drawImage(bu, Math.round((b.x - bu.width / 2) / U) * U, b.y - bu.height + 3);
     if (!b.got) {
       const bob = Math.round(Math.sin(d.t / 350 + b.x) * 2);
@@ -704,11 +677,12 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
     }
     if (!strong) { const c = sprite('🎐', 18); g.drawImage(c, d.hero.x - 9, d.hero.y - HERO_H - 40 + Math.sin(d.t / 60) * 2); }
   }
+  drawAtmos(g, d.region, d.t, cam, top, side, bottom, VIEW_W);
   // 🌫️ Fog: you only see what's close (Lunaria)
   if (d.hz.includes('fog')) {
     const hx = d.hero.x, hy = d.hero.y - HERO_H / 2;
     const fog = g.createRadialGradient(hx, hy, 90, hx, hy, 300);
-    fog.addColorStop(0, 'rgba(203,213,225,0)'); fog.addColorStop(0.55, 'rgba(203,213,225,0.55)'); fog.addColorStop(1, 'rgba(203,213,225,0.9)');
+    fog.addColorStop(0, 'rgba(110,124,160,0)'); fog.addColorStop(0.55, 'rgba(110,124,160,0.6)'); fog.addColorStop(1, 'rgba(82,94,128,0.92)');
     g.fillStyle = fog; g.fillRect(cam - side - 60, -top - 60, VIEW_W + 2 * side + 120, bottom + top + 120);
   }
   // Damage numbers (MapleStory-style)
