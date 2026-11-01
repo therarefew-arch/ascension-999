@@ -68,7 +68,13 @@ export interface Dungeon {
   parts: Part[]; freeze: number; shake: number; combo: number; comboT: number;
   banner: { text: string; sub: string; t: number } | null; bossSeen: boolean;
   queue: QueuedHit[];
+  /** 🍓 Wild berry patches on the highest ledges: walk into one to heal. */
+  treats: { x: number; y: number; got: boolean }[];
 }
+/** Ledges go up to this many rows above the ground. */
+export const MAX_ROW = 5;
+/** How much a 🍓 berry patch heals (share of max health). */
+export const BERRY_HEAL = 0.2;
 
 // ----- Skills (the skill book) -----
 export interface SkillDef { id: string; name: string; emoji: string; style: CombatStyle | 'defense'; level: number; cdMs: number; text: string }
@@ -143,7 +149,7 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
     region, style, worldW: 0, arenaX: 0, plats: [], mobs: [], shots: [], pops: [], fx: [], hit,
     hero: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp, maxHp: hp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0 },
     cd: {}, bar: bar.slice(0, BAR_SIZE), snacks: SNACKS, kills: 0, t: 0, phase: 'play', jumpHeld: false, rs: seed, nextId: 1, bossId: boss.id,
-    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false, queue: [],
+    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false, queue: [], treats: [],
   };
   // The path: ground all the way, and floating ledges at three heights.
   const pathEnd = 2700;
@@ -155,8 +161,38 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
     const row = 1 + Math.floor(rand(d) * 2);
     d.plats.push({ x1: x, x2: x + w, y: GROUND - row * ROW_GAP });
     if (row === 1 && rand(d) < 0.5) d.plats.push({ x1: x + 40, x2: x + w + 60, y: GROUND - 2 * ROW_GAP });
-    if (rand(d) < 0.3) d.plats.push({ x1: x + w / 2, x2: x + w / 2 + 130, y: GROUND - 3 * ROW_GAP });
-    x += w + 90 + Math.floor(rand(d) * 120);
+    let top: Plat = d.plats[d.plats.length - 1];
+    if (rand(d) < 0.3) { top = { x1: x + w / 2, x2: x + w / 2 + 130, y: GROUND - 3 * ROW_GAP }; d.plats.push(top); }
+    let far = x + w;
+    // ⛰️ Climbs into the sky (v0.0.1.73, owner: "we have all this free space… we can expand the game"):
+    // a staircase of ledges up to 5 rows high, with a 🍓 wild berry patch waiting on the top step.
+    if (rand(d) < 0.5) {
+      let row = Math.round((GROUND - top.y) / ROW_GAP);
+      let prev = top;
+      while (row < MAX_ROW && (row < 3 || rand(d) < 0.7) && prev.x2 < pathEnd - 320) {
+        row++;
+        const sw = 110 + Math.floor(rand(d) * 50);
+        const shift = (rand(d) < 0.5 ? -1 : 1) * (60 + Math.floor(rand(d) * 30));
+        const x1 = Math.max(prev.x1 - sw + 50, Math.min(prev.x2 - 50, prev.x1 + shift));
+        prev = { x1, x2: x1 + sw, y: GROUND - row * ROW_GAP };
+        d.plats.push(prev);
+        far = Math.max(far, prev.x2);
+      }
+      if (row >= 3) d.treats.push({ x: (prev.x1 + prev.x2) / 2, y: prev.y, got: false });
+    }
+    x = Math.max(x + w, far) + 90 + Math.floor(rand(d) * 120);
+  }
+  // Keep the boss's clearing open: trim ledges that poke into it.
+  d.plats = d.plats.filter((pl) => pl.y >= GROUND || pl.x1 < d.arenaX - 100);
+  for (const pl of d.plats) if (pl.y < GROUND) pl.x2 = Math.min(pl.x2, d.arenaX - 20);
+  // Every ledge can be reached: one above the first row needs a ledge just below it to jump from,
+  // so add little stepping stones wherever one is missing (lowest rows first).
+  const rowOf = (pl: Plat) => Math.round((GROUND - pl.y) / ROW_GAP);
+  for (let r = 2; r <= MAX_ROW; r++) {
+    for (const pl of d.plats.filter((q) => rowOf(q) === r)) {
+      const ok = d.plats.some((q) => rowOf(q) === r - 1 && Math.min(q.x2, pl.x2) - Math.max(q.x1, pl.x1) >= 30);
+      if (!ok) d.plats.push({ x1: pl.x1 - 60, x2: pl.x1 + 40, y: GROUND - (r - 1) * ROW_GAP });
+    }
   }
   // Monsters along the way — the further you go, the tougher they get.
   const spawn = (def: MonsterDef, x: number, plat: Plat, rank: number) => {
@@ -434,6 +470,17 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   }
   if (h.y > GROUND) { h.y = GROUND; h.vy = 0; h.onGround = true; }
   if (h.onGround && falling > 0.35) burst(d, h.x, h.y, 6, ['#ffffff', '#e7e5e4'], 0.09, -0.00005, 4, 400);
+  // 🍓 A berry patch up high
+  for (const b of d.treats) {
+    if (!b.got && Math.abs(b.x - h.x) < 20 && Math.abs(b.y - h.y) < 30) {
+      b.got = true;
+      const heal = Math.min(h.maxHp - h.hp, Math.round(h.maxHp * BERRY_HEAL));
+      h.hp += heal;
+      pop(d, h.x, h.y - HERO_H - 8, heal > 0 ? `+${heal.toLocaleString()}` : 'Yum!', heal > 0 ? 'heal' : 'info');
+      burst(d, b.x, b.y - 10, 10, ['#f43f5e', '#fda4af', '#4ade80'], 0.16, 0.0005, 3, 500);
+      sounds.push('eat');
+    }
+  }
   // 👑 Entering the boss's clearing
   if (!d.bossSeen && h.x > d.arenaX - 20) { d.bossSeen = true; d.banner = { text: MONSTER_MAP[d.bossId].name, sub: '👑 Boss', t: 0 }; sounds.push('creak'); }
 

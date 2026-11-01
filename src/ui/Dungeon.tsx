@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import { sound } from '../audio/sound';
 import { musicFor, type SoundKey } from '../audio/soundList';
 import {
-  BAR_SIZE, bossDef, bossOf, defaultBar, eatSnack, GROUND, newDungeon, pathProgress, SKILL_MAP, SKILLS, step, castSkill, VIEW_H, VIEW_W,
+  BAR_SIZE, HERO_H, bossDef, bossOf, defaultBar, eatSnack, GROUND, newDungeon, pathProgress, SKILL_MAP, SKILLS, step, castSkill, VIEW_H, VIEW_W,
   whyCantUseSkill, type Dungeon as Run, type Input,
 } from '../core/dungeon';
 import { AREAS } from '../core/expedition';
@@ -166,7 +166,7 @@ const POP_STYLE = {
 } as const;
 const SOUND_OF: Record<string, [SoundKey, number]> = {
   jump: ['whoosh', 1.4], hit: ['hit', 1], whoosh: ['whoosh', 1], boom: ['boom', 1], shing: ['shing', 1], rune: ['rune', 1], ignite: ['ignite', 1],
-  enchant: ['enchant', 1], block: ['block', 1], levelup: ['levelup', 1], tick: ['tick', 1.2], hurt: ['hurt', 1], creak: ['creak', 0.8],
+  enchant: ['enchant', 1], block: ['block', 1], levelup: ['levelup', 1], tick: ['tick', 1.2], hurt: ['hurt', 1], creak: ['creak', 0.8], eat: ['eat', 1.1],
 };
 const playSound = (k: string) => { const s = SOUND_OF[k]; if (s) sound.play(s[0], { rate: s[1] * (0.95 + Math.random() * 0.1), volume: 0.7 }); };
 
@@ -370,10 +370,10 @@ const WEATHER: Record<string, { n: number; c: string[]; vx: number; vy: number; 
   'Celestine Spires': { n: 12, c: ['#ffffff', '#f0f9ff'], vx: -0.02, vy: 0.008, s: 3, sway: 16 },
   'Primordial Rift': { n: 18, c: ['#bef264', '#86efac', '#fef9c3'], vx: 0.004, vy: -0.01, s: 3, glow: true, sway: 12 },
 };
-function drawWeather(g: CanvasRenderingContext2D, region: string, t: number, cam: number, top: number, side: number) {
+function drawWeather(g: CanvasRenderingContext2D, region: string, t: number, cam: number, top: number, side: number, bottom = VIEW_H) {
   const W = WEATHER[region];
   if (!W) return;
-  const spanX = VIEW_W + 2 * side + 40, spanY = VIEW_H + top;
+  const spanX = VIEW_W + 2 * side + 40, spanY = bottom + top;
   for (let i = 0; i < W.n; i++) {
     const sp = 0.6 + hash(i * 9.1) * 0.8;
     let x = hash(i) * spanX + t * W.vx * sp - cam * (0.3 + hash(i * 2.3) * 0.5) + Math.sin(t / 900 + i) * (W.sway ?? 0);
@@ -407,7 +407,7 @@ function drawHeroOutlined(g: CanvasRenderingContext2D, look: Look, x: number, y:
 }
 
 // ----- Drawing the world -----
-function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number, top = 0, side = 0) {
+function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number, top = 0, side = 0, bottom = VIEW_H) {
   const T = THEME[d.region] ?? THEME.Pocketvale;
   drawBackdrop(g, T, cam, top, side);
   g.save();
@@ -429,9 +429,23 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
   pixCircle(g, d.arenaX, GROUND - 123, 4, '#fde68a');
   // Ground and ledges
   for (const pl of d.plats) {
-    if (pl.y >= GROUND) { drawGround(g, T, cam - 12 - side, cam + VIEW_W + 12 + side, GROUND, VIEW_H); continue; }
+    if (pl.y >= GROUND) { drawGround(g, T, cam - 12 - side, cam + VIEW_W + 12 + side, GROUND, Math.max(VIEW_H, bottom + 4)); continue; }
     if (pl.x2 < cam - 20 || pl.x1 > cam + VIEW_W + 20) continue;
     drawLedge(g, T, pl.x1, pl.x2, pl.y);
+  }
+  // 🍓 Berry patches on the high ledges (a bush with berries; bare once eaten)
+  for (const b of d.treats) {
+    if (b.x < cam - 30 || b.x > cam + VIEW_W + 30) continue;
+    const bu = bushArt(T);
+    g.drawImage(bu, Math.round((b.x - bu.width / 2) / U) * U, b.y - bu.height + 3);
+    if (!b.got) {
+      const bob = Math.round(Math.sin(d.t / 350 + b.x) * 2);
+      g.globalAlpha = 0.35 + 0.2 * Math.sin(d.t / 260);
+      g.fillStyle = '#fde68a'; g.beginPath(); g.arc(b.x, b.y - 24 + bob, 13, 0, Math.PI * 2); g.fill();
+      g.globalAlpha = 1;
+      const s = sprite('🍓', 18);
+      g.drawImage(s, b.x - s.width / 2, b.y - 24 + bob - s.height / 2);
+    }
   }
   // Monsters
   for (const m of d.mobs) {
@@ -530,7 +544,7 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
   }
   g.globalAlpha = 1;
   g.restore();
-  drawWeather(g, d.region, d.t, cam, top, side);
+  drawWeather(g, d.region, d.t, cam, top, side, bottom);
 }
 
 // ----- The screen -----
@@ -559,6 +573,8 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
   const input = useRef<Input>({ left: false, right: false, jump: false, attack: false, down: false });
   const look = useRef(lookOf(player));
   const root = useRef<HTMLDivElement>(null);
+  const controls = useRef<HTMLDivElement>(null);
+  const camY = useRef<number | null>(null);
   useNoScroll(root);
 
   useEffect(() => {
@@ -586,17 +602,23 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
       if (c) {
         const g = c.getContext('2d')!;
         const cam = Math.max(0, Math.min(run.worldW - VIEW_W, run.hero.x - VIEW_W * 0.4));
-        // Fill the whole screen: fit the 360-wide world to the width, ground near the bottom, extra sky on top.
+        // Fill the whole screen: fit the 360-wide world to the width. v0.0.1.73: the ground sits on top of the
+        // controls strip (so buttons sit on the dirt, not over the fight), and the camera rises when you climb.
         const dpr = Math.min(2, window.devicePixelRatio || 1);
         const cw = c.clientWidth, ch = c.clientHeight;
         if (c.width !== Math.round(cw * dpr) || c.height !== Math.round(ch * dpr)) { c.width = Math.round(cw * dpr); c.height = Math.round(ch * dpr); }
-        const sc = Math.min(cw / VIEW_W, ch / VIEW_H) * dpr;
-        const ox = (c.width - VIEW_W * sc) / 2, oy = c.height - VIEW_H * sc;
+        const sc = Math.min(cw / VIEW_W, ch / 520) * dpr;
+        const band = controls.current?.offsetHeight ?? 240;
+        const groundAt = ((ch - band) * dpr) / sc; // logical px from the top of the screen to the ground
+        const restY = GROUND - groundAt;
+        const want = Math.min(restY, run.hero.y - HERO_H - (150 * dpr) / sc);
+        camY.current = camY.current === null ? want : camY.current + (want - camY.current) * Math.min(1, dt * 0.006);
+        const ox = (c.width - VIEW_W * sc) / 2, oy = -camY.current * sc;
         g.setTransform(1, 0, 0, 1, 0, 0);
         g.fillStyle = '#0f172a'; g.fillRect(0, 0, c.width, c.height);
         g.setTransform(sc, 0, 0, sc, ox, oy);
         g.imageSmoothingEnabled = false;
-        drawWorld(g, run, look.current, cam, oy / sc, ox / sc);
+        drawWorld(g, run, look.current, cam, oy / sc, ox / sc, camY.current + c.height / sc);
       }
       if (now - hudAt > 120) { hudAt = now; setTick((n) => n + 1); }
       schedule();
@@ -635,7 +657,7 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
     const s = castSkill(run, i);
     if (s) playSound(s); else sound.play('tick', { rate: 0.7, volume: 0.4 });
   };
-  const again = () => { sound.play('click'); look.current = lookOf(game.player()); setRun(newDungeon(game.player(), region, bar)); };
+  const again = () => { sound.play('click'); look.current = lookOf(game.player()); camY.current = null; setRun(newDungeon(game.player(), region, bar)); };
   const saveBar = (b: (string | null)[]) => { setBar(b); writeBar(slot, b); run.bar = b; };
 
   const h = run.hero;
@@ -647,6 +669,7 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
       <canvas ref={canvas} className="dg-canvas" />
       <div className="dg-hud">
         <div className="dg-hp"><div style={{ width: `${(100 * h.hp) / h.maxHp}%` }} /><span className="mono">{Math.max(0, Math.round(h.hp)).toLocaleString()} / {h.maxHp.toLocaleString()}</span></div>
+        <button className="dg-icon snack" disabled={run.snacks <= 0} onClick={() => { if (eatSnack(run)) sound.play('eat'); else sound.play('error', { volume: 0.5 }); }} aria-label={`Snack (${run.snacks} left)`}>🍖<span className="dg-n">{run.snacks}</span></button>
         <button className="dg-icon" onClick={() => { sound.play('click'); setBook(true); }} aria-label="Skill book">📖</button>
         <button className="dg-icon" onClick={() => { sound.play('click'); onClose(); }} aria-label="Leave">✕</button>
       </div>
@@ -668,28 +691,23 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
         );
       })()}
       {run.combo >= 3 && <div key={run.combo} className="dg-combo"><b>{run.combo}</b><span>HITS</span></div>}
-      <div className="dg-controls">
-        <div className="dg-pad">
-          <Thumbstick input={input} />
-          <button className="dg-btn small snack" disabled={run.snacks <= 0} onClick={() => { if (eatSnack(run)) sound.play('eat'); else sound.play('error', { volume: 0.5 }); }} aria-label={`Snack (${run.snacks} left)`}>🍖<span className="dg-n">{run.snacks}</span></button>
-        </div>
+      {/* v0.0.1.73 (owner: "the controls are too close together"): a strip of its own along the bottom — the stick
+          answers anywhere on the left, and the skill bubbles sit in a curve around Attack with room between them. */}
+      <div className="dg-controls" ref={controls}>
+        <Thumbstick input={input} />
         <div className="dg-act">
-          <div className="dg-skills">
             {bar.map((id, i) => {
               const s = id ? SKILL_MAP[id] : null;
               const cd = id ? (run.cd[id] ?? 0) : 0;
               return (
-                <button key={i} className={`dg-skill ${s ? '' : 'empty'}`} onPointerDown={(e) => { e.preventDefault(); if (s) skill(i); else { sound.play('click'); setBook(true); } }} aria-label={s ? s.name : 'Empty skill bubble'}
+                <button key={i} className={`dg-skill s${i} ${s ? '' : 'empty'}`} onPointerDown={(e) => { e.preventDefault(); if (s) skill(i); else { sound.play('click'); setBook(true); } }} aria-label={s ? s.name : 'Empty skill bubble'}
                   style={{ ['--cd' as string]: s && cd > 0 ? `${(cd / s.cdMs) * 360}deg` : '0deg' }}>
                   <span>{s ? s.emoji : '+'}</span>
                 </button>
               );
             })}
-          </div>
-          <div className="dg-main">
-            <button className="dg-btn jump" {...hold('jump', 'whoosh')} aria-label="Jump">⤒</button>
-            <button className="dg-btn attack" {...hold('attack')} aria-label="Attack">{run.style === 'ranged' ? '🏹' : run.style === 'magic' ? '🪄' : '⚔️'}</button>
-          </div>
+          <button className="dg-btn jump" {...hold('jump', 'whoosh')} aria-label="Jump">⤒</button>
+          <button className="dg-btn attack" {...hold('attack')} aria-label="Attack">{run.style === 'ranged' ? '🏹' : run.style === 'magic' ? '🪄' : '⚔️'}</button>
         </div>
       </div>
 
@@ -713,9 +731,12 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
 // ----- 🕹️ Thumbstick (owner's wish, v0.0.1.71): drag sideways to walk (a small tilt walks slowly),
 // pull down to drop through a ledge with Jump. It follows your thumb wherever you first touch inside it.
 const STICK_R = 46;
+// v0.0.1.73: the whole left part of the controls strip is the stick's touch area — the stick appears where your
+// thumb lands, so you can't miss it.
 function Thumbstick({ input }: { input: React.MutableRefObject<Input> }) {
-  const base = useRef<HTMLDivElement>(null);
+  const zone = useRef<HTMLDivElement>(null);
   const [knob, setKnob] = useState<{ x: number; y: number } | null>(null);
+  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   const centre = useRef({ x: 0, y: 0 });
   const down = useRef(false);
   const set = (dx: number, dy: number) => {
@@ -731,22 +752,29 @@ function Thumbstick({ input }: { input: React.MutableRefObject<Input> }) {
     input.current.right = mx > 0;
     input.current.down = y / STICK_R > 0.55;
   };
-  const end = () => { down.current = false; setKnob(null); input.current.moveX = 0; input.current.left = false; input.current.right = false; input.current.down = false; };
+  const end = () => { down.current = false; setKnob(null); setAt(null); input.current.moveX = 0; input.current.left = false; input.current.right = false; input.current.down = false; };
   return (
-    <div ref={base} className={`dg-stick ${knob ? 'on' : ''}`} role="slider" aria-label="Move: drag left or right, down to drop through a ledge" aria-valuenow={Math.round((knob?.x ?? 0) / STICK_R * 100)}
+    <div ref={zone} className="dg-stickzone" role="slider" aria-label="Move: drag left or right, down to drop through a ledge" aria-valuenow={Math.round((knob?.x ?? 0) / STICK_R * 100)}
       onPointerDown={(e) => {
         e.preventDefault();
         try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* keep going without capture */ }
-        const r = base.current!.getBoundingClientRect();
-        centre.current = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        const r = zone.current!.getBoundingClientRect();
+        // Keep the ring fully on screen, even if the touch lands near an edge.
+        const pad = STICK_R + 14;
+        const x = Math.max(pad, Math.min(r.width - pad, e.clientX - r.left));
+        const y = Math.max(pad, Math.min(r.height - pad, e.clientY - r.top));
+        centre.current = { x: r.left + x, y: r.top + y };
+        setAt({ x, y });
         down.current = true;
         sound.play('tick', { volume: 0.35, rate: 1.3 });
         set(e.clientX - centre.current.x, e.clientY - centre.current.y);
       }}
       onPointerMove={(e) => { if (down.current) set(e.clientX - centre.current.x, e.clientY - centre.current.y); }}
       onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end}>
-      <span className="dg-stick-arrows" aria-hidden>‹ ›</span>
-      <span className="dg-stick-knob" style={{ transform: `translate(${knob?.x ?? 0}px, ${knob?.y ?? 0}px)` }} />
+      <div className={`dg-stick ${knob ? 'on' : ''}`} style={at ? { left: at.x, top: at.y, bottom: 'auto' } : undefined}>
+        <span className="dg-stick-arrows" aria-hidden>‹ ›</span>
+        <span className="dg-stick-knob" style={{ transform: `translate(${knob?.x ?? 0}px, ${knob?.y ?? 0}px)` }} />
+      </div>
     </div>
   );
 }
