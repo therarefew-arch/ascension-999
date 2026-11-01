@@ -33,6 +33,9 @@ export const MAX_TARGETS = 6;
 export const SNACKS = 3;
 /** v0.0.1.77 boss fix: the boss's touch and slam hurt less in the extraction dungeon (owner: "does a lot of damage"). */
 export const BOSS_TOUCH = 0.65;
+/** v0.0.1.81 (owner: "ease the monster damage"): how hard dungeon monsters hit, their spit, the boss and the town's
+ * hazards all scale with this. Kept in an object so balance tests can try other values. */
+export const TUNE = { hurt: 0.6 };
 export const BOSS_SLAM = 1.7;
 /** 🏰 Rewards (v0.0.1.76): XP per monster, in seconds of the town's gathering XP — paced for fast real-time
  * fights (a 2-minute run ≈ normal fighting; quick runs a little better). Each monster also rolls its own loot. */
@@ -55,6 +58,8 @@ export interface Mob {
   windT?: number; vy?: number;
   /** 💀 A tougher lair monster. */
   elite?: boolean;
+  /** Pausing after bumping into you (ms). */
+  restT?: number;
 }
 export interface Shot { x: number; y: number; vx: number; vy: number; dmg: number; mine: boolean; pierce: boolean; kind: 'arrow' | 'bolt' | 'fire' | 'spit'; ttl: number; hit: number[]; mult?: number; blast?: boolean; hits?: number; target?: number }
 export interface Pop { x: number; y: number; text: string; t: number; kind: 'hit' | 'crit' | 'hurt' | 'heal' | 'info'; mob?: number; stack?: number }
@@ -190,7 +195,7 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
     const even = rawPower(p, { ...m, style }, ammo);
     const you = { hit: Math.sqrt(edge.hit * even.hit), hurt: Math.sqrt(edge.hurt * even.hurt) };
     hit[m.id] = Math.max(1, you.hit * (ATTACK_MS[style] / TURN_MS));
-    touch[m.id] = fair[m.id].hurt * 1.4 * Math.min(3, Math.max(0.35, you.hurt / fair[m.id].rawHurt));
+    touch[m.id] = fair[m.id].hurt * 1.4 * Math.min(3, Math.max(0.35, you.hurt / fair[m.id].rawHurt)) * TUNE.hurt;
   }
   const hp = maxHp(p);
   const d: Dungeon = {
@@ -718,7 +723,9 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
     const dx = h.x - m.x;
     const sameRow = Math.abs(h.y - m.y) < 40;
     const near = Math.abs(dx) < (m.boss ? 420 : 200) && (sameRow || m.boss);
+    if (m.restT) m.restT = Math.max(0, m.restT - dt);
     if (m.boss && h.x < d.arenaX) { /* waits in its clearing */ }
+    else if (m.restT) { /* catching its breath after bumping into you */ }
     else if (near && m.hitT <= 0) { m.dir = dx > 0 ? 1 : -1; m.x += m.dir * m.speed * 1.4 * dt; }
     else if (m.hitT <= 0) {
       m.x += m.dir * m.speed * dt;
@@ -726,7 +733,9 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
     }
     m.x = Math.max(m.min, Math.min(m.max, m.x));
     // Touch
-    if (overlap(heroBox(h), mobBox(m)) && h.dashT <= 0) { if (h.invT <= 0) sounds.push('hurt'); hurtHero(d, m.touch, m.x); }
+    // After bumping into you a monster pauses a moment (v0.0.1.81) — a window to hit back or slip past, so you
+    // can't get pinned in a corner.
+    if (overlap(heroBox(h), mobBox(m)) && h.dashT <= 0) { if (h.invT <= 0) { sounds.push('hurt'); hurtHero(d, m.touch, m.x); if (d.room) m.restT = m.boss ? 900 : 700; } }
     // Spit from the ranged and magic ones — calmed down in v0.0.1.72 (owner: "their attacks become like a
     // bullet hell"): only from your own row and close by, a glow first, no more than 2 flying at once
     // (the boss gets 1 of its own), and your swings/shots can pop them.
