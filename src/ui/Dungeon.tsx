@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import { sound } from '../audio/sound';
 import { musicFor, type SoundKey } from '../audio/soundList';
 import {
-  BAR_SIZE, FALL_WARN, HARVEST_MS, VENT, HERO_H, NODE_KINDS, type NodeKind, bossDef, bossOf, defaultBar, eatSnack, GROUND, newDungeon, pathProgress, SKILL_MAP, SKILLS, step, castSkill, VIEW_H, VIEW_W,
+  BAR_SIZE, FALL_WARN, HARVEST_MS, VENT, HERO_H, NODE_KINDS, type NodeKind, bossDef, bossOf, defaultBar, eatSnack, GROUND, newDungeon, pathProgress, SKILL_MAP, SKILLS, step, castSkill, VIEW_H, VIEW_W, BUFF_EMOJI, type Buff,
   whyCantUseSkill, type Dungeon as Run, type Input,
 } from '../core/dungeon';
 import { AREAS, townBoss, type Run as ExRun } from '../core/expedition';
@@ -606,6 +606,8 @@ export function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: 
     if (!living) { const q = 1 - m.dead / 500; g.globalAlpha = Math.max(0, m.dead / 500); g.scale(1 + q * 0.5, 1 - q * 0.4); }
     g.drawImage(s, Math.round(-s.width * k / 2), -s.height * k, s.width * k, s.height * k);
     g.restore();
+    if (living && (m.frozeT ?? 0) > 0) { g.fillStyle = 'rgba(186,230,253,0.45)'; g.fillRect(m.x - m.w / 2 - 3, m.y - m.h - 3 + float, m.w + 6, m.h + 6); g.strokeStyle = '#e0f2fe'; g.lineWidth = 2; g.strokeRect(m.x - m.w / 2 - 3, m.y - m.h - 3 + float, m.w + 6, m.h + 6); }
+    else if (living && (m.slowT ?? 0) > 0) { const sn = sprite('🐌', 11); g.drawImage(sn, m.x - sn.width / 2, m.y - m.h - 26 + float); }
     if (m.boss && living) { const crown = sprite('👑', 22); g.drawImage(crown, m.x - crown.width / 2, m.y + float - s.height * k - 26 + Math.sin(d.t / 300) * 3); }
     if (living && (m.windT ?? 0) > 0) {
       // About to spit: a green glow swells at its mouth so you can see it coming
@@ -625,12 +627,27 @@ export function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: 
   // Shots
   for (const s of d.shots) {
     if (s.kind === 'arrow') { const sp = Math.hypot(s.vx, s.vy) || 1; g.strokeStyle = '#e7e5e4'; g.lineWidth = 2; g.beginPath(); g.moveTo(s.x - (s.vx / sp) * 14, s.y - (s.vy / sp) * 14); g.lineTo(s.x, s.y); g.stroke(); g.fillStyle = '#a8a29e'; g.fillRect(s.x - 2, s.y - 2, 4, 4); }
+    else if (s.kind === 'wave') {
+      const dir = Math.sign(s.vx) || 1;
+      g.globalAlpha = Math.min(1, s.ttl / 200);
+      for (let i = 0; i < 3; i++) { g.strokeStyle = i ? '#fde68a' : '#fff7e0'; g.lineWidth = 6 - i * 2; g.beginPath(); g.arc(s.x - dir * (10 + i * 10), s.y, 22 - i * 3, dir > 0 ? -1.2 : Math.PI - 1.2 + 0.0, dir > 0 ? 1.2 : Math.PI + 1.2); g.stroke(); }
+      g.globalAlpha = 1;
+    }
     else { g.fillStyle = s.kind === 'fire' ? '#f97316' : s.kind === 'spit' ? '#a3e635' : look.orb; g.beginPath(); g.arc(s.x, s.y, s.kind === 'fire' ? 8 : 5, 0, Math.PI * 2); g.fill(); }
   }
   // Hero (with a little shadow at its feet)
   const h = d.hero;
   g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(h.x, (h.onGround ? h.y : Math.min(GROUND, h.y + 60)) + 1, 14, 4, 0, 0, Math.PI * 2); g.fill();
   drawHeroOutlined(g, look, h.x, h.y, h.face, { walk: h.walkT, atk: h.atkT / 240, air: !h.onGround, blink: h.invT > 0 && Math.floor(d.t / 90) % 2 === 0, iron: h.ironT > 0, t: d.t });
+  // ✨ Active skill buffs float over your head
+  const buffs = (Object.keys(h.bf ?? {}) as Buff[]).filter((b) => (h.bf[b] ?? 0) > 0);
+  buffs.forEach((b, i) => {
+    const ic = sprite(BUFF_EMOJI[b], 13);
+    const left = (h.bf[b] ?? 0) < 1500 && Math.floor(d.t / 150) % 2 === 0;
+    g.globalAlpha = left ? 0.35 : 1;
+    g.drawImage(ic, Math.round(h.x - (buffs.length * 17) / 2 + i * 17), Math.round(h.y - HERO_H - 34 + Math.sin(d.t / 300 + i) * 1.5));
+  });
+  g.globalAlpha = 1;
   // Effects
   for (const f of d.fx) {
     const k = Math.max(0, f.t) / 400;
@@ -652,8 +669,24 @@ export function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: 
     }
     else if (f.kind === 'spin') { g.strokeStyle = '#e0f2fe'; g.lineWidth = 3; g.beginPath(); g.arc(f.x, f.y, (f.w ?? 70) * (0.6 + k * 0.4), 0, Math.PI * 2); g.stroke(); }
     else if (f.kind === 'boom') { g.fillStyle = '#fb923c'; g.beginPath(); g.arc(f.x, f.y, (f.w ?? 80) * (0.3 + k * 0.7), 0, Math.PI * 2); g.fill(); }
-    else if (f.kind === 'zap') { g.strokeStyle = '#fef08a'; g.lineWidth = 3; g.beginPath(); g.moveTo(f.x, f.y); g.lineTo((f.x + f.x2!) / 2 + 8, (f.y + f.y2!) / 2 - 10); g.lineTo(f.x2!, f.y2!); g.stroke(); }
-    else if (f.kind === 'rain' && f.t >= 0) { g.strokeStyle = '#e7e5e4'; g.lineWidth = 2; for (let i = 0; i < 9; i++) { const ax = f.x - (f.w ?? 150) / 2 + i * 18; g.beginPath(); g.moveTo(ax, GROUND - 90 + k * 80); g.lineTo(ax - 4, GROUND - 74 + k * 80); g.stroke(); } }
+    else if (f.kind === 'nova') {
+      const r = (f.w ?? 120) * (0.25 + k * 0.75);
+      g.strokeStyle = f.c ?? '#e0f2fe'; g.lineWidth = 6 * (1 - k) + 2; g.beginPath(); g.arc(f.x, f.y, r, 0, Math.PI * 2); g.stroke();
+      g.globalAlpha = (1 - k) * 0.18; g.fillStyle = f.c ?? '#e0f2fe'; g.beginPath(); g.arc(f.x, f.y, r, 0, Math.PI * 2); g.fill();
+    }
+    else if (f.kind === 'meteor') {
+      if (f.t < 0) {
+        const p = Math.max(0, 1 + f.t / 600);
+        const mx = f.x + 140 * (1 - p), my = f.y - 30 - 340 * (1 - p);
+        g.fillStyle = 'rgba(251,146,60,0.35)'; g.beginPath(); g.arc(f.x, f.y, 14 + p * 40, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = 'rgba(253,230,138,0.7)'; g.lineWidth = 8; g.beginPath(); g.moveTo(mx, my); g.lineTo(mx + 40, my - 70); g.stroke();
+        g.fillStyle = '#7c2d12'; g.beginPath(); g.arc(mx, my, 15, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#fb923c'; g.beginPath(); g.arc(mx - 3, my - 3, 9, 0, Math.PI * 2); g.fill();
+      } else { g.fillStyle = '#fb923c'; g.beginPath(); g.arc(f.x, f.y - 20, (f.w ?? 130) * 0.6 * (0.3 + k * 0.7), 0, Math.PI * 2); g.fill(); }
+    }
+    else if (f.kind === 'zap' && f.t < 0) { /* not yet */ }
+    else if (f.kind === 'zap') { g.strokeStyle = f.c ?? '#fef08a'; g.lineWidth = 3; g.beginPath(); g.moveTo(f.x, f.y); g.lineTo((f.x + f.x2!) / 2 + 8, (f.y + f.y2!) / 2 - 10); g.lineTo(f.x2!, f.y2!); g.stroke(); }
+    else if (f.kind === 'rain' && f.t >= 0) { g.strokeStyle = f.c ?? '#e7e5e4'; g.lineWidth = 2; for (let i = 0; i < 9; i++) { const ax = f.x - (f.w ?? 150) / 2 + i * 18; g.beginPath(); g.moveTo(ax, GROUND - 90 + k * 80); g.lineTo(ax - 4, GROUND - 74 + k * 80); g.stroke(); } }
     else if (f.kind === 'slam') { g.strokeStyle = '#f87171'; g.lineWidth = 5; g.beginPath(); g.ellipse(f.x, f.y, (f.w ?? 300) / 2 * (0.4 + k * 0.6), 16, 0, 0, Math.PI * 2); g.stroke(); }
     g.globalAlpha = 1;
   }
@@ -1292,10 +1325,11 @@ function Thumbstick({ input }: { input: React.MutableRefObject<Input> }) {
 }
 
 // ----- 📖 The skill book: drag 3 skills onto your bubbles -----
-function SkillBook({ player, bar, onBar, style, onClose }: { player: PlayerState; bar: (string | null)[]; onBar: (b: (string | null)[]) => void; style: CombatStyle; onClose: () => void }) {
+export function SkillBook({ player, bar, onBar, style, onClose }: { player: PlayerState; bar: (string | null)[]; onBar: (b: (string | null)[]) => void; style: CombatStyle; onClose: () => void }) {
   const [drag, setDrag] = useState<{ id: string; x: number; y: number; sx: number; sy: number } | null>(null);
   const moved = !!drag && Math.hypot(drag.x - drag.sx, drag.y - drag.sy) > 8;
   const [picked, setPicked] = useState<string | null>(null);
+  const [tab, setTab] = useState<CombatStyle | 'defense'>(style);
   const place = (i: number, id: string) => {
     const b = bar.map((x) => (x === id ? null : x));
     b[i] = id;
@@ -1334,17 +1368,22 @@ function SkillBook({ player, bar, onBar, style, onClose }: { player: PlayerState
         </div>
         {/* Sideways the cards are compact (no text), so the chosen skill's text shows here instead. */}
         <p className="tiny dg-book-info">{picked ? <><b>{SKILL_MAP[picked].emoji} {SKILL_MAP[picked].name}:</b> {SKILL_MAP[picked].text} Now tap a bubble.</> : 'Tap a skill to read it, then tap a bubble (or drag it onto one).'}</p>
+        <div className="dg-book-tabs">
+          {groups.map(([g, label]) => {
+            const open = SKILLS.filter((s) => s.style === g && !whyCantUseSkill(player, s.id)).length;
+            return <button key={g} className={`dg-book-tab ${tab === g ? 'on' : ''}`} onClick={() => { setTab(g); sound.play('card', { volume: 0.4 }); }}>{label} <span className="mono tiny muted">{open}/{SKILLS.filter((s) => s.style === g).length}</span></button>;
+          })}
+        </div>
         <div className="dg-book-list">
-          {groups.map(([g, label]) => (
-            <div key={g}>
-              <h4 className="dg-book-h">{label}</h4>
+          {groups.filter(([g]) => g === tab).map(([g]) => (
+            <div key={g} className="dg-book-grid">
               {SKILLS.filter((s) => s.style === g).map((s) => {
                 const why = whyCantUseSkill(player, s.id);
                 return (
                   <div key={s.id} className={`dg-card ${why ? 'locked' : ''} ${picked === s.id ? 'picked' : ''} ${bar.includes(s.id) ? 'on' : ''}`}
                     onPointerDown={(e) => { if (why) { sound.play('error', { volume: 0.4 }); return; } e.preventDefault(); sound.play('card', { volume: 0.5 }); setDrag({ id: s.id, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY }); }}
                     onClick={() => { if (!why) setPicked(picked === s.id ? null : s.id); }}>
-                    <span className="dg-card-emoji">{why ? '🔒' : s.emoji}</span>
+                    <span className="dg-card-emoji">{why ? '🔒' : s.emoji}</span>{why && <span className="dg-card-lv mono">{s.level}</span>}
                     <span className="grow"><b className="small">{s.name}</b><span className="tiny muted dg-card-text">{why ?? s.text}</span></span>
                     <span className="tiny mono muted">{(s.cdMs / 1000).toFixed(s.cdMs % 1000 ? 1 : 0)}s</span>
                   </div>

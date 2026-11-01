@@ -50,7 +50,13 @@ export interface Plat { x1: number; x2: number; y: number }
 export interface Hero {
   x: number; y: number; vx: number; vy: number; face: 1 | -1; onGround: boolean;
   hp: number; maxHp: number; atkCd: number; atkT: number; invT: number; ironT: number; dashT: number; spinT: number; walkT: number;
+  /** ✨ Skill buffs (v0.0.1.83): ms left on each. */
+  bf: Partial<Record<Buff, number>>;
 }
+/** Buffs from skills: 🔥 Blazing Blade, 📯 War Cry, 🦅 Hawk Eye, 🌿 Regrowth, 🌵 Thorns, 🤺 Parry, 👼 Guardian Spirit,
+ * 🩸 Life Leech, 🏰 Fortress, 💫 Undying. */
+export type Buff = 'rage' | 'cry' | 'hawk' | 'regen' | 'thorns' | 'parry' | 'guard' | 'leech' | 'fort' | 'undying';
+export const BUFF_EMOJI: Record<Buff, string> = { rage: '🔥', cry: '📯', hawk: '🦅', regen: '🌿', thorns: '🌵', parry: '🤺', guard: '👼', leech: '🩸', fort: '🏰', undying: '💫' };
 export interface Mob {
   id: number; m: string; x: number; y: number; w: number; h: number; hp: number; maxHp: number; dir: 1 | -1;
   min: number; max: number; speed: number; touch: number; shoots: boolean; atkCd: number; hitT: number; dead: number;
@@ -63,12 +69,16 @@ export interface Mob {
   elite?: boolean;
   /** Pausing after bumping into you (ms). */
   restT?: number;
+  /** ❄️ Frozen still (ms) and 🪢 slowed to 40% (ms) by skills. */
+  frozeT?: number; slowT?: number;
 }
-export interface Shot { x: number; y: number; vx: number; vy: number; dmg: number; mine: boolean; pierce: boolean; kind: 'arrow' | 'bolt' | 'fire' | 'spit'; ttl: number; hit: number[]; mult?: number; blast?: boolean; hits?: number; target?: number }
+export interface Shot { x: number; y: number; vx: number; vy: number; dmg: number; mine: boolean; pierce: boolean; kind: 'arrow' | 'bolt' | 'fire' | 'spit' | 'wave'; ttl: number; hit: number[]; mult?: number; blast?: boolean; hits?: number; target?: number; slow?: boolean }
 export interface Pop { x: number; y: number; text: string; t: number; kind: 'hit' | 'crit' | 'hurt' | 'heal' | 'info'; mob?: number; stack?: number }
 /** A hit waiting to land (multi-hit skills space their hits out). */
 export interface QueuedHit { at: number; mob: number; mult: number; knock: number }
-export interface Fx { x: number; y: number; t: number; kind: 'slash' | 'spin' | 'boom' | 'zap' | 'rain' | 'slam' | 'claw'; w?: number; x2?: number; y2?: number }
+export interface Fx { x: number; y: number; t: number; kind: 'slash' | 'spin' | 'boom' | 'zap' | 'rain' | 'slam' | 'claw' | 'nova' | 'meteor'; w?: number; x2?: number; y2?: number;
+  /** Rain/meteor: damage when it lands, and whether it slows; nova/rain: its colour. */
+  mult?: number; slow?: boolean; c?: string }
 
 /** A little particle: sparks, dust, poofs (purely for looks). */
 export interface Part { x: number; y: number; vx: number; vy: number; t: number; life: number; c: string; s: number; grav: number }
@@ -139,17 +149,46 @@ export const SKILLS: SkillDef[] = [
   { id: 'slash_blast', name: 'Crescent Sweep', emoji: '🌙', style: 'melee', level: 50, cdMs: 4000, text: 'A wide sweep: 2 hits on up to 6 monsters in front (0.75× each).' },
   { id: 'dash_strike', name: 'Dash Strike', emoji: '💨', style: 'melee', level: 110, cdMs: 5500, text: 'Dash forward, hitting everything you pass twice (0.8× each).' },
   { id: 'whirlwind', name: 'Whirlwind', emoji: '🌀', style: 'melee', level: 175, cdMs: 10000, text: 'Spin for 1.5s, hitting all around you again and again.' },
+  { id: 'ground_slam', name: 'Ground Slam', emoji: '🔨', style: 'melee', level: 245, cdMs: 6000, text: 'Slam the ground: 2 hits on up to 6 monsters on your row, both sides (1.0× each).' },
+  { id: 'blazing_blade', name: 'Blazing Blade', emoji: '🔥', style: 'melee', level: 320, cdMs: 16000, text: 'Your blade catches fire: everything you land does +40% for 6s.' },
+  { id: 'rising_slash', name: 'Rising Slash', emoji: '⤴️', style: 'melee', level: 400, cdMs: 5000, text: 'Leap up slashing: 3 hits on monsters above you, up to 2 ledges high (1.0× each).' },
+  { id: 'shockwave', name: 'Shockwave', emoji: '〰️', style: 'melee', level: 485, cdMs: 6500, text: 'A wave rolls along the ground through every monster in its path (2.2×).' },
+  { id: 'blade_storm', name: 'Blade Storm', emoji: '🗡️', style: 'melee', level: 570, cdMs: 4500, text: 'Six lightning cuts on the monster in front (0.8× each).' },
+  { id: 'war_cry', name: 'War Cry', emoji: '📯', style: 'melee', level: 660, cdMs: 20000, text: 'For 8s you hit 25% harder and swing a third faster.' },
+  { id: 'worldsplitter', name: 'Worldsplitter', emoji: '☄️', style: 'melee', level: 750, cdMs: 9000, text: 'One enormous cleave: 4 hits on up to 6 monsters far in front (1.3× each).' },
   { id: 'double_shot', name: 'Quad Shot', emoji: '🏹', style: 'ranged', level: 1, cdMs: 2400, text: 'Four arrows in a quick volley at the monster ahead (0.75× each).' },
   { id: 'piercing_arrow', name: 'Piercing Arrow', emoji: '➶', style: 'ranged', level: 50, cdMs: 4500, text: 'An arrow that flies through up to 6 monsters in its path, hitting each twice (0.9×).' },
   { id: 'arrow_rain', name: 'Arrow Rain', emoji: '🌧️', style: 'ranged', level: 110, cdMs: 8000, text: 'Arrows rain down ahead of you: 4 waves of 1.2× on up to 6 monsters there.' },
   { id: 'leap_shot', name: 'Leap Shot', emoji: '🦘', style: 'ranged', level: 175, cdMs: 6000, text: 'Spring backwards out of reach and fire a fan of 3 arrows (1.2× each).' },
+  { id: 'snare_shot', name: 'Snare Shot', emoji: '🪢', style: 'ranged', level: 245, cdMs: 5000, text: 'A weighted arrow (1.5×) that slows the monster to a crawl for 4s.' },
+  { id: 'fire_arrow', name: 'Fire Arrow', emoji: '🧨', style: 'ranged', level: 320, cdMs: 5000, text: 'Bursts on the first monster: 1.4× on up to 6 nearby, then they burn.' },
+  { id: 'multi_shot', name: 'Multi Shot', emoji: '🎯', style: 'ranged', level: 400, cdMs: 5000, text: 'A wide fan of 5 arrows (0.9× each) — great for monsters on the ledges.' },
+  { id: 'hawk_eye', name: 'Hawk Eye', emoji: '🦅', style: 'ranged', level: 485, cdMs: 18000, text: 'For 8s every hit you land is a critical hit.' },
+  { id: 'arrow_storm', name: 'Storm of Arrows', emoji: '⛈️', style: 'ranged', level: 570, cdMs: 10000, text: '6 waves of arrows over a wide patch ahead (1.2× on up to 6 each wave).' },
+  { id: 'phoenix_arrow', name: 'Phoenix Arrow', emoji: '🪶', style: 'ranged', level: 660, cdMs: 7000, text: 'A blazing arrow that flies through up to 6 monsters, hitting each 3 times (1.3×).' },
+  { id: 'star_volley', name: 'Starfall Volley', emoji: '🌠', style: 'ranged', level: 750, cdMs: 12000, text: 'Starlit arrows fall on up to 6 monsters near you: 3 hits each (1.1×).' },
   { id: 'magic_claw', name: 'Arcane Claw', emoji: '🪄', style: 'magic', level: 1, cdMs: 2400, text: 'Magic claws rake the nearest monster 4 times (0.7× each).' },
   { id: 'fireball', name: 'Fireball', emoji: '🔥', style: 'magic', level: 50, cdMs: 4500, text: 'Bursts on the first monster: 1.6× on up to 6 nearby, then they burn for 2 more hits.' },
   { id: 'chain_lightning', name: 'Chain Lightning', emoji: '⚡', style: 'magic', level: 110, cdMs: 6000, text: 'Lightning leaps between up to 6 nearby monsters, hitting each twice (0.8×).' },
   { id: 'teleport', name: 'Teleport', emoji: '✨', style: 'magic', level: 175, cdMs: 4000, text: 'Blink forward a long way (great for escaping).' },
+  { id: 'frost_nova', name: 'Frost Nova', emoji: '❄️', style: 'magic', level: 245, cdMs: 9000, text: 'Ice bursts out around you (1.2×) and freezes monsters still for 2.5s.' },
+  { id: 'meteor', name: 'Meteor', emoji: '🌋', style: 'magic', level: 320, cdMs: 8000, text: 'A moment later a meteor crashes down ahead: 3.0× on up to 6 there.' },
+  { id: 'arcane_orbs', name: 'Arcane Orbs', emoji: '🔮', style: 'magic', level: 400, cdMs: 4000, text: 'Three orbs that seek out monsters (1.3× each).' },
+  { id: 'blizzard', name: 'Blizzard', emoji: '🌨️', style: 'magic', level: 485, cdMs: 10000, text: '5 waves of ice ahead (1.0× on up to 6 each) that slow everything they touch.' },
+  { id: 'thunder_god', name: 'Thunder God', emoji: '🌩️', style: 'magic', level: 570, cdMs: 8000, text: '8 lightning bolts from the sky on monsters near you (1.2× each).' },
+  { id: 'time_stop', name: 'Time Stop', emoji: '⏳', style: 'magic', level: 660, cdMs: 22000, text: 'Everything near you freezes for 3s (the boss for 1.5s).' },
+  { id: 'starburst', name: 'Starburst', emoji: '🌟', style: 'magic', level: 750, cdMs: 14000, text: 'A star bursts around you: 5 hits on up to 6 monsters (1.4× each).' },
   { id: 'iron_body', name: 'Iron Body', emoji: '🛡️', style: 'defense', level: 1, cdMs: 18000, text: 'Take half damage for 6 seconds.' },
   { id: 'second_wind', name: 'Second Wind', emoji: '💚', style: 'defense', level: 50, cdMs: 30000, text: 'Heal 25% of your health.' },
   { id: 'stone_skin', name: 'Stone Skin', emoji: '🪨', style: 'defense', level: 110, cdMs: 25000, text: 'For 4 seconds, nothing can hurt you.' },
+  { id: 'regrowth', name: 'Regrowth', emoji: '🌿', style: 'defense', level: 175, cdMs: 24000, text: 'Heal 4% of your health every second for 8s.' },
+  { id: 'thorns', name: 'Thorns', emoji: '🌵', style: 'defense', level: 245, cdMs: 20000, text: 'For 8s, monsters that bump into you take a 2.5× hit back.' },
+  { id: 'parry', name: 'Parry', emoji: '🤺', style: 'defense', level: 320, cdMs: 10000, text: 'For 3s, the next monster that bumps into you is blocked and struck 3 times (1.0×).' },
+  { id: 'guardian', name: 'Guardian Spirit', emoji: '👼', style: 'defense', level: 400, cdMs: 60000, text: 'For 20s, if you would be knocked out you get back up with 30% health.' },
+  { id: 'life_leech', name: 'Life Leech', emoji: '🩸', style: 'defense', level: 485, cdMs: 22000, text: 'For 8s, every hit you land heals 1% of your health.' },
+  { id: 'fortress', name: 'Fortress', emoji: '🏰', style: 'defense', level: 570, cdMs: 26000, text: 'For 8s you take 70% less damage and can\'t be knocked back.' },
+  { id: 'sanctuary', name: 'Sanctuary', emoji: '🕊️', style: 'defense', level: 660, cdMs: 35000, text: 'Heal 40% at once and clear away every spit in the air.' },
+  { id: 'undying', name: 'Undying', emoji: '💫', style: 'defense', level: 750, cdMs: 45000, text: 'Heal 10%, and for 6s nothing can knock you out.' },
 ];
 export const SKILL_MAP: Record<string, SkillDef> = Object.fromEntries(SKILLS.map((s) => [s.id, s]));
 export const BAR_SIZE = 3;
@@ -203,7 +242,7 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
   const hp = maxHp(p);
   const d: Dungeon = {
     region, style, worldW: 0, arenaX: 0, plats: [], mobs: [], shots: [], pops: [], fx: [], hit,
-    hero: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp, maxHp: hp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0 },
+    hero: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp, maxHp: hp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0, bf: {} },
     cd: {}, bar: bar.slice(0, BAR_SIZE), snacks: SNACKS, kills: 0, t: 0, phase: 'play', jumpHeld: false, rs: seed, nextId: 1, bossId: boss.id,
     parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false, queue: [], treats: [], fallen: [], chests: [], opened: 0, nodes: [], harvested: [], why: room?.why ?? {}, golds: [], goldGot: 0, hz: [], traps: [], falls: [], wave: null, gust: null, hzCd: 2500, hzDmg: 0,
   };
@@ -365,10 +404,13 @@ export const bossDef = (d: Dungeon) => MONSTER_MAP[d.bossId];
 /** Hit a monster. Returns the damage. */
 function hitMob(d: Dungeon, m: Mob, mult: number, knock = 6): number {
   if (m.hp <= 0) return 0;
-  const crit = rand(d) < 0.12;
+  const bf = d.hero.bf;
+  const crit = (bf.hawk ?? 0) > 0 || rand(d) < 0.12;
+  mult *= ((bf.rage ?? 0) > 0 ? 1.4 : 1) * ((bf.cry ?? 0) > 0 ? 1.25 : 1);
   const dmg = Math.max(1, Math.round(d.hit[m.m] * mult * (0.85 + rand(d) * 0.3) * (crit ? 1.6 : 1)));
   m.hp -= dmg;
   m.hitT = 200;
+  if ((bf.leech ?? 0) > 0 && d.hero.hp > 0) d.hero.hp = Math.min(d.hero.maxHp, d.hero.hp + Math.max(1, Math.round(d.hero.maxHp * 0.01)));
   if (!m.boss) { m.kb = Math.sign(m.x - d.hero.x || d.hero.face) * knock * 0.025; m.hop = 120; }
   pop(d, m.x, m.y - m.h - 6, dmg.toLocaleString(), crit ? 'crit' : 'hit', m.id);
   // ✨ Feel: sparks, a tiny freeze, a shake on crits, and the hit combo.
@@ -442,10 +484,20 @@ function popSpit(d: Dungeon, box: { x1: number; x2: number; y1: number; y2: numb
   }
   return any;
 }
-function hurtHero(d: Dungeon, dmg: number, from: number) {
+function hurtHero(d: Dungeon, dmg: number, from: number, mob?: Mob) {
   const h = d.hero;
   if (h.invT > 0 || d.phase !== 'play') return;
+  const bf = h.bf;
+  if (mob && (bf.parry ?? 0) > 0) {
+    delete bf.parry; h.invT = 600;
+    pop(d, h.x, h.y - HERO_H - 8, 'Parry!', 'info');
+    multiHit(d, mob, 3, 1.0, 16);
+    d.fx.push({ x: h.x + Math.sign(mob.x - h.x || h.face) * 30, y: h.y - 32, t: 0, kind: 'slash', w: 60 });
+    return;
+  }
+  if (mob && (bf.thorns ?? 0) > 0) hitMob(d, mob, 2.5, 12);
   if (h.ironT > 0) dmg *= h.ironT > 100000 ? 0 : 0.5;
+  if ((bf.fort ?? 0) > 0) dmg *= 0.3;
   dmg = Math.round(dmg * (0.9 + rand(d) * 0.2));
   if (dmg <= 0) { pop(d, h.x, h.y - HERO_H - 8, 'Blocked', 'info'); h.invT = 400; return; }
   h.hp -= dmg;
@@ -453,11 +505,20 @@ function hurtHero(d: Dungeon, dmg: number, from: number) {
   d.shake = Math.max(d.shake, 4);
   d.combo = 0;
   burst(d, h.x, h.y - HERO_H / 2, 6, ['#c084fc', '#f0abfc', '#ffffff'], 0.2, 0.0008, 3, 350);
-  h.vx = Math.sign(h.x - from || -h.face) * 0.25;
-  h.vy = -0.45;
-  h.onGround = false;
+  if (!((bf.fort ?? 0) > 0)) {
+    h.vx = Math.sign(h.x - from || -h.face) * 0.25;
+    h.vy = -0.45;
+    h.onGround = false;
+  }
   pop(d, h.x, h.y - HERO_H - 8, `-${dmg.toLocaleString()}`, 'hurt');
-  if (h.hp <= 0) { h.hp = 0; d.phase = 'ko'; }
+  if (h.hp <= 0) {
+    if ((bf.undying ?? 0) > 0) { h.hp = 1; pop(d, h.x, h.y - HERO_H - 24, 'Undying!', 'info'); }
+    else if ((bf.guard ?? 0) > 0) {
+      delete bf.guard; h.hp = Math.round(h.maxHp * 0.3); h.invT = 1500;
+      pop(d, h.x, h.y - HERO_H - 24, 'Guardian Spirit!', 'heal');
+      burst(d, h.x, h.y - HERO_H / 2, 24, ['#fef9c3', '#fde68a', '#ffffff'], 0.3, -0.0002, 4, 900);
+    } else { h.hp = 0; d.phase = 'ko'; }
+  }
 }
 
 // ----- Skills -----
@@ -500,7 +561,100 @@ export function castSkill(d: Dungeon, i: number): string | null {
     case 'iron_body': h.ironT = 6000; pop(d, h.x, h.y - HERO_H - 8, 'Iron Body', 'info'); return 'block';
     case 'second_wind': { const heal = Math.round(h.maxHp * 0.25); h.hp = Math.min(h.maxHp, h.hp + heal); pop(d, h.x, h.y - HERO_H - 8, `+${heal.toLocaleString()}`, 'heal'); return 'levelup'; }
     case 'stone_skin': h.ironT = 100000 + 4000; pop(d, h.x, h.y - HERO_H - 8, 'Stone Skin', 'info'); return 'block';
+    // ----- v0.0.1.83: a new skill at every town's level -----
+    case 'ground_slam': {
+      for (const m of alive(d).filter((o) => Math.abs(o.x - h.x) < 150 && Math.abs(o.y - h.y) < 40).slice(0, MAX_TARGETS)) multiHit(d, m, 2, 1.0, 16);
+      d.fx.push({ x: h.x, y: h.y - 6, t: 0, kind: 'nova', w: 150, c: '#d6b88a' });
+      d.shake = Math.max(d.shake, 5);
+      for (let k = -3; k <= 3; k++) burst(d, h.x + k * 40, h.y, 2, ['#e7e5e4', '#a8a29e'], 0.14, 0.0007, 4, 500);
+      return 'boom';
+    }
+    case 'blazing_blade': return buff(d, 'rage', 6000, 'Blazing Blade') ?? 'ignite';
+    case 'rising_slash': {
+      for (const m of alive(d).filter((o) => Math.abs(o.x - h.x) < 85 && o.y <= h.y + 6 && o.y > h.y - ROW_GAP * 2 - 20).slice(0, MAX_TARGETS)) multiHit(d, m, 3, 1.0, 8);
+      h.vy = JUMP_V * 1.1; h.onGround = false;
+      for (let k = 0; k < 3; k++) d.fx.push({ x: h.x + h.face * 20, y: h.y - 50 - k * 40, t: -k * HIT_GAP, kind: 'slash', w: 70 });
+      return 'shing';
+    }
+    case 'shockwave': d.shots.push({ x: h.x + h.face * 20, y: h.y - 14, vx: h.face * 0.55, vy: 0, dmg: 0, mine: true, pierce: true, kind: 'wave', ttl: 700, hit: [], mult: 2.2 }); d.shake = Math.max(d.shake, 3); return 'boom';
+    case 'blade_storm': {
+      const t = inFront(d, 90)[0];
+      if (t) multiHit(d, t, 6, 0.8, 12);
+      for (let k = 0; k < 6; k++) d.fx.push({ x: h.x + h.face * 36, y: h.y - 24 - (k % 3) * 8, t: -k * HIT_GAP, kind: 'slash', w: 54 + (k % 2) * 10 });
+      return 'shing';
+    }
+    case 'war_cry': d.fx.push({ x: h.x, y: h.y - 30, t: 0, kind: 'nova', w: 110, c: '#f87171' }); return buff(d, 'cry', 8000, 'War Cry') ?? 'levelup';
+    case 'worldsplitter': {
+      for (const m of inFront(d, 200, 110).slice(0, MAX_TARGETS)) multiHit(d, m, 4, 1.3, 18);
+      for (let k = 0; k < 2; k++) d.fx.push({ x: h.x + h.face * 90, y: h.y - 34, t: -k * HIT_GAP * 2, kind: 'slash', w: 190 });
+      d.shake = Math.max(d.shake, 6);
+      return 'boom';
+    }
+    case 'snare_shot': shoot(d, 'arrow', 1.5, { slow: true }); return 'shing';
+    case 'fire_arrow': shoot(d, 'arrow', 1.4, { blast: true }); return 'ignite';
+    case 'multi_shot': for (const a of [-0.36, -0.18, 0, 0.18, 0.36]) shoot(d, 'arrow', 0.9, {}, a); return 'whoosh';
+    case 'hawk_eye': return buff(d, 'hawk', 8000, 'Hawk Eye') ?? 'enchant';
+    case 'arrow_storm': { const x = h.x + h.face * 140; for (let k = 0; k < 6; k++) d.fx.push({ x, y: GROUND, t: -k * 250, kind: 'rain', w: 230, mult: 1.2 }); return 'whoosh'; }
+    case 'phoenix_arrow': shoot(d, 'fire', 1.3, { pierce: true, hits: 3, vx: h.face * 0.7 }); return 'ignite';
+    case 'star_volley': {
+      const near = alive(d).filter((m) => Math.abs(m.x - h.x) < 320 && Math.abs(m.y - h.y) < 220).sort((a, b) => Math.abs(a.x - h.x) - Math.abs(b.x - h.x)).slice(0, MAX_TARGETS);
+      near.forEach((m, k) => { multiHit(d, m, 3, 1.1, 6, 150 + k * 60); d.fx.push({ x: m.x + 50, y: m.y - 280, x2: m.x, y2: m.y - m.h / 2, t: -(150 + k * 60), kind: 'zap', c: '#fef9c3' }); });
+      return 'enchant';
+    }
+    case 'frost_nova': {
+      for (const m of alive(d).filter((o) => Math.abs(o.x - h.x) < 130 && Math.abs(o.y - h.y) < 70)) { hitMob(d, m, 1.2, 4); m.frozeT = m.boss ? 1200 : 2500; }
+      d.fx.push({ x: h.x, y: h.y - 30, t: 0, kind: 'nova', w: 130, c: '#bae6fd' });
+      burst(d, h.x, h.y - 30, 16, ['#e0f2fe', '#bae6fd', '#ffffff'], 0.3, 0.0003, 3, 600);
+      return 'enchant';
+    }
+    case 'meteor': { const t = aimTarget(d, 300); const x = t ? t.x : h.x + h.face * 150; d.fx.push({ x, y: t ? t.y : h.y, t: -600, kind: 'meteor', w: 130, mult: 3.0 }); return 'ignite'; }
+    case 'arcane_orbs': for (const a of [-0.25, 0, 0.25]) shoot(d, 'bolt', 1.3, {}, a); return 'rune';
+    case 'blizzard': { const x = h.x + h.face * 120; for (let k = 0; k < 5; k++) d.fx.push({ x, y: GROUND, t: -k * 280, kind: 'rain', w: 170, mult: 1.0, slow: true, c: '#bae6fd' }); return 'enchant'; }
+    case 'thunder_god': {
+      const near = alive(d).filter((m) => Math.abs(m.x - h.x) < 260 && Math.abs(m.y - h.y) < 200);
+      if (!near.length) return 'rune';
+      for (let k = 0; k < 8; k++) {
+        const m = near[Math.floor(rand(d) * near.length)];
+        multiHit(d, m, 1, 1.2, 6, k * 110);
+        d.fx.push({ x: m.x + (rand(d) - 0.5) * 60, y: m.y - 300, x2: m.x, y2: m.y - m.h / 2, t: -k * 110, kind: 'zap' });
+      }
+      return 'enchant';
+    }
+    case 'time_stop': {
+      for (const m of alive(d).filter((o) => Math.abs(o.x - h.x) < 360)) m.frozeT = m.boss ? 1500 : 3000;
+      for (const sh of d.shots) if (!sh.mine) sh.ttl = 0;
+      d.fx.push({ x: h.x, y: h.y - 30, t: 0, kind: 'nova', w: 220, c: '#c4b5fd' });
+      return 'rune';
+    }
+    case 'starburst': {
+      for (const m of alive(d).filter((o) => Math.abs(o.x - h.x) < 260 && Math.abs(o.y - h.y) < 200).slice(0, MAX_TARGETS)) multiHit(d, m, 5, 1.4, 10);
+      d.fx.push({ x: h.x, y: h.y - 30, t: 0, kind: 'nova', w: 260, c: '#fde68a' });
+      burst(d, h.x, h.y - 30, 30, ['#fef9c3', '#fde68a', '#ffffff', '#f472b6'], 0.4, 0.0002, 3, 900);
+      return 'boom';
+    }
+    case 'regrowth': return buff(d, 'regen', 8000, 'Regrowth') ?? 'levelup';
+    case 'thorns': return buff(d, 'thorns', 8000, 'Thorns') ?? 'block';
+    case 'parry': return buff(d, 'parry', 3000, 'Parry ready') ?? 'block';
+    case 'guardian': return buff(d, 'guard', 20000, 'Guardian Spirit') ?? 'enchant';
+    case 'life_leech': return buff(d, 'leech', 8000, 'Life Leech') ?? 'enchant';
+    case 'fortress': return buff(d, 'fort', 8000, 'Fortress') ?? 'block';
+    case 'sanctuary': {
+      { const heal = Math.round(h.maxHp * 0.4); h.hp = Math.min(h.maxHp, h.hp + heal); pop(d, h.x, h.y - HERO_H - 8, `+${heal.toLocaleString()}`, 'heal'); }
+      for (const sh of d.shots) if (!sh.mine) sh.ttl = 0;
+      h.invT = Math.max(h.invT, 1200);
+      d.fx.push({ x: h.x, y: h.y - 30, t: 0, kind: 'nova', w: 140, c: '#fef9c3' });
+      return 'levelup';
+    }
+    case 'undying': { const heal = Math.round(h.maxHp * 0.1); h.hp = Math.min(h.maxHp, h.hp + heal); pop(d, h.x, h.y - HERO_H - 8, `+${heal.toLocaleString()}`, 'heal'); } return buff(d, 'undying', 6000, 'Undying') ?? 'levelup';
   }
+  return null;
+}
+/** Start a buff (returns null so the caller picks its sound). */
+function buff(d: Dungeon, b: Buff, ms: number, label: string): null {
+  const h = d.hero;
+  h.bf[b] = ms;
+  pop(d, h.x, h.y - HERO_H - 8, label, 'info');
+  burst(d, h.x, h.y - HERO_H / 2, 12, ['#fde68a', '#ffffff', '#fbbf24'], 0.2, -0.0002, 3, 600);
   return null;
 }
 /** 🍖 A packed snack: heal 30%. */
@@ -546,6 +700,10 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   }
   h.invT = Math.max(0, h.invT - dt);
   if (h.ironT > 100000) { h.ironT -= dt; if (h.ironT <= 100000) h.ironT = 0; } else h.ironT = Math.max(0, h.ironT - dt);
+  if ((h.bf.regen ?? 0) > 0 && Math.floor(h.bf.regen! / 500) !== Math.floor(Math.max(0, h.bf.regen! - dt) / 500) && h.hp < h.maxHp) {
+    const heal = Math.round(h.maxHp * 0.02); h.hp = Math.min(h.maxHp, h.hp + heal); pop(d, h.x, h.y - HERO_H - 8, `+${heal.toLocaleString()}`, 'heal');
+  }
+  for (const k of Object.keys(h.bf) as Buff[]) { h.bf[k] = (h.bf[k] ?? 0) - dt; if (h.bf[k]! <= 0) delete h.bf[k]; }
   h.atkCd = Math.max(0, h.atkCd - dt);
   h.atkT = Math.max(0, h.atkT - dt);
 
@@ -646,7 +804,7 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
 
   // Basic attack (hold to keep swinging)
   if (input.attack && h.atkCd <= 0 && h.dashT <= 0) {
-    h.atkCd = ATTACK_MS[d.style];
+    h.atkCd = ATTACK_MS[d.style] * ((h.bf.cry ?? 0) > 0 ? 0.75 : 1);
     h.atkT = 240;
     if (d.style === 'melee') {
       const t = inFront(d, 62)[0];
@@ -667,9 +825,10 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   }
   // Arrow Rain lands in waves
   for (const f of d.fx) {
-    if (f.kind === 'rain' && f.t >= 0 && f.t - dt < 0) {
-      for (const m of alive(d).filter((o) => Math.abs(o.x - f.x) < (f.w ?? 150) / 2).slice(0, MAX_TARGETS)) hitMob(d, m, 1.2, 4);
-      sounds.push('tick');
+    if ((f.kind === 'rain' || f.kind === 'meteor') && f.t >= 0 && f.t - dt < 0) {
+      for (const m of alive(d).filter((o) => Math.abs(o.x - f.x) < (f.w ?? 150) / 2 && (f.kind === 'rain' || Math.abs(o.y - f.y) < 110)).slice(0, MAX_TARGETS)) { hitMob(d, m, f.mult ?? 1.2, f.kind === 'meteor' ? 16 : 4); if (f.slow) m.slowT = 3000; }
+      if (f.kind === 'meteor') { d.shake = Math.max(d.shake, 7); burst(d, f.x, f.y - 10, 22, ['#fb923c', '#fde68a', '#78716c'], 0.35, 0.0009, 4, 700); sounds.push('boom'); }
+      else sounds.push('tick');
     }
   }
   d.fx = d.fx.filter((f) => f.kind !== 'rain' || f.t < 300);
@@ -703,6 +862,7 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
             s.ttl = 0;
             break;
           }
+          if (s.slow) m.slowT = 4000;
           if ((s.hits ?? 1) > 1) multiHit(d, m, s.hits!, s.mult ?? 1, 6); else hitMob(d, m, s.mult ?? 1);
           sounds.push('hit');
           s.hit.push(m.id);
@@ -721,6 +881,9 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   for (const m of d.mobs) {
     if (m.hp <= 0) { m.dead = Math.max(0, m.dead - dt); continue; }
     m.hitT = Math.max(0, m.hitT - dt);
+    if (m.frozeT) { m.frozeT = Math.max(0, m.frozeT - dt); if (m.frozeT > 0) continue; }
+    if (m.slowT) m.slowT = Math.max(0, m.slowT - dt);
+    const slow = m.slowT ? 0.4 : 1;
     if (m.hop) m.hop = Math.max(0, m.hop - dt);
     if (m.kb) { m.x = Math.max(m.min, Math.min(m.max, m.x + m.kb * dt)); m.kb *= Math.pow(0.985, dt); if (Math.abs(m.kb) < 0.01) m.kb = 0; }
     const dx = h.x - m.x;
@@ -729,16 +892,16 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
     if (m.restT) m.restT = Math.max(0, m.restT - dt);
     if (m.boss && h.x < d.arenaX) { /* waits in its clearing */ }
     else if (m.restT) { /* catching its breath after bumping into you */ }
-    else if (near && m.hitT <= 0) { m.dir = dx > 0 ? 1 : -1; m.x += m.dir * m.speed * 1.4 * dt; }
+    else if (near && m.hitT <= 0) { m.dir = dx > 0 ? 1 : -1; m.x += m.dir * m.speed * 1.4 * slow * dt; }
     else if (m.hitT <= 0) {
-      m.x += m.dir * m.speed * dt;
+      m.x += m.dir * m.speed * slow * dt;
       if (m.x < m.min || m.x > m.max) m.dir = m.x < m.min ? 1 : -1;
     }
     m.x = Math.max(m.min, Math.min(m.max, m.x));
     // Touch
     // After bumping into you a monster pauses a moment (v0.0.1.81) — a window to hit back or slip past, so you
     // can't get pinned in a corner.
-    if (overlap(heroBox(h), mobBox(m)) && h.dashT <= 0) { if (h.invT <= 0) { sounds.push('hurt'); hurtHero(d, m.touch, m.x); if (d.room) m.restT = m.boss ? 900 : 700; } }
+    if (overlap(heroBox(h), mobBox(m)) && h.dashT <= 0) { if (h.invT <= 0) { sounds.push('hurt'); hurtHero(d, m.touch, m.x, m); if (d.room) m.restT = m.boss ? 900 : 700; } }
     // Spit from the ranged and magic ones — calmed down in v0.0.1.72 (owner: "their attacks become like a
     // bullet hell"): only from your own row and close by, a glow first, no more than 2 flying at once
     // (the boss gets 1 of its own), and your swings/shots can pop them.
