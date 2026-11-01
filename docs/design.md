@@ -640,4 +640,5 @@ turn-based adventure where nothing is ever lost; the Dungeon is the risky action
 4. **Each town's dungeon designed around its town** (owner, 2026-10-31: "the maps and setting should be designed around
    each town dependent on which town you entered the dungeon for"). Already per town: sky/ground colours (`THEME`),
    weather, music, monsters, boss. Still to do: town-made room layouts, hazards and room names (e.g. Bluecliff sea caves
-   with tide pools, Frosthold slippery ice, Cinderpeak lava vents, Lunaria foggy streets with the bell).
+   with tide pools, Frosthold slippery ice, Cinderpeak lava vents, Lunaria foggy streets with the bell). **Built v0.0.1.80**
+   (`data/dungeonTowns.ts`: names, hints and one signature hazard per town).

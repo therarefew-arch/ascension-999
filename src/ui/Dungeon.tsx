@@ -6,10 +6,11 @@ import { createPortal } from 'react-dom';
 import { sound } from '../audio/sound';
 import { musicFor, type SoundKey } from '../audio/soundList';
 import {
-  BAR_SIZE, HARVEST_MS, HERO_H, NODE_KINDS, type NodeKind, bossDef, bossOf, defaultBar, eatSnack, GROUND, newDungeon, pathProgress, SKILL_MAP, SKILLS, step, castSkill, VIEW_H, VIEW_W,
+  BAR_SIZE, FALL_WARN, HARVEST_MS, VENT, HERO_H, NODE_KINDS, type NodeKind, bossDef, bossOf, defaultBar, eatSnack, GROUND, newDungeon, pathProgress, SKILL_MAP, SKILLS, step, castSkill, VIEW_H, VIEW_W,
   whyCantUseSkill, type Dungeon as Run, type Input,
 } from '../core/dungeon';
 import { AREAS, townBoss, type Run as ExRun } from '../core/expedition';
+import { DUNGEON_TOWNS } from '../data/dungeonTowns';
 import { draughtPrice, DRAUGHT_HEAL, foodPrice, trailFood, wickPays } from '../market/dungeonShop';
 import { addStacks, bagGold, canExtract, foodCount, FOOD_MAX, nextChoices, ROOM_INFO, roomOf, whyCantHarvest, type DungeonRun } from '../core/dungeonRun';
 import { maxHp } from '../core/combat';
@@ -415,6 +416,41 @@ function drawHeroOutlined(g: CanvasRenderingContext2D, look: Look, x: number, y:
   g.globalAlpha = a;
 }
 
+// ----- 🗺️ Town hazards (v0.0.1.80) -----
+function drawTrap(g: CanvasRenderingContext2D, t: Run['traps'][number], now: number) {
+  const x = t.x, y = GROUND;
+  const q = (cx: number, cy: number, w: number, h: number, c: string) => { g.fillStyle = c; g.fillRect(Math.round(x + cx), Math.round(y + cy), w, h); };
+  if (t.kind === 'spring') {
+    // 🍄 A big bouncy mushroom (squashes when you bounce)
+    const sq = t.t > 0 ? 4 : 0;
+    q(-4, -14 + sq, 8, 14 - sq, '#f5f5f4');
+    q(-15, -24 + sq, 30, 10, '#dc2626'); q(-11, -28 + sq, 22, 4, '#ef4444');
+    q(-9, -22 + sq, 4, 3, '#ffffff'); q(4, -25 + sq, 4, 3, '#ffffff'); q(-1, -19 + sq, 3, 3, '#ffffff');
+  } else if (t.kind === 'bog') {
+    // 🟫 A bog pool with slow bubbles
+    g.fillStyle = '#3f3a1e'; g.beginPath(); g.ellipse(x, y + 2, t.w / 2, 7, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#57532a'; g.beginPath(); g.ellipse(x, y + 1, t.w / 2 - 6, 4, 0, 0, Math.PI * 2); g.fill();
+    for (let i = 0; i < 3; i++) { const k = ((now / 1400) + i / 3) % 1; g.globalAlpha = 1 - k; g.fillStyle = '#84804a'; g.beginPath(); g.arc(x - t.w / 3 + i * (t.w / 3), y - k * 8, 2 + k * 2, 0, Math.PI * 2); g.fill(); }
+    g.globalAlpha = 1;
+  } else if (t.kind === 'vent') {
+    // 🌋 A crack in the ground: it glows (the warning), then bursts into a column of fire
+    q(-12, -4, 24, 4, '#1c1917'); q(-6, -6, 12, 2, '#292524');
+    const glowAt = VENT.quiet, burstAt = VENT.quiet + VENT.glow;
+    if (t.t > glowAt && t.t <= burstAt) {
+      const k = (t.t - glowAt) / VENT.glow;
+      g.globalAlpha = 0.3 + 0.6 * k; g.fillStyle = '#fb923c'; g.beginPath(); g.ellipse(x, y - 2, 10 + k * 10, 4 + k * 3, 0, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
+    } else if (t.t > burstAt) {
+      const k = (t.t - burstAt) / VENT.burst;
+      const h = 130 * Math.sin(Math.min(1, k * 1.4) * Math.PI * 0.5) * (1 - Math.max(0, k - 0.75) * 4);
+      for (let i = 0; i < 5; i++) { g.fillStyle = ['#7c2d12', '#ea580c', '#f97316', '#fbbf24', '#fef3c7'][i]; const w = 22 - i * 4; g.fillRect(x - w / 2 + Math.sin(now / 40 + i) * 2, y - h * (1 - i * 0.12), w, h * (1 - i * 0.12)); }
+    }
+  } else {
+    // 🌿 Thorn vines: low spiky coils
+    q(-t.w / 2, -5, t.w, 5, '#14532d');
+    for (let i = 0; i < t.w / 8; i++) { const sx = -t.w / 2 + 4 + i * 8; q(sx, -11, 2, 6, '#166534'); q(sx - 2, -13, 2, 3, '#a3e635'); q(sx + 2, -9, 2, 2, '#fecaca'); }
+  }
+}
+
 // ----- ⛏️ Rare resource spots (v0.0.1.78) -----
 const NODE_TOOL: Record<NodeKind, string> = { ore: '⛏️', tree: '🪓', herb: '🌿', fish: '🎣' };
 function drawNode(g: CanvasRenderingContext2D, T: Theme, kind: NodeKind, x: number, y: number, done: boolean, t: number) {
@@ -499,6 +535,33 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
     }
     const s = sprite(exit ? '🚪' : open ? '✨' : '🔒', 16);
     g.drawImage(s, x - s.width / 2, GROUND - 112 + Math.sin(d.t / 400) * 2);
+  }
+  // 🗺️ Town hazards on the ground
+  for (const t of d.traps) {
+    if (t.x < cam - side - 80 || t.x > cam + VIEW_W + side + 80) continue;
+    drawTrap(g, t, d.t);
+  }
+  // 🪨🌠 Where something is about to land: a pulsing mark, then it drops in
+  for (const f of d.falls) {
+    if (f.t <= 0) continue;
+    const star = d.hz.includes('stars');
+    const k = 1 - f.t / FALL_WARN;
+    g.globalAlpha = 0.35 + 0.35 * Math.sin(d.t / 70);
+    g.fillStyle = star ? '#fde68a' : '#57534e';
+    g.beginPath(); g.ellipse(f.x, f.y + 1, 14 + k * 12, 4, 0, 0, Math.PI * 2); g.fill();
+    g.globalAlpha = 1;
+    if (!star) for (let i = 0; i < 3; i++) { g.fillStyle = '#a8a29e'; g.fillRect(f.x - 8 + i * 8, f.y - 200 + ((d.t / 3 + i * 37) % 180), 2, 4); }
+    if (f.t < 350) {
+      const fy = f.y - 320 * (f.t / 350);
+      if (star) { g.fillStyle = '#fef3c7'; g.beginPath(); g.arc(f.x, fy - 8, 7, 0, Math.PI * 2); g.fill(); g.strokeStyle = 'rgba(253,230,138,0.6)'; g.lineWidth = 4; g.beginPath(); g.moveTo(f.x, fy - 8); g.lineTo(f.x + 18, fy - 50); g.stroke(); }
+      else { g.fillStyle = '#78716c'; g.fillRect(f.x - 9, fy - 18, 18, 16); g.fillStyle = '#a8a29e'; g.fillRect(f.x - 6, fy - 18, 8, 5); }
+    }
+  }
+  // 🌊 A wave rolling in
+  if (d.wave) {
+    const x = d.wave.x;
+    g.fillStyle = 'rgba(37,99,235,0.85)'; g.beginPath(); g.moveTo(x - 30, GROUND); g.quadraticCurveTo(x - 6, GROUND - 34, x + 14, GROUND - 22); g.quadraticCurveTo(x + 30, GROUND - 10, x + 60, GROUND); g.fill();
+    g.fillStyle = '#e0f2fe'; g.beginPath(); g.arc(x - 4, GROUND - 26, 6, 0, Math.PI * 2); g.arc(x + 6, GROUND - 24, 5, 0, Math.PI * 2); g.fill();
   }
   // ⛏️ Rare resource spots, with the tool they need floating above (dimmed + 🔒 when you didn't bring it)
   for (const n of d.nodes) {
@@ -629,6 +692,25 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
     g.fillRect(Math.round(p.x - sz / 2), Math.round(p.y - sz / 2), sz, sz);
   }
   g.globalAlpha = 1;
+  // 💨 Wind: faint streaks while the chimes warn, strong ones while it pushes
+  if (d.gust) {
+    const strong = d.gust.warn <= 0;
+    g.strokeStyle = strong ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.22)'; g.lineWidth = 2;
+    for (let i = 0; i < (strong ? 14 : 6); i++) {
+      const y = -top + 40 + hash(i * 3.7) * (GROUND + top - 60);
+      const span = VIEW_W + 2 * side + 200;
+      const x = cam - side - 100 + ((hash(i) * span + d.t * 0.6 * d.gust.dir) % span + span) % span;
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x - d.gust.dir * (strong ? 40 : 20), y); g.stroke();
+    }
+    if (!strong) { const c = sprite('🎐', 18); g.drawImage(c, d.hero.x - 9, d.hero.y - HERO_H - 40 + Math.sin(d.t / 60) * 2); }
+  }
+  // 🌫️ Fog: you only see what's close (Lunaria)
+  if (d.hz.includes('fog')) {
+    const hx = d.hero.x, hy = d.hero.y - HERO_H / 2;
+    const fog = g.createRadialGradient(hx, hy, 90, hx, hy, 300);
+    fog.addColorStop(0, 'rgba(203,213,225,0)'); fog.addColorStop(0.55, 'rgba(203,213,225,0.55)'); fog.addColorStop(1, 'rgba(203,213,225,0.9)');
+    g.fillStyle = fog; g.fillRect(cam - side - 60, -top - 60, VIEW_W + 2 * side + 120, bottom + top + 120);
+  }
   // Damage numbers (MapleStory-style)
   g.textAlign = 'center'; g.lineJoin = 'round';
   for (const p of d.pops) {
@@ -820,12 +902,13 @@ function RunMap({ run, onEnter, onExtract, onClose, onShop }: { run: DungeonRun;
   return (
     <div className="dg-map">
       <div className="dg-map-top">
-        <b className="gold">🗝️ {AREAS[run.region].name[0].toUpperCase() + AREAS[run.region].name.slice(1)}</b>
+        <b className="gold">{AREAS[run.region].emoji} {AREAS[run.region].name[0].toUpperCase() + AREAS[run.region].name.slice(1)}</b>
         <div className="dg-hp"><div style={{ width: `${(100 * run.hp) / max}%` }} /><span className="mono">{Math.round(run.hp).toLocaleString()} / {max.toLocaleString()}</span></div>
         <span className="small mono dg-gold">💰 {bagGold(run).toLocaleString()}</span>
         <span className="small">🍖 {foodCount(run)}</span>
         <button className="dg-icon" onClick={() => { sound.play('click'); onClose(); }} aria-label="Pause (your run is saved)">⏸</button>
       </div>
+      <p className="tiny muted dg-map-hint">{DUNGEON_TOWNS[run.region].hint}</p>
       <div className="dg-map-rows">
         {run.rows.map((row, r) => (
           <div key={r} className="dg-map-col">
@@ -834,11 +917,12 @@ function RunMap({ run, onEnter, onExtract, onClose, onShop }: { run: DungeonRun;
               const can = r === run.row + 1 && run.cleared;
               const past = r < run.row || (r === run.row && !isHere);
               const info = ROOM_INFO[room.kind];
+              const label = DUNGEON_TOWNS[run.region].rooms[room.kind];
               return (
                 <button key={i} className={`dg-room ${isHere ? 'here' : ''} ${can ? 'can' : ''} ${past ? 'past' : ''} ${isHere && run.cleared ? 'done' : ''}`}
-                  disabled={!can} onClick={() => { game.dungeonGo(i); if (room.kind === 'shop') onShop(); else if (room.kind !== 'camp') onEnter(); }} aria-label={`${info.name}: ${info.text}`}>
+                  disabled={!can} onClick={() => { game.dungeonGo(i); if (room.kind === 'shop') onShop(); else if (room.kind !== 'camp') onEnter(); }} aria-label={`${label}: ${info.text}`}>
                   <span className="dg-room-emoji">{info.emoji}</span>
-                  <span className="tiny">{info.name}</span>
+                  <span className="tiny">{label}</span>
                   {isHere && <span className="dg-room-you">YOU</span>}
                 </button>
               );
@@ -853,7 +937,7 @@ function RunMap({ run, onEnter, onExtract, onClose, onShop }: { run: DungeonRun;
           {items.length > 14 && <span className="tiny muted">+{items.length - 14} more</span>}
         </div>
         <div className="dg-map-act">
-          {!run.cleared && <button className="btn btn-hero" onClick={onEnter}>{here.kind === 'boss' ? '👑 FACE THE BOSS' : `ENTER ${ROOM_INFO[here.kind].emoji} ${ROOM_INFO[here.kind].name.toUpperCase()}`}</button>}
+          {!run.cleared && <button className="btn btn-hero" onClick={onEnter}>{here.kind === 'boss' ? '👑 FACE THE BOSS' : `ENTER ${ROOM_INFO[here.kind].emoji} ${DUNGEON_TOWNS[run.region].rooms[here.kind].toUpperCase()}`}</button>}
           {run.cleared && choices.length > 0 && <span className="small">Choose your next room ▶</span>}
           {run.cleared && here.kind === 'shop' && <button className="btn dg-shopbtn" onClick={onShop}>🧺 WICK'S STALL</button>}
           {canExtract(run) && <button className="btn dg-out" onClick={() => { sound.play('levelup'); onExtract(); }}>🚪 LEAVE WITH YOUR LOOT</button>}
@@ -1079,7 +1163,7 @@ function RoomPlay({ run: dRun, land, onEnd }: { run: DungeonRun; land: boolean; 
   const left = leftMobs.length;
   // Point the way to monsters you walked past (the door stays locked until they're beaten).
   const where = left && leftMobs.every((m) => m.x < h.x - 150) ? ' ◀' : left && leftMobs.every((m) => m.x > h.x + 150) ? ' ▶' : left && leftMobs.every((m) => m.y < h.y - 40) ? ' ▲' : '';
-  const info = ROOM_INFO[room.kind];
+  const info = { ...ROOM_INFO[room.kind], name: DUNGEON_TOWNS[region].rooms[room.kind] };
 
   return (
     <>
@@ -1102,6 +1186,7 @@ function RoomPlay({ run: dRun, land, onEnd }: { run: DungeonRun; land: boolean; 
         return (
           <div className="dg-banner" style={{ opacity: Math.max(0, op) }}>
             <span className="dg-banner-sub">{b.sub || `${AREAS[region].emoji} Room ${dRun.row + 1} of ${dRun.rows.length}`}</span>
+            {!b.sub && <span className="dg-banner-hint">{DUNGEON_TOWNS[region].hint}</span>}
             <span className="dg-banner-text">{b.text || `${info.emoji} ${info.name}`}</span>
           </div>
         );

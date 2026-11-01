@@ -9,6 +9,7 @@ import { REGIONS, type Region } from '../data/tiers';
 import { maxHp, weaponStyle } from './combat';
 import { fairPower, rawPower, townBoss, townMonsters, TURN_MS } from './expedition';
 import type { RoomKind } from './dungeonRun';
+import { BOSS_HALL_HAZARDS, DUNGEON_TOWNS, type Hazard } from '../data/dungeonTowns';
 import type { PlayerState } from './player';
 import { levelForXp } from './xp';
 
@@ -97,7 +98,20 @@ export interface Dungeon {
   /** 💰 Gold piles lying about (v0.0.1.79), and how many were picked up since the screen last checked. */
   golds: { x: number; y: number; got: boolean }[];
   goldGot: number;
+  /** 🗺️ The town's hazards (v0.0.1.80): what's on, the things placed on the ground, and the moving ones. */
+  hz: Hazard[];
+  traps: { kind: 'spring' | 'bog' | 'vent' | 'thorn'; x: number; w: number; t: number }[];
+  falls: { x: number; y: number; t: number }[];
+  wave: { x: number; hit: boolean } | null;
+  gust: { dir: 1 | -1; warn: number; t: number } | null;
+  hzCd: number;
+  /** How hard a hazard hits (a share of what this town's monsters hit you for). */
+  hzDmg: number;
 }
+/** Vent cycle (ms): quiet, then glowing (the warning), then bursting. */
+export const VENT = { quiet: 2300, glow: 900, burst: 800 };
+/** A falling rock/star: how long its warning shows before it lands (ms). */
+export const FALL_WARN = 1000;
 export type NodeKind = 'ore' | 'tree' | 'herb' | 'fish';
 export const NODE_KINDS: NodeKind[] = ['ore', 'tree', 'herb', 'fish'];
 export const NODE_SKILL: Record<NodeKind, SkillId> = { ore: 'mining', tree: 'woodcutting', herb: 'herblore', fish: 'fishing' };
@@ -183,7 +197,7 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
     region, style, worldW: 0, arenaX: 0, plats: [], mobs: [], shots: [], pops: [], fx: [], hit,
     hero: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp, maxHp: hp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0 },
     cd: {}, bar: bar.slice(0, BAR_SIZE), snacks: SNACKS, kills: 0, t: 0, phase: 'play', jumpHeld: false, rs: seed, nextId: 1, bossId: boss.id,
-    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false, queue: [], treats: [], fallen: [], chests: [], opened: 0, nodes: [], harvested: [], why: room?.why ?? {}, golds: [], goldGot: 0,
+    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false, queue: [], treats: [], fallen: [], chests: [], opened: 0, nodes: [], harvested: [], why: room?.why ?? {}, golds: [], goldGot: 0, hz: [], traps: [], falls: [], wave: null, gust: null, hzCd: 2500, hzDmg: 0,
   };
   if (room) { d.hero.hp = Math.max(1, Math.min(hp, room.hp)); d.snacks = room.snacks; }
   const bossRoom = !room || room.kind === 'boss';
@@ -273,6 +287,28 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
       const lo = Math.max(pl.x1 + 16, 140), hi = Math.min(pl.x2 - 16, pathEnd - 40);
       if (hi > lo) d.golds.push({ x: Math.round(lo + rand(d) * (hi - lo)), y: pl.y, got: false });
     }
+  }
+  // 🗺️ The town's own hazards
+  if (room) {
+    const town = DUNGEON_TOWNS[region];
+    d.hz = room.kind === 'boss' ? town.hazards.filter((h) => BOSS_HALL_HAZARDS.includes(h)) : room.kind === 'shop' || room.kind === 'camp' ? [] : [...town.hazards];
+    const touches = mobsDefs.map((m) => touch[m.id]).filter((n) => n > 0);
+    d.hzDmg = Math.max(1, (touches.reduce((n, x) => n + x, 0) / Math.max(1, touches.length)) * 0.7);
+    // Things on the ground, spread out between the start and the door (never on a resource spot or chest).
+    const taken: number[] = [...d.nodes.filter((n) => n.y === GROUND).map((n) => n.x), ...d.chests.map((c) => c.x)];
+    const place = (kind: 'spring' | 'bog' | 'vent' | 'thorn', n: number, w: number) => {
+      for (let i = 0, tries = 0; i < n && tries < 40; tries++) {
+        const x = Math.round(260 + rand(d) * Math.max(100, (room.kind === 'boss' ? d.worldW - 120 : pathEnd - 120) - 260));
+        if (taken.some((t) => Math.abs(t - x) < w + 50)) continue;
+        taken.push(x);
+        d.traps.push({ kind, x, w, t: Math.floor(rand(d) * 4000) });
+        i++;
+      }
+    };
+    if (d.hz.includes('springs')) place('spring', 2 + Math.floor(rand(d) * 2), 30);
+    if (d.hz.includes('bog')) place('bog', 2 + Math.floor(rand(d) * 2), 100 + Math.floor(rand(d) * 40));
+    if (d.hz.includes('vents')) place('vent', 3 + Math.floor(rand(d) * 2), 26);
+    if (d.hz.includes('thorns')) place('thorn', 2 + Math.floor(rand(d) * 2), 46);
   }
   // 💰 A chest at the end of a treasure room
   if (room?.kind === 'treasure') d.chests.push({ x: pathEnd - 40, y: GROUND, open: false });
@@ -517,19 +553,27 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   } else if (h.invT > 600 && !h.onGround) {
     // knocked back: keep the push
   } else {
-    h.vx = dir * SPEED * (h.atkT > 0 && h.onGround ? 0.55 : 1);
+    const inBog = h.onGround && d.traps.some((t) => t.kind === 'bog' && h.y >= GROUND - 2 && Math.abs(t.x - h.x) < t.w / 2);
+    const want = dir * SPEED * (h.atkT > 0 && h.onGround ? 0.55 : 1) * (inBog ? 0.45 : 1);
+    // 🧊 On ice you speed up and slow down slowly (a slide); everywhere else you move at once.
+    if (d.hz.includes('ice') && h.onGround) h.vx += (want - h.vx) * Math.min(1, dt * 0.0035);
+    else h.vx = want;
     if (dir) h.face = dir > 0 ? 1 : -1;
   }
   if (input.jump && !d.jumpHeld && h.onGround) {
     if (input.down && h.y < GROUND) { h.y += 4; h.onGround = false; } // drop through a ledge
-    else { h.vy = JUMP_V; h.onGround = false; sounds.push('jump'); burst(d, h.x, h.y, 5, ['#ffffff', '#e7e5e4'], 0.08, -0.00005, 4, 380); }
+    else {
+      // 🍄 Jumping off a mushroom / root launches you much higher (walking over one is safe).
+      const spring = d.traps.find((t) => t.kind === 'spring' && h.y >= GROUND - 2 && Math.abs(t.x - h.x) < t.w / 2 + 4);
+      if (spring) { spring.t = 300; burst(d, spring.x, GROUND - 8, 8, ['#fca5a5', '#ffffff', '#fde68a'], 0.16, 0.0006, 3, 420); }
+      h.vy = JUMP_V * (spring ? 1.45 : 1) * (d.hz.includes('lowgrav') ? 0.9 : 1); h.onGround = false; sounds.push('jump'); burst(d, h.x, h.y, 5, ['#ffffff', '#e7e5e4'], 0.08, -0.00005, 4, 380); }
   }
   d.jumpHeld = input.jump;
   h.walkT = h.onGround && h.vx ? h.walkT + dt : 0;
   const prevFeet = h.y;
   h.x = Math.max(12, Math.min(d.worldW - 12, h.x + h.vx * dt));
   if (d.room && d.room.kind !== 'boss' && alive(d).length) h.x = Math.min(h.x, d.room.door - 30);
-  h.vy += GRAV * dt;
+  h.vy += GRAV * (d.hz.includes('lowgrav') ? 0.55 : 1) * dt;
   h.y += h.vy * dt;
   h.onGround = false;
   const falling = h.vy;
@@ -540,6 +584,7 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   }
   if (h.y > GROUND) { h.y = GROUND; h.vy = 0; h.onGround = true; }
   if (h.onGround && falling > 0.35) burst(d, h.x, h.y, 6, ['#ffffff', '#e7e5e4'], 0.09, -0.00005, 4, 400);
+  stepHazards(d, dt, sounds);
   // 💰 Gold piles
   for (const gp of d.golds) {
     if (!gp.got && Math.abs(gp.x - h.x) < 18 && Math.abs(gp.y - h.y) < 30) {
@@ -742,6 +787,75 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   // Finished fading out? Gone for good.
   d.mobs = d.mobs.filter((m) => m.hp > 0 || m.dead > 0);
   return sounds;
+}
+
+/** 🗺️ The town's hazards, one step. Every one gives a warning before it can hurt. */
+function stepHazards(d: Dungeon, dt: number, sounds: string[]) {
+  if (!d.hz.length || d.phase !== 'play') return;
+  const h = d.hero;
+  const grounded = h.onGround && h.y >= GROUND - 2;
+  for (const t of d.traps) {
+    const near = Math.abs(t.x - h.x) < t.w / 2;
+    if (t.kind === 'spring') t.t = Math.max(0, t.t - dt);
+    if (t.kind === 'thorn' && near && grounded) hurtHero(d, d.hzDmg * 0.6, t.x);
+    if (t.kind === 'vent') {
+      const cycle = VENT.quiet + VENT.glow + VENT.burst;
+      t.t = (t.t + dt) % cycle;
+      if (t.t > VENT.quiet + VENT.glow) {
+        if (rand(d) < dt / 60) burst(d, t.x, GROUND - 10, 2, ['#fb923c', '#fbbf24', '#ef4444'], 0.25, -0.0004, 4, 500);
+        if (Math.abs(t.x - h.x) < 20 && h.y > GROUND - 130) hurtHero(d, d.hzDmg, t.x);
+      }
+    }
+  }
+  // 🪨 Rockfalls / 🌠 falling stars: a glowing warning where it will land, then it lands
+  if (d.hz.includes('rockfall') || d.hz.includes('stars')) {
+    d.hzCd -= dt;
+    if (d.hzCd <= 0) {
+      d.hzCd = 2600 + rand(d) * 1600;
+      const x = Math.max(80, Math.min((d.room?.door ?? d.worldW) - 60, h.x + (rand(d) - 0.4) * 320));
+      const under = d.plats.filter((pl) => x >= pl.x1 && x <= pl.x2 && pl.y >= h.y - 5).sort((a, b) => a.y - b.y)[0];
+      d.falls.push({ x, y: under?.y ?? GROUND, t: FALL_WARN });
+    }
+    for (const f of d.falls) {
+      f.t -= dt;
+      if (f.t <= 0 && f.t + dt > 0) {
+        const star = d.hz.includes('stars');
+        d.shake = Math.max(d.shake, 3);
+        burst(d, f.x, f.y - 6, 12, star ? ['#fde68a', '#ffffff', '#fbbf24'] : ['#a8a29e', '#78716c', '#e7e5e4'], 0.22, 0.0009, 4, 600);
+        sounds.push(star ? 'shing' : 'boom');
+        if (Math.abs(f.x - h.x) < 28 && Math.abs(f.y - h.y) < 50) hurtHero(d, d.hzDmg, f.x);
+        if (star) d.golds.push({ x: Math.round(f.x), y: f.y, got: false });
+      }
+    }
+    d.falls = d.falls.filter((f) => f.t > -200);
+  }
+  // 🌊 Waves roll in from the sea (the right) along the ground — jump over them
+  if (d.hz.includes('waves')) {
+    if (!d.wave) {
+      d.hzCd -= dt;
+      if (d.hzCd <= 0) { d.hzCd = 4200 + rand(d) * 2500; d.wave = { x: h.x + 340, hit: false }; sounds.push('whoosh'); }
+    } else {
+      d.wave.x -= 0.24 * dt;
+      if (!d.wave.hit && grounded && Math.abs(d.wave.x - h.x) < 18) {
+        d.wave.hit = true;
+        hurtHero(d, d.hzDmg * 0.8, d.wave.x + 40);
+      }
+      if (d.wave.x < h.x - 420) d.wave = null;
+    }
+  }
+  // 💨 Gusts: chimes and streaks first, then a push sideways
+  if (d.hz.includes('wind')) {
+    if (!d.gust) {
+      d.hzCd -= dt;
+      if (d.hzCd <= 0) { d.hzCd = 5000 + rand(d) * 2500; d.gust = { dir: rand(d) < 0.5 ? 1 : -1, warn: 900, t: 1600 }; sounds.push('tick'); }
+    } else if (d.gust.warn > 0) d.gust.warn -= dt;
+    else {
+      d.gust.t -= dt;
+      if (h.dashT <= 0) h.x = Math.max(12, Math.min(d.worldW - 12, h.x + d.gust.dir * 0.075 * dt));
+      if (d.room && d.room.kind !== 'boss' && alive(d).length) h.x = Math.min(h.x, d.room.door - 30);
+      if (d.gust.t <= 0) d.gust = null;
+    }
+  }
 }
 
 /** How far along the path you are (0–1). */
