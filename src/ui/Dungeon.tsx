@@ -6,11 +6,11 @@ import { createPortal } from 'react-dom';
 import { sound } from '../audio/sound';
 import { musicFor, type SoundKey } from '../audio/soundList';
 import {
-  BAR_SIZE, HERO_H, bossDef, bossOf, defaultBar, eatSnack, GROUND, newDungeon, pathProgress, SKILL_MAP, SKILLS, step, castSkill, VIEW_H, VIEW_W,
+  BAR_SIZE, HARVEST_MS, HERO_H, NODE_KINDS, type NodeKind, bossDef, bossOf, defaultBar, eatSnack, GROUND, newDungeon, pathProgress, SKILL_MAP, SKILLS, step, castSkill, VIEW_H, VIEW_W,
   whyCantUseSkill, type Dungeon as Run, type Input,
 } from '../core/dungeon';
 import { AREAS, townBoss, type Run as ExRun } from '../core/expedition';
-import { addStacks, canExtract, foodCount, FOOD_MAX, nextChoices, ROOM_INFO, roomOf, type DungeonRun } from '../core/dungeonRun';
+import { addStacks, canExtract, foodCount, FOOD_MAX, nextChoices, ROOM_INFO, roomOf, whyCantHarvest, type DungeonRun } from '../core/dungeonRun';
 import { maxHp } from '../core/combat';
 import { countInBag, countInBank } from '../core/inventory';
 import { FURNITURE_MAP } from '../core/cottage';
@@ -173,7 +173,7 @@ const POP_STYLE = {
 } as const;
 const SOUND_OF: Record<string, [SoundKey, number]> = {
   jump: ['whoosh', 1.4], hit: ['hit', 1], whoosh: ['whoosh', 1], boom: ['boom', 1], shing: ['shing', 1], rune: ['rune', 1], ignite: ['ignite', 1],
-  enchant: ['enchant', 1], block: ['block', 1], levelup: ['levelup', 1], tick: ['tick', 1.2], hurt: ['hurt', 1], creak: ['creak', 0.8], eat: ['eat', 1.1], coin: ['coin', 1],
+  enchant: ['enchant', 1], block: ['block', 1], levelup: ['levelup', 1], tick: ['tick', 1.2], hurt: ['hurt', 1], creak: ['creak', 0.8], eat: ['eat', 1.1], coin: ['coin', 1], mine: ['mine', 1], chop: ['chop', 1], splash: ['splash', 1], carve: ['carve', 1],
 };
 const playSound = (k: string) => { const s = SOUND_OF[k]; if (s) sound.play(s[0], { rate: s[1] * (0.95 + Math.random() * 0.1), volume: 0.7 }); };
 
@@ -414,6 +414,43 @@ function drawHeroOutlined(g: CanvasRenderingContext2D, look: Look, x: number, y:
   g.globalAlpha = a;
 }
 
+// ----- ⛏️ Rare resource spots (v0.0.1.78) -----
+const NODE_TOOL: Record<NodeKind, string> = { ore: '⛏️', tree: '🪓', herb: '🌿', fish: '🎣' };
+function drawNode(g: CanvasRenderingContext2D, T: Theme, kind: NodeKind, x: number, y: number, done: boolean, t: number) {
+  const q = (cx: number, cy: number, w: number, h: number, c: string) => { g.fillStyle = c; g.fillRect(Math.round(x + cx), Math.round(y + cy), w, h); };
+  if (kind === 'ore') {
+    // A craggy rock with glinting ore (just rubble once mined)
+    if (done) { q(-14, -6, 28, 6, '#57534e'); q(-8, -10, 12, 4, '#78716c'); return; }
+    q(-18, -24, 36, 24, '#57534e'); q(-14, -30, 26, 8, '#78716c'); q(-18, -6, 36, 6, '#44403c');
+    const glint = 0.5 + 0.5 * Math.sin(t / 220 + x);
+    g.globalAlpha = 0.6 + 0.4 * glint;
+    q(-10, -20, 5, 5, '#fde68a'); q(4, -14, 4, 4, '#fbbf24'); q(-2, -26, 4, 4, '#fef3c7'); q(9, -24, 3, 3, '#fde68a');
+    g.globalAlpha = 1;
+  } else if (kind === 'tree') {
+    // An old, gnarled tree with a faint golden glow
+    if (done) { q(-8, -10, 16, 10, '#5b3a1e'); q(-10, -2, 20, 2, '#3f2914'); return; }
+    g.globalAlpha = 0.18 + 0.1 * Math.sin(t / 400 + x); g.fillStyle = '#fde68a'; g.beginPath(); g.arc(x, y - 48, 36, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
+    q(-7, -40, 14, 40, '#5b3a1e'); q(-3, -40, 4, 40, '#7a4e2a');
+    pixCircle(g, x - 12, y - 50, 14, T.leaf[0]); pixCircle(g, x + 12, y - 52, 14, T.leaf[0]); pixCircle(g, x, y - 64, 16, T.leaf[1]); pixCircle(g, x - 4, y - 68, 6, T.leaf[2]);
+  } else if (kind === 'herb') {
+    // A patch of shimmering herbs
+    if (done) { q(-12, -3, 24, 3, '#3f6212'); return; }
+    for (let i = -2; i <= 2; i++) { const hgt = 10 + ((i + 3) * 7) % 9; q(i * 5 - 1, -hgt, 3, hgt, '#4d7c0f'); q(i * 5 - 3, -hgt - 2, 7, 4, '#84cc16'); }
+    g.globalAlpha = 0.5 + 0.5 * Math.sin(t / 260 + x); q(-6, -20, 3, 3, '#f0abfc'); q(5, -16, 3, 3, '#fef08a'); g.globalAlpha = 1;
+  } else {
+    // A little pool with rings spreading out (still once fished)
+    g.fillStyle = '#1e3a5f'; g.beginPath(); g.ellipse(x, y + 2, 34, 8, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#2563eb'; g.beginPath(); g.ellipse(x, y + 1, 30, 6, 0, 0, Math.PI * 2); g.fill();
+    if (done) return;
+    for (let i = 0; i < 2; i++) {
+      const k = ((t / 1200) + i * 0.5) % 1;
+      g.globalAlpha = 1 - k; g.strokeStyle = '#bfdbfe'; g.lineWidth = 1.5;
+      g.beginPath(); g.ellipse(x, y + 1, 6 + k * 22, 1.5 + k * 4, 0, 0, Math.PI * 2); g.stroke();
+    }
+    g.globalAlpha = 1;
+  }
+}
+
 // ----- Drawing the world -----
 function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number, top = 0, side = 0, bottom = VIEW_H) {
   const T = THEME[d.region] ?? THEME.Pocketvale;
@@ -461,6 +498,24 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
     }
     const s = sprite(exit ? '🚪' : open ? '✨' : '🔒', 16);
     g.drawImage(s, x - s.width / 2, GROUND - 112 + Math.sin(d.t / 400) * 2);
+  }
+  // ⛏️ Rare resource spots, with the tool they need floating above (dimmed + 🔒 when you didn't bring it)
+  for (const n of d.nodes) {
+    if (n.x < cam - side - 40 || n.x > cam + VIEW_W + side + 40) continue;
+    drawNode(g, T, n.kind, n.x, n.y, n.done, d.t);
+    if (n.done) continue;
+    const locked = !!d.why[n.kind];
+    const bob = Math.sin(d.t / 380 + n.x) * 2;
+    g.globalAlpha = locked ? 0.55 : 1;
+    const icon = sprite(NODE_TOOL[n.kind], 16);
+    g.drawImage(icon, n.x - icon.width / 2, n.y - 66 + bob);
+    if (locked) { const lk = sprite('🔒', 11); g.drawImage(lk, n.x + 4, n.y - 58 + bob); }
+    g.globalAlpha = 1;
+    if (n.prog > 0) {
+      // The harvest ring fills while you stand still
+      g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 5; g.beginPath(); g.arc(n.x, n.y - 82, 10, 0, Math.PI * 2); g.stroke();
+      g.strokeStyle = '#fde68a'; g.lineWidth = 3; g.beginPath(); g.arc(n.x, n.y - 82, 10, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * n.prog) / HARVEST_MS); g.stroke();
+    }
   }
   // 💰 Treasure chests
   for (const c of d.chests) {
@@ -685,7 +740,7 @@ function GearUp({ region, onClose }: { region: Run['region']; onClose: () => voi
         {!player.loadouts.some(Boolean) && <p className="tiny muted">Save outfits on the Gear screen to swap them on here in one tap.</p>}
         <h4 className="gu-h">⚔️ Fighting gear</h4>
         {COMBAT_SLOTS.map(slotRow)}
-        <h4 className="gu-h">⛏️ Tools <span className="tiny muted">(for rare finds inside — coming soon; tools you bring are away from your idle work)</span></h4>
+        <h4 className="gu-h">⛏️ Tools <span className="tiny muted">(rich spots inside need them: ⛏️ ore veins, 🪓 old trees, 🌿 herb patches, 🎣 fishing pools — tools you bring are away from your idle work)</span></h4>
         {TOOL_SLOTS.map(slotRow)}
         <h4 className="gu-h">🍖 Food <span className="tiny muted">{packed}/{FOOD_MAX} packed · each heals 30%</span></h4>
         {foods.length ? foods.map((id) => (
@@ -824,7 +879,11 @@ function RoomPlay({ run: dRun, land, onEnd }: { run: DungeonRun; land: boolean; 
   const room = roomOf(dRun);
   const [startSnacks] = useState(() => foodCount(dRun));
   const [bar, setBar] = useState<(string | null)[]>(() => readBar(slot, hero));
-  const [run] = useState<Run>(() => newDungeon(hero, region, readBar(slot, hero), room.seed, { kind: room.kind, depth: dRun.row, hp: dRun.hp, snacks: startSnacks }));
+  const [run] = useState<Run>(() => {
+    const why: Partial<Record<NodeKind, string>> = {};
+    for (const k of NODE_KINDS) { const w = whyCantHarvest(hero, region, k); if (w) why[k] = w; }
+    return newDungeon(hero, region, readBar(slot, hero), room.seed, { kind: room.kind, depth: dRun.row, hp: dRun.hp, snacks: startSnacks, why });
+  });
   const [book, setBook] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [, setTick] = useState(0);
@@ -860,6 +919,7 @@ function RoomPlay({ run: dRun, land, onEnd }: { run: DungeonRun; land: boolean; 
         for (const s of step(run, dt, input.current)) playSound(s);
         if (run.fallen.length) pay();
         while (run.opened > 0) { run.opened--; game.dungeonChest(pending.current); }
+        while (run.harvested.length) game.dungeonHarvest(run.harvested.shift()!, pending.current);
         if (run.phase !== before) finish(run.phase === 'won');
       }
       const c = canvas.current;

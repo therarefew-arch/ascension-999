@@ -4,7 +4,12 @@
 // You gear up, then go in with everything you wear (and its socketed gems) plus packed food. Rooms are laid out in
 // rows; after clearing a room you choose 1 of the 2 rooms in the next row. 🚪 Exit rooms and beating the 👑 boss get you
 // out with your run bag. Knocked out = everything you brought and found is gone (XP earned is kept).
-import type { EquipSlot } from '../data/items';
+import { CRAFTED_TOOLS, TOOL_TIERS, toolName, type EquipSlot } from '../data/items';
+import { ACTIONS, SKILLS, type ActionDef } from '../data/skills';
+import type { NodeKind } from './dungeon';
+import { equippedToolTier } from './idle';
+import { levelForXp } from './xp';
+import type { PlayerState } from './player';
 import { REGIONS, type Region } from '../data/tiers';
 import type { ItemStack } from './player';
 
@@ -84,6 +89,32 @@ export function eatFood(run: DungeonRun, n: number) {
     n -= k;
   }
   run.food = run.food.filter((x) => x.qty > 0);
+}
+
+// ----- ⛏️ Rare resources (v0.0.1.78, owner: "rare resources but if you didn't bring the right tool you won't be able to harvest it") -----
+const NODE_SKILL_ = { ore: 'mining', tree: 'woodcutting', herb: 'herblore', fish: 'fishing' } as const;
+/** A rich spot is worth this many normal gathering actions (items and XP). */
+export const HARVEST_YIELD = 6;
+/** Chance a rich spot also gives that skill's rare find (geode, bird's nest, corked bottle). */
+export const HARVEST_FIND = 0.25;
+/** The town's own gathering action for that kind of spot (its best one). */
+export function gatherActionFor(region: Region, kind: NodeKind): ActionDef | undefined {
+  const skill = NODE_SKILL_[kind];
+  return Object.values(ACTIONS).filter((a) => a.skill === skill && a.region === region && !a.inputs.length && a.output && !a.lost && a.output.item !== 'rune_essence')
+    .sort((a, b) => (b.needsTool ?? 0) - (a.needsTool ?? 0) || b.level - a.level)[0];
+}
+/** Why you can't harvest this kind of spot (null = you can): you need that skill's tool, good enough, and the level. */
+export function whyCantHarvest(hero: PlayerState, region: Region, kind: NodeKind): string | null {
+  const a = gatherActionFor(region, kind);
+  if (!a) return 'Nothing to gather here';
+  const tier = Math.max(0, a.needsTool ?? 0);
+  if (equippedToolTier(hero, a.skill) < tier) {
+    const tool = CRAFTED_TOOLS.find((t) => t.skill === a.skill);
+    const name = tool ? toolName(TOOL_TIERS[Math.min(tier, TOOL_TIERS.length - 1)], tool) : '';
+    return tool ? `Needs ${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}` : 'Needs a tool';
+  }
+  if (levelForXp(hero.skills[a.skill].xp) < a.level) return `Needs ${SKILLS[a.skill].name} ${a.level}`;
+  return null;
 }
 
 // ----- Kept in the save: the save loader keeps only what it recognises, so check everything. -----

@@ -88,9 +88,20 @@ export interface Dungeon {
   chests: { x: number; y: number; open: boolean }[];
   /** Chests opened since the screen last checked. */
   opened: number;
+  /** ⛏️ Rare resource spots (v0.0.1.78): harvest by standing still on one with the right tool. */
+  nodes: { x: number; y: number; kind: NodeKind; done: boolean; prog: number; warned?: boolean }[];
+  /** Spots harvested since the screen last checked (the screen pays them out). */
+  harvested: NodeKind[];
+  /** Why you can't harvest each kind of spot (no entry = you can). */
+  why: Partial<Record<NodeKind, string>>;
 }
+export type NodeKind = 'ore' | 'tree' | 'herb' | 'fish';
+export const NODE_KINDS: NodeKind[] = ['ore', 'tree', 'herb', 'fish'];
+export const NODE_SKILL: Record<NodeKind, SkillId> = { ore: 'mining', tree: 'woodcutting', herb: 'herblore', fish: 'fishing' };
+/** How long you stand on a spot to harvest it (ms). */
+export const HARVEST_MS = 1800;
 /** One room of an extraction run: its kind, how deep it is (row), the health and food you walk in with. */
-export interface RoomSpec { kind: RoomKind; depth: number; hp: number; snacks: number }
+export interface RoomSpec { kind: RoomKind; depth: number; hp: number; snacks: number; why?: Partial<Record<NodeKind, string>> }
 /** Ledges go up to this many rows above the ground. */
 export const MAX_ROW = 5;
 /** How much a 🍓 berry patch heals (share of max health). */
@@ -169,7 +180,7 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
     region, style, worldW: 0, arenaX: 0, plats: [], mobs: [], shots: [], pops: [], fx: [], hit,
     hero: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp, maxHp: hp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0 },
     cd: {}, bar: bar.slice(0, BAR_SIZE), snacks: SNACKS, kills: 0, t: 0, phase: 'play', jumpHeld: false, rs: seed, nextId: 1, bossId: boss.id,
-    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false, queue: [], treats: [], fallen: [], chests: [], opened: 0,
+    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false, queue: [], treats: [], fallen: [], chests: [], opened: 0, nodes: [], harvested: [], why: room?.why ?? {},
   };
   if (room) { d.hero.hp = Math.max(1, Math.min(hp, room.hp)); d.snacks = room.snacks; }
   const bossRoom = !room || room.kind === 'boss';
@@ -203,7 +214,11 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
         d.plats.push(prev);
         far = Math.max(far, prev.x2);
       }
-      if (row >= 3) d.treats.push({ x: (prev.x1 + prev.x2) / 2, y: prev.y, got: false });
+      // At the top: a 🍓 berry patch, or (in the extraction dungeon) often a rare resource spot.
+      if (row >= 3) {
+        if (room && rand(d) < 0.55) d.nodes.push({ x: (prev.x1 + prev.x2) / 2, y: prev.y, kind: (['ore', 'tree', 'herb'] as NodeKind[])[Math.floor(rand(d) * 3)], done: false, prog: 0 });
+        else d.treats.push({ x: (prev.x1 + prev.x2) / 2, y: prev.y, got: false });
+      }
     }
     x = Math.max(x + w, far) + 90 + Math.floor(rand(d) * 120);
   }
@@ -240,6 +255,11 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
     const ledges = d.plats.filter((pl) => pl.y < GROUND && (!room || pl.y >= GROUND - 2 * ROW_GAP) && pl.x1 < x && pl.x2 > x && pl.x2 - pl.x1 > 100);
     const plat = ledges.length && rand(d) < 0.45 ? ledges[Math.floor(rand(d) * ledges.length)] : d.plats[0];
     spawn(def, plat === d.plats[0] ? x : (plat.x1 + plat.x2) / 2, plat === d.plats[0] ? { x1: x - 120, x2: x + 120, y: GROUND } : plat, rank);
+  }
+  // 🎣 Sometimes a fishing pool on the ground, and a treasure room always has one more spot to work.
+  if (room && room.kind !== 'boss' && room.kind !== 'camp') {
+    if (rand(d) < 0.4) d.nodes.push({ x: Math.round(pathEnd * (0.4 + rand(d) * 0.25)), y: GROUND, kind: 'fish', done: false, prog: 0 });
+    if (room.kind === 'treasure') d.nodes.push({ x: Math.round(pathEnd * 0.7), y: GROUND, kind: (['ore', 'tree', 'herb'] as NodeKind[])[Math.floor(rand(d) * 3)], done: false, prog: 0 });
   }
   // 💰 A chest at the end of a treasure room
   if (room?.kind === 'treasure') d.chests.push({ x: pathEnd - 40, y: GROUND, open: false });
@@ -519,6 +539,22 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   }
   // 🚪 A room is done when its monsters are beaten and you walk through the door.
   if (d.room && d.room.kind !== 'boss' && h.x >= d.room.door - 20 && !alive(d).length) { d.phase = 'won'; sounds.push('levelup'); }
+  // ⛏️ Rare resource spots: stand still on one (on your feet) with the right tool to harvest it.
+  for (const n of d.nodes) {
+    if (n.done) continue;
+    const on = h.onGround && Math.abs(n.x - h.x) < 26 && Math.abs(n.y - h.y) < 30;
+    if (!on) { n.prog = 0; continue; }
+    const why = d.why[n.kind];
+    if (why) { if (!n.warned) { n.warned = true; pop(d, n.x, n.y - 52, why, 'info'); sounds.push('tick'); } continue; }
+    if (dir !== 0) { n.prog = 0; continue; }
+    n.prog += dt;
+    if (n.prog >= HARVEST_MS) {
+      n.done = true;
+      d.harvested.push(n.kind);
+      burst(d, n.x, n.y - 16, 14, n.kind === 'ore' ? ['#e7e5e4', '#a8a29e', '#fde68a'] : n.kind === 'fish' ? ['#7dd3fc', '#e0f2fe', '#ffffff'] : ['#86efac', '#4ade80', '#fde68a'], 0.22, 0.0008, 3, 600);
+      sounds.push(n.kind === 'ore' ? 'mine' : n.kind === 'tree' ? 'chop' : n.kind === 'fish' ? 'splash' : 'carve');
+    }
+  }
   // 🍓 A berry patch up high
   for (const b of d.treats) {
     if (!b.got && Math.abs(b.x - h.x) < 20 && Math.abs(b.y - h.y) < 30) {

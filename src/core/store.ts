@@ -50,7 +50,8 @@ import { lootRolls, nightXp, STUB_COINS } from './lanternWatch';
 import { paradeCoins, WINS_NEEDED as PARADE_WINS } from './petParade';
 import { wallXp } from './holdWall';
 import { BOSS_REST_MS, DUNGEON_XP_SECS } from './dungeon';
-import { addStacks, CAMP_HEAL, eatFood as eatRunFood, FOOD_MAX, newMap, type DungeonRun } from './dungeonRun';
+import { addStacks, CAMP_HEAL, canExtract, eatFood as eatRunFood, FOOD_MAX, gatherActionFor, HARVEST_FIND, HARVEST_YIELD, newMap, whyCantHarvest, type DungeonRun } from './dungeonRun';
+import type { NodeKind } from './dungeon';
 import { AREAS, COTTAGE_CHANCE, COTTAGE_SURE_BY, newRun, type HeroSnap, townBoss, townMonsters, whyCantStart, XP_SECS, type Reward, type Run } from './expedition';
 import { EXPEDITION_FURNITURE } from './cottage';
 import { lostRecipesOf } from '../data/lostRecipes';
@@ -1252,6 +1253,25 @@ export const game = {
     addStacks(into, loot.filter((x) => !getItem(x.id).gem)); // gems only ever come from bosses
     play('coin');
   },
+  /** ⛏️ A rare resource spot harvested: the town's resource (a rich spot's worth) and maybe a rare find into the
+   * room's finds, and that skill's XP right away (kept even if you're knocked out). Never gems. */
+  dungeonHarvest(kind: NodeKind, into: ItemStack[]) {
+    const p = snap.player;
+    const r = p.dungeonRun;
+    const hero = game.dungeonHero();
+    if (!r || !hero || whyCantHarvest(hero, r.region, kind)) return;
+    const a = gatherActionFor(r.region, kind)!;
+    const loot: ItemStack[] = [];
+    for (let i = 0; i < HARVEST_YIELD; i++) loot.push(...rollLoot(a.lootTable));
+    const find = (FIND_ITEM as Record<string, string>)[a.skill];
+    if (find && Math.random() < HARVEST_FIND) loot.push({ id: find, qty: 1 });
+    addStacks(into, loot.filter((x) => !getItem(x.id).gem));
+    const report = emptyReport(null);
+    addXp(p, { skill: a.skill }, report, a.xp * HARVEST_YIELD);
+    announceLevels(report);
+    save();
+    emit();
+  },
   /** The room is done: its finds join the run bag, eaten food is gone. The boss's hall gets you out. */
   dungeonRoomCleared(hp: number, snacksUsed: number, finds: ItemStack[], kills: number) {
     const r = snap.player.dungeonRun;
@@ -1269,7 +1289,7 @@ export const game = {
   dungeonExtract(won = false): ItemStack[] {
     const p = snap.player;
     const r = p.dungeonRun;
-    if (!r) return [];
+    if (!r || (won ? !(r.cleared && r.rows[r.row][r.at].kind === 'boss') : !canExtract(r))) return [];
     const spill: ItemStack[] = [];
     for (const [slot, id] of Object.entries(r.gear) as [EquipSlot, string][]) { if (!p.equipment[slot]) p.equipment[slot] = id; else spill.push({ id, qty: 1 }); }
     for (const [slot, id] of Object.entries(r.sockets) as [EquipSlot, string][]) { if (!p.sockets[slot]) p.sockets[slot] = id; else spill.push({ id, qty: 1 }); }

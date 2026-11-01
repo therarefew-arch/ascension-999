@@ -634,8 +634,8 @@ turn-based adventure where nothing is ever lost; the Dungeon is the risky action
   escape to, less damage.
 
 **Parts**
-1. Gear-up screen, the room map, the run bag, extract/death rules, boss fix.
-2. Rare resource nodes in rooms (ore veins, herb patches, fishing spots, old trees) — only harvestable with the right tool brought.
+1. Gear-up screen, the room map, the run bag, extract/death rules, boss fix. **Built v0.0.1.77.**
+2. Rare resource nodes in rooms (ore veins, herb patches, fishing spots, old trees) — only harvestable with the right tool brought. **Built v0.0.1.78.**
 3. Gold inside the dungeon and a 🧺 shopkeeper room (sell finds, buy supplies).
 4. **Each town's dungeon designed around its town** (owner, 2026-10-31: "the maps and setting should be designed around
    each town dependent on which town you entered the dungeon for"). Already per town: sky/ground colours (`THEME`),
