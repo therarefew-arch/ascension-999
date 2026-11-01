@@ -240,10 +240,11 @@ function drawBackdrop(g: CanvasRenderingContext2D, t: Theme, cam: number, top: n
   }
   g.fillStyle = t.sky[1]; g.fillRect(-side, y1, VIEW_W + 2 * side, GROUND - y1);
   // Clouds drifting slowly
-  for (let i = 0; i < 8; i++) {
+  const nClouds = Math.max(8, Math.ceil((VIEW_W + 2 * side) / 60));
+  for (let i = 0; i < nClouds; i++) {
     const c = cloudArt(t, i % 3);
-    const span = VIEW_W + 300;
-    const x = ((i * 173 - cam * 0.12) % span + span) % span - 150;
+    const span = VIEW_W + 2 * side + 300;
+    const x = ((i * 173 - cam * 0.12) % span + span) % span - 150 - side;
     g.drawImage(c, Math.round(x / U) * U, Math.round((-top * 0.6 + 40 + hash(i) * 200) / U) * U);
   }
   // Two rows of hills
@@ -416,7 +417,7 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
   // Big trees and bushes along the path (world-attached, like the reference)
   for (let i = 0; i < 18; i++) {
     const wx = 120 + i * 190 + Math.floor(hash(i * 7) * 80);
-    if (wx < cam - 160 || wx > cam + VIEW_W + 160) continue;
+    if (wx < cam - side - 160 || wx > cam + VIEW_W + side + 160) continue;
     const tr = treeArt(T, i % 2);
     g.drawImage(tr, Math.round((wx - tr.width / 2) / U) * U, GROUND - tr.height + 6);
     const bu = bushArt(T);
@@ -430,12 +431,12 @@ function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number,
   // Ground and ledges
   for (const pl of d.plats) {
     if (pl.y >= GROUND) { drawGround(g, T, cam - 12 - side, cam + VIEW_W + 12 + side, GROUND, Math.max(VIEW_H, bottom + 4)); continue; }
-    if (pl.x2 < cam - 20 || pl.x1 > cam + VIEW_W + 20) continue;
+    if (pl.x2 < cam - side - 20 || pl.x1 > cam + VIEW_W + side + 20) continue;
     drawLedge(g, T, pl.x1, pl.x2, pl.y);
   }
   // 🍓 Berry patches on the high ledges (a bush with berries; bare once eaten)
   for (const b of d.treats) {
-    if (b.x < cam - 30 || b.x > cam + VIEW_W + 30) continue;
+    if (b.x < cam - side - 30 || b.x > cam + VIEW_W + side + 30) continue;
     const bu = bushArt(T);
     g.drawImage(bu, Math.round((b.x - bu.width / 2) / U) * U, b.y - bu.height + 3);
     if (!b.got) {
@@ -576,6 +577,21 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
   const controls = useRef<HTMLDivElement>(null);
   const camY = useRef<number | null>(null);
   useNoScroll(root);
+  // ↔️ Sideways: turned with CSS on a phone held upright; wide windows are already landscape.
+  const [size, setSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight, turn: wantsTurn() }));
+  useEffect(() => {
+    const on = () => setSize({ w: window.innerWidth, h: window.innerHeight, turn: wantsTurn() });
+    window.addEventListener('resize', on);
+    window.addEventListener('orientationchange', on);
+    return () => { window.removeEventListener('resize', on); window.removeEventListener('orientationchange', on); };
+  }, []);
+  const land = size.turn || size.w > size.h;
+  const landRef = useRef(land);
+  landRef.current = land;
+  const sizeRef = useRef(size);
+  sizeRef.current = size;
+  view.rot = size.turn;
+  view.root = root.current;
 
   useEffect(() => {
     sound.playMusic(musicFor(region));
@@ -601,17 +617,22 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
       const c = canvas.current;
       if (c) {
         const g = c.getContext('2d')!;
-        const cam = Math.max(0, Math.min(run.worldW - VIEW_W, run.hero.x - VIEW_W * 0.4));
         // Fill the whole screen: fit the 360-wide world to the width. v0.0.1.73: the ground sits on top of the
         // controls strip (so buttons sit on the dirt, not over the fight), and the camera rises when you climb.
         const dpr = Math.min(2, window.devicePixelRatio || 1);
         const cw = c.clientWidth, ch = c.clientHeight;
         if (c.width !== Math.round(cw * dpr) || c.height !== Math.round(ch * dpr)) { c.width = Math.round(cw * dpr); c.height = Math.round(ch * dpr); }
-        const sc = Math.min(cw / VIEW_W, ch / 520) * dpr;
-        const band = controls.current?.offsetHeight ?? 240;
+        // Sideways (v0.0.1.74): fit the height instead, so you see much further left and right; the buttons
+        // sit over the corners and the ground runs along the bottom.
+        const land = landRef.current;
+        const sc = Math.min(cw / VIEW_W, ch / (land ? 430 : 520)) * dpr;
+        const side = (c.width / sc - VIEW_W) / 2;
+        const visW = c.width / sc;
+        const cam = Math.max(side - 10 - (land ? visW * 0.3 : 0), Math.min(run.worldW - VIEW_W - side + 10, run.hero.x - visW * 0.38 + side));
+        const band = land ? 64 : controls.current?.offsetHeight ?? 240;
         const groundAt = ((ch - band) * dpr) / sc; // logical px from the top of the screen to the ground
         const restY = GROUND - groundAt;
-        const want = Math.min(restY, run.hero.y - HERO_H - (150 * dpr) / sc);
+        const want = Math.min(restY, run.hero.y - HERO_H - ((land ? 70 : 150) * dpr) / sc);
         camY.current = camY.current === null ? want : camY.current + (want - camY.current) * Math.min(1, dt * 0.006);
         const ox = (c.width - VIEW_W * sc) / 2, oy = -camY.current * sc;
         g.setTransform(1, 0, 0, 1, 0, 0);
@@ -620,7 +641,13 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
         g.imageSmoothingEnabled = false;
         drawWorld(g, run, look.current, cam, oy / sc, ox / sc, camY.current + c.height / sc);
       }
-      if (now - hudAt > 120) { hudAt = now; setTick((n) => n + 1); }
+      if (now - hudAt > 120) {
+        hudAt = now;
+        setTick((n) => n + 1);
+        // Catch a turned phone or a resized window even if the browser didn't say so.
+        const s = sizeRef.current;
+        if (s.w !== window.innerWidth || s.h !== window.innerHeight) setSize({ w: window.innerWidth, h: window.innerHeight, turn: wantsTurn() });
+      }
       schedule();
     };
     schedule();
@@ -665,11 +692,11 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
   const bossOn = boss && h.x > run.arenaX - 40;
 
   return createPortal(
-    <div className="dg-root" ref={root}>
+    <div className={`dg-root ${land ? 'land' : ''} ${size.turn ? 'rot' : ''}`} ref={root}
+      style={size.turn ? { inset: 'auto', left: 0, top: 0, width: size.h, height: size.w, transformOrigin: '0 0', transform: `translate(${size.w}px, 0) rotate(90deg)` } : undefined}>
       <canvas ref={canvas} className="dg-canvas" />
       <div className="dg-hud">
         <div className="dg-hp"><div style={{ width: `${(100 * h.hp) / h.maxHp}%` }} /><span className="mono">{Math.max(0, Math.round(h.hp)).toLocaleString()} / {h.maxHp.toLocaleString()}</span></div>
-        <button className="dg-icon snack" disabled={run.snacks <= 0} onClick={() => { if (eatSnack(run)) sound.play('eat'); else sound.play('error', { volume: 0.5 }); }} aria-label={`Snack (${run.snacks} left)`}>🍖<span className="dg-n">{run.snacks}</span></button>
         <button className="dg-icon" onClick={() => { sound.play('click'); setBook(true); }} aria-label="Skill book">📖</button>
         <button className="dg-icon" onClick={() => { sound.play('click'); onClose(); }} aria-label="Leave">✕</button>
       </div>
@@ -695,6 +722,8 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
           answers anywhere on the left, and the skill bubbles sit in a curve around Attack with room between them. */}
       <div className="dg-controls" ref={controls}>
         <Thumbstick input={input} />
+        {/* 🍖 Back by your thumb (v0.0.1.74, owner: "I liked the food nearby my fingers") */}
+        <button className="dg-btn dg-snack" disabled={run.snacks <= 0} onClick={() => { if (eatSnack(run)) sound.play('eat'); else sound.play('error', { volume: 0.5 }); }} aria-label={`Snack (${run.snacks} left)`}>🍖<span className="dg-n">{run.snacks}</span></button>
         <div className="dg-act">
             {bar.map((id, i) => {
               const s = id ? SKILL_MAP[id] : null;
@@ -728,6 +757,24 @@ export function DungeonScreen({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ----- ↔️ Sideways (v0.0.1.74, owner: "can we make the dungeon landscape… instead of portrait") -----
+// The installed app is locked to portrait, so on a phone held upright the dungeon screen is turned a quarter
+// turn with CSS and you turn the phone to the left. Touches arrive in screen coordinates, so they are turned
+// back into the screen's own (local) coordinates here.
+const view = { rot: false, root: null as HTMLElement | null };
+function toLocal(cx: number, cy: number): { x: number; y: number } {
+  const r = view.root?.getBoundingClientRect();
+  if (!r) return { x: cx, y: cy };
+  return view.rot ? { x: cy - r.top, y: r.right - cx } : { x: cx - r.left, y: cy - r.top };
+}
+function localRect(el: HTMLElement) {
+  const b = el.getBoundingClientRect();
+  const a = toLocal(view.rot ? b.right : b.left, b.top);
+  return { left: a.x, top: a.y, width: view.rot ? b.height : b.width, height: view.rot ? b.width : b.height };
+}
+/** A phone held upright: turn the dungeon sideways. (On a computer, just show it as it is.) */
+const wantsTurn = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches && window.innerHeight > window.innerWidth;
+
 // ----- 🕹️ Thumbstick (owner's wish, v0.0.1.71): drag sideways to walk (a small tilt walks slowly),
 // pull down to drop through a ledge with Jump. It follows your thumb wherever you first touch inside it.
 const STICK_R = 46;
@@ -758,18 +805,19 @@ function Thumbstick({ input }: { input: React.MutableRefObject<Input> }) {
       onPointerDown={(e) => {
         e.preventDefault();
         try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* keep going without capture */ }
-        const r = zone.current!.getBoundingClientRect();
+        const r = localRect(zone.current!);
+        const p = toLocal(e.clientX, e.clientY);
         // Keep the ring fully on screen, even if the touch lands near an edge.
         const pad = STICK_R + 14;
-        const x = Math.max(pad, Math.min(r.width - pad, e.clientX - r.left));
-        const y = Math.max(pad, Math.min(r.height - pad, e.clientY - r.top));
+        const x = Math.max(pad, Math.min(r.width - pad, p.x - r.left));
+        const y = Math.max(pad, Math.min(r.height - pad, p.y - r.top));
         centre.current = { x: r.left + x, y: r.top + y };
         setAt({ x, y });
         down.current = true;
         sound.play('tick', { volume: 0.35, rate: 1.3 });
-        set(e.clientX - centre.current.x, e.clientY - centre.current.y);
+        set(p.x - centre.current.x, p.y - centre.current.y);
       }}
-      onPointerMove={(e) => { if (down.current) set(e.clientX - centre.current.x, e.clientY - centre.current.y); }}
+      onPointerMove={(e) => { if (down.current) { const p = toLocal(e.clientX, e.clientY); set(p.x - centre.current.x, p.y - centre.current.y); } }}
       onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end}>
       <div className={`dg-stick ${knob ? 'on' : ''}`} style={at ? { left: at.x, top: at.y, bottom: 'auto' } : undefined}>
         <span className="dg-stick-arrows" aria-hidden>‹ ›</span>
@@ -820,6 +868,8 @@ function SkillBook({ player, bar, onBar, style, onClose }: { player: PlayerState
             </button>
           ))}
         </div>
+        {/* Sideways the cards are compact (no text), so the chosen skill's text shows here instead. */}
+        <p className="tiny dg-book-info">{picked ? <><b>{SKILL_MAP[picked].emoji} {SKILL_MAP[picked].name}:</b> {SKILL_MAP[picked].text} Now tap a bubble.</> : 'Tap a skill to read it, then tap a bubble (or drag it onto one).'}</p>
         <div className="dg-book-list">
           {groups.map(([g, label]) => (
             <div key={g}>
@@ -840,7 +890,7 @@ function SkillBook({ player, bar, onBar, style, onClose }: { player: PlayerState
           ))}
         </div>
       </div>
-      {drag && moved && <div className="dg-ghost" style={{ left: drag.x, top: drag.y }}>{SKILL_MAP[drag.id].emoji}</div>}
+      {drag && moved && <div className="dg-ghost" style={{ left: toLocal(drag.x, drag.y).x, top: toLocal(drag.x, drag.y).y }}>{SKILL_MAP[drag.id].emoji}</div>}
     </div>
   );
 }
