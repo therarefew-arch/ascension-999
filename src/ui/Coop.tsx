@@ -16,7 +16,7 @@ import { DUNGEON_TOWNS } from '../data/dungeonTowns';
 import type { Region } from '../data/tiers';
 import { useNoScroll } from './useNoScroll';
 import { DungeonFound, DungeonShell, GearUp, holdFor, lookOf, paintRoom, playSound, readBar, RoomControls, RunEndPanel, RunMap, SkillBook, view, wantsTurn, WickStall, writeBar, type Look, type PartyCtx, type RunEnd } from './Dungeon';
-import { foodCount, roomOf, type DungeonRun } from '../core/dungeonRun';
+import { charmOf, foodCount, roomOf, type DungeonRun } from '../core/dungeonRun';
 import { partyAd, syncSoon } from '../core/family';
 import type { ItemStack } from '../core/player';
 
@@ -49,7 +49,7 @@ function runCard(name: string, slot: number | null): HeroCard | null {
   const hero = game.dungeonHero();
   const r = game.dungeonRunNow();
   if (!hero || !r) return null;
-  return { ...heroCard(hero, r.region), bar: readBar(slot, hero), look: lookOf(hero), name, hp: r.hp, snacks: foodCount(r) };
+  return { ...heroCard(hero, r.region), bar: readBar(slot, hero), look: lookOf(hero), name, hp: r.hp, snacks: foodCount(r), charm: charmOf(r) };
 }
 type Listener = (m: PartyMsg) => void;
 

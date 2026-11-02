@@ -59,8 +59,10 @@ export interface Hero {
  * each monster's hit they take (`hs`, from their own armour), cooldowns, skill bar, food, looks and name. The leader's
  * seat lives on the dungeon itself; the friend's in `d.ally`. `swapSeats` trades them so every rule written for
  * `d.hero` works for either player. */
-export interface Seat { hero: Hero; hit: Record<string, number>; hs: Record<string, number>; cd: Record<string, number>; bar: (string | null)[]; style: CombatStyle; jumpHeld: boolean; snacks: number; look?: unknown; name?: string }
-const SEAT_KEYS = ['hero', 'hit', 'hs', 'cd', 'bar', 'style', 'jumpHeld', 'snacks', 'look', 'name'] as const;
+export interface Seat { hero: Hero; hit: Record<string, number>; hs: Record<string, number>; cd: Record<string, number>; bar: (string | null)[]; style: CombatStyle; jumpHeld: boolean; snacks: number; look?: unknown; name?: string;
+  /** 🍀 Each player's own charm (v0.0.2.6). */
+  charm?: string; charmK: number; willUsed: number }
+const SEAT_KEYS = ['hero', 'hit', 'hs', 'cd', 'bar', 'style', 'jumpHeld', 'snacks', 'look', 'name', 'charm', 'charmK', 'willUsed'] as const;
 export function swapSeats(d: Dungeon) {
   const a = d.ally as unknown as Record<string, unknown> | undefined;
   if (!a) return;
@@ -294,8 +296,8 @@ const SIZE: Record<string, [number, number]> = {
 /** 🤝 How hard a player hits each of this town's monsters and how hard each hits them (their gear and levels). The friend's
  * phone works this out for itself and sends it to the leader, who runs the room. */
 export interface HeroCard { style: CombatStyle; hit: Record<string, number>; touch: Record<string, number>; maxHp: number; bar: (string | null)[]; look?: unknown; name?: string;
-  /** In a run together: the friend's health and food going into the room. */
-  hp?: number; snacks?: number }
+  /** In a run together: the friend's health and food going into the room, and their 🍀 charm. */
+  hp?: number; snacks?: number; charm?: { boon: string; k: number } }
 export function heroCard(p: PlayerState, region: Region, room?: RoomSpec): Omit<HeroCard, 'bar' | 'look' | 'name'> {
   const style = weaponStyle(p);
   const fair = fairPower(region);
@@ -317,9 +319,16 @@ export function addAlly(d: Dungeon, card: HeroCard) {
   let sum = 0, n = 0;
   for (const id of Object.keys(d.touch)) { hs[id] = (card.touch[id] ?? d.touch[id]) / Math.max(0.001, d.touch[id]); sum += hs[id]; n++; }
   hs._avg = n ? sum / n : 1;
+  // 🍀 The friend's own charm: their damage, armour and health numbers first.
+  const cb = card.charm?.boon, ck = card.charm?.k ?? 1;
+  const hit = { ...card.hit };
+  if (cb === 'edge') for (const id of Object.keys(hit)) hit[id] *= 1 + 0.15 * ck;
+  if (cb === 'cloak') for (const id of Object.keys(hs)) hs[id] *= 1 - 0.12 * ck;
+  const max = Math.round(card.maxHp * (cb === 'hearty' ? 1 + 0.2 * ck : 1));
   d.ally = {
-    hero: { x: 30, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp: Math.max(1, Math.min(card.maxHp, card.hp ?? card.maxHp)), maxHp: card.maxHp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0, bf: {} },
-    hit: card.hit, hs, cd: {}, bar: card.bar.slice(0, BAR_SIZE), style: card.style, jumpHeld: false, snacks: card.snacks ?? SNACKS, look: card.look, name: card.name,
+    hero: { x: 30, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp: Math.max(1, Math.min(max, card.hp ?? max)), maxHp: max, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0, bf: {} },
+    hit, hs, cd: {}, bar: card.bar.slice(0, BAR_SIZE), style: card.style, jumpHeld: false, snacks: card.snacks ?? SNACKS, look: card.look, name: card.name,
+    charm: cb, charmK: ck, willUsed: 0,
   };
 }
 export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[], seed = Math.floor(Math.random() * 2 ** 31), room?: RoomSpec): Dungeon {
@@ -509,7 +518,7 @@ function hitMob(d: Dungeon, m: Mob, mult: number, knock = 6): number {
   const crit = (bf.hawk ?? 0) > 0 || rand(d) < 0.12;
   mult *= ((bf.rage ?? 0) > 0 ? 1.4 : 1) * ((bf.cry ?? 0) > 0 ? 1.25 : 1);
   // ⭐ Star charm: the first hit on each monster
-  if (d.charm === 'keen' && d.seat === 0 && !m.keen) { m.keen = true; mult *= 1 + d.charmK; }
+  if (d.charm === 'keen' && !m.keen) { m.keen = true; mult *= 1 + d.charmK; }
   const dmg = Math.max(1, Math.round(d.hit[m.m] * mult * (0.85 + rand(d) * 0.3) * (crit ? 1.6 : 1)));
   m.hp -= dmg;
   m.hitT = 200;
@@ -601,7 +610,7 @@ function hurtHero(d: Dungeon, dmg: number, from: number, mob?: Mob, src?: string
     return;
   }
   if (mob && (bf.thorns ?? 0) > 0) hitMob(d, mob, 2.5, 12);
-  if (mob && d.charm === 'thorns' && d.seat === 0) hitMob(d, mob, 0.6 * d.charmK, 8);
+  if (mob && d.charm === 'thorns') hitMob(d, mob, 0.6 * d.charmK, 8);
   if (h.ironT > 0) dmg *= h.ironT > 100000 ? 0 : 0.5;
   if ((bf.fort ?? 0) > 0) dmg *= 0.3;
   dmg = Math.round(dmg * (0.9 + rand(d) * 0.2));
@@ -619,7 +628,7 @@ function hurtHero(d: Dungeon, dmg: number, from: number, mob?: Mob, src?: string
   pop(d, h.x, h.y - HERO_H - 8, `-${dmg.toLocaleString()}`, 'hurt');
   if (h.hp <= 0) {
     if ((bf.undying ?? 0) > 0) { h.hp = 1; pop(d, h.x, h.y - HERO_H - 24, 'Undying!', 'info'); }
-    else if (d.charm === 'will' && d.seat === 0 && d.willUsed < (d.charmK > 1 ? 2 : 1)) {
+    else if (d.charm === 'will' && d.willUsed < (d.charmK > 1 ? 2 : 1)) {
       d.willUsed++; h.hp = 1; h.invT = 1200;
       pop(d, h.x, h.y - HERO_H - 24, '🔕 The silent bell holds you up!', 'info');
     }
@@ -650,7 +659,7 @@ function castSkillNow(d: Dungeon, i: number): string | null {
   if (!id || d.phase !== 'play' || (d.cd[id] ?? 0) > 0) return null;
   const s = SKILL_MAP[id];
   const h = d.hero;
-  d.cd[id] = s.cdMs * (d.charm === 'echo' && d.seat === 0 ? 1 - 0.15 * d.charmK : 1);
+  d.cd[id] = s.cdMs * (d.charm === 'echo' ? 1 - 0.15 * d.charmK : 1);
   h.atkT = 260;
   switch (id) {
     case 'power_strike': {
@@ -834,7 +843,7 @@ export function step(d: Dungeon, dt: number, input: Input, allyInput: Input = ID
   // 🚪 A room is done when its monsters are beaten and someone walks through the door.
   if (d.room && d.room.kind !== 'boss' && !alive(d).length && standing(d).some((x) => x.h.x >= d.room!.door - 20)) {
     d.phase = 'won'; sounds.push('levelup');
-    if (d.charm === 'wind') d.hero.hp = Math.min(d.hero.maxHp, d.hero.hp + Math.round(d.hero.maxHp * 0.1 * d.charmK));
+    for (const x of standing(d)) asSeat(d, x.seat, () => { if (d.charm === 'wind') d.hero.hp = Math.min(d.hero.maxHp, d.hero.hp + Math.round(d.hero.maxHp * 0.1 * d.charmK)); });
   }
   stepHazards(d, dt, sounds);
   // Arrow Rain / Blizzard / Meteor land in waves
@@ -1053,7 +1062,7 @@ function stepSeat(d: Dungeon, dt: number, input: Input, sounds: string[]) {
   if (h.y > GROUND) { h.y = GROUND; h.vy = 0; h.onGround = true; }
   if (h.onGround && falling > 0.35) burst(d, h.x, h.y, 6, ['#ffffff', '#e7e5e4'], 0.09, -0.00005, 4, 400);
   if (h.down) return;
-  if (d.charm === 'breath' && !isFriend(d) && h.hp < h.maxHp && Math.floor(d.t / 3000) !== Math.floor((d.t - dt) / 3000)) {
+  if (d.charm === 'breath' && h.hp < h.maxHp && Math.floor(d.t / 3000) !== Math.floor((d.t - dt) / 3000)) {
     const heal = Math.max(1, Math.round(h.maxHp * 0.02 * d.charmK)); h.hp = Math.min(h.maxHp, h.hp + heal); pop(d, h.x, h.y - HERO_H - 8, `+${heal.toLocaleString()}`, 'heal');
   }
   if (!isFriend(d)) {
@@ -1117,7 +1126,7 @@ function stepSeat(d: Dungeon, dt: number, input: Input, sounds: string[]) {
 
   // Basic attack (hold to keep swinging)
   if (input.attack && h.atkCd <= 0 && h.dashT <= 0) {
-    h.atkCd = ATTACK_MS[d.style] * ((h.bf.cry ?? 0) > 0 ? 0.75 : 1) * (d.charm === 'hands' && !isFriend(d) ? 1 - 0.1 * d.charmK : 1);
+    h.atkCd = ATTACK_MS[d.style] * ((h.bf.cry ?? 0) > 0 ? 0.75 : 1) * (d.charm === 'hands' ? 1 - 0.1 * d.charmK : 1);
     h.atkT = 240;
     if (d.style === 'melee') {
       const t = inFront(d, 62)[0];
