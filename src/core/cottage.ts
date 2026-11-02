@@ -220,7 +220,46 @@ export const SHAPE: Record<string, PieceShape> = {
   yeti_rug: { w: 38, h: 24, flat: true }, heron_feather: { w: 12, h: 32 }, star_antler: { w: 26, h: 18, wall: true },
   rain_cloud: { w: 22, h: 16, wall: true }, first_tusk: { w: 32, h: 18 },
 };
-export const shapeOf = (id: string): PieceShape => SHAPE[id] ?? { w: 16, h: 16 };
+// ----- 🛍️ Decorations (v0.0.2.5, owner: rooms like the reference pictures feel lived-in) -----
+// Bought with coins (prices in market/cottageShop.ts), just for looks — no perks. You can own several of each: every
+// copy is its own piece in the room, with an id `<kind>.<n>` (e.g. `rug_cream.2`).
+export interface DecorDef { id: string; name: string; emoji: string; shape: PieceShape; blurb: string }
+export const DECOR: DecorDef[] = [
+  { id: 'rug_cream', name: 'Striped rug (cream)', emoji: '🟨', shape: { w: 40, h: 24, flat: true }, blurb: 'Soft stripes underfoot.' },
+  { id: 'rug_green', name: 'Striped rug (green)', emoji: '🟩', shape: { w: 40, h: 24, flat: true }, blurb: 'The colour of a summer meadow.' },
+  { id: 'rug_red', name: 'Round rug (red)', emoji: '🟥', shape: { w: 34, h: 22, flat: true }, blurb: 'Warm and cheerful by the fire.' },
+  { id: 'plant_fern', name: 'Potted fern', emoji: '🪴', shape: { w: 16, h: 22 }, blurb: 'A little green in the corner.' },
+  { id: 'plant_tall', name: 'Tall leafy plant', emoji: '🌿', shape: { w: 18, h: 32 }, blurb: 'Big leaves in a white pot.' },
+  { id: 'plant_cactus', name: 'Little cactus', emoji: '🌵', shape: { w: 10, h: 14 }, blurb: 'Needs almost no looking after.' },
+  { id: 'floor_lamp', name: 'Floor lamp', emoji: '💡', shape: { w: 14, h: 36 }, blurb: 'A warm pool of light in the evenings.' },
+  { id: 'sofa', name: 'Leather sofa', emoji: '🛋️', shape: { w: 44, h: 26 }, blurb: 'Room for two and a sleepy pet.' },
+  { id: 'coffee_table', name: 'Coffee table', emoji: '☕', shape: { w: 26, h: 16 }, blurb: 'With a mug that is always still warm.' },
+  { id: 'side_table', name: 'Side table', emoji: '🪑', shape: { w: 14, h: 16 }, blurb: 'Just the right height for a cup.' },
+  { id: 'desk', name: 'Writing desk', emoji: '📝', shape: { w: 32, h: 26 }, blurb: 'Letters, maps and a half-written diary.' },
+  { id: 'wardrobe', name: 'Wardrobe', emoji: '🚪', shape: { w: 24, h: 42 }, blurb: 'Your spare cloaks, and one odd sock.' },
+  { id: 'dining_set', name: 'Little dining table', emoji: '🍽️', shape: { w: 30, h: 32 }, blurb: 'A table for two, with a checked cloth.' },
+  { id: 'book_stack', name: 'Pile of books', emoji: '📚', shape: { w: 12, h: 10 }, blurb: 'To be read. Eventually.' },
+  { id: 'crates', name: 'Stacked crates', emoji: '📦', shape: { w: 22, h: 20 }, blurb: 'Still not unpacked.' },
+  { id: 'laundry_basket', name: 'Laundry basket', emoji: '🧺', shape: { w: 16, h: 12 }, blurb: 'Clean, mostly.' },
+  { id: 'pet_bed', name: 'Pet bed', emoji: '🐾', shape: { w: 18, h: 10 }, blurb: 'A round cushion your pet loves.' },
+  { id: 'frame_land', name: 'Landscape painting', emoji: '🖼️', shape: { w: 18, h: 14, wall: true }, blurb: 'Rolling hills in a little frame.' },
+  { id: 'frame_tall', name: 'Portrait painting', emoji: '🖼️', shape: { w: 12, h: 16, wall: true }, blurb: 'A stern-looking ancestor.' },
+  { id: 'wall_clock', name: 'Wall clock', emoji: '🕰️', shape: { w: 12, h: 12, wall: true }, blurb: 'Tick, tock.' },
+  { id: 'wall_shelf', name: 'Wall shelf with plant', emoji: '🪴', shape: { w: 22, h: 12, wall: true }, blurb: 'A trailing plant and a tiny jar.' },
+];
+export const DECOR_MAP: Record<string, DecorDef> = Object.fromEntries(DECOR.map((d) => [d.id, d]));
+/** A decoration copy's kind (`rug_cream.2` → `rug_cream`), or undefined if it isn't one. */
+export const decorKind = (id: string): string | undefined => { const k = id.split('.')[0]; return id.includes('.') && DECOR_MAP[k] ? k : undefined; };
+/** Is this a piece of yours: built furniture or a decoration you bought? */
+export const ownsPiece = (p: PlayerState, id: string) => p.cottage.includes(id) || (p.cottageDecor ?? []).includes(id);
+/** A piece's name and little picture, for furniture and decorations alike. */
+export function pieceInfo(id: string): { name: string; emoji: string; blurb: string; perk?: Perk } | undefined {
+  const f = FURNITURE_MAP[id];
+  if (f) return { name: f.name, emoji: f.emoji, blurb: f.blurb, perk: f.perk };
+  const k = decorKind(id);
+  return k ? { name: DECOR_MAP[k].name, emoji: DECOR_MAP[k].emoji, blurb: DECOR_MAP[k].blurb } : undefined;
+}
+export const shapeOf = (id: string): PieceShape => SHAPE[id] ?? DECOR_MAP[decorKind(id) ?? '']?.shape ?? { w: 16, h: 16 };
 /** Where a piece sits: its top-left corner in room pixels, and whether it's flipped left-right. */
 export interface Spot { x: number; y: number; f?: 1 }
 /** Keep a piece in the room: wall pieces on the wall, floor pieces standing on the floor (tall ones may reach up the wall). */
@@ -235,7 +274,8 @@ const overlapArea = (a: { x: number; y: number; w: number; h: number }, b: { x: 
   Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
 /** A free-ish spot for a piece: near its old place in the room, avoiding pieces already there. */
 export function freeSpot(p: PlayerState, id: string): Spot {
-  const f = FURNITURE_MAP[id];
+  // Decorations have no old place: they start in the middle of the room (on the wall or the floor).
+  const f = FURNITURE_MAP[id] ?? { x: 45, y: 50 };
   const s = shapeOf(id);
   // Tall pieces (bookcases, the hearth, the bed) start against the back wall, like a real room.
   const tall = !s.wall && !s.flat && s.h >= 36;
@@ -256,6 +296,6 @@ export function freeSpot(p: PlayerState, id: string): Spot {
 export function autoPlace(p: PlayerState): boolean {
   const lay = (p.cottageLayout ??= {});
   let changed = false;
-  for (const id of p.cottage) if (lay[id] === undefined && FURNITURE_MAP[id]) { lay[id] = freeSpot(p, id); changed = true; }
+  for (const id of [...p.cottage, ...(p.cottageDecor ?? [])]) if (lay[id] === undefined && (FURNITURE_MAP[id] || decorKind(id))) { lay[id] = freeSpot(p, id); changed = true; }
   return changed;
 }

@@ -3,10 +3,11 @@
 // them or put them away (their perk still counts); 🎨 to pick the wallpaper and floor. Rules + saving: core/cottage.ts.
 import { useEffect, useRef, useState } from 'react';
 import { sound } from '../audio/sound';
-import { clampSpot, FLOORS, FURNITURE_MAP, perkText, ROOM, shapeOf, WALLS, type FloorId, type Spot, type WallId } from '../core/cottage';
+import { clampSpot, DECOR, decorKind, FLOORS, FURNITURE_MAP, perkText, pieceInfo, ROOM, shapeOf, WALLS, type FloorId, type Spot, type WallId } from '../core/cottage';
+import { decorPrice, decorRefund } from '../market/cottageShop';
 import { game, useGame } from '../core/store';
 import { PET_MAP } from '../data/pets';
-import { drawPiece, drawRoom, FLOOR_SWATCH, LIGHTS, wallSwatch } from './cottageArt';
+import { drawPiece, drawRoom, FLOOR_SWATCH, lightOf, wallSwatch } from './cottageArt';
 import { useDayPhase } from './PixelScene';
 
 const SKY: Record<string, string> = { dawn: '#f6c7a1', day: '#93d0ec', dusk: '#f4a460', night: '#1c2238' };
@@ -16,6 +17,7 @@ export function CottageRoom() {
   const phase = useDayPhase();
   const [arrange, setArrange] = useState(false);
   const [paint, setPaint] = useState(false);
+  const [shop, setShop] = useState(false);
   const [sel, setSel] = useState<string | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const drag = useRef<{ id: string; dx: number; dy: number; x: number; y: number; moved: boolean } | null>(null);
@@ -23,7 +25,7 @@ export function CottageRoom() {
   live.current = { player, sel, phase, arrange };
 
   // New pieces (and older saves) get a place in the room.
-  useEffect(() => { game.cottageAutoPlace(); }, [player.cottage.length]);
+  useEffect(() => { game.cottageAutoPlace(); }, [player.cottage.length, player.cottageDecor?.length]);
 
   // While arranging, a drag moves furniture instead of scrolling the page (iPhone ignores touch-action).
   useEffect(() => {
@@ -75,7 +77,7 @@ export function CottageRoom() {
           g.fillRect(ROOM.side, ROOM.wallTop, ROOM.w - ROOM.side * 2, ROOM.floorBottom - ROOM.wallTop);
           g.globalCompositeOperation = 'lighter';
           for (const pc of pieces) {
-            const L = LIGHTS[pc.id];
+            const L = lightOf(pc.id);
             if (!L) continue;
             const lx = pc.x + (pc.f ? pc.w - L[0] : L[0]), ly = pc.y + L[1];
             const grad = g.createRadialGradient(lx, ly, 1, lx, ly, L[2] * (1 + 0.04 * Math.sin(t / 200)));
@@ -129,8 +131,9 @@ export function CottageRoom() {
     if (d?.moved) { game.cottageMove(d.id, d.x, d.y); sound.play('thud', { volume: 0.5, rate: 1.1 }); }
   };
 
-  const f = sel ? FURNITURE_MAP[sel] : undefined;
-  const stored = player.cottage.filter((id) => player.cottageLayout?.[id] === 0 && FURNITURE_MAP[id]);
+  const f = sel ? pieceInfo(sel) : undefined;
+  const deco = sel ? decorKind(sel) : undefined;
+  const stored = [...player.cottage, ...(player.cottageDecor ?? [])].filter((id) => player.cottageLayout?.[id] === 0 && pieceInfo(id));
   const style = player.cottageStyle ?? { wall: 'cream' as WallId, floor: 'oak' as FloorId };
   return (
     <div className="ct-wrap">
@@ -139,17 +142,19 @@ export function CottageRoom() {
       {!player.cottage.length && <p className="small muted center">An empty room, full of possibilities. Build your first piece below!</p>}
       <div className="ct-tools">
         <button className={`btn btn-sm ${arrange ? 'btn-primary' : ''}`} onClick={() => { sound.play('click'); setArrange(!arrange); setPaint(false); }}>{arrange ? '✅ Done' : '✏️ Arrange'}</button>
-        <button className={`btn btn-sm ${paint ? 'btn-primary' : ''}`} onClick={() => { sound.play('click'); setPaint(!paint); }}>🎨 Walls & floor</button>
+        <button className={`btn btn-sm ${paint ? 'btn-primary' : ''}`} onClick={() => { sound.play('click'); setPaint(!paint); setShop(false); }}>🎨 Walls & floor</button>
+        <button className={`btn btn-sm ${shop ? 'btn-primary' : ''}`} onClick={() => { sound.play('click'); setShop(!shop); setPaint(false); }}>🛍️ Decor</button>
       </div>
       {arrange && !sel && <p className="tiny muted center">Drag a piece to move it. Tap one to flip it or put it away.</p>}
       {f && (
         <div className="ct-info">
           <span className="ct-emoji">{f.emoji}</span>
-          <span className="grow"><b>{f.name}</b><span className="small gold">{perkText(f.perk)}</span><span className="tiny muted">{f.blurb}</span></span>
+          <span className="grow"><b>{f.name}</b><span className="small gold">{f.perk ? perkText(f.perk) : '🛍️ Decoration'}</span><span className="tiny muted">{f.blurb}</span></span>
           {arrange && (
             <span className="ct-btns">
-              <button className="btn btn-sm" onClick={() => { sound.play('whoosh', { volume: 0.4 }); game.cottageFlip(f.id); }}>↔️ Flip</button>
-              <button className="btn btn-sm" onClick={() => { sound.play('click'); game.cottageStore(f.id); setSel(null); }}>📦 Put away</button>
+              <button className="btn btn-sm" onClick={() => { sound.play('whoosh', { volume: 0.4 }); game.cottageFlip(sel!); }}>↔️ Flip</button>
+              <button className="btn btn-sm" onClick={() => { sound.play('click'); game.cottageStore(sel!); setSel(null); }}>📦 Put away</button>
+              {deco && <button className="btn btn-sm" onClick={() => { game.sellDecor(sel!); setSel(null); }}>💰 Sell ({decorRefund(deco)})</button>}
             </span>
           )}
         </div>
@@ -157,7 +162,20 @@ export function CottageRoom() {
       {arrange && stored.length > 0 && (
         <div className="ct-store">
           <span className="tiny muted">📦 Put away — tap to bring one back into the room (their perks always count):</span>
-          <div className="ct-chips">{stored.map((id) => <button key={id} className="btn btn-sm" onClick={() => { sound.play('thud', { volume: 0.5 }); game.cottagePlace(id); setSel(id); }}>{FURNITURE_MAP[id].emoji} {FURNITURE_MAP[id].name}</button>)}</div>
+          <div className="ct-chips">{stored.map((id) => <button key={id} className="btn btn-sm" onClick={() => { sound.play('thud', { volume: 0.5 }); game.cottagePlace(id); setSel(id); }}>{pieceInfo(id)!.emoji} {pieceInfo(id)!.name}</button>)}</div>
+        </div>
+      )}
+      {shop && (
+        <div className="ct-paint">
+          <span className="tiny muted">🛍️ Decorations — just for looks, buy as many as you like. They appear in the room; ✏️ Arrange to move them. (You have 💰 {player.coins.toLocaleString()})</span>
+          <div className="ct-shop">
+            {DECOR.map((d) => (
+              <button key={d.id} className="ct-ware" disabled={player.coins < decorPrice(d.id)} onClick={() => { const id = game.buyDecor(d.id); if (id) { setSel(id); setArrange(true); } }}>
+                <canvas className="ct-ware-pic" width={46} height={46} ref={(el) => { if (el) paintWare(el, d.id); }} />
+                <span className="tiny">{d.name}</span><b className="tiny mono gold">💰 {decorPrice(d.id).toLocaleString()}</b>
+              </button>
+            ))}
+          </div>
         </div>
       )}
       {paint && (
@@ -172,13 +190,22 @@ export function CottageRoom() {
   );
 }
 
+/** A shop picture of a decoration, drawn with the room's art. */
+function paintWare(c: HTMLCanvasElement, kind: string) {
+  const g = c.getContext('2d')!;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height); g.imageSmoothingEnabled = false;
+  const s = shapeOf(`${kind}.1`);
+  const k = Math.max(1, Math.floor(Math.min(42 / s.w, 42 / s.h)));
+  g.setTransform(k, 0, 0, k, Math.round((c.width - s.w * k) / 2), Math.round((c.height - s.h * k) / 2));
+  drawPiece(g, `${kind}.1`, 1000, '#93d0ec');
+}
 interface Placed { id: string; x: number; y: number; w: number; h: number; f?: 1; order: number }
 /** The pieces in the room, in drawing order: rugs, then what hangs on the wall, then what stands (back to front). */
-function placedPieces(p: { cottage: string[]; cottageLayout?: Record<string, Spot | 0> }, drag: { id: string; x: number; y: number } | null): Placed[] {
+function placedPieces(p: { cottage: string[]; cottageDecor?: string[]; cottageLayout?: Record<string, Spot | 0> }, drag: { id: string; x: number; y: number } | null): Placed[] {
   const out: Placed[] = [];
-  for (const id of p.cottage) {
+  for (const id of [...p.cottage, ...(p.cottageDecor ?? [])]) {
     const sp = p.cottageLayout?.[id];
-    if (!sp || !FURNITURE_MAP[id]) continue;
+    if (!sp || (!FURNITURE_MAP[id] && !decorKind(id))) continue;
     const s = shapeOf(id);
     const x = drag?.id === id ? drag.x : sp.x, y = drag?.id === id ? drag.y : sp.y;
     out.push({ id, x, y, w: s.w, h: s.h, f: sp.f, order: s.flat ? y : s.wall ? 1000 + y : 2000 + y + s.h });

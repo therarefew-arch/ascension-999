@@ -2174,3 +2174,9 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .dg-root.land .dg-station { display: grid; grid-template-columns: 1fr 1fr; align-items: stretch; }
 .dg-root.land .dg-station > :not(.dg-recipe) { grid-column: 1 / -1; }
 .dg-root.land .dg-recipe .dg-ware-text > .muted { display: none; }
+
+/* 🛍️ Cottage decor shop (v0.0.2.5) */
+.ct-shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+.ct-ware { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.25); color: inherit; cursor: pointer; text-align: center; }
+.ct-ware:disabled { opacity: 0.45; cursor: default; }
+.ct-ware-pic { width: 46px; height: 46px; image-rendering: pixelated; background: #e9dcc1; border-radius: 6px; }

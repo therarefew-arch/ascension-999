@@ -128,6 +128,8 @@ export interface PlayerState {
   cottage: string[];
   /** 🏠 Where each built piece sits in the room (0 = put away in storage), and the wallpaper + floor (v0.0.2.2). */
   cottageLayout?: Record<string, import('./cottage').Spot | 0>;
+  /** 🛍️ Decorations you've bought (each copy's id, e.g. `rug_cream.2`) — v0.0.2.5. */
+  cottageDecor?: string[];
   cottageStyle?: { wall: import('./cottage').WallId; floor: import('./cottage').FloorId };
   /** 🎒 Towns where you've picked up the Traveller's gift at the well. */
   travellerGifts: string[];

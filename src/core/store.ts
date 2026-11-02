@@ -31,7 +31,8 @@ import { claimStep, trackTutorial, TUTORIAL } from './tutorial';
 import { claimBounty, ensureBounties, rerollBounty, trackBounties } from './bounties';
 import { harvest, plant, tend } from './farming';
 import { buffText, consumeBuff } from './buffs';
-import { autoPlace, build, clampSpot, cottageStarPct, freeSpot, FURNITURE_MAP, perkText, type FloorId, type WallId } from './cottage';
+import { autoPlace, build, clampSpot, cottageStarPct, DECOR_MAP, decorKind, freeSpot, FURNITURE_MAP, ownsPiece, perkText, type FloorId, type WallId } from './cottage';
+import { decorPrice, decorRefund } from '../market/cottageShop';
 import { CROPS } from '../data/tiers';
 import { FIND_ITEM } from '../data/lootTables';
 import type { Region } from '../data/tiers';
@@ -1443,7 +1444,7 @@ export const game = {
   cottageAutoPlace() { if (autoPlace(snap.player)) { save(); emit(); } },
   cottageMove(id: string, x: number, y: number) {
     const p = snap.player;
-    if (!p.cottage.includes(id)) return;
+    if (!ownsPiece(p, id)) return;
     const old = p.cottageLayout?.[id];
     (p.cottageLayout ??= {})[id] = { ...clampSpot(id, x, y), ...(old && old.f ? { f: 1 as const } : {}) };
     save(); emit();
@@ -1457,14 +1458,42 @@ export const game = {
   /** Put a piece away (its perk still counts) or take it back out. */
   cottageStore(id: string) {
     const p = snap.player;
-    if (!p.cottage.includes(id)) return;
+    if (!ownsPiece(p, id)) return;
     (p.cottageLayout ??= {})[id] = 0;
     save(); emit();
   },
   cottagePlace(id: string) {
     const p = snap.player;
-    if (!p.cottage.includes(id)) return;
+    if (!ownsPiece(p, id)) return;
     (p.cottageLayout ??= {})[id] = freeSpot(p, id);
+    save(); emit();
+  },
+  /** 🛍️ Buy a decoration: a new copy goes straight into the room. Returns its id. */
+  buyDecor(kind: string): string | null {
+    const p = snap.player;
+    if (!DECOR_MAP[kind]) return null;
+    const cost = decorPrice(kind);
+    if (p.coins < cost) { fail(`Needs ${cost.toLocaleString()} coins`); return null; }
+    p.coins -= cost;
+    const mine = (p.cottageDecor ??= []);
+    let n = 1;
+    while (mine.includes(`${kind}.${n}`)) n++;
+    const id = `${kind}.${n}`;
+    mine.push(id);
+    (p.cottageLayout ??= {})[id] = freeSpot(p, id);
+    play('coin');
+    save(); emit();
+    return id;
+  },
+  /** 🛍️ Sell a decoration back for half what it cost. */
+  sellDecor(id: string) {
+    const p = snap.player;
+    const kind = decorKind(id);
+    if (!kind || !(p.cottageDecor ?? []).includes(id)) return;
+    p.cottageDecor = p.cottageDecor!.filter((x) => x !== id);
+    if (p.cottageLayout) delete p.cottageLayout[id];
+    giveLoot(p, [{ id: 'coins', qty: decorRefund(kind) }]);
+    play('coin');
     save(); emit();
   },
   cottageSetStyle(wall: WallId, floor: FloorId) {

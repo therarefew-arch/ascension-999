@@ -32,11 +32,16 @@ export const LIGHTS: Record<string, [number, number, number, string]> = {
   stone_hearth: [19, 36, 34, '255,170,80'], miners_lamp: [5, 10, 22, '253,224,140'], moon_chandelier: [13, 6, 34, '226,232,255'],
   ember_brazier: [8, 6, 22, '255,140,60'], singing_lantern: [6, 10, 22, '186,230,253'], glow_stone: [7, 6, 18, '253,230,138'],
   wisp_jar: [5, 8, 16, '167,243,208'], lamplighter_pole: [5, 4, 24, '253,224,140'], paper_lanterns: [18, 8, 26, '255,170,120'],
+  floor_lamp: [7, 6, 30, '253,224,160'],
 };
+/** A piece's light (decorations by their kind). */
+export const lightOf = (id: string) => { const L = LIGHTS[id.split('.')[0]]; return L && L[2] ? L : undefined; };
 
 /** Draw one piece with its top-left at (0, 0). `t` animates fires, water and twinkles; `sky` is the window colour. */
 export function drawPiece(g: G, id: string, t: number, sky: string) {
   const fl = Math.sin(t / 140) > 0 ? 1 : 0;
+  // 🛍️ Decorations are copies (`rug_cream.2`): draw by their kind.
+  if (id.includes('.')) { drawDecor(g, id.split('.')[0], t); return; }
   switch (id) {
     case 'pine_bed': {
       const [l, m, d] = W.pine;
@@ -331,6 +336,129 @@ export function drawPiece(g: G, id: string, t: number, sky: string) {
     default: {
       const s = shapeOf(id);
       ob(g, 0, 0, s.w, s.h, '#d6c3a5');
+    }
+  }
+}
+
+/** 🛍️ The decorations (v0.0.2.5), in the same style as the furniture. */
+function drawDecor(g: G, kind: string, t: number) {
+  switch (kind) {
+    case 'rug_cream': case 'rug_green': {
+      const [a, b] = kind === 'rug_cream' ? ['#efe2bf', '#c9b27f'] : ['#9cbf6e', '#6f944a'];
+      r(g, 0, 0, 40, 24, O); r(g, 1, 1, 38, 22, a);
+      for (let x = 4; x < 36; x += 6) r(g, x, 1, 2, 22, b);
+      r(g, 1, 1, 38, 1, 'rgba(255,255,255,0.3)');
+      for (let x = 2; x < 39; x += 3) { r(g, x, 23, 1, 1, b); r(g, x, 0, 1, 1, b); }
+      break;
+    }
+    case 'rug_red': {
+      oval(g, 17, 11, 16, 10, '#b8443a'); oval(g, 17, 11, 11, 6, '#d9624f', false); oval(g, 17, 11, 5, 3, '#f2c06b', false);
+      break;
+    }
+    case 'plant_fern': {
+      ob(g, 3, 14, 10, 8, '#c2683a', '#e08a5a', '#8a4523');
+      for (let i = 0; i < 7; i++) { const a = -1.4 + i * 0.45; g.strokeStyle = i % 2 ? '#3f8f4a' : '#2f7d38'; g.lineWidth = 2; g.beginPath(); g.moveTo(8, 15); g.lineTo(8 + Math.cos(a) * 8, 15 + Math.sin(a) * 12); g.stroke(); }
+      break;
+    }
+    case 'plant_tall': {
+      ob(g, 4, 22, 10, 10, '#f1f5f9', '#ffffff', '#cbd5e1');
+      r(g, 8, 8, 2, 15, '#4d3a22');
+      [[3, 8, -1], [12, 5, 1], [4, 14, -1], [13, 12, 1], [8, 1, 0]].forEach(([x, y, d]) => { oval(g, x + 1, y + 3, 4, 3, '#3f8f4a'); r(g, x + (d as number), y + 2, 3, 1, '#86cc5c'); });
+      break;
+    }
+    case 'plant_cactus': {
+      ob(g, 1, 9, 8, 5, '#c2683a', '#e08a5a');
+      ob(g, 3, 1, 4, 9, '#4f9a5a', '#6fbf7a'); ob(g, 0, 4, 3, 4, '#4f9a5a'); ob(g, 7, 3, 3, 4, '#4f9a5a'); r(g, 4, 0, 2, 1, '#f472b6');
+      break;
+    }
+    case 'floor_lamp': {
+      ob(g, 3, 33, 8, 3, '#3f3a33'); r(g, 6, 10, 2, 24, '#3f3a33');
+      g.fillStyle = O; g.beginPath(); g.moveTo(1, 11); g.lineTo(4, 1); g.lineTo(10, 1); g.lineTo(13, 11); g.fill();
+      g.fillStyle = '#f5e6c8'; g.beginPath(); g.moveTo(2, 10); g.lineTo(5, 2); g.lineTo(9, 2); g.lineTo(12, 10); g.fill();
+      r(g, 4, 10, 6, 1, '#fde68a');
+      break;
+    }
+    case 'sofa': {
+      ob(g, 2, 0, 40, 12, '#b5652e', '#d0824a', '#8a4a20');
+      for (let i = 0; i < 3; i++) r(g, 4 + i * 13, 2, 1, 9, '#9a5426');
+      ob(g, 2, 10, 40, 10, '#c4743a', '#de9058', '#8a4a20');
+      ob(g, 0, 5, 6, 17, '#a85c2a', '#c4743a'); ob(g, 38, 5, 6, 17, '#a85c2a', '#c4743a');
+      ob(g, 26, 4, 10, 8, '#7aa35a', '#9cc078');
+      r(g, 3, 22, 3, 4, O); r(g, 38, 22, 3, 4, O);
+      break;
+    }
+    case 'coffee_table': {
+      ob(g, 0, 0, 26, 10, W.dark[0], '#a77a55', W.dark[1]); r(g, 1, 9, 24, 3, W.dark[2]);
+      ob(g, 2, 12, 3, 4, W.dark[2]); ob(g, 21, 12, 3, 4, W.dark[2]);
+      ob(g, 9, 2, 6, 5, '#f8fafc'); r(g, 15, 3, 2, 2, O); r(g, 10, 3, 4, 1, '#7c4a24');
+      if (Math.floor(t / 600) % 2) r(g, 11, 0, 1, 1, '#e7e5e4'); else r(g, 12, 0, 1, 1, '#e7e5e4');
+      break;
+    }
+    case 'side_table': {
+      ob(g, 0, 0, 14, 8, W.oak[0], '#d6a676', W.oak[1]); r(g, 1, 7, 12, 3, W.oak[2]); ob(g, 2, 10, 3, 6, W.oak[2]); ob(g, 9, 10, 3, 6, W.oak[2]);
+      ob(g, 5, 0, 4, 3, '#93c5fd');
+      break;
+    }
+    case 'desk': {
+      ob(g, 0, 0, 32, 14, '#e5e7eb', '#f8fafc', '#cbd5e1');
+      ob(g, 2, 2, 9, 7, '#ffffff'); r(g, 3, 4, 6, 1, '#94a3b8'); r(g, 3, 6, 5, 1, '#94a3b8');
+      ob(g, 21, 1, 9, 9, '#38bdf8'); r(g, 22, 2, 7, 4, '#4ade80'); r(g, 22, 6, 7, 3, '#facc15');
+      r(g, 1, 13, 30, 2, '#b8bec6'); ob(g, 2, 15, 3, 11, W.oak[1]); ob(g, 27, 15, 3, 11, W.oak[1]); ob(g, 16, 15, 10, 6, W.oak[0]); r(g, 20, 17, 2, 1, O);
+      break;
+    }
+    case 'wardrobe': {
+      ob(g, 0, 0, 24, 42, W.oak[1], W.oak[0], W.oak[2]);
+      r(g, 11, 2, 2, 38, W.oak[2]); r(g, 9, 18, 1, 4, W.brass[1]); r(g, 14, 18, 1, 4, W.brass[1]);
+      r(g, 3, 4, 7, 12, W.oak[0]); r(g, 14, 4, 7, 12, W.oak[0]); ob(g, 15, 12, 7, 10, '#7aa35a'); r(g, 16, 14, 2, 2, '#f8fafc');
+      break;
+    }
+    case 'dining_set': {
+      ob(g, 9, 0, 12, 8, W.oak[1], W.oak[0]); r(g, 10, 7, 10, 2, W.oak[2]);
+      ob(g, 3, 8, 24, 14, '#f8fafc', '#ffffff', '#e2e8f0');
+      for (let x = 4; x < 26; x += 4) r(g, x, 9, 2, 2, '#fca5a5');
+      oval(g, 15, 14, 4, 3, '#fef3c7'); r(g, 13, 13, 2, 1, '#f59e0b'); ob(g, 6, 10, 3, 6, '#dc2626'); r(g, 7, 9, 1, 1, O);
+      r(g, 4, 22, 2, 3, O); r(g, 24, 22, 2, 3, O);
+      ob(g, 9, 24, 12, 8, W.oak[1], W.oak[0]); r(g, 10, 30, 10, 2, W.oak[2]);
+      break;
+    }
+    case 'book_stack': {
+      ob(g, 0, 6, 12, 4, '#3b82f6'); ob(g, 1, 3, 10, 4, '#ef4444'); ob(g, 0, 0, 11, 4, '#10b981'); r(g, 1, 1, 9, 1, 'rgba(255,255,255,0.4)');
+      break;
+    }
+    case 'crates': {
+      ob(g, 0, 8, 14, 12, '#d6b07a', '#e8c894', '#a8834f'); r(g, 3, 8, 8, 2, '#a8834f');
+      ob(g, 8, 0, 14, 12, '#e3c089', '#f0d4a6', '#b38f5b'); r(g, 11, 0, 8, 2, '#b38f5b'); ob(g, 13, 5, 5, 3, '#f8fafc');
+      break;
+    }
+    case 'laundry_basket': {
+      ob(g, 0, 3, 16, 9, '#c9a66b', '#e0c28c', '#9c7c46');
+      for (let x = 2; x < 15; x += 3) r(g, x, 5, 1, 6, '#9c7c46');
+      r(g, 2, 1, 5, 3, '#93c5fd'); r(g, 7, 0, 5, 3, '#f8fafc'); r(g, 11, 2, 3, 2, '#f472b6');
+      break;
+    }
+    case 'pet_bed': {
+      oval(g, 9, 5, 8, 4, '#b45309'); oval(g, 9, 5, 6, 2.5, '#fcd9b6', false); r(g, 5, 4, 3, 1, '#f5c79a');
+      break;
+    }
+    case 'frame_land': {
+      ob(g, 0, 0, 18, 14, W.dark[0], '#a77a55', W.dark[1]); r(g, 2, 2, 14, 10, '#9fd3ea'); r(g, 2, 8, 14, 4, '#6fa84a'); r(g, 4, 6, 6, 3, '#4f8a3a'); r(g, 12, 3, 2, 2, '#fde68a');
+      break;
+    }
+    case 'frame_tall': {
+      ob(g, 0, 0, 12, 16, W.brass[1], W.brass[0], W.brass[2]); r(g, 2, 2, 8, 12, '#5b4a7a'); r(g, 4, 4, 4, 4, '#f2c79a'); r(g, 3, 8, 6, 6, '#1e3a8a'); r(g, 4, 3, 4, 1, '#6b3f1f');
+      break;
+    }
+    case 'wall_clock': {
+      oval(g, 6, 6, 5, 5, W.dark[1]); oval(g, 6, 6, 4, 4, '#f8fafc', false);
+      const a = (t / 4000) % (Math.PI * 2); g.strokeStyle = O; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(6, 6); g.lineTo(6 + Math.cos(a) * 3, 6 + Math.sin(a) * 3); g.moveTo(6, 6); g.lineTo(6, 3.5); g.stroke();
+      break;
+    }
+    case 'wall_shelf': {
+      ob(g, 0, 7, 22, 3, W.oak[1], W.oak[0]); r(g, 3, 10, 2, 2, O); r(g, 17, 10, 2, 2, O);
+      ob(g, 3, 2, 6, 6, '#e08a5a'); for (let i = 0; i < 4; i++) r(g, 2 + i * 2, 4 + i * 2, 2, 2, '#3f8f4a');
+      r(g, 3, 8, 1, 4, '#3f8f4a'); ob(g, 13, 3, 4, 5, '#bfdbfe'); r(g, 14, 2, 2, 1, W.oak[2]);
+      break;
     }
   }
 }
