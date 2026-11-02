@@ -15,6 +15,9 @@ export function ascBonus(p: PlayerState, key: BonusKey, skill?: SkillId): number
   const town = isTownBonus(key);
   let total = 0;
   for (const id of Object.values(p.equipment)) {
+    // ✨ A Unique piece's one small bonus
+    const u = id ? ITEMS[id]?.uniq : undefined;
+    if (u && u.key === key && !SKILL_BOUND.includes(key)) total = town ? Math.max(total, u.value) : total + u.value;
     const a = id ? ITEMS[id]?.ascended : undefined;
     if (!a) continue;
     if (SKILL_BOUND.includes(key) && a.base.skill !== skill) continue;

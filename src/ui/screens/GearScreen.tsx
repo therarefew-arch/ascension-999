@@ -30,7 +30,7 @@ function SlotPicker({ slot, onClose }: { slot: EquipSlot; onClose: () => void })
   const wornId = player.equipment[slot];
   const worn = wornId ? getItem(wornId) : null;
   // 🌟 Ascended items aren't in the item list (each one is different), so add the ones you have.
-  const ascIds = Array.from(new Set([...player.inventory, ...player.bank].filter((s) => s && s.id.startsWith('asc.')).map((s) => s!.id)));
+  const ascIds = Array.from(new Set([...player.inventory, ...player.bank].filter((s) => s && (s.id.startsWith('asc.') || s.id.startsWith('uq.'))).map((s) => s!.id)));
   const options = [...ITEM_LIST, ...ascIds.map((id) => getItem(id))].filter((it) => it.equip?.slot === slot)
     .map((it) => ({ item: it, bag: countInBag(player.inventory, it.id), bank: countInBank(player, it.id) }))
     .filter((o) => o.bag + o.bank > 0);

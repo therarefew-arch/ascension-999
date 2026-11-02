@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from 'react';
 import { sound } from '../audio/sound';
 import type { SoundKey } from '../audio/soundList';
-import { getItem, UNIQUE_CHANCE, UNIQUE_IDS, UNIQUE_SUFFIX, type EquipSlot } from '../data/items';
+import { getItem, rollUniqueGear, UNIQUE_CHANCE, UNIQUE_IDS, UNIQUE_SUFFIX, type EquipSlot } from '../data/items';
 import { ACTIONS, SKILLS } from '../data/skills';
 import { equip, unequip } from './equipment';
 import {
@@ -1254,7 +1254,7 @@ export const game = {
     const rec = stationRecipes(r.region, kind).find((x) => x.key === key);
     if (!rec) return null;
     const hero = game.dungeonHero()!;
-    if (skillLevel(hero, rec.skill) < rec.level) { fail(`Needs ${rec.skill === 'cooking' ? 'Cooking' : 'Crafting'} ${rec.level}`); return null; }
+    if (skillLevel(hero, rec.skill) < rec.level) { fail(`Needs ${rec.skill[0].toUpperCase() + rec.skill.slice(1)} ${rec.level}`); return null; }
     if (rec.inputs.some((x) => haveInRun(r, room, x.id) < x.qty)) { fail('Not enough in your run bag'); return null; }
     if (rec.food && r.food.reduce((n, x) => n + x.qty, 0) >= FOOD_MAX) { fail(`You can carry ${FOOD_MAX} food at most`); return null; }
     // Use this room's finds first, then the run bag.
@@ -1270,13 +1270,14 @@ export const game = {
     if (rec.food) addStacks(r.food, [{ id: made, qty: 1 }]);
     else {
       if (UNIQUE_IDS.has(made + UNIQUE_SUFFIX) && Math.random() < UNIQUE_CHANCE.station) { made += UNIQUE_SUFFIX; unique = true; }
+      else if (rec.gear && Math.random() < UNIQUE_CHANCE.station) { const ug = rollUniqueGear(made); if (ug) { made = ug; unique = true; } }
       addStacks(room, [{ id: made, qty: 1 }]);
       if (rec.learns && !(p.recipes ?? []).includes(rec.learns)) {
         (p.recipes ??= []).push(rec.learns);
         learned = true;
         toast(`📖 Learned a lost recipe: ${rec.name} — you can make it at home now too.`, 'level');
       }
-      if (unique) toast(`✨ A Unique ${getItem(rec.out).name}!`, 'level');
+      if (unique) toast(`✨ ${getItem(made).name}!`, 'level');
     }
     play(unique ? 'enchant' : rec.skill === 'cooking' ? 'sizzle' : 'craft');
     save();

@@ -2168,3 +2168,9 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .ct-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .ct-sw { width: 36px; height: 36px; border-radius: 8px; border: 2px solid rgba(0, 0, 0, 0.45); cursor: pointer; }
 .ct-sw.on { border-color: #fde047; box-shadow: 0 0 0 2px rgba(253, 224, 71, 0.4); }
+
+/* ⚔️ Workbench gear (v0.0.2.3): sideways the recipes sit in two columns, without the long text */
+.dg-station { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+.dg-root.land .dg-station { display: grid; grid-template-columns: 1fr 1fr; align-items: stretch; }
+.dg-root.land .dg-station > :not(.dg-recipe) { grid-column: 1 / -1; }
+.dg-root.land .dg-recipe .dg-ware-text > .muted { display: none; }

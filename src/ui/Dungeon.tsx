@@ -1336,7 +1336,7 @@ export function StationPanel({ kind, run, hero, room, onClose, onFood }: { kind:
   const [, setN] = useState(0);
   const [last, setLast] = useState<string | null>(null);
   const recipes = stationRecipes(r.region, kind);
-  const lvl = (sk: 'cooking' | 'crafting') => levelForXp(hero.skills[sk].xp);
+  const lvl = (sk: keyof typeof hero.skills) => levelForXp(hero.skills[sk].xp);
   const make = (key: string) => {
     const got = game.dungeonCraft(kind, key, room);
     if (!got) { sound.play('error', { volume: 0.5 }); return; }
@@ -1346,7 +1346,7 @@ export function StationPanel({ kind, run, hero, room, onClose, onFood }: { kind:
   };
   return (
     <div className="dg-over">
-      <div className="dg-panel dg-station">
+      <div className="dg-panel dg-station" data-scroll>
         <div className="row-between" style={{ width: '100%' }}><b className="gold">{kind === 'kitchen' ? '🍳 Campfire kitchen' : '🛠️ Old workbench'}</b><button className="dg-icon" onClick={onClose} aria-label="Close">✕</button></div>
         <p className="tiny muted center">Made from what you've found in here. A quarter of what you make here comes out <b>✨ Unique</b> — much stronger, and worth a lot. Get it out to keep it!</p>
         {recipes.map((x) => {
@@ -1358,9 +1358,9 @@ export function StationPanel({ kind, run, hero, room, onClose, onFood }: { kind:
             <div key={x.key} className="dg-ware dg-recipe">
               <ItemIcon id={x.out} size={26} />
               <span className="grow dg-ware-text"><b className="small">{x.food ? `Trail food: ${ITEMS[x.out].name}` : ITEMS[x.out].name}</b>
-                <span className="tiny muted">{x.food ? 'Straight into your food — eat it any time.' : charm ? `🍀 In the dungeon: ${charmText(charm)}.` : ITEMS[x.out].description}{!known ? ' 📖 Make it once to learn the recipe for good.' : ''}</span>
+                <span className="tiny muted">{x.food ? 'Straight into your food — eat it any time.' : charm ? `🍀 In the dungeon: ${charmText(charm)}.` : x.gear ? '✨ 1 in 4 comes out Unique: as strong as a +4, with a small bonus.' : ITEMS[x.out].description}{!known ? ' 📖 Make it once to learn the recipe for good.' : ''}</span>
                 <span className="tiny dg-needs">{x.inputs.map((i) => <span key={i.id} className={haveInRun(r, room, i.id) < i.qty ? 'short' : ''}><ItemIcon id={i.id} size={14} /> {Math.min(haveInRun(r, room, i.id), i.qty)}/{i.qty}</span>)}</span></span>
-              <button className="btn small" disabled={!!short.length || tooLow} onClick={() => make(x.key)}>{tooLow ? `${x.skill === 'cooking' ? 'Cooking' : 'Crafting'} ${x.level}` : 'Make'}</button>
+              <button className="btn small" disabled={!!short.length || tooLow} onClick={() => make(x.key)}>{tooLow ? `${SKILL_INFO[x.skill].name} ${x.level}` : 'Make'}</button>
             </div>
           );
         })}

@@ -6,7 +6,8 @@ export function useNoScroll(ref: RefObject<HTMLElement | null>) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const stop = (e: TouchEvent) => { if (e.cancelable) e.preventDefault(); };
+    // A panel marked data-scroll (like a crafting station's list) may still scroll.
+    const stop = (e: TouchEvent) => { if ((e.target as HTMLElement | null)?.closest?.('[data-scroll]')) return; if (e.cancelable) e.preventDefault(); };
     el.addEventListener('touchmove', stop, { passive: false });
     return () => el.removeEventListener('touchmove', stop);
   }, [ref]);

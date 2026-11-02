@@ -3,7 +3,7 @@
 // Also holds the shared rules every action follows: levels, tools, materials, the cooking fire.
 import { ACTIONS, type ActionDef } from '../data/skills';
 import {
-  CRAFTED_TOOLS, getItem, STAT_LABELS, TOOL_SLOT_FOR, TOOL_TIERS, toolName, UNIQUE_CHANCE, UNIQUE_IDS, UNIQUE_SUFFIX,
+  CRAFTED_TOOLS, getItem, rollUniqueGear, STAT_LABELS, TOOL_SLOT_FOR, TOOL_TIERS, toolName, UNIQUE_CHANCE, UNIQUE_IDS, UNIQUE_SUFFIX,
   type EquipSlot, type ItemStats, type SkillId,
 } from '../data/items';
 import { enhanceChance, FAIL_XP_SHARE } from './enhancing';
@@ -339,6 +339,11 @@ export function completeAction(
     // ✨ A lost recipe made at home now and then comes out Unique (much more often at a dungeon station).
     const uq = action.lost && action.output ? action.output.item + UNIQUE_SUFFIX : '';
     if (uq && UNIQUE_IDS.has(uq) && Math.random() < UNIQUE_CHANCE.home) loot = loot.map((l) => (l.id === action.output!.item ? { ...l, id: uq } : l));
+    // ✨ New weapons and armour made at home are now and then Unique (not upgrades of a piece you already have).
+    if (action.output && !action.upgrades && Math.random() < UNIQUE_CHANCE.home) {
+      const ug = rollUniqueGear(action.output.item);
+      if (ug) loot = loot.map((l) => (l.id === action.output!.item && l.qty === 1 ? { ...l, id: ug } : l));
+    }
     // Upgrading worn gear: the improved item goes back into the same slot.
     if (roll === 0 && fromSlot && fromSlot !== 'bag' && action.output) {
       const made = loot.find((l) => l.id === action.output!.item);

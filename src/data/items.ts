@@ -4,7 +4,7 @@ import { CROPS, FISH, HERBS, METALS, REGIONS, TIER_COUNT, WOODS, tierForLevel, t
 import { RARE_FISH } from './rareFish';
 import { FESTIVALS, TREAT_BUFF } from './festivals';
 import { ASC_RELIC_TIER, RELICS, relicItemId, type RelicKey } from './relics';
-import { ASCENSION_LEVEL, BONUSES, isAscendedId, parseAscended, type AscParts } from './ascended';
+import { ASCENSION_LEVEL, BONUSES, isAscendedId, parseAscended, type AscParts, type BonusKey } from './ascended';
 import { CHARMS, LOST_MEALS } from './lostRecipes';
 
 export type ItemCategory = 'ore' | 'bar' | 'log' | 'material' | 'fish' | 'food' | 'weapon' | 'armour' | 'tool' | 'gem' | 'ammo' | 'currency' | 'treasure'
@@ -175,6 +175,8 @@ export interface ItemDef {
   relic?: { key: RelicKey; ascended?: boolean };
   /** 🌟 Ascended items (levels 750+): grade, town and rolled bonuses (data/ascended.ts). */
   ascended?: AscParts;
+  /** ✨ Unique gear (v0.0.2.3): its one small bonus (read with ascBonus, like an Ascended bonus). */
+  uniq?: { key: BonusKey; value: number };
 }
 
 export const MAX_UPGRADE = 10;
@@ -747,6 +749,40 @@ function ascendedDef(id: string): ItemDef | undefined {
     },
   };
 }
+// ----- ✨ Unique gear (v0.0.2.3, owner: "a class of items that can become uniques that a little better than a standard
+// equipment/weapon/armour and have a little extra buff") -----
+// A Unique piece is a weapon or armour piece that came out special: as strong as the standard one at +4, plus one small
+// bonus. Like Ascended items its id says what it is — `uq.<base id>.<bonus><value>` — and it's built on demand.
+// Made at a 🛠️ workbench in the dungeon (a quarter of the time) or now and then at home. It can't be upgraded.
+const UQ_BONUS: Record<'weapon' | 'armour', [BonusKey, number, number][]> = {
+  weapon: [['bd', 6, 12], ['cn', 6, 15], ['cx', 3, 6]],
+  armour: [['fh', 10, 20], ['cn', 6, 15], ['cx', 3, 6]],
+};
+/** How strong a Unique piece is compared with the standard one (the same as its +4). */
+export const UNIQUE_GEAR_LEVEL = 4;
+export const isUniqueGearId = (id: string) => /^uq\.[a-z0-9_]+\.[a-z]{2}\d+$/.test(id);
+/** A brand-new Unique version of a weapon or armour piece (a random small bonus), or null if it can't be one. */
+export function rollUniqueGear(baseId: string, rnd = Math.random): string | null {
+  const b = staticItems[baseId];
+  if (!b?.equip || b.upgrade?.level || (b.category !== 'weapon' && b.category !== 'armour') || b.relic || b.ascended) return null;
+  const pool = UQ_BONUS[b.category];
+  const [key, lo, hi] = pool[Math.floor(rnd() * pool.length)];
+  return `uq.${baseId}.${key}${lo + Math.floor(rnd() * (hi - lo + 1))}`;
+}
+function uniqueGearDef(id: string): ItemDef | undefined {
+  const m = /^uq\.([a-z0-9_]+)\.([a-z]{2})(\d+)$/.exec(id);
+  if (!m) return undefined;
+  const base = staticItems[m[1]];
+  const key = m[2] as BonusKey;
+  if (!base?.equip || !BONUSES[key] || (base.category !== 'weapon' && base.category !== 'armour')) return undefined;
+  const value = Number(m[3]);
+  return {
+    ...base, id, name: `✨ Unique ${base.name.charAt(0).toLowerCase()}${base.name.slice(1)}`, stackable: false, uniqueOf: base.id, uniq: { key, value },
+    upgrade: undefined,
+    equip: { ...base.equip, stats: upgradedStats(base.equip.stats, UNIQUE_GEAR_LEVEL) },
+    description: `✨ A Unique one — as strong as a +${UNIQUE_GEAR_LEVEL}, and ${BONUSES[key].text(value, 'combat').replace(/^\+/, '+')}. It can't be upgraded.`,
+  };
+}
 const ascCache = new Map<string, ItemDef | undefined>();
 const staticItems: Record<string, ItemDef> = Object.fromEntries(items.map((i) => [i.id, i]));
 /** Every item by id. Ascended ids are worked out on demand (and remembered). */
@@ -754,12 +790,14 @@ export const ITEMS: Record<string, ItemDef> = new Proxy(staticItems, {
   get(target, key) {
     if (typeof key !== 'string') return undefined;
     const hit = target[key];
-    if (hit || !isAscendedId(key)) return hit;
-    if (!ascCache.has(key)) ascCache.set(key, ascendedDef(key));
+    if (hit) return hit;
+    const uq = isUniqueGearId(key);
+    if (!uq && !isAscendedId(key)) return hit;
+    if (!ascCache.has(key)) ascCache.set(key, uq ? uniqueGearDef(key) : ascendedDef(key));
     return ascCache.get(key);
   },
   has(target, key) {
-    return key in target || (typeof key === 'string' && isAscendedId(key) && !!ascendedDef(key));
+    return key in target || (typeof key === 'string' && ((isAscendedId(key) && !!ascendedDef(key)) || (isUniqueGearId(key) && !!uniqueGearDef(key))));
   },
 });
 export const ITEM_LIST = items;

@@ -4,14 +4,14 @@
 // You gear up, then go in with everything you wear (and its socketed gems) plus packed food. Rooms are laid out in
 // rows; after clearing a room you choose 1 of the 2 rooms in the next row. 🚪 Exit rooms and beating the 👑 boss get you
 // out with your run bag. Knocked out = everything you brought and found is gone (XP earned is kept).
-import { CRAFTED_TOOLS, ITEMS, TOOL_TIERS, toolName, type EquipSlot } from '../data/items';
+import { CRAFTED_TOOLS, elementRegion, ELEMENTS, ITEMS, TOOL_TIERS, toolName, type EquipSlot, type SkillId } from '../data/items';
 import { UNIQUE_CHARM_K } from './dungeon';
 import { ACTIONS, SKILLS, type ActionDef } from '../data/skills';
 import type { NodeKind } from './dungeon';
 import { equippedToolTier } from './idle';
 import { levelForXp } from './xp';
 import type { PlayerState } from './player';
-import { REGIONS, type Region } from '../data/tiers';
+import { METALS, REGIONS, WOODS, type Region } from '../data/tiers';
 import type { ItemStack } from './player';
 
 export type RoomKind = 'fight' | 'elite' | 'treasure' | 'camp' | 'exit' | 'shop' | 'boss';
@@ -162,12 +162,14 @@ export function loadDungeonRun(raw: unknown): DungeonRun | undefined {
 // what this room has turned up so far) — the things rich spots and monsters give you in there. Making a lost recipe
 // the first time learns it for good (make it at home too). A quarter of what you make here comes out ✨ Unique.
 export interface StationRecipe {
-  key: string; name: string; emoji: string; skill: 'cooking' | 'crafting'; level: number; xp: number;
+  key: string; name: string; emoji: string; skill: SkillId; level: number; xp: number;
   inputs: ItemStack[]; out: string;
   /** Trail food goes into your packed food (and can be eaten right away). */
   food?: boolean;
   /** The lost recipe this learns (an action id). */
   learns?: string;
+  /** ✨ A weapon or armour piece (v0.0.2.3) — a quarter come out Unique. */
+  gear?: boolean;
 }
 export function stationRecipes(region: Region, kind: 'kitchen' | 'bench'): StationRecipe[] {
   const fish = gatherActionFor(region, 'fish')?.output?.item;
@@ -189,6 +191,21 @@ export function stationRecipes(region: Region, kind: 'kitchen' | 'bench'): Stati
   } else {
     const charm = Object.values(ACTIONS).find((a) => a.lost && a.skill === 'crafting' && a.region === region);
     if (charm && ore && logs && herb) lost(charm.id, [{ id: ore, qty: 5 }, { id: logs, qty: 5 }, { id: herb, qty: 2 }]);
+    // ⚔️ The town's gear, forged straight from ore and logs (✨ a quarter come out Unique — v0.0.2.3).
+    const t = REGIONS.indexOf(region);
+    const metal = METALS[t]?.key, wood = WOODS[t]?.key;
+    const els = ELEMENTS.filter((e) => REGIONS.indexOf(elementRegion(e.level)) <= t);
+    const el = els[els.length - 1];
+    const gear: [string, ItemStack[]][] = ore && logs && herb ? [
+      [`${metal}_sword`, [{ id: ore, qty: 4 }, { id: logs, qty: 2 }]], [`${metal}_helmet`, [{ id: ore, qty: 4 }]], [`${metal}_shield`, [{ id: ore, qty: 6 }]],
+      [`${metal}_platelegs`, [{ id: ore, qty: 8 }]], [`${metal}_chestplate`, [{ id: ore, qty: 10 }]],
+      [`${wood}_bow`, [{ id: logs, qty: 8 }, { id: herb, qty: 1 }]], [`${wood}_${el?.element}_staff`, [{ id: logs, qty: 6 }, { id: herb, qty: 3 }]],
+    ] : [];
+    for (const [id, inputs] of gear) {
+      const maker = Object.values(ACTIONS).find((a) => a.output?.item === id && !a.upgrades);
+      if (!maker || !ITEMS[id]?.equip) continue;
+      out.push({ key: `gear:${id}`, name: ITEMS[id].name, emoji: '⚔️', skill: maker.skill, level: maker.level, xp: maker.xp, inputs, out: id, gear: true });
+    }
   }
   return out;
 }
