@@ -1,17 +1,15 @@
 // 🏡 Your Cottage: a cozy room you fill with furniture made from every skill. Each piece gives a small perk.
 import { SKILLS } from '../data/skills';
-import { PET_MAP } from '../data/pets';
 import { ALL_FURNITURE, buildXp, cottageFirePct, cottageStarPct, FESTIVAL_FURNITURE, FURNITURE, furnitureRegion, haveTotal, perkText, whyCantBuild } from '../core/cottage';
 import { game, useGame } from '../core/store';
 import { fmtNum } from './format';
 import { ItemIcon } from './icons';
-import { dayPhase } from './PixelScene';
 import { HallOfAscended } from './Hall';
+import { CottageRoom } from './CottageRoom';
 
 export function CottageScreen({ onGarden }: { onGarden: () => void }) {
   const { player } = useGame();
   const built = new Set(player.cottage);
-  const phase = dayPhase();
   const towns = Array.from(new Set(FURNITURE.map((f) => furnitureRegion(f))));
   const keepsakes = FESTIVAL_FURNITURE.filter((f) => built.has(f.id));
   const allXp = ALL_FURNITURE.filter((f) => built.has(f.id) && f.perk.kind === 'xp' && f.perk.skill === 'all')
@@ -19,15 +17,7 @@ export function CottageScreen({ onGarden }: { onGarden: () => void }) {
   return (
     <div className="screen">
       <h1 className="screen-title">YOUR COTTAGE</h1>
-      <div className={`cottage-room sky-${phase}`}>
-        <div className="cottage-window"><span>{phase === 'night' ? '🌙' : phase === 'dusk' ? '🌇' : '☀️'}</span></div>
-        <div className="cottage-floor" />
-        {ALL_FURNITURE.filter((f) => built.has(f.id)).map((f) => (
-          <span key={f.id} className="cottage-piece" style={{ left: `${f.x}%`, top: `${f.y}%` }} title={f.name}>{f.emoji}</span>
-        ))}
-        {player.activePet && PET_MAP[player.activePet] && <span className="cottage-pet bob">{PET_MAP[player.activePet].emoji}</span>}
-        {built.size === 0 && <div className="cottage-empty">An empty room, full of possibilities.<br />Build your first piece below!</div>}
-      </div>
+      <CottageRoom />
 
       <HallOfAscended />
 

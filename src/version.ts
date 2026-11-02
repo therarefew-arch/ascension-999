@@ -1,6 +1,6 @@
 // The game's version, shown on the title screen and in Settings.
 // Bump the last number with every update that goes live (v0.0.1.2 → v0.0.1.3 → …).
-export const GAME_VERSION = 'v0.0.2.1';
+export const GAME_VERSION = 'v0.0.2.2';
 
 /** One line about what the latest update added. */
-export const VERSION_NOTE = "🍳 Crafting stations in the dungeon, ✨ Unique meals, brews and charms, and 🍀 charms in your pocket — Expeditions have been retired";
+export const VERSION_NOTE = "🏡 Your Cottage is a pixel-art room now — drag your furniture around, flip it, put it away, and pick your wallpaper and floor";

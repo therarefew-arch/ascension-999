@@ -11,7 +11,7 @@ import { levelForXp, MAX_LEVEL } from './xp';
 import { MONSTER_MAP } from '../data/monsters';
 import { LORE_MAP } from '../data/lore';
 import { alreadySettled, TUTORIAL } from './tutorial';
-import { FURNITURE_MAP } from './cottage';
+import { clampSpot, FLOORS, FURNITURE_MAP, WALLS } from './cottage';
 import { RARE_FISH_MAP } from '../data/rareFish';
 import { RELIC_MAP, type RelicKey } from '../data/relics';
 import { isFightId, maxHp } from './combat';
@@ -343,6 +343,17 @@ function repair(raw: any): PlayerState {
   p.starsCaught = Math.max(0, Number(raw?.starsCaught) || 0);
   // Cottage (v19)
   if (Array.isArray(raw?.cottage)) p.cottage = Array.from(new Set(raw.cottage.filter((id: unknown) => typeof id === 'string' && !!FURNITURE_MAP[id as string])));
+  // 🏠 The arranged room (v0.0.2.2)
+  if (raw?.cottageLayout && typeof raw.cottageLayout === 'object') {
+    p.cottageLayout = {};
+    for (const [id, sp] of Object.entries(raw.cottageLayout as Record<string, unknown>)) {
+      if (!p.cottage.includes(id)) continue;
+      if (sp === 0) { p.cottageLayout[id] = 0; continue; }
+      const o = sp as { x?: unknown; y?: unknown; f?: unknown };
+      if (o && Number.isFinite(o.x) && Number.isFinite(o.y)) { const c = clampSpot(id, o.x as number, o.y as number); p.cottageLayout[id] = o.f ? { ...c, f: 1 } : c; }
+    }
+  }
+  if (raw?.cottageStyle && WALLS.some((w) => w.id === raw.cottageStyle.wall) && FLOORS.some((f) => f.id === raw.cottageStyle.floor)) p.cottageStyle = { wall: raw.cottageStyle.wall, floor: raw.cottageStyle.floor };
   // ✨ Relics + 🧺 the Wandering Pedlar (no version bump: older saves simply start with none)
   if (raw?.relics && typeof raw.relics === 'object') {
     for (const [k, t] of Object.entries(raw.relics)) {

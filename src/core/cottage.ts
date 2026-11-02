@@ -188,3 +188,74 @@ export function perkText(perk: Perk): string {
   const who = perk.skill === 'all' ? 'all skills' : perk.skill === 'combat' ? 'combat' : perk.skill[0].toUpperCase() + perk.skill.slice(1);
   return `+${perk.pct}% ${who} XP`;
 }
+
+// ----- 🏠 The room you arrange (v0.0.2.2, owner: "update cottage to be able to customize and arrange the items … the
+// pictures as a guide for the room") — a top-down pixel room: a back wall (pictures, shelves, windows hang there) and
+// a floor (everything else stands on it; rugs lie flat). Sizes are in the room's own pixels; ui/cottageArt.ts draws it.
+export const ROOM = { w: 192, h: 236, side: 6, wallTop: 6, wallBottom: 74, floorBottom: 228 };
+export type WallId = 'cream' | 'sage' | 'amber' | 'sky' | 'rose' | 'plank';
+export type FloorId = 'tiles' | 'oak' | 'pine' | 'stone' | 'checker' | 'moss';
+export const WALLS: { id: WallId; name: string }[] = [
+  { id: 'cream', name: 'Cream stripes' }, { id: 'sage', name: 'Sage green' }, { id: 'amber', name: 'Warm amber' },
+  { id: 'sky', name: 'Sky blue' }, { id: 'rose', name: 'Rose' }, { id: 'plank', name: 'Log walls' },
+];
+export const FLOORS: { id: FloorId; name: string }[] = [
+  { id: 'oak', name: 'Oak boards' }, { id: 'tiles', name: 'Grey tiles' }, { id: 'pine', name: 'Pine boards' },
+  { id: 'stone', name: 'Flagstones' }, { id: 'checker', name: 'Checkered' }, { id: 'moss', name: 'Mossy rug' },
+];
+export interface PieceShape { w: number; h: number; wall?: boolean; flat?: boolean }
+/** Each piece's size, and whether it hangs on the wall or lies flat on the floor. */
+export const SHAPE: Record<string, PieceShape> = {
+  pine_bed: { w: 32, h: 44 }, stone_hearth: { w: 38, h: 46 }, shrimp_tank: { w: 26, h: 30 }, copper_kettle: { w: 18, h: 22 },
+  herb_rack: { w: 30, h: 18, wall: true }, flower_box: { w: 28, h: 26, wall: true }, oak_table: { w: 34, h: 26 },
+  display_anvil: { w: 22, h: 20 }, miners_lamp: { w: 10, h: 18, wall: true }, rocking_chair: { w: 24, h: 28 },
+  telescope: { w: 20, h: 32 }, weapon_rack: { w: 28, h: 22, wall: true }, maple_bookcase: { w: 28, h: 44 },
+  rune_mirror: { w: 18, h: 26, wall: true }, moon_chandelier: { w: 26, h: 20, wall: true }, kiln_vase: { w: 12, h: 18 },
+  spice_shelf: { w: 26, h: 16, wall: true }, ember_brazier: { w: 16, h: 20 }, frost_quilt: { w: 36, h: 26, flat: true },
+  singing_lantern: { w: 12, h: 20 }, void_window: { w: 26, h: 28, wall: true }, star_orrery: { w: 20, h: 26 },
+  wind_chimes: { w: 12, h: 24, wall: true }, worldtree_sapling: { w: 20, h: 30 }, blossom_tree: { w: 20, h: 32 },
+  paper_lanterns: { w: 36, h: 14, wall: true }, harvest_sheaf: { w: 14, h: 22 }, winter_tree: { w: 24, h: 36 },
+  family_portrait: { w: 24, h: 20, wall: true }, whisper_bough: { w: 26, h: 14, wall: true }, glow_stone: { w: 14, h: 16 },
+  wisp_jar: { w: 10, h: 14 }, sea_chest: { w: 24, h: 20 }, lamplighter_pole: { w: 10, h: 38 }, ashhorn_horn: { w: 24, h: 14, wall: true },
+  yeti_rug: { w: 38, h: 24, flat: true }, heron_feather: { w: 12, h: 32 }, star_antler: { w: 26, h: 18, wall: true },
+  rain_cloud: { w: 22, h: 16, wall: true }, first_tusk: { w: 32, h: 18 },
+};
+export const shapeOf = (id: string): PieceShape => SHAPE[id] ?? { w: 16, h: 16 };
+/** Where a piece sits: its top-left corner in room pixels, and whether it's flipped left-right. */
+export interface Spot { x: number; y: number; f?: 1 }
+/** Keep a piece in the room: wall pieces on the wall, floor pieces standing on the floor (tall ones may reach up the wall). */
+export function clampSpot(id: string, x: number, y: number): { x: number; y: number } {
+  const s = shapeOf(id);
+  const cx = Math.max(ROOM.side, Math.min(ROOM.w - ROOM.side - s.w, Math.round(x)));
+  if (s.wall) return { x: cx, y: Math.max(ROOM.wallTop + 2, Math.min(ROOM.wallBottom - 6 - s.h, Math.round(y))) };
+  const minBottom = ROOM.wallBottom + (s.flat ? s.h + 2 : 8);
+  return { x: cx, y: Math.max(minBottom - s.h, Math.min(ROOM.floorBottom - s.h, Math.round(y))) };
+}
+const overlapArea = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
+  Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+/** A free-ish spot for a piece: near its old place in the room, avoiding pieces already there. */
+export function freeSpot(p: PlayerState, id: string): Spot {
+  const f = FURNITURE_MAP[id];
+  const s = shapeOf(id);
+  // Tall pieces (bookcases, the hearth, the bed) start against the back wall, like a real room.
+  const tall = !s.wall && !s.flat && s.h >= 36;
+  const want = clampSpot(id, (f.x / 100) * (ROOM.w - s.w), s.wall ? ROOM.wallTop + 4 + ((f.y / 100) * 30) : tall ? ROOM.wallBottom + 14 - s.h : ROOM.wallBottom + (f.y / 100) * (ROOM.floorBottom - ROOM.wallBottom - s.h));
+  const others = Object.entries(p.cottageLayout ?? {}).filter(([o, sp]) => o !== id && sp && !!shapeOf(o).wall === !!s.wall && !!shapeOf(o).flat === !!s.flat)
+    .map(([o, sp]) => ({ ...(sp as Spot), ...shapeOf(o) }));
+  let best = want, bestCost = Infinity;
+  for (let r = 0; r <= 120 && bestCost > 0; r += 6) {
+    for (let a = 0; a < (r ? 16 : 1); a++) {
+      const c = clampSpot(id, want.x + Math.cos((a / 16) * Math.PI * 2) * r, want.y + Math.sin((a / 16) * Math.PI * 2) * r * 0.7);
+      const cost = others.reduce((n, o) => n + overlapArea({ ...c, w: s.w, h: s.h }, o), 0) * 10 + r;
+      if (cost < bestCost) { best = c; bestCost = cost; }
+    }
+  }
+  return best;
+}
+/** Give every built piece without a place one (new pieces and older saves). */
+export function autoPlace(p: PlayerState): boolean {
+  const lay = (p.cottageLayout ??= {});
+  let changed = false;
+  for (const id of p.cottage) if (lay[id] === undefined && FURNITURE_MAP[id]) { lay[id] = freeSpot(p, id); changed = true; }
+  return changed;
+}

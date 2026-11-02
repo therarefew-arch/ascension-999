@@ -126,6 +126,9 @@ export interface PlayerState {
   farm: { plots: (Plot | null)[] };
   /** 🏡 Cottage furniture you've built (ids from core/cottage.ts). */
   cottage: string[];
+  /** 🏠 Where each built piece sits in the room (0 = put away in storage), and the wallpaper + floor (v0.0.2.2). */
+  cottageLayout?: Record<string, import('./cottage').Spot | 0>;
+  cottageStyle?: { wall: import('./cottage').WallId; floor: import('./cottage').FloorId };
   /** 🎒 Towns where you've picked up the Traveller's gift at the well. */
   travellerGifts: string[];
   /** 📖 Fishing Journal: rare fish caught (how many, biggest in cm). */

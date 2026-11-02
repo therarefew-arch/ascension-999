@@ -31,7 +31,7 @@ import { claimStep, trackTutorial, TUTORIAL } from './tutorial';
 import { claimBounty, ensureBounties, rerollBounty, trackBounties } from './bounties';
 import { harvest, plant, tend } from './farming';
 import { buffText, consumeBuff } from './buffs';
-import { build, cottageStarPct, FURNITURE_MAP, perkText } from './cottage';
+import { autoPlace, build, clampSpot, cottageStarPct, freeSpot, FURNITURE_MAP, perkText, type FloorId, type WallId } from './cottage';
 import { CROPS } from '../data/tiers';
 import { FIND_ITEM } from '../data/lootTables';
 import type { Region } from '../data/tiers';
@@ -1434,6 +1434,39 @@ export const game = {
     return 'blocked';
   },
   /** 🏡 Build a piece of Cottage furniture. */
+  // ----- 🏠 Arranging the room (v0.0.2.2) -----
+  /** Built pieces without a place get one (new pieces, older saves, keepsakes from festivals or bosses). */
+  cottageAutoPlace() { if (autoPlace(snap.player)) { save(); emit(); } },
+  cottageMove(id: string, x: number, y: number) {
+    const p = snap.player;
+    if (!p.cottage.includes(id)) return;
+    const old = p.cottageLayout?.[id];
+    (p.cottageLayout ??= {})[id] = { ...clampSpot(id, x, y), ...(old && old.f ? { f: 1 as const } : {}) };
+    save(); emit();
+  },
+  cottageFlip(id: string) {
+    const sp = snap.player.cottageLayout?.[id];
+    if (!sp) return;
+    if (sp.f) delete sp.f; else sp.f = 1;
+    save(); emit();
+  },
+  /** Put a piece away (its perk still counts) or take it back out. */
+  cottageStore(id: string) {
+    const p = snap.player;
+    if (!p.cottage.includes(id)) return;
+    (p.cottageLayout ??= {})[id] = 0;
+    save(); emit();
+  },
+  cottagePlace(id: string) {
+    const p = snap.player;
+    if (!p.cottage.includes(id)) return;
+    (p.cottageLayout ??= {})[id] = freeSpot(p, id);
+    save(); emit();
+  },
+  cottageSetStyle(wall: WallId, floor: FloorId) {
+    snap.player.cottageStyle = { wall, floor };
+    save(); emit();
+  },
   buildFurniture(id: string) {
     const report = emptyReport(null);
     const why = build(snap.player, id, report);
@@ -1444,6 +1477,7 @@ export const game = {
     celebrate();
     buzz([20, 40, 20]);
     toast(`🏡 ${f.emoji} ${f.name} built! ${perkText(f.perk)}`, 'level');
+    autoPlace(snap.player);
     announceLevels(report);
     trackRequests(snap.player, report, 0);
     save();
