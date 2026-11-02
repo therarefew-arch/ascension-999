@@ -3,7 +3,7 @@
 // Also holds the shared rules every action follows: levels, tools, materials, the cooking fire.
 import { ACTIONS, type ActionDef } from '../data/skills';
 import {
-  CRAFTED_TOOLS, getItem, STAT_LABELS, TOOL_SLOT_FOR, TOOL_TIERS, toolName,
+  CRAFTED_TOOLS, getItem, STAT_LABELS, TOOL_SLOT_FOR, TOOL_TIERS, toolName, UNIQUE_CHANCE, UNIQUE_IDS, UNIQUE_SUFFIX,
   type EquipSlot, type ItemStats, type SkillId,
 } from '../data/items';
 import { enhanceChance, FAIL_XP_SHARE } from './enhancing';
@@ -183,7 +183,7 @@ export function whyCantDo(p: PlayerState, action: ActionDef, opts: { manual?: bo
   if (opts.manual && isLocalGather(action) && p.location !== action.region) {
     return `Play this in ${action.region} — you can still idle it from here`;
   }
-  if (action.lost && !(p.recipes ?? []).includes(action.id)) return `📖 A lost recipe — learn it on the ${action.region ?? ''} expedition`;
+  if (action.lost && !(p.recipes ?? []).includes(action.id)) return `📖 A lost recipe — make it once at a ${action.skill === 'cooking' ? '🍳 kitchen' : '🛠️ workbench'} in the ${action.region ?? ''} dungeon to learn it`;
   if (skillLevel(p, action.skill) < action.level) return `Needs level ${action.level}`;
   if (action.needsTool !== undefined && equippedToolTier(p, action.skill) < action.needsTool) {
     return toolNeededText(action.skill, action.needsTool);
@@ -336,6 +336,9 @@ export function completeAction(
   }
   for (let roll = 0; roll <= (opts.bonusRolls ?? 0) + relicRolls; roll++) {
     let loot = rollLoot(opts.lootTable ?? action.lootTable);
+    // ✨ A lost recipe made at home now and then comes out Unique (much more often at a dungeon station).
+    const uq = action.lost && action.output ? action.output.item + UNIQUE_SUFFIX : '';
+    if (uq && UNIQUE_IDS.has(uq) && Math.random() < UNIQUE_CHANCE.home) loot = loot.map((l) => (l.id === action.output!.item ? { ...l, id: uq } : l));
     // Upgrading worn gear: the improved item goes back into the same slot.
     if (roll === 0 && fromSlot && fromSlot !== 'bag' && action.output) {
       const made = loot.find((l) => l.id === action.output!.item);

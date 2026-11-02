@@ -96,6 +96,8 @@ export interface Mob {
   elite?: boolean;
   /** Pausing after bumping into you (ms). */
   restT?: number;
+  /** ⭐ Star charm: already struck once. */
+  keen?: boolean;
   /** ❄️ Frozen still (ms) and 🪢 slowed to 40% (ms) by skills. */
   frozeT?: number; slowT?: number;
 }
@@ -119,6 +121,11 @@ export interface Dungeon {
   /** 🤝 Co-op: which seat's things are on the dungeon right now (0 = the leader), the other player's seat, how much of
    * each monster's hit you take (1 for the leader), each monster's hit on the leader, and your looks/name. */
   seat: 0 | 1; ally?: Seat; hs: Record<string, number>; touch: Record<string, number>; look?: unknown; name?: string;
+  /** 🍀 Your charm's Boon and strength; how often the Silent bell has held you up this room. */
+  charm?: string; charmK: number; willUsed: number;
+  /** 🍳🛠️ Crafting stations along the path (v0.0.2.1); `atStation` = the one you're standing at (the screen opens it). */
+  stations: { x: number; y: number; kind: StationKind; prog: number }[];
+  atStation: number | null;
   region: Region; style: CombatStyle; worldW: number; arenaX: number;
   plats: Plat[]; hero: Hero; mobs: Mob[]; shots: Shot[]; pops: Pop[]; fx: Fx[];
   /** Your hit per basic attack, per monster; their touch damage is on each mob. */
@@ -163,12 +170,37 @@ export const VENT = { quiet: 2300, glow: 900, burst: 800 };
 /** A falling rock/star: how long its warning shows before it lands (ms). */
 export const FALL_WARN = 1000;
 export type NodeKind = 'ore' | 'tree' | 'herb' | 'fish';
+export type StationKind = 'kitchen' | 'bench';
+/** Stand still at a station this long to open it. */
+export const STATION_MS = 450;
+/** 🍀 What each charm does in the dungeon (k = 1, or stronger for a ✨ Unique one). */
+export function charmText(boon: string, k = 1): string {
+  const pct = (n: number) => `${Math.round(n * k)}%`;
+  switch (boon) {
+    case 'edge': return `+${pct(15)} damage`;
+    case 'cloak': return `take ${pct(12)} less damage`;
+    case 'hearty': return `+${pct(20)} max health`;
+    case 'thorns': return `monsters that bump into you get scorched (${(0.6 * k).toFixed(1)}× hit back)`;
+    case 'will': return k > 1 ? 'twice a room, stay standing when you would be knocked out' : 'once a room, stay standing when you would be knocked out';
+    case 'keen': return `your first hit on every monster does ${(1 + k).toFixed(1).replace('.0', '')}×`;
+    case 'hands': return `swing ${pct(10)} faster`;
+    case 'echo': return `skills recharge ${pct(15)} faster`;
+    case 'breath': return `heal ${pct(2)} every 3 seconds`;
+    case 'wind': return `heal ${pct(10)} after every room you clear`;
+    case 'forager': return `a ${pct(25)} chance of an extra loot roll from every monster`;
+  }
+  return '';
+}
+/** A Unique charm's strength. */
+export const UNIQUE_CHARM_K = 1.6;
 export const NODE_KINDS: NodeKind[] = ['ore', 'tree', 'herb', 'fish'];
 export const NODE_SKILL: Record<NodeKind, SkillId> = { ore: 'mining', tree: 'woodcutting', herb: 'herblore', fish: 'fishing' };
 /** How long you stand on a spot to harvest it (ms). */
 export const HARVEST_MS = 1800;
 /** One room of an extraction run: its kind, how deep it is (row), the health and food you walk in with. */
-export interface RoomSpec { kind: RoomKind; depth: number; hp: number; snacks: number; why?: Partial<Record<NodeKind, string>>; coop?: boolean }
+export interface RoomSpec { kind: RoomKind; depth: number; hp: number; snacks: number; why?: Partial<Record<NodeKind, string>>; coop?: boolean;
+  /** 🍀 The charm in your pocket (its Boon id) and how strong it is (1, or more for a ✨ Unique one). */
+  charm?: { boon: string; k: number } }
 /** Ledges go up to this many rows above the ground. */
 export const MAX_ROW = 5;
 /** How much a 🍓 berry patch heals (share of max health). */
@@ -290,9 +322,15 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
   const fair = fairPower(region);
   const mobsDefs = townMonsters(region);
   const boss = townBoss(region)!;
-  const { style, hit, touch, maxHp: hp } = heroCard(p, region, room);
+  const card = heroCard(p, region, room);
+  const { style, hit, touch } = card;
+  // 🍀 Charm in your pocket
+  const ck = room?.charm?.k ?? 1, cb = room?.charm?.boon;
+  if (cb === 'edge') for (const id of Object.keys(hit)) hit[id] *= 1 + 0.15 * ck;
+  if (cb === 'cloak') for (const id of Object.keys(touch)) touch[id] *= 1 - 0.12 * ck;
+  const hp = Math.round(card.maxHp * (cb === 'hearty' ? 1 + 0.2 * ck : 1));
   const d: Dungeon = {
-    seat: 0, hs: {}, touch,
+    seat: 0, hs: {}, touch, charm: cb, charmK: ck, willUsed: 0, stations: [], atStation: null,
     region, style, worldW: 0, arenaX: 0, plats: [], mobs: [], shots: [], pops: [], fx: [], hit,
     hero: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp, maxHp: hp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0, bf: {} },
     cd: {}, bar: bar.slice(0, BAR_SIZE), snacks: SNACKS, kills: 0, t: 0, phase: 'play', jumpHeld: false, rs: seed, nextId: 1, bossId: boss.id,
@@ -377,6 +415,13 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
     if (rand(d) < 0.4) d.nodes.push({ x: Math.round(pathEnd * (0.4 + rand(d) * 0.25)), y: GROUND, kind: 'fish', done: false, prog: 0 });
     if (room.kind === 'treasure') d.nodes.push({ x: Math.round(pathEnd * 0.7), y: GROUND, kind: (['ore', 'tree', 'herb'] as NodeKind[])[Math.floor(rand(d) * 3)], done: false, prog: 0 });
   }
+  // 🍳🛠️ Now and then a crafting station along the way (owner: "the resources you collect in the dungeon … usable at
+  // randomly found crafting stations"). Not in co-op rooms (no run bag there).
+  if (room && !room.coop && (room.kind === 'fight' || room.kind === 'elite' || room.kind === 'treasure') && rand(d) < (room.kind === 'treasure' ? 0.6 : 0.35)) {
+    let x = 0;
+    for (let tries = 0; tries < 20; tries++) { x = Math.round(pathEnd * (0.3 + rand(d) * 0.35)); if (!d.nodes.some((n) => n.y === GROUND && Math.abs(n.x - x) < 90)) break; }
+    d.stations.push({ x, y: GROUND, kind: rand(d) < 0.55 ? 'kitchen' : 'bench', prog: 0 });
+  }
   // 💰 Gold piles: a few on the ground and the lower ledges (more in treasure rooms)
   if (room && room.kind !== 'boss' && room.kind !== 'camp' && room.kind !== 'shop') {
     const spots = d.plats.filter((pl) => pl.y >= GROUND - 2 * ROW_GAP && pl.x1 < pathEnd - 60);
@@ -394,7 +439,7 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
     const touches = mobsDefs.map((m) => touch[m.id]).filter((n) => n > 0);
     d.hzDmg = Math.max(1, (touches.reduce((n, x) => n + x, 0) / Math.max(1, touches.length)) * 0.7);
     // Things on the ground, spread out between the start and the door (never on a resource spot or chest).
-    const taken: number[] = [...d.nodes.filter((n) => n.y === GROUND).map((n) => n.x), ...d.chests.map((c) => c.x)];
+    const taken: number[] = [...d.nodes.filter((n) => n.y === GROUND).map((n) => n.x), ...d.chests.map((c) => c.x), ...d.stations.map((c) => c.x)];
     const place = (kind: 'spring' | 'bog' | 'vent' | 'thorn', n: number, w: number) => {
       for (let i = 0, tries = 0; i < n && tries < 40; tries++) {
         const x = Math.round(260 + rand(d) * Math.max(100, (room.kind === 'boss' ? d.worldW - 120 : pathEnd - 120) - 260));
@@ -459,6 +504,8 @@ function hitMob(d: Dungeon, m: Mob, mult: number, knock = 6): number {
   const bf = d.hero.bf;
   const crit = (bf.hawk ?? 0) > 0 || rand(d) < 0.12;
   mult *= ((bf.rage ?? 0) > 0 ? 1.4 : 1) * ((bf.cry ?? 0) > 0 ? 1.25 : 1);
+  // ⭐ Star charm: the first hit on each monster
+  if (d.charm === 'keen' && d.seat === 0 && !m.keen) { m.keen = true; mult *= 1 + d.charmK; }
   const dmg = Math.max(1, Math.round(d.hit[m.m] * mult * (0.85 + rand(d) * 0.3) * (crit ? 1.6 : 1)));
   m.hp -= dmg;
   m.hitT = 200;
@@ -550,6 +597,7 @@ function hurtHero(d: Dungeon, dmg: number, from: number, mob?: Mob, src?: string
     return;
   }
   if (mob && (bf.thorns ?? 0) > 0) hitMob(d, mob, 2.5, 12);
+  if (mob && d.charm === 'thorns' && d.seat === 0) hitMob(d, mob, 0.6 * d.charmK, 8);
   if (h.ironT > 0) dmg *= h.ironT > 100000 ? 0 : 0.5;
   if ((bf.fort ?? 0) > 0) dmg *= 0.3;
   dmg = Math.round(dmg * (0.9 + rand(d) * 0.2));
@@ -567,6 +615,10 @@ function hurtHero(d: Dungeon, dmg: number, from: number, mob?: Mob, src?: string
   pop(d, h.x, h.y - HERO_H - 8, `-${dmg.toLocaleString()}`, 'hurt');
   if (h.hp <= 0) {
     if ((bf.undying ?? 0) > 0) { h.hp = 1; pop(d, h.x, h.y - HERO_H - 24, 'Undying!', 'info'); }
+    else if (d.charm === 'will' && d.seat === 0 && d.willUsed < (d.charmK > 1 ? 2 : 1)) {
+      d.willUsed++; h.hp = 1; h.invT = 1200;
+      pop(d, h.x, h.y - HERO_H - 24, '🔕 The silent bell holds you up!', 'info');
+    }
     else if ((bf.guard ?? 0) > 0) {
       delete bf.guard; h.hp = Math.round(h.maxHp * 0.3); h.invT = 1500;
       pop(d, h.x, h.y - HERO_H - 24, 'Guardian Spirit!', 'heal');
@@ -594,7 +646,7 @@ function castSkillNow(d: Dungeon, i: number): string | null {
   if (!id || d.phase !== 'play' || (d.cd[id] ?? 0) > 0) return null;
   const s = SKILL_MAP[id];
   const h = d.hero;
-  d.cd[id] = s.cdMs;
+  d.cd[id] = s.cdMs * (d.charm === 'echo' && d.seat === 0 ? 1 - 0.15 * d.charmK : 1);
   h.atkT = 260;
   switch (id) {
     case 'power_strike': {
@@ -776,7 +828,10 @@ export function step(d: Dungeon, dt: number, input: Input, allyInput: Input = ID
   if (d.ally) { asSeat(d, 1, () => stepSeat(d, dt, allyInput, sounds)); stepRevive(d, dt, sounds); }
   if (d.phase !== 'play') return sounds;
   // 🚪 A room is done when its monsters are beaten and someone walks through the door.
-  if (d.room && d.room.kind !== 'boss' && !alive(d).length && standing(d).some((x) => x.h.x >= d.room!.door - 20)) { d.phase = 'won'; sounds.push('levelup'); }
+  if (d.room && d.room.kind !== 'boss' && !alive(d).length && standing(d).some((x) => x.h.x >= d.room!.door - 20)) {
+    d.phase = 'won'; sounds.push('levelup');
+    if (d.charm === 'wind') d.hero.hp = Math.min(d.hero.maxHp, d.hero.hp + Math.round(d.hero.maxHp * 0.1 * d.charmK));
+  }
   stepHazards(d, dt, sounds);
   // Arrow Rain / Blizzard / Meteor land in waves
   for (const f of d.fx) {
@@ -994,7 +1049,18 @@ function stepSeat(d: Dungeon, dt: number, input: Input, sounds: string[]) {
   if (h.y > GROUND) { h.y = GROUND; h.vy = 0; h.onGround = true; }
   if (h.onGround && falling > 0.35) burst(d, h.x, h.y, 6, ['#ffffff', '#e7e5e4'], 0.09, -0.00005, 4, 400);
   if (h.down) return;
+  if (d.charm === 'breath' && !isFriend(d) && h.hp < h.maxHp && Math.floor(d.t / 3000) !== Math.floor((d.t - dt) / 3000)) {
+    const heal = Math.max(1, Math.round(h.maxHp * 0.02 * d.charmK)); h.hp = Math.min(h.maxHp, h.hp + heal); pop(d, h.x, h.y - HERO_H - 8, `+${heal.toLocaleString()}`, 'heal');
+  }
   if (!isFriend(d)) {
+    // 🍳🛠️ Stand still at a crafting station to open it (step away and back to open it again).
+    d.stations.forEach((st, i) => {
+      const on = h.onGround && Math.abs(st.x - h.x) < 28 && Math.abs(st.y - h.y) < 30;
+      if (!on) { st.prog = 0; return; }
+      if (st.prog < 0 || dir !== 0) return;
+      st.prog += dt;
+      if (st.prog >= STATION_MS) { st.prog = -1; d.atStation = i; sounds.push('creak'); }
+    });
     // 💰 Gold piles
     for (const gp of d.golds) {
       if (!gp.got && Math.abs(gp.x - h.x) < 18 && Math.abs(gp.y - h.y) < 30) {
@@ -1047,7 +1113,7 @@ function stepSeat(d: Dungeon, dt: number, input: Input, sounds: string[]) {
 
   // Basic attack (hold to keep swinging)
   if (input.attack && h.atkCd <= 0 && h.dashT <= 0) {
-    h.atkCd = ATTACK_MS[d.style] * ((h.bf.cry ?? 0) > 0 ? 0.75 : 1);
+    h.atkCd = ATTACK_MS[d.style] * ((h.bf.cry ?? 0) > 0 ? 0.75 : 1) * (d.charm === 'hands' && !isFriend(d) ? 1 - 0.1 * d.charmK : 1);
     h.atkT = 240;
     if (d.style === 'melee') {
       const t = inFront(d, 62)[0];

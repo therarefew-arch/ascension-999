@@ -159,6 +159,8 @@ export interface ItemDef {
   tierNum?: number;
   /** Drawn as this emoji instead of a drawn icon (rare finds and treasures). */
   emoji?: string;
+  /** ✨ A Unique version of this item (v0.0.2.1): stronger, worth much more. */
+  uniqueOf?: string;
   /** Fixed trading value (treasures). */
   value?: number;
   /** Rare finds: which gathering skill's open table it uses when opened. */
@@ -685,11 +687,28 @@ for (const m of MEALS) {
   items.push({ id: m.id, name: m.name, category: 'meal', tier: 'oak', icon: 'log', emoji: m.emoji, stackable: true, tierNum: m.tierNum,
     region: tierRegion(m.tierNum), buff: m.buff, description: m.description });
 }
+// ✨ Unique lost meals and brews (v0.0.2.1, owner: things made at a dungeon station have a higher chance of being
+// uniques — "so it's worth making and taking out with you"): twice as strong, for twice as long.
+export const UNIQUE_SUFFIX = '_u';
+/** How often a lost recipe comes out Unique: at a crafting station inside the dungeon, and at home. */
+export const UNIQUE_CHANCE = { station: 0.25, home: 0.03 };
+export const UNIQUE_IDS = new Set<string>();
+for (const m of LOST_MEALS) {
+  const id = m.id + UNIQUE_SUFFIX;
+  UNIQUE_IDS.add(id);
+  items.push({ id, name: `✨ ${m.name}`, category: 'meal', tier: 'gold', icon: 'log', emoji: m.emoji, stackable: true, tierNum: m.tierNum,
+    region: tierRegion(m.tierNum), buff: { ...m.buff, pct: m.buff.pct * 2, minutes: m.buff.minutes * 2 }, uniqueOf: m.id,
+    description: `A Unique one — twice as strong, for twice as long. ${m.description}` });
+}
 
 // ----- 🧭 Expedition charms (lost recipes, made in Crafting) -----
 for (const c of CHARMS) {
   items.push({ id: c.id, name: c.name, category: 'charm', tier: 'gold', icon: 'coins', emoji: c.emoji, stackable: true, tierNum: c.tierNum,
-    region: c.region, charm: c.boon, description: `${c.description} Pack it on an expedition to start with its Boon — it's never used up.` });
+    region: c.region, charm: c.boon, description: `${c.description} Pocket it when you gear up for the dungeon — a charm is never lost.` });
+  const id = c.id + UNIQUE_SUFFIX;
+  UNIQUE_IDS.add(id);
+  items.push({ id, name: `✨ ${c.name}`, category: 'charm', tier: 'gold', icon: 'coins', emoji: c.emoji, stackable: true, tierNum: c.tierNum,
+    region: c.region, charm: c.boon, uniqueOf: c.id, description: `A Unique one — its power in the dungeon is much stronger. ${c.description} Pocket it when you gear up for the dungeon — a charm is never lost.` });
 }
 
 // ----- 🌟 Ascended items (levels 750+) -----

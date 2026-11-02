@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from 'react';
 import { sound } from '../audio/sound';
 import type { SoundKey } from '../audio/soundList';
-import { getItem, type EquipSlot } from '../data/items';
+import { getItem, UNIQUE_CHANCE, UNIQUE_IDS, UNIQUE_SUFFIX, type EquipSlot } from '../data/items';
 import { ACTIONS, SKILLS } from '../data/skills';
 import { equip, unequip } from './equipment';
 import {
@@ -51,14 +51,13 @@ import { paradeCoins, WINS_NEEDED as PARADE_WINS } from './petParade';
 import { wallXp } from './holdWall';
 import { BOSS_REST_MS, DUNGEON_XP_SECS } from './dungeon';
 import { DRAUGHT_HEAL, draughtPrice, foodPrice, goldPile, trailFood, wickPays } from '../market/dungeonShop';
-import { addStacks, bagGold, CAMP_HEAL, canExtract, eatFood as eatRunFood, FOOD_MAX, gatherActionFor, HARVEST_FIND, HARVEST_YIELD, newMap, whyCantHarvest, type DungeonRun } from './dungeonRun';
+import { addStacks, bagGold, CAMP_HEAL, canExtract, charmOf, eatFood as eatRunFood, FOOD_MAX, gatherActionFor, haveInRun, HARVEST_FIND, HARVEST_YIELD, newMap, stationRecipes, whyCantHarvest, type DungeonRun } from './dungeonRun';
 import type { NodeKind } from './dungeon';
-import { AREAS, COTTAGE_CHANCE, COTTAGE_SURE_BY, newRun, type HeroSnap, townBoss, townMonsters, whyCantStart, XP_SECS, type Reward, type Run } from './expedition';
+import { COTTAGE_CHANCE, COTTAGE_SURE_BY, loadRun, townBoss, townMonsters, XP_SECS, type Reward, type Run } from './expedition';
 import { EXPEDITION_FURNITURE } from './cottage';
 import { lostRecipesOf } from '../data/lostRecipes';
 import { growRelics } from './relics';
 import { RELIC_MAP } from '../data/relics';
-const HERO_THANKS_A_DAY = 3;
 import { gatherXpPerHour, REGIONS, tierForLevel } from '../data/tiers';
 import { REROLL_COST, socketGem, unsocketGem } from './equipment';
 import { countInBag, countInBank, removeFromBag, removeFromBank } from './inventory';
@@ -444,6 +443,12 @@ function fail(reason: string) {
   toast(reason, 'bad');
 }
 
+/** 🗝️ Your health in the dungeon, with a ❄️ Snowflake charm's extra. */
+function runMaxHp(hero: PlayerState, r: DungeonRun): number {
+  const c = charmOf(r);
+  return Math.round(maxHp(hero) * (c?.boon === 'hearty' ? 1 + 0.2 * c.k : 1));
+}
+
 /** Everything the screens are allowed to do. */
 export const game = {
   // ----- Save slots -----
@@ -461,6 +466,16 @@ export const game = {
     } else if (loadedFromVersion < 14) {
       setTimeout(() => { play('levelup'); toast('🗺️ The Heartland towns moved closer: Ironmoor 50 · Coalhaven 110 · Bluecliff 175', 'level'); emit(); }, 900);
     }
+    // 🧭 Expeditions were retired (v0.0.2.1): give back anything a saved, unfinished one still had packed.
+    try {
+      const key = `ui.expedition.${slot}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        localStorage.removeItem(key);
+        const back = game.expeditionRetire(saved);
+        if (back.length) setTimeout(() => { toast('🧭 Expeditions have ended — what you had packed is back in your bag.', 'good'); emit(); }, 1200);
+      }
+    } catch { /* no storage */ }
     checkGoals();
     play('click');
     tick();
@@ -1028,35 +1043,8 @@ export const game = {
     };
   },
 
-  // ----- 🧭 Expeditions -----
-  /** 🤝 Guildmates whose heroes can come along (from the last guild board). */
-  expeditionHeroes(): HeroSnap[] {
-    const p = snap.player;
-    const b = lastBoard();
-    if (!p.family || !b) return [];
-    return b.members.filter((m) => m.id !== p.family!.m && m.snap?.hero && m.snap.eq)
-      .map((m) => ({ id: m.id, name: m.name, eq: m.snap.eq!, lv: m.snap.hero!.lv, ammo: m.snap.hero!.ammo, pet: m.snap.pet }));
-  },
-  /** Set off: the packed things leave your bag (then bank) and go in the expedition satchel. */
-  expeditionStart(region: Region, pack: ItemStack[], hero?: HeroSnap): Run | null {
-    const p = snap.player;
-    const list = pack.filter((x) => x.qty > 0);
-    const why = whyCantStart(p, region, list);
-    if (why) { fail(why); return null; }
-    const need = new Map<string, number>();
-    for (const x of list) need.set(x.id, (need.get(x.id) ?? 0) + x.qty);
-    for (const [id, n] of need) if (countInBag(p.inventory, id) + countInBank(p, id) < n) { fail(`Not enough ${getItem(id).name}`); return null; }
-    for (const [id, n] of need) {
-      const fromBag = removeFromBag(p.inventory, id, n);
-      if (fromBag < n) removeFromBank(p, id, n - fromBag);
-    }
-    const run = newRun(p, region, list, undefined, hero && p.family && hero.id !== p.family.m ? hero : undefined);
-    play('levelup');
-    save();
-    emit();
-    return run;
-  },
-
+  // ----- 🧭 Expeditions were retired in v0.0.2.1 (owner: "let's get rid of expeditions"); the Dungeon took their place.
+  // Their reward path below is what the Dungeon pays through. -----
   /**
    * Gives what an expedition step earned: combat XP (paced like the town's gathering XP, a bit better per
    * minute than fighting normally), the monsters' own loot, cache rolls, rare finds and skill XP — all
@@ -1148,37 +1136,13 @@ export const game = {
     return merged;
   },
 
-  /** The expedition is over (won, knocked out or headed home): unused supplies come back. */
-  expeditionEnd(run: Run) {
-    const p = snap.player;
+  /** 🧭 An expedition left unfinished when Expeditions were retired: whatever was still packed in its satchel comes
+   * home through the loot system (what it had earned was already paid as it went). */
+  expeditionRetire(saved: string | null): ItemStack[] {
+    const run = loadRun(saved);
+    if (!run) return [];
     const back = run.satchel.filter((x) => x.qty > 0).map((x) => ({ id: x.id, qty: x.qty }));
-    if (back.length) giveLoot(p, back, { overflowToBank: true });
-    run.satchel = [];
-    if (run.end === 'won') {
-      celebrate();
-      const boss = townBoss(run.region);
-      if (boss) familyMoment(p, 'boss', `defeated ${boss.name} on an expedition!`);
-    }
-    // 🤝 A thank-you for the guildmate whose hero came along (sent as a gift with the next check-in;
-    // they unwrap it through the loot system). Up to 3 a day, and only after a real fight.
-    if (run.helper && p.family && run.found.kills > 0 && !run.thanked) {
-      const day = dayKey();
-      const t = p.heroThanks?.day === day ? p.heroThanks : { day, n: 0 };
-      if (t.n < HERO_THANKS_A_DAY) {
-        const best = Math.max(...ALL_SKILLS.map((s) => skillLevel(p, s)));
-        const coins = Math.round((30 + best * 0.9) * (run.end === 'won' ? 4 : 2));
-        const items = [{ id: ['bird_nest', 'geode', 'message_bottle'][Math.floor(Math.random() * 3)], qty: 1 }];
-        const label = `${giftLabel(items, coins)} — thanks for coming along to ${AREAS[run.region].name}!`;
-        (p.giftsOut ??= []).push({ id: newGiftId(), to: run.helper.id, toName: run.helper.name, items, coins, label, at: Date.now() });
-        p.heroThanks = { day, n: t.n + 1 };
-        familyMoment(p, 'hero', `took ${run.helper.name}'s hero along to ${AREAS[run.region].name}${run.end === 'won' ? ' — and won!' : '!'}`);
-        syncSoon();
-      }
-      run.thanked = true;
-    }
-    const report = emptyReport(null);
-    if (run.found.kills > 0) trackRequests(p, report, 1);
-    trackTutorial(p, report);
+    if (back.length) giveLoot(snap.player, back, { overflowToBank: true });
     save();
     emit();
     return back;
@@ -1194,12 +1158,15 @@ export const game = {
       bossPrizes = (p.dungeonBossAt?.[region] ?? 0) <= Date.now();
       if (bossPrizes) (p.dungeonBossAt ??= {})[region] = Date.now() + BOSS_REST_MS;
     }
-    return game.expeditionReward({ region, style, found }, { kills }, { xpSecs: DUNGEON_XP_SECS, bossPrizes, into });
+    // 🍀 Marsh-light locket: now and then an extra loot roll.
+    const c = charmOf(p.dungeonRun);
+    const rolls = c?.boon === 'forager' && into ? kills.filter(() => Math.random() < 0.25 * c.k).length : 0;
+    return game.expeditionReward({ region, style, found }, { kills, rolls }, { xpSecs: DUNGEON_XP_SECS, bossPrizes, into });
   },
 
   // ----- 🗝️ The extraction run (v0.0.1.77, owner's design: gear up, pick paths, get out or lose it all) -----
   /** Go in: everything you wear (and its gems) goes in with you, plus up to FOOD_MAX packed food. */
-  dungeonEnter(region: Region, food: ItemStack[]): boolean {
+  dungeonEnter(region: Region, food: ItemStack[], charm?: string): boolean {
     const p = snap.player;
     if (p.dungeonRun) { fail("You're already in the dungeon"); return false; }
     if (!p.regions.includes(region)) { fail('Discover this town first'); return false; }
@@ -1209,11 +1176,14 @@ export const game = {
     if (list.some((x) => !getItem(x.id).heals)) { fail('Only food can be packed'); return false; }
     if (list.reduce((n, x) => n + x.qty, 0) > FOOD_MAX) { fail(`Pack at most ${FOOD_MAX} food`); return false; }
     for (const x of list) if (countInBag(p.inventory, x.id) + countInBank(p, x.id) < x.qty) { fail(`Not enough ${getItem(x.id).name}`); return false; }
+    if (charm && (!getItem(charm).charm || countInBag(p.inventory, charm) + countInBank(p, charm) < 1)) { fail("You don't have that charm"); return false; }
     for (const x of list) { const got = removeFromBag(p.inventory, x.id, x.qty); if (got < x.qty) removeFromBank(p, x.id, x.qty - got); }
+    if (charm && removeFromBag(p.inventory, charm, 1) < 1) removeFromBank(p, charm, 1);
     const run: DungeonRun = {
-      region, rows: newMap(), row: 0, at: 0, cleared: false, hp: maxHp(p),
-      gear: { ...p.equipment }, sockets: { ...p.sockets }, food: list.map((x) => ({ ...x })), bag: [], kills: 0, startedAt: Date.now(),
+      region, rows: newMap(), row: 0, at: 0, cleared: false, hp: 0,
+      gear: { ...p.equipment }, sockets: { ...p.sockets }, food: list.map((x) => ({ ...x })), bag: [], kills: 0, startedAt: Date.now(), charm,
     };
+    run.hp = runMaxHp(p, run);
     p.equipment = {};
     p.sockets = {};
     p.dungeonRun = run;
@@ -1237,7 +1207,7 @@ export const game = {
     r.cleared = false;
     if (r.rows[r.row][i].kind === 'shop') { r.cleared = true; play('coin'); }
     else if (r.rows[r.row][i].kind === 'camp') {
-      const max = maxHp(game.dungeonHero()!);
+      const max = runMaxHp(game.dungeonHero()!, r);
       r.hp = Math.min(max, r.hp + Math.round(max * CAMP_HEAL));
       r.cleared = true;
       play('levelup');
@@ -1274,6 +1244,45 @@ export const game = {
     save();
     emit();
   },
+  /** 🍳🛠️ Make something at a crafting station inside the dungeon, from the run bag (and what this room has turned up
+   * so far, used first). Trail food goes straight into your packed food; a lost meal, brew or charm goes into this room's
+   * finds — a quarter come out ✨ Unique — and making one the first time learns it for good. */
+  dungeonCraft(kind: 'kitchen' | 'bench', key: string, room: ItemStack[]): { made: string; unique: boolean; food: boolean; learned: boolean } | null {
+    const p = snap.player;
+    const r = p.dungeonRun;
+    if (!r) return null;
+    const rec = stationRecipes(r.region, kind).find((x) => x.key === key);
+    if (!rec) return null;
+    const hero = game.dungeonHero()!;
+    if (skillLevel(hero, rec.skill) < rec.level) { fail(`Needs ${rec.skill === 'cooking' ? 'Cooking' : 'Crafting'} ${rec.level}`); return null; }
+    if (rec.inputs.some((x) => haveInRun(r, room, x.id) < x.qty)) { fail('Not enough in your run bag'); return null; }
+    if (rec.food && r.food.reduce((n, x) => n + x.qty, 0) >= FOOD_MAX) { fail(`You can carry ${FOOD_MAX} food at most`); return null; }
+    // Use this room's finds first, then the run bag.
+    for (const x of rec.inputs) {
+      let need = x.qty;
+      for (const pile of [room, r.bag]) for (const s of pile) if (s.id === x.id && need > 0) { const n = Math.min(need, s.qty); s.qty -= n; need -= n; }
+    }
+    for (const pile of [room, r.bag]) { const keep = pile.filter((s) => s.qty > 0); pile.length = 0; pile.push(...keep); }
+    const report = emptyReport(null);
+    addXp(p, { skill: rec.skill }, report, rec.xp);
+    announceLevels(report);
+    let made = rec.out, unique = false, learned = false;
+    if (rec.food) addStacks(r.food, [{ id: made, qty: 1 }]);
+    else {
+      if (UNIQUE_IDS.has(made + UNIQUE_SUFFIX) && Math.random() < UNIQUE_CHANCE.station) { made += UNIQUE_SUFFIX; unique = true; }
+      addStacks(room, [{ id: made, qty: 1 }]);
+      if (rec.learns && !(p.recipes ?? []).includes(rec.learns)) {
+        (p.recipes ??= []).push(rec.learns);
+        learned = true;
+        toast(`📖 Learned a lost recipe: ${rec.name} — you can make it at home now too.`, 'level');
+      }
+      if (unique) toast(`✨ A Unique ${getItem(rec.out).name}!`, 'level');
+    }
+    play(unique ? 'enchant' : rec.skill === 'cooking' ? 'sizzle' : 'craft');
+    save();
+    emit();
+    return { made, unique, food: !!rec.food, learned };
+  },
   /** 💰 Gold piles picked up: into the room's finds. */
   dungeonGold(into: ItemStack[], piles: number) {
     const r = snap.player.dungeonRun;
@@ -1305,7 +1314,7 @@ export const game = {
       if (r.food.reduce((n, x) => n + x.qty, 0) >= FOOD_MAX) { fail(`You can carry ${FOOD_MAX} food at most`); return false; }
       addStacks(r.food, [{ id: trailFood(r.region), qty: 1 }]);
     } else {
-      const max = maxHp(game.dungeonHero()!);
+      const max = runMaxHp(game.dungeonHero()!, r);
       if (r.hp >= max) { fail("You're already at full health"); return false; }
       r.hp = Math.min(max, r.hp + Math.round(max * DRAUGHT_HEAL));
     }
@@ -1339,6 +1348,7 @@ export const game = {
     for (const [slot, id] of Object.entries(r.gear) as [EquipSlot, string][]) { if (!p.equipment[slot]) p.equipment[slot] = id; else spill.push({ id, qty: 1 }); }
     for (const [slot, id] of Object.entries(r.sockets) as [EquipSlot, string][]) { if (!p.sockets[slot]) p.sockets[slot] = id; else spill.push({ id, qty: 1 }); }
     const home = [...spill];
+    if (r.charm) addStacks(home, [{ id: r.charm, qty: 1 }]);
     addStacks(home, r.food);
     addStacks(home, r.bag);
     if (home.length) giveLoot(p, home, { overflowToBank: true });
@@ -1360,6 +1370,8 @@ export const game = {
     const r = p.dungeonRun;
     if (!r) return null;
     delete p.dungeonRun;
+    // 🍀 A charm is never lost.
+    if (r.charm) giveLoot(p, [{ id: r.charm, qty: 1 }], { overflowToBank: true });
     play('fail');
     save();
     emit();

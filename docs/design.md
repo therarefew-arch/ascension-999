@@ -655,3 +655,19 @@ every kill.
   The leader's phone runs the room; the friend's phone sends its buttons and draws the room from pictures.
 - **Part 2 — next:** the full extraction run together (pick rooms on the map together, shared gold/chests/rare spots,
   Wick's stall, ways out, the boss, losing it all if both are knocked out) and inviting a guildmate from the Guild tab.
+
+
+## 🍳 Crafting stations, ✨ Uniques and 🍀 charms in the dungeon — v0.0.2.1
+
+Expeditions were retired (owner's call); their lost recipes moved into the Dungeon.
+
+- **Crafting stations** sometimes stand along a room's path: a 🍳 campfire kitchen or an 🛠️ old workbench. Stand at one
+  to open it. Ingredients come from what you've found in there (rich spots, monsters).
+  - Kitchen: trail food (cook the town's fish — eat it right away) and the town's lost meal or brew.
+  - Workbench: the town's lost charm.
+  - Making a lost recipe the first time learns it for good — the only way to learn them now.
+  - What you make goes into the run bag: yours if you get out, lost if you're knocked out.
+- **✨ Uniques:** a quarter of what you make at a station is Unique (3% at home) — meals/brews twice as strong for twice
+  as long, charms much stronger; worth six times as much.
+- **🍀 Charms:** pocket one when you gear up. Each has a dungeon effect; a charm is never lost.
+- **Next:** ✨ Unique gear from the workbench — a little better than standard, with a small extra buff.

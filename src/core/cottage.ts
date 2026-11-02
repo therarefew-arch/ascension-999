@@ -143,7 +143,7 @@ export function whyCantBuild(p: PlayerState, id: string): string | null {
   if (p.cottage.includes(id)) return 'Already built';
   if (f.festival) return 'Find it at the festival stall';
   if (f.family) return 'Earned on a 🥇 Gold guild week';
-  if (f.expedition) return `A rare find from beating the boss of the ${f.expedition} expedition`;
+  if (f.expedition) return `A rare find from beating the boss of the ${f.expedition} dungeon`;
   const region = furnitureRegion(f);
   if (!regionOpen(region) || !p.regions.includes(region)) return `Discover ${region} first`;
   if (f.needsLunaria && !p.lunaria.restored) return 'Bring Lunaria home first';

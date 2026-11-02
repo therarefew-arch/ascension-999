@@ -6,14 +6,15 @@ import { createPortal } from 'react-dom';
 import { sound } from '../audio/sound';
 import { musicFor, type SoundKey } from '../audio/soundList';
 import {
-  BAR_SIZE, FALL_WARN, HARVEST_MS, VENT, HERO_H, NODE_KINDS, type NodeKind, bossDef, bossOf, defaultBar, eatSnack, GROUND, newDungeon, pathProgress, SKILL_MAP, SKILLS, step, castSkill, VIEW_H, VIEW_W, BUFF_EMOJI, type Buff, REVIVE_MS,
+  BAR_SIZE, FALL_WARN, HARVEST_MS, VENT, HERO_H, NODE_KINDS, type NodeKind, bossDef, bossOf, defaultBar, eatSnack, GROUND, newDungeon, pathProgress, SKILL_MAP, SKILLS, step, castSkill, VIEW_H, VIEW_W, BUFF_EMOJI, type Buff, REVIVE_MS, charmText, UNIQUE_CHARM_K, type StationKind,
   whyCantUseSkill, type Dungeon as Run, type Input,
 } from '../core/dungeon';
 import { AREAS, townBoss, type Run as ExRun } from '../core/expedition';
 import { DUNGEON_TOWNS } from '../data/dungeonTowns';
 import { draughtPrice, DRAUGHT_HEAL, foodPrice, trailFood, wickPays } from '../market/dungeonShop';
-import { addStacks, bagGold, canExtract, foodCount, FOOD_MAX, nextChoices, ROOM_INFO, roomOf, whyCantHarvest, type DungeonRun } from '../core/dungeonRun';
+import { addStacks, bagGold, canExtract, charmOf, foodCount, FOOD_MAX, haveInRun, nextChoices, ROOM_INFO, roomOf, stationRecipes, whyCantHarvest, type DungeonRun } from '../core/dungeonRun';
 import { maxHp } from '../core/combat';
+import { levelForXp } from '../core/xp';
 import { art, artCache, drawAtmos, drawFar, drawSky, hash, pixCircle, propArt, sceneryOf, U } from './dungeonScenery';
 import { countInBag, countInBank } from '../core/inventory';
 import { FURNITURE_MAP } from '../core/cottage';
@@ -430,6 +431,28 @@ function drawTrap(g: CanvasRenderingContext2D, t: Run['traps'][number], now: num
 
 // ----- ⛏️ Rare resource spots (v0.0.1.78) -----
 const NODE_TOOL: Record<NodeKind, string> = { ore: '⛏️', tree: '🪓', herb: '🌿', fish: '🎣' };
+/** 🍳 A campfire kitchen (stones, a fire, a bubbling pot) or 🛠️ an old workbench (a saw and a hammer on it). */
+function drawStation(g: CanvasRenderingContext2D, kind: StationKind, x: number, y: number, t: number, near: boolean) {
+  if (near) { g.globalAlpha = 0.25 + 0.15 * Math.sin(t / 250); g.fillStyle = '#fde68a'; g.beginPath(); g.ellipse(x, y - 4, 44, 10, 0, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1; }
+  if (kind === 'kitchen') {
+    for (let i = -2; i <= 2; i++) { g.fillStyle = i % 2 ? '#78716c' : '#a8a29e'; g.fillRect(x + i * 9 - 4, y - 6, 8, 6); }
+    const fl = Math.sin(t / 90) * 2;
+    g.fillStyle = '#f97316'; g.beginPath(); g.moveTo(x - 9, y - 6); g.quadraticCurveTo(x, y - 26 - fl, x + 9, y - 6); g.fill();
+    g.fillStyle = '#fde047'; g.beginPath(); g.moveTo(x - 4, y - 6); g.quadraticCurveTo(x, y - 16 + fl, x + 4, y - 6); g.fill();
+    g.strokeStyle = '#44403c'; g.lineWidth = 2; g.beginPath(); g.moveTo(x - 16, y - 6); g.lineTo(x - 12, y - 40); g.lineTo(x + 12, y - 40); g.lineTo(x + 16, y - 6); g.stroke();
+    g.fillStyle = '#292524'; g.beginPath(); g.ellipse(x, y - 28, 11, 8, 0, 0, Math.PI * 2); g.fill();
+    for (let i = 0; i < 3; i++) { const k = ((t / 900) + i / 3) % 1; g.globalAlpha = 0.5 * (1 - k); g.fillStyle = '#f5f5f4'; g.beginPath(); g.arc(x - 4 + i * 4 + Math.sin(k * 6) * 3, y - 40 - k * 26, 3 + k * 4, 0, Math.PI * 2); g.fill(); }
+    g.globalAlpha = 1;
+  } else {
+    g.fillStyle = '#7c4a24'; g.fillRect(x - 26, y - 24, 52, 7);
+    g.fillStyle = '#5b3418'; g.fillRect(x - 22, y - 17, 6, 17); g.fillRect(x + 16, y - 17, 6, 17);
+    g.fillStyle = '#a8a29e'; g.fillRect(x - 18, y - 30, 16, 5);
+    g.fillStyle = '#78716c'; g.fillRect(x - 2, y - 32, 4, 9);
+    g.fillStyle = '#57534e'; g.fillRect(x + 6, y - 33, 12, 6); g.fillStyle = '#8a5a2a'; g.fillRect(x + 11, y - 28, 3, 5);
+  }
+  const ic = sprite(kind === 'kitchen' ? '🍳' : '🛠️', 16);
+  g.drawImage(ic, x - ic.width / 2, y - (kind === 'kitchen' ? 74 : 60) + Math.sin(t / 380 + x) * 2);
+}
 function drawNode(g: CanvasRenderingContext2D, T: Theme, kind: NodeKind, x: number, y: number, done: boolean, t: number) {
   const q = (cx: number, cy: number, w: number, h: number, c: string) => { g.fillStyle = c; g.fillRect(Math.round(x + cx), Math.round(y + cy), w, h); };
   if (kind === 'ore') {
@@ -549,6 +572,11 @@ export function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: 
     const x = d.wave.x;
     g.fillStyle = 'rgba(37,99,235,0.85)'; g.beginPath(); g.moveTo(x - 30, GROUND); g.quadraticCurveTo(x - 6, GROUND - 34, x + 14, GROUND - 22); g.quadraticCurveTo(x + 30, GROUND - 10, x + 60, GROUND); g.fill();
     g.fillStyle = '#e0f2fe'; g.beginPath(); g.arc(x - 4, GROUND - 26, 6, 0, Math.PI * 2); g.arc(x + 6, GROUND - 24, 5, 0, Math.PI * 2); g.fill();
+  }
+  // 🍳🛠️ Crafting stations: a campfire kitchen or an old workbench, glowing when you're close
+  for (const st of d.stations) {
+    if (st.x < cam - side - 60 || st.x > cam + VIEW_W + side + 60) continue;
+    drawStation(g, st.kind, st.x, st.y, d.t, Math.abs(d.hero.x - st.x) < 60 && Math.abs(d.hero.y - st.y) < 40);
   }
   // ⛏️ Rare resource spots, with the tool they need floating above (dimmed + 🔒 when you didn't bring it)
   for (const n of d.nodes) {
@@ -867,6 +895,7 @@ function GearUp({ region, onClose }: { region: Run['region']; onClose: () => voi
   const { player } = useGame();
   const [openSlot, setOpenSlot] = useState<EquipSlot | null>(null);
   const [food, setFood] = useState<Record<string, number>>({});
+  const [charm, setCharm] = useState<string | null>(null);
   const [sure, setSure] = useState(false);
   const owned = (id: string) => countInBag(player.inventory, id) + countInBank(player, id);
   const ids = [...new Set([...player.inventory.filter(Boolean).map((s) => s!.id), ...player.bank.map((s) => s.id)])];
@@ -912,7 +941,7 @@ function GearUp({ region, onClose }: { region: Run['region']; onClose: () => voi
   const enter = () => {
     if (!sure) { setSure(true); sound.play('creak'); return; }
     const list = Object.entries(food).filter(([, k]) => k > 0).map(([id, qty]) => ({ id, qty }));
-    if (game.dungeonEnter(region, list)) sound.play('levelup');
+    if (game.dungeonEnter(region, list, charm ?? undefined)) sound.play('levelup');
   };
   return createPortal(
     <div className="gu-root">
@@ -940,6 +969,20 @@ function GearUp({ region, onClose }: { region: Run['region']; onClose: () => voi
             <button className="btn small" onClick={() => add(id, 1)} aria-label="One more">+</button>
           </div>
         )) : <p className="tiny muted">No food in your bag or bank — cook some first, or go in hungry.</p>}
+        <h4 className="gu-h">🍀 Charm <span className="tiny muted">(one in your pocket · never lost, even if you're knocked out)</span></h4>
+        {ids.filter((id) => ITEMS[id]?.charm).length ? (
+          <div className="gu-charms">
+            {ids.filter((id) => ITEMS[id]?.charm).map((id) => {
+              const it = ITEMS[id];
+              return (
+                <button key={id} className={`gu-cand ${charm === id ? 'on' : ''}`} onClick={() => { sound.play('click'); setCharm(charm === id ? null : id); setSure(false); }}>
+                  <ItemIcon id={id} size={22} /><span className="small grow"><b>{it.name}</b><span className="tiny muted" style={{ display: 'block' }}>{charmText(it.charm!, it.uniqueOf ? UNIQUE_CHARM_K : 1)}</span></span>
+                  <span className="tiny">{charm === id ? '✅' : ''}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : <p className="tiny muted">No charms yet — make one at a 🛠️ workbench you find in the dungeon.</p>}
         <div className="gu-risk small">At risk: {worn.length} piece{worn.length === 1 ? '' : 's'} of gear{gems.length ? `, ${gems.length} gem${gems.length === 1 ? '' : 's'}` : ''}{packed ? `, ${packed} food` : ''}.</div>
         <button className={`btn btn-hero gu-go ${sure ? 'sure' : ''}`} onClick={enter}>{sure ? 'TAP AGAIN TO GO IN — RISK IT ALL' : 'ENTER THE DUNGEON'}</button>
       </div>
@@ -1117,12 +1160,14 @@ function RoomPlay({ run: dRun, land, onEnd }: { run: DungeonRun; land: boolean; 
   const [hero] = useState(() => game.dungeonHero()!);
   const region = dRun.region;
   const room = roomOf(dRun);
-  const [startSnacks] = useState(() => foodCount(dRun));
+  // Food you started the room with (cooking trail food at a 🍳 kitchen adds to it).
+  const startSnacks = useRef(foodCount(dRun));
+  const [station, setStation] = useState<StationKind | null>(null);
   const [bar, setBar] = useState<(string | null)[]>(() => readBar(slot, hero));
   const [run] = useState<Run>(() => {
     const why: Partial<Record<NodeKind, string>> = {};
     for (const k of NODE_KINDS) { const w = whyCantHarvest(hero, region, k); if (w) why[k] = w; }
-    return newDungeon(hero, region, readBar(slot, hero), room.seed, { kind: room.kind, depth: dRun.row, hp: dRun.hp, snacks: startSnacks, why });
+    return newDungeon(hero, region, readBar(slot, hero), room.seed, { kind: room.kind, depth: dRun.row, hp: dRun.hp, snacks: startSnacks.current, why, charm: charmOf(dRun) });
   });
   const [book, setBook] = useState(false);
   const [confirm, setConfirm] = useState(false);
@@ -1139,7 +1184,7 @@ function RoomPlay({ run: dRun, land, onEnd }: { run: DungeonRun; land: boolean; 
   const camY = useRef<number | null>(null);
   const landRef = useRef(land);
   landRef.current = land;
-  const paused = book || confirm;
+  const paused = book || confirm || !!station;
 
   // The game loop
   useEffect(() => {
@@ -1161,6 +1206,7 @@ function RoomPlay({ run: dRun, land, onEnd }: { run: DungeonRun; land: boolean; 
         while (run.opened > 0) { run.opened--; game.dungeonChest(pending.current); }
         while (run.harvested.length) game.dungeonHarvest(run.harvested.shift()!, pending.current);
         if (run.goldGot) { game.dungeonGold(pending.current, run.goldGot); run.goldGot = 0; }
+        if (run.atStation !== null) { setStation(run.stations[run.atStation].kind); run.atStation = null; input.current = { left: false, right: false, jump: false, attack: false, down: false }; }
         if (run.phase !== before) finish(run.phase === 'won');
       }
       const c = canvas.current;
@@ -1213,7 +1259,7 @@ function RoomPlay({ run: dRun, land, onEnd }: { run: DungeonRun; land: boolean; 
       const boss = room.kind === 'boss';
       const bag = dRun.bag.map((x) => ({ ...x }));
       addStacks(bag, pending.current);
-      game.dungeonRoomCleared(run.hero.hp, startSnacks - run.snacks, pending.current, run.kills);
+      game.dungeonRoomCleared(run.hero.hp, startSnacks.current - run.snacks, pending.current, run.kills);
       onEnd(boss ? { kind: 'won', region, bag, found: found.current, rested: rested.current } : null);
     } else {
       sound.play('fail');
@@ -1277,7 +1323,52 @@ function RoomPlay({ run: dRun, land, onEnd }: { run: DungeonRun; land: boolean; 
         </div>
       )}
       {book && <SkillBook player={hero} bar={bar} onBar={saveBar} style={run.style} onClose={() => { sound.play('click'); setBook(false); }} />}
+      {station && <StationPanel kind={station} run={dRun} hero={hero} room={pending.current} onClose={() => { sound.play('click'); setStation(null); }}
+        onFood={() => { run.snacks++; startSnacks.current++; }} />}
     </>
+  );
+}
+
+/** 🍳🛠️ A crafting station: make things from your run bag (and this room's finds). */
+export function StationPanel({ kind, run, hero, room, onClose, onFood }: { kind: StationKind; run: DungeonRun; hero: PlayerState; room: ItemStack[]; onClose: () => void; onFood: () => void }) {
+  const { player } = useGame();
+  const r = player.dungeonRun ?? run;
+  const [, setN] = useState(0);
+  const [last, setLast] = useState<string | null>(null);
+  const recipes = stationRecipes(r.region, kind);
+  const lvl = (sk: 'cooking' | 'crafting') => levelForXp(hero.skills[sk].xp);
+  const make = (key: string) => {
+    const got = game.dungeonCraft(kind, key, room);
+    if (!got) { sound.play('error', { volume: 0.5 }); return; }
+    if (got.food) onFood();
+    setLast(got.food ? `🍖 ${ITEMS[got.made].name} — packed (eat it any time)` : `${got.unique ? '✨ ' : ''}${ITEMS[got.made].name} — in this room's finds${got.learned ? ' · 📖 recipe learned!' : ''}`);
+    setN((x) => x + 1);
+  };
+  return (
+    <div className="dg-over">
+      <div className="dg-panel dg-station">
+        <div className="row-between" style={{ width: '100%' }}><b className="gold">{kind === 'kitchen' ? '🍳 Campfire kitchen' : '🛠️ Old workbench'}</b><button className="dg-icon" onClick={onClose} aria-label="Close">✕</button></div>
+        <p className="tiny muted center">Made from what you've found in here. A quarter of what you make here comes out <b>✨ Unique</b> — much stronger, and worth a lot. Get it out to keep it!</p>
+        {recipes.map((x) => {
+          const short = x.inputs.filter((i) => haveInRun(r, room, i.id) < i.qty);
+          const tooLow = lvl(x.skill) < x.level;
+          const known = !x.learns || (player.recipes ?? []).includes(x.learns);
+          const charm = !x.food && ITEMS[x.out]?.charm;
+          return (
+            <div key={x.key} className="dg-ware dg-recipe">
+              <ItemIcon id={x.out} size={26} />
+              <span className="grow dg-ware-text"><b className="small">{x.food ? `Trail food: ${ITEMS[x.out].name}` : ITEMS[x.out].name}</b>
+                <span className="tiny muted">{x.food ? 'Straight into your food — eat it any time.' : charm ? `🍀 In the dungeon: ${charmText(charm)}.` : ITEMS[x.out].description}{!known ? ' 📖 Make it once to learn the recipe for good.' : ''}</span>
+                <span className="tiny dg-needs">{x.inputs.map((i) => <span key={i.id} className={haveInRun(r, room, i.id) < i.qty ? 'short' : ''}><ItemIcon id={i.id} size={14} /> {Math.min(haveInRun(r, room, i.id), i.qty)}/{i.qty}</span>)}</span></span>
+              <button className="btn small" disabled={!!short.length || tooLow} onClick={() => make(x.key)}>{tooLow ? `${x.skill === 'cooking' ? 'Cooking' : 'Crafting'} ${x.level}` : 'Make'}</button>
+            </div>
+          );
+        })}
+        {!recipes.length && <p className="small muted">Nothing to make here.</p>}
+        {last && <p className="small gold center">{last}</p>}
+        <button className="btn btn-hero" onClick={onClose}>BACK TO THE FIGHT</button>
+      </div>
+    </div>
   );
 }
 

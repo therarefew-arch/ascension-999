@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { getItem, MAX_UPGRADE, MEALS, SLOT_LABELS } from '../data/items';
 
 /** Brews (Cooking → Brews) and festival treats marked `drink` are drunk; everything else is eaten. */
-const DRINKS = new Set([...MEALS.filter((m) => m.tab === 'Brews').map((m) => m.id), ...FESTIVALS.filter((f) => f.treat.drink).map((f) => f.treat.id)]);
+const DRINKS = new Set([...MEALS.filter((m) => m.tab === 'Brews').flatMap((m) => [m.id, m.id + '_u']), ...FESTIVALS.filter((f) => f.treat.drink).map((f) => f.treat.id)]);
 import { SKILLS } from '../data/skills';
 import { FESTIVALS } from '../data/festivals';
 import { maxHp } from '../core/combat';

@@ -2140,3 +2140,16 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .cp-down { position: absolute; left: 50%; top: 34%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 16px; border-radius: 14px; background: rgba(15, 10, 25, 0.8); border: 1.5px solid #c084fc; color: #f5f0e6; text-align: center; pointer-events: none; z-index: 4; max-width: 80%; }
 .dg-root.land .cp-panel { width: min(100%, 520px); }
 .dg-root.land .cp-code { font-size: 2rem; }
+
+/* 🍳🛠️ Crafting stations + 🍀 charms (v0.0.2.1) */
+.dg-station { width: min(100%, 440px); max-height: calc(100% - 16px); overflow-y: auto; }
+.dg-recipe { width: 100%; }
+.dg-needs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; color: #e7e5e4; }
+.dg-needs span { display: inline-flex; align-items: center; gap: 2px; }
+.dg-needs .short { color: #fca5a5; }
+.gu-charms { display: flex; flex-direction: column; gap: 6px; }
+.gu-cand.on { border-color: #fbbf24; box-shadow: 0 0 8px rgba(251, 191, 36, 0.4); }
+.dg-root.land .dg-station { width: min(100%, 620px); }
+.dg-panel .dg-recipe .btn { width: auto; flex: none; padding-left: 14px; padding-right: 14px; }
+.dg-recipe .dg-ware-text { min-width: 0; }
+.dg-recipe .dg-ware-text > b, .dg-recipe .dg-ware-text > .muted { display: block; }

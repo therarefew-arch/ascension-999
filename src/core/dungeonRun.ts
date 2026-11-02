@@ -4,7 +4,8 @@
 // You gear up, then go in with everything you wear (and its socketed gems) plus packed food. Rooms are laid out in
 // rows; after clearing a room you choose 1 of the 2 rooms in the next row. 🚪 Exit rooms and beating the 👑 boss get you
 // out with your run bag. Knocked out = everything you brought and found is gone (XP earned is kept).
-import { CRAFTED_TOOLS, TOOL_TIERS, toolName, type EquipSlot } from '../data/items';
+import { CRAFTED_TOOLS, ITEMS, TOOL_TIERS, toolName, type EquipSlot } from '../data/items';
+import { UNIQUE_CHARM_K } from './dungeon';
 import { ACTIONS, SKILLS, type ActionDef } from '../data/skills';
 import type { NodeKind } from './dungeon';
 import { equippedToolTier } from './idle';
@@ -31,6 +32,13 @@ export interface DungeonRun {
   bag: ItemStack[];
   kills: number;
   startedAt: number;
+  /** 🍀 A charm in your pocket (an item id) — it's never lost, even if you're knocked out. */
+  charm?: string;
+}
+/** The pocketed charm's Boon and strength (✨ Unique charms are stronger). */
+export function charmOf(r: Pick<DungeonRun, 'charm'> | undefined): { boon: string; k: number } | undefined {
+  const it = r?.charm ? ITEMS[r.charm] : undefined;
+  return it?.charm ? { boon: it.charm, k: it.uniqueOf ? UNIQUE_CHARM_K : 1 } : undefined;
 }
 
 export const ROOM_INFO: Record<RoomKind, { emoji: string; name: string; text: string }> = {
@@ -142,5 +150,47 @@ export function loadDungeonRun(raw: unknown): DungeonRun | undefined {
     hp: Number.isFinite(r.hp) && r.hp > 0 ? r.hp : 1, gear: { ...r.gear }, sockets: { ...r.sockets },
     food: r.food.map((x) => ({ ...x })), bag: r.bag.map((x) => ({ ...x })), kills: Number.isInteger(r.kills) ? r.kills : 0,
     startedAt: Number.isFinite(r.startedAt) ? r.startedAt : Date.now(),
+    charm: typeof r.charm === 'string' && ITEMS[r.charm]?.charm ? r.charm : undefined,
   };
 }
+
+// ----- 🍳🛠️ Crafting stations (v0.0.2.1, owner: "the resources you collect in the dungeon … usable at randomly found
+// crafting stations"; chose: spots inside rooms; the town's lost recipes + trail food; results into the run bag;
+// "these have a higher chance of being uniques … so it's worth making and taking out with you") -----
+// A 🍳 campfire kitchen cooks the town's fish into trail food (straight into your food — eat it right away) and the
+// town's lost meal or brew; an 🛠️ old workbench makes the town's lost charm. Ingredients come from your run bag (and
+// what this room has turned up so far) — the things rich spots and monsters give you in there. Making a lost recipe
+// the first time learns it for good (make it at home too). A quarter of what you make here comes out ✨ Unique.
+export interface StationRecipe {
+  key: string; name: string; emoji: string; skill: 'cooking' | 'crafting'; level: number; xp: number;
+  inputs: ItemStack[]; out: string;
+  /** Trail food goes into your packed food (and can be eaten right away). */
+  food?: boolean;
+  /** The lost recipe this learns (an action id). */
+  learns?: string;
+}
+export function stationRecipes(region: Region, kind: 'kitchen' | 'bench'): StationRecipe[] {
+  const fish = gatherActionFor(region, 'fish')?.output?.item;
+  const herb = gatherActionFor(region, 'herb')?.output?.item;
+  const ore = gatherActionFor(region, 'ore')?.output?.item;
+  const logs = gatherActionFor(region, 'tree')?.output?.item;
+  const out: StationRecipe[] = [];
+  const lost = (actionId: string, inputs: ItemStack[]) => {
+    const a = ACTIONS[actionId];
+    if (!a?.output || inputs.some((x) => !x.id)) return;
+    out.push({ key: actionId, name: a.name, emoji: a.skill === 'cooking' ? (a.tab === 'Brews' ? '🍵' : '🥘') : '🍀', skill: a.skill as 'cooking' | 'crafting', level: a.level, xp: a.xp, inputs, out: a.output.item, learns: actionId });
+  };
+  if (kind === 'kitchen') {
+    const cook = Object.values(ACTIONS).find((a) => a.skill === 'cooking' && a.inputs.length === 1 && a.inputs[0].item === fish && a.output);
+    if (cook && fish) out.push({ key: 'food', name: cook.name, emoji: '🍖', skill: 'cooking', level: cook.level, xp: cook.xp, inputs: [{ id: fish, qty: 1 }], out: cook.output!.item, food: true });
+    const meal = Object.values(ACTIONS).find((a) => a.lost && a.skill === 'cooking' && a.region === region);
+    // A lost meal: the town's fish and herbs; a lost brew: herbs.
+    if (meal && fish && herb) lost(meal.id, meal.tab === 'Brews' ? [{ id: herb, qty: 5 }] : [{ id: fish, qty: 3 }, { id: herb, qty: 2 }]);
+  } else {
+    const charm = Object.values(ACTIONS).find((a) => a.lost && a.skill === 'crafting' && a.region === region);
+    if (charm && ore && logs && herb) lost(charm.id, [{ id: ore, qty: 5 }, { id: logs, qty: 5 }, { id: herb, qty: 2 }]);
+  }
+  return out;
+}
+/** How many of an item you have in there: the run bag plus what this room has turned up. */
+export const haveInRun = (r: DungeonRun, room: ItemStack[], id: string) => [...r.bag, ...room].filter((x) => x.id === id).reduce((n, x) => n + x.qty, 0);

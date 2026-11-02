@@ -20,7 +20,6 @@ import { hasSavedNight, LanternWatch } from '../LanternWatch';
 import { HoldWall, hasSavedWall } from '../HoldWall';
 import { WAVES as WALL_WAVES } from '../../core/holdWall';
 import { RoadUp } from '../RoadUp';
-import { ExpeditionLaunch } from '../Expedition';
 import { DungeonLaunch } from '../Dungeon';
 import { CoopLaunch } from '../Coop';
 
@@ -317,7 +316,6 @@ export function CombatScreen({ onItem }: { onItem: (id: string) => void }) {
               <HpBar hp={player.hp} max={max} tone="green" />
               <p className="small muted">Triangle: Melee beats Ranged · Ranged beats Magic · Magic beats Melee. Your weapon sets your style. You heal slowly out of combat, and eat food automatically when low.</p>
             </div>
-            <ExpeditionLaunch />
             <DungeonLaunch />
             <CoopLaunch />
             <button className="lw-launch" style={{ marginTop: 8 }} onClick={() => setWatch(true)}>

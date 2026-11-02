@@ -45,6 +45,8 @@ const GEM_VALUE: Record<string, number> = { common: 60, uncommon: 150, rare: 400
 export function baseValue(item: ItemDef): number {
   if (BASE[item.id] !== undefined) return BASE[item.id];
   if (item.value !== undefined) return item.value;
+  // ✨ Uniques are worth six of the usual one.
+  if (item.uniqueOf) return baseValue(getItem(item.uniqueOf)) * 6;
   if (item.opens) return 60; // unopened finds
   // Herbs, seeds, crops, meals and brews (Herblore / Farming / Cooking).
   if (['herb', 'seed', 'crop', 'meal'].includes(item.category) && item.tierNum !== undefined) {
