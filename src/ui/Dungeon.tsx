@@ -641,6 +641,14 @@ export function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: 
     if (m.hp <= 0 && m.dead <= 0) continue;
     const def = MONSTER_MAP[m.m];
     const living = m.hp > 0;
+    // 🕳️ Underground: a dirt mound sliding along, then a red circle where it will burst up.
+    if (living && m.hidden) {
+      const wob = Math.sin(d.t / 80) * 1.5;
+      g.fillStyle = '#6b4426'; g.beginPath(); g.ellipse(m.x, GROUND + 1, 14, 6 + wob, 0, Math.PI, 0); g.fill();
+      g.fillStyle = '#8a5a3a'; g.fillRect(m.x - 8, GROUND - 4, 4, 3); g.fillRect(m.x + 3, GROUND - 5, 4, 3);
+      if (m.mv?.s === 'warn') { g.strokeStyle = `rgba(239,68,68,${0.5 + 0.4 * Math.sin(d.t / 60)})`; g.lineWidth = 3; g.beginPath(); g.ellipse(m.x, GROUND + 1, 26, 7, 0, 0, Math.PI * 2); g.stroke(); }
+      continue;
+    }
     const frame = Math.floor((d.t + m.id * 137) / (m.boss ? 320 : 200)) % 2;
     const s = pixMob(def.art, def.colors, frame, m.hitT > 90 && living);
     const k = Math.max(3, Math.round((m.boss ? m.w * 1.25 : m.w * 1.35) / (s.width - 2)));
@@ -650,13 +658,22 @@ export function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: 
     }
     if (!m.boss && living && !FLOATS.has(def.art)) { g.fillStyle = 'rgba(0,0,0,0.22)'; g.beginPath(); g.ellipse(m.x, m.y + 1, m.w * 0.42, 3, 0, 0, Math.PI * 2); g.fill(); }
     g.save();
-    g.translate(Math.round(m.x), Math.round(m.y + float - (m.hop ? Math.sin((m.hop / 120) * Math.PI) * 5 : 0)));
+    // 💨 A charger shakes before it goes
+    const jit = m.mv?.s === 'wind' ? (Math.floor(d.t / 45) % 2 ? 1.5 : -1.5) : 0;
+    g.translate(Math.round(m.x + jit), Math.round(m.y + float - (m.hop ? Math.sin((m.hop / 120) * Math.PI) * 5 : 0)));
     if (m.dir < 0) g.scale(-1, 1);
     if (!living) { const q = 1 - m.dead / 500; g.globalAlpha = Math.max(0, m.dead / 500); g.scale(1 + q * 0.5, 1 - q * 0.4); }
     g.drawImage(s, Math.round(-s.width * k / 2), -s.height * k, s.width * k, s.height * k);
     g.restore();
     if (living && (m.frozeT ?? 0) > 0) { g.fillStyle = 'rgba(186,230,253,0.45)'; g.fillRect(m.x - m.w / 2 - 3, m.y - m.h - 3 + float, m.w + 6, m.h + 6); g.strokeStyle = '#e0f2fe'; g.lineWidth = 2; g.strokeRect(m.x - m.w / 2 - 3, m.y - m.h - 3 + float, m.w + 6, m.h + 6); }
     else if (living && (m.slowT ?? 0) > 0) { const sn = sprite('🐌', 11); g.drawImage(sn, m.x - sn.width / 2, m.y - m.h - 26 + float); }
+    if (living && m.mv) {
+      const st = m.mv.s;
+      if (st === 'dash') { g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = 2; for (let i = 0; i < 3; i++) { const yy = m.y - m.h * (0.3 + i * 0.22); g.beginPath(); g.moveTo(m.x - m.dir * (m.w * 0.5 + 4), yy); g.lineTo(m.x - m.dir * (m.w * 0.5 + 18 + i * 4), yy); g.stroke(); } }
+      if (st === 'aim') { const q = 1 - m.mv.t / 600; g.fillStyle = `rgba(253,224,71,${0.2 + 0.35 * q})`; g.beginPath(); g.arc(m.x, m.y - m.h / 2 + float, m.w * 0.55 + q * 6, 0, Math.PI * 2); g.fill(); }
+      if (st === 'shell') { g.fillStyle = 'rgba(148,163,184,0.45)'; g.fillRect(m.x - m.w / 2 - 2, m.y - m.h - 2 + float, m.w + 4, m.h + 4); const sh = sprite('🛡️', 12); g.drawImage(sh, m.x - sh.width / 2, m.y - m.h - 24 + float); }
+      if (st === 'raise') { g.strokeStyle = `rgba(248,113,113,${0.45 + 0.4 * Math.sin(d.t / 60)})`; g.lineWidth = 3; g.beginPath(); g.ellipse(m.x, m.y + 2, 85, 10, 0, 0, Math.PI * 2); g.stroke(); }
+    }
     if (m.boss && living) { const crown = sprite('👑', 22); g.drawImage(crown, m.x - crown.width / 2, m.y + float - s.height * k - 26 + Math.sin(d.t / 300) * 3); }
     if (living && (m.windT ?? 0) > 0) {
       // About to spit: a green glow swells at its mouth so you can see it coming

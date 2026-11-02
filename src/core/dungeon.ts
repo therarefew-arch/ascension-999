@@ -100,6 +100,9 @@ export interface Mob {
   restT?: number;
   /** ⭐ Star charm: already struck once. */
   keen?: boolean;
+  /** 🐗 Its own way of fighting (v0.0.2.7): charge, burrow, swoop, hop, shell or stomp — and where it is in that move.
+   * `hidden` = underground (can't be hit, can't hurt you); `mul` = how hard it hits right now; `homeY` = a swooper's hover height. */
+  move?: Move; mv?: { s: string; t: number; cd: number; tx?: number; ty?: number; x0?: number; y0?: number; vy?: number }; hidden?: boolean; mul?: number; homeY?: number;
   /** ❄️ Frozen still (ms) and 🪢 slowed to 40% (ms) by skills. */
   frozeT?: number; slowT?: number;
 }
@@ -172,6 +175,32 @@ export const VENT = { quiet: 2300, glow: 900, burst: 800 };
 /** A falling rock/star: how long its warning shows before it lands (ms). */
 export const FALL_WARN = 1000;
 export type NodeKind = 'ore' | 'tree' | 'herb' | 'fish';
+// ----- 🐗 Monster moves (v0.0.2.7, owner chose "more monster variety"): every one warns you first. -----
+export type Move = 'charge' | 'burrow' | 'swoop' | 'hop' | 'shell' | 'stomp';
+/** Which move a monster has, from what it is: boars/goats/the hound/the raptor charge, moles and the chasm crawler burrow,
+ * birds swoop, rats and hares hop, crabs and tortoises hide in their shells, treants stomp. Sprites, wisps and bandits
+ * keep spitting; bosses keep their own slam. */
+export function moveOf(def: MonsterDef): Move | undefined {
+  if (/mole|crawler/i.test(def.name)) return 'burrow';
+  switch (def.art) {
+    case 'boar': case 'goat': case 'bear': return 'charge';
+    case 'lizard': return def.style === 'melee' ? 'charge' : undefined;
+    case 'rat': return 'hop';
+    case 'bird': return 'swoop';
+    case 'crab': case 'tortoise': return 'shell';
+    case 'treant': return 'stomp';
+  }
+  return undefined;
+}
+/** Move timings (ms), speeds (px/ms) and how hard each lands (× its touch). */
+export const MOVE = {
+  chargeWind: 650, chargeDash: 650, chargeSpeed: 0.42, chargeHit: 1.2,
+  burrowDig: 450, burrowWarn: 750, burrowUp: 2600, burrowSpeed: 0.16, burrowHit: 1.15,
+  swoopAim: 600, swoopDive: 700, swoopHit: 1.1, swoopHover: 62,
+  hopUp: 0.42, hopSpeed: 0.14,
+  shell: 1500, shellTake: 0.25,
+  stompWarn: 750, stompHit: 1.15, stompR: 85,
+};
 export type StationKind = 'kitchen' | 'bench';
 /** Stand still at a station this long to open it. */
 export const STATION_MS = 450;
@@ -411,6 +440,14 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
       min: plat.x1 + w / 2, max: plat.x2 - w / 2, speed: 0.035 + rand(d) * 0.03, touch: touch[def.id] * (elite ? 1.25 : 1), elite: elite || undefined,
       shoots: def.style !== 'melee', atkCd: 1500 + rand(d) * 1500, hitT: 0, dead: 0,
     });
+    const mob = d.mobs[d.mobs.length - 1];
+    const mv = moveOf(def);
+    if (mv) {
+      mob.move = mv;
+      mob.mv = { s: 'idle', t: 0, cd: 1200 + rand(d) * 2200 };
+      // Swoopers hover above the ground (they dive instead of spitting).
+      if (mv === 'swoop') { mob.homeY = plat.y - MOVE.swoopHover; mob.y = mob.homeY; mob.shoots = false; }
+    }
   };
   const gap = room?.kind === 'treasure' || room?.kind === 'exit' ? 300 : room ? Math.max(130, 175 - room.depth * 8) : 150;
   for (let x = 330; x < pathEnd - 80 && room?.kind !== 'camp'; x += gap + Math.floor(rand(d) * 90)) {
@@ -496,7 +533,9 @@ const pop = (d: Dungeon, x: number, y: number, text: string, kind: Pop['kind'], 
 };
 /** Monsters still fighting. (Bug fix v0.0.1.69: a monster whose fade-out had finished used to count as alive
  * again — it walked about invisibly and could still bump into you. Now hp decides, and finished ones are removed.) */
-const alive = (d: Dungeon) => d.mobs.filter((m) => m.hp > 0);
+const alive = (d: Dungeon) => d.mobs.filter((m) => m.hp > 0 && !m.hidden);
+/** Monsters still to beat, including any underground right now (the door stays locked for them). */
+const remaining = (d: Dungeon) => d.mobs.some((m) => m.hp > 0);
 export function burst(d: Dungeon, x: number, y: number, n: number, c: string[], speed = 0.18, grav = 0.0006, size = 3, life = 500) {
   for (let i = 0; i < n; i++) {
     const a = rand(d) * Math.PI * 2;
@@ -513,8 +552,9 @@ export const bossDef = (d: Dungeon) => MONSTER_MAP[d.bossId];
 
 /** Hit a monster. Returns the damage. */
 function hitMob(d: Dungeon, m: Mob, mult: number, knock = 6): number {
-  if (m.hp <= 0) return 0;
+  if (m.hp <= 0 || m.hidden) return 0;
   const bf = d.hero.bf;
+  if (m.mv?.s === 'shell') mult *= MOVE.shellTake;
   const crit = (bf.hawk ?? 0) > 0 || rand(d) < 0.12;
   mult *= ((bf.rage ?? 0) > 0 ? 1.4 : 1) * ((bf.cry ?? 0) > 0 ? 1.25 : 1);
   // ⭐ Star charm: the first hit on each monster
@@ -841,7 +881,7 @@ export function step(d: Dungeon, dt: number, input: Input, allyInput: Input = ID
   if (d.ally) { asSeat(d, 1, () => stepSeat(d, dt, allyInput, sounds)); stepRevive(d, dt, sounds); }
   if (d.phase !== 'play') return sounds;
   // 🚪 A room is done when its monsters are beaten and someone walks through the door.
-  if (d.room && d.room.kind !== 'boss' && !alive(d).length && standing(d).some((x) => x.h.x >= d.room!.door - 20)) {
+  if (d.room && d.room.kind !== 'boss' && !remaining(d) && standing(d).some((x) => x.h.x >= d.room!.door - 20)) {
     d.phase = 'won'; sounds.push('levelup');
     for (const x of standing(d)) asSeat(d, x.seat, () => { if (d.charm === 'wind') d.hero.hp = Math.min(d.hero.maxHp, d.hero.hp + Math.round(d.hero.maxHp * 0.1 * d.charmK)); });
   }
@@ -923,7 +963,9 @@ export function step(d: Dungeon, dt: number, input: Input, allyInput: Input = ID
     const sameRow = Math.abs(h.y - m.y) < 40;
     const near = Math.abs(dx) < (m.boss ? 420 : 200) && (sameRow || m.boss);
     if (m.restT) m.restT = Math.max(0, m.restT - dt);
-    if (m.boss && furthest < d.arenaX) { /* waits in its clearing */ }
+    const special = m.move && !m.boss ? stepMove(d, m, h, dt, slow, sounds) : false;
+    if (special) { /* busy with its move */ }
+    else if (m.boss && furthest < d.arenaX) { /* waits in its clearing */ }
     else if (m.restT) { /* catching its breath after bumping into someone */ }
     else if (near && m.hitT <= 0) { m.dir = dx > 0 ? 1 : -1; m.x += m.dir * m.speed * 1.4 * slow * dt; }
     else if (m.hitT <= 0) {
@@ -935,9 +977,9 @@ export function step(d: Dungeon, dt: number, input: Input, allyInput: Input = ID
     // After bumping into you a monster pauses a moment (v0.0.1.81) — a window to hit back or slip past, so you
     // can't get pinned in a corner.
     for (const x of st) {
-      if (overlap(heroBox(x.h), mobBox(m)) && x.h.dashT <= 0 && x.h.invT <= 0 && !x.h.down) {
+      if (!m.hidden && overlap(heroBox(x.h), mobBox(m)) && x.h.dashT <= 0 && x.h.invT <= 0 && !x.h.down) {
         sounds.push('hurt');
-        asSeat(d, x.seat, () => hurtHero(d, m.touch, m.x, m));
+        asSeat(d, x.seat, () => hurtHero(d, m.touch * (m.mul ?? 1), m.x, m));
         if (d.room) m.restT = m.boss ? 900 : 700;
         break;
       }
@@ -961,7 +1003,7 @@ export function step(d: Dungeon, dt: number, input: Input, allyInput: Input = ID
       else m.atkCd = 400; // someone else is spitting — wait a moment
     }
     // 🪂 Monsters on a ledge hop down to meet you when you walk underneath.
-    if (!m.boss && m.vy === undefined && m.y < GROUND && h.y > m.y + 40 && h.y - m.y < ROW_GAP * 2 + 30 && Math.abs(dx) < 75 && m.hitT <= 0) {
+    if (!m.boss && m.move !== 'swoop' && m.mv?.s !== 'air' && m.vy === undefined && m.y < GROUND && h.y > m.y + 40 && h.y - m.y < ROW_GAP * 2 + 30 && Math.abs(dx) < 75 && m.hitT <= 0) {
       m.vy = -0.35; m.dir = dx > 0 ? 1 : -1;
       pop(d, m.x, m.y - m.h - 6, '!', 'info');
     }
@@ -1002,6 +1044,126 @@ export function step(d: Dungeon, dt: number, input: Input, allyInput: Input = ID
   // Finished fading out? Gone for good.
   d.mobs = d.mobs.filter((m) => m.hp > 0 || m.dead > 0);
   return sounds;
+}
+
+/** 🐗 A monster's own move. Returns true while the move is in charge of where it goes (no patrolling then). */
+function stepMove(d: Dungeon, m: Mob, h: Hero, dt: number, slow: number, sounds: string[]): boolean {
+  const mv = (m.mv ??= { s: 'idle', t: 0, cd: 1500 });
+  const dx = h.x - m.x;
+  const sameRow = Math.abs(h.y - m.y) < 40;
+  const ground = m.y >= GROUND - 1;
+  const lo = ground ? 20 : m.min, hi = ground ? (d.room && d.room.kind !== 'boss' ? d.room.door - 40 : d.arenaX - 40) : m.max;
+  const widen = () => { m.min = Math.min(m.min, m.x); m.max = Math.max(m.max, m.x); };
+  const hitNear = (r: number, mul: number, onGroundOnly: boolean) => {
+    for (const x of standing(d)) {
+      if (Math.abs(x.h.x - m.x) > r || (onGroundOnly && (!x.h.onGround || Math.abs(x.h.y - m.y) > 6))) continue;
+      asSeat(d, x.seat, () => hurtHero(d, m.touch * mul, m.x, m));
+    }
+  };
+  if (mv.s === 'idle') { mv.cd -= dt * slow; m.mul = 1; }
+  switch (m.move) {
+    case 'charge': {
+      if (mv.s === 'idle') {
+        if (mv.cd <= 0 && sameRow && Math.abs(dx) < 280 && m.hitT <= 0 && !m.restT) {
+          mv.s = 'wind'; mv.t = MOVE.chargeWind; m.dir = dx > 0 ? 1 : -1;
+          pop(d, m.x, m.y - m.h - 8, '!', 'info'); sounds.push('creak');
+        }
+        return false;
+      }
+      if (mv.s === 'wind') { mv.t -= dt; if (rand(d) < dt / 90) burst(d, m.x - m.dir * m.w * 0.4, m.y, 2, ['#d6d3d1', '#a8a29e'], 0.08, -0.0001, 3, 300); if (mv.t <= 0) { mv.s = 'dash'; mv.t = MOVE.chargeDash; m.mul = MOVE.chargeHit; sounds.push('whoosh'); } return true; }
+      if (mv.s === 'dash') {
+        mv.t -= dt;
+        m.x = Math.max(lo, Math.min(hi, m.x + m.dir * MOVE.chargeSpeed * slow * dt));
+        widen();
+        if (rand(d) < dt / 40) burst(d, m.x - m.dir * m.w * 0.5, m.y, 2, ['#e7e5e4', '#d6d3d1'], 0.1, -0.0001, 4, 350);
+        if (mv.t <= 0 || m.x <= lo || m.x >= hi) { mv.s = 'rest'; mv.t = 900; m.mul = 1; }
+        return true;
+      }
+      mv.t -= dt; if (mv.t <= 0) { mv.s = 'idle'; mv.cd = 2800 + rand(d) * 1800; }
+      return true;
+    }
+    case 'burrow': {
+      if (mv.s === 'idle') {
+        if (mv.cd <= 0 && ground && h.onGround && h.y >= GROUND - 2 && Math.abs(dx) < 320 && m.hitT <= 0) { mv.s = 'dig'; mv.t = MOVE.burrowDig; sounds.push('mine'); }
+        return false;
+      }
+      if (mv.s === 'dig') { mv.t -= dt; if (rand(d) < dt / 50) burst(d, m.x, m.y, 3, ['#8a5a3a', '#6b4426', '#a8a29e'], 0.14, 0.0008, 3, 400); if (mv.t <= 0) { m.hidden = true; mv.s = 'under'; mv.t = 2600; } return true; }
+      if (mv.s === 'under') {
+        mv.t -= dt;
+        const stp = MOVE.burrowSpeed * slow * dt;
+        m.x = Math.max(lo, Math.min(hi, m.x + Math.max(-stp, Math.min(stp, dx))));
+        widen();
+        if (rand(d) < dt / 70) burst(d, m.x, GROUND, 2, ['#8a5a3a', '#6b4426'], 0.08, 0.0008, 3, 300);
+        if (Math.abs(dx) < 8 || mv.t <= 0) { mv.s = 'warn'; mv.t = MOVE.burrowWarn; sounds.push('tick'); }
+        return true;
+      }
+      if (mv.s === 'warn') {
+        mv.t -= dt;
+        if (mv.t <= 0) {
+          m.hidden = false; mv.s = 'up'; mv.t = MOVE.burrowUp; m.hitT = 0;
+          d.shake = Math.max(d.shake, 4); sounds.push('boom');
+          burst(d, m.x, GROUND - 4, 14, ['#8a5a3a', '#6b4426', '#d6d3d1'], 0.28, 0.0012, 4, 600);
+          hitNear(26, MOVE.burrowHit, true);
+        }
+        return true;
+      }
+      mv.t -= dt; if (mv.t <= 0) { mv.s = 'idle'; mv.cd = 2200 + rand(d) * 1500; }
+      return true; // up: stays put — your chance to hit it
+    }
+    case 'swoop': {
+      const home = m.homeY ?? m.y;
+      if (mv.s === 'idle') {
+        m.y = home + Math.sin(d.t / 300 + m.id) * 3;
+        if (mv.cd <= 0 && Math.abs(dx) < 240 && h.y > m.y) { mv.s = 'aim'; mv.t = MOVE.swoopAim; mv.tx = h.x; mv.ty = h.y - 16; mv.x0 = m.x; mv.y0 = m.y; m.dir = dx > 0 ? 1 : -1; sounds.push('creak'); }
+        return false;
+      }
+      if (mv.s === 'aim') { mv.t -= dt; if (mv.t <= 0) { mv.s = 'dive'; mv.t = MOVE.swoopDive; m.mul = MOVE.swoopHit; sounds.push('whoosh'); } return true; }
+      mv.t -= dt;
+      const k = Math.min(1, 1 - mv.t / MOVE.swoopDive);
+      const down = k < 0.5 ? k * 2 : 2 - k * 2;
+      const tx = mv.tx ?? m.x, x0 = mv.x0 ?? m.x;
+      m.x = Math.max(lo, Math.min(hi, x0 + (tx - x0) * Math.min(1.4, k * 1.4)));
+      m.y = (mv.y0 ?? home) + ((mv.ty ?? home) - (mv.y0 ?? home)) * down;
+      widen();
+      if (mv.t <= 0) { mv.s = 'idle'; mv.cd = 3200 + rand(d) * 1600; m.mul = 1; m.y = home; }
+      return true;
+    }
+    case 'hop': {
+      if (mv.s === 'idle') {
+        if (mv.cd <= 0 && sameRow && Math.abs(dx) < 240 && m.hitT <= 0 && m.vy === undefined) { mv.s = 'air'; mv.vy = -MOVE.hopUp; mv.y0 = m.y; m.dir = dx > 0 ? 1 : -1; }
+        return false;
+      }
+      m.y += (mv.vy ?? 0) * dt;
+      mv.vy = (mv.vy ?? 0) + GRAV * dt;
+      m.x = Math.max(lo, Math.min(hi, m.x + m.dir * MOVE.hopSpeed * slow * dt));
+      widen();
+      if ((mv.vy ?? 0) > 0 && m.y >= (mv.y0 ?? m.y)) { m.y = mv.y0 ?? m.y; mv.s = 'idle'; mv.cd = 900 + rand(d) * 900; burst(d, m.x, m.y, 4, ['#ffffff', '#e7e5e4'], 0.08, -0.00005, 3, 300); }
+      return true;
+    }
+    case 'shell': {
+      if (mv.s === 'idle') {
+        if (mv.cd <= 0 && Math.abs(dx) < 260) { mv.s = 'shell'; mv.t = MOVE.shell; sounds.push('block'); }
+        return false;
+      }
+      mv.t -= dt; if (mv.t <= 0) { mv.s = 'idle'; mv.cd = 3500 + rand(d) * 2500; }
+      return true;
+    }
+    case 'stomp': {
+      if (mv.s === 'idle') {
+        if (mv.cd <= 0 && sameRow && Math.abs(dx) < MOVE.stompR + 30 && m.hitT <= 0) { mv.s = 'raise'; mv.t = MOVE.stompWarn; sounds.push('creak'); }
+        return false;
+      }
+      mv.t -= dt;
+      if (mv.t <= 0) {
+        mv.s = 'idle'; mv.cd = 3800 + rand(d) * 1500;
+        d.fx.push({ x: m.x, y: m.y, t: 0, kind: 'slam', w: MOVE.stompR * 2 }); d.shake = Math.max(d.shake, 5); sounds.push('boom');
+        for (let k = -2; k <= 2; k++) burst(d, m.x + k * 30, m.y, 2, ['#e7e5e4', '#a8a29e'], 0.12, 0.0006, 4, 450);
+        hitNear(MOVE.stompR, MOVE.stompHit, true);
+      }
+      return true;
+    }
+  }
+  return false;
 }
 
 /** One player's turn of the step: their timers, moving, jumping, pickups and attacks (as `d.hero`). */
@@ -1049,7 +1211,7 @@ function stepSeat(d: Dungeon, dt: number, input: Input, sounds: string[]) {
   h.walkT = h.onGround && h.vx ? h.walkT + dt : 0;
   const prevFeet = h.y;
   h.x = Math.max(12, Math.min(d.worldW - 12, h.x + h.vx * dt));
-  if (d.room && d.room.kind !== 'boss' && alive(d).length) h.x = Math.min(h.x, d.room.door - 30);
+  if (d.room && d.room.kind !== 'boss' && remaining(d)) h.x = Math.min(h.x, d.room.door - 30);
   h.vy += GRAV * (d.hz.includes('lowgrav') ? 0.55 : 1) * dt;
   h.y += h.vy * dt;
   h.onGround = false;
@@ -1237,7 +1399,7 @@ function stepHazards(d: Dungeon, dt: number, sounds: string[]) {
       for (const x of st) {
         const h = x.h;
         if (h.dashT <= 0) h.x = Math.max(12, Math.min(d.worldW - 12, h.x + d.gust.dir * 0.075 * dt));
-        if (d.room && d.room.kind !== 'boss' && alive(d).length) h.x = Math.min(h.x, d.room.door - 30);
+        if (d.room && d.room.kind !== 'boss' && remaining(d)) h.x = Math.min(h.x, d.room.door - 30);
       }
       if (d.gust.t <= 0) d.gust = null;
     }
