@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import { sound } from '../audio/sound';
 import { musicFor, type SoundKey } from '../audio/soundList';
 import {
-  BAR_SIZE, FALL_WARN, HARVEST_MS, VENT, HERO_H, NODE_KINDS, type NodeKind, bossDef, bossOf, defaultBar, eatSnack, GROUND, newDungeon, pathProgress, SKILL_MAP, SKILLS, step, castSkill, VIEW_H, VIEW_W, BUFF_EMOJI, type Buff,
+  BAR_SIZE, FALL_WARN, HARVEST_MS, VENT, HERO_H, NODE_KINDS, type NodeKind, bossDef, bossOf, defaultBar, eatSnack, GROUND, newDungeon, pathProgress, SKILL_MAP, SKILLS, step, castSkill, VIEW_H, VIEW_W, BUFF_EMOJI, type Buff, REVIVE_MS,
   whyCantUseSkill, type Dungeon as Run, type Input,
 } from '../core/dungeon';
 import { AREAS, townBoss, type Run as ExRun } from '../core/expedition';
@@ -29,7 +29,7 @@ import type { ItemStack, PlayerState } from '../core/player';
 
 // ----- Saving the skill bar on this device -----
 const barKey = (slot: number | null) => `ui.skillbar.${slot ?? 0}`;
-function readBar(slot: number | null, p: PlayerState): (string | null)[] {
+export function readBar(slot: number | null, p: PlayerState): (string | null)[] {
   try {
     const raw = JSON.parse(localStorage.getItem(barKey(slot)) ?? 'null');
     if (Array.isArray(raw)) {
@@ -42,10 +42,10 @@ function readBar(slot: number | null, p: PlayerState): (string | null)[] {
   const d = defaultBar(p);
   return Array.from({ length: BAR_SIZE }, (_, i) => d[i] ?? null);
 }
-function writeBar(slot: number | null, bar: (string | null)[]) { try { localStorage.setItem(barKey(slot), JSON.stringify(bar)); } catch { /* full */ } }
+export function writeBar(slot: number | null, bar: (string | null)[]) { try { localStorage.setItem(barKey(slot), JSON.stringify(bar)); } catch { /* full */ } }
 
 // ----- Your hero, drawn from your gear -----
-interface Look { head?: Tone; body?: Tone; legs?: Tone; shield?: Tone; weapon: 'sword' | 'bow' | 'staff' | 'fists'; wpn?: Tone; orb: string; glow: boolean }
+export interface Look { head?: Tone; body?: Tone; legs?: Tone; shield?: Tone; weapon: 'sword' | 'bow' | 'staff' | 'fists'; wpn?: Tone; orb: string; glow: boolean }
 interface Tone { base: string; light: string; dark: string }
 const tone = (h: number, s: number, l: number): Tone => ({ base: `hsl(${h} ${s}% ${l}%)`, light: `hsl(${h} ${s}% ${Math.min(92, l + 16)}%)`, dark: `hsl(${h} ${s}% ${Math.max(10, l - 20)}%)` });
 const GOLD: Tone = { base: '#f5c542', light: '#fff1a8', dark: '#a16207' };
@@ -183,7 +183,7 @@ const SOUND_OF: Record<string, [SoundKey, number]> = {
   jump: ['whoosh', 1.4], hit: ['hit', 1], whoosh: ['whoosh', 1], boom: ['boom', 1], shing: ['shing', 1], rune: ['rune', 1], ignite: ['ignite', 1],
   enchant: ['enchant', 1], block: ['block', 1], levelup: ['levelup', 1], tick: ['tick', 1.2], hurt: ['hurt', 1], creak: ['creak', 0.8], eat: ['eat', 1.1], coin: ['coin', 1], mine: ['mine', 1], chop: ['chop', 1], splash: ['splash', 1], carve: ['carve', 1],
 };
-const playSound = (k: string) => { const s = SOUND_OF[k]; if (s) sound.play(s[0], { rate: s[1] * (0.95 + Math.random() * 0.1), volume: 0.7 }); };
+export const playSound = (k: string) => { const s = SOUND_OF[k]; if (s) sound.play(s[0], { rate: s[1] * (0.95 + Math.random() * 0.1), volume: 0.7 }); };
 
 // ----- 🎨 Art direction (owner's reference pictures): bright chunky pixel art — teal sky, puffy clouds,
 // layered hills, big leafy trees, tufted grass on layered dirt with pebbles. Each town has its own colours.
@@ -465,6 +465,15 @@ function drawNode(g: CanvasRenderingContext2D, T: Theme, kind: NodeKind, x: numb
   }
 }
 
+/** 🤝 A downed hero: dizzy stars, and a green ring that fills while their partner stands close. */
+function drawDowned(g: CanvasRenderingContext2D, h: Run['hero'], t: number) {
+  const st = sprite('💫', 16);
+  g.drawImage(st, h.x - st.width / 2, h.y - HERO_H - 42 + Math.sin(t / 200) * 2);
+  const k = Math.min(1, (h.reviveT ?? 0) / REVIVE_MS);
+  g.lineWidth = 4; g.strokeStyle = 'rgba(0,0,0,0.4)'; g.beginPath(); g.arc(h.x, h.y - HERO_H / 2, 26, 0, Math.PI * 2); g.stroke();
+  if (k > 0) { g.strokeStyle = '#4ade80'; g.beginPath(); g.arc(h.x, h.y - HERO_H / 2, 26, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2); g.stroke(); }
+}
+
 // ----- Drawing the world -----
 export function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: number, top = 0, side = 0, bottom = VIEW_H) {
   const T = THEME[d.region] ?? THEME.Pocketvale;
@@ -640,10 +649,27 @@ export function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: 
     }
     else { g.fillStyle = s.kind === 'fire' ? '#f97316' : s.kind === 'spit' ? '#a3e635' : look.orb; g.beginPath(); g.arc(s.x, s.y, s.kind === 'fire' ? 8 : 5, 0, Math.PI * 2); g.fill(); }
   }
+  // 🤝 Your partner in co-op, with their name over their head
+  const al = d.ally?.hero;
+  if (al) {
+    g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(al.x, (al.onGround ? al.y : Math.min(GROUND, al.y + 60)) + 1, 14, 4, 0, 0, Math.PI * 2); g.fill();
+    g.globalAlpha = al.down ? 0.5 : 1;
+    drawHeroOutlined(g, (d.ally!.look as Look | undefined) ?? look, al.x, al.y, al.face, { walk: al.walkT, atk: al.atkT / 240, air: !al.onGround, blink: al.invT > 0 && Math.floor(d.t / 90) % 2 === 0, iron: al.ironT > 0, t: d.t });
+    g.globalAlpha = 1;
+    g.font = '700 10px ui-rounded, system-ui, sans-serif'; g.textAlign = 'center'; g.lineJoin = 'round';
+    g.lineWidth = 3; g.strokeStyle = '#1c1917'; g.strokeText(d.ally!.name ?? 'Friend', al.x, al.y - HERO_H - 22);
+    g.fillStyle = '#a7f3d0'; g.fillText(d.ally!.name ?? 'Friend', al.x, al.y - HERO_H - 22);
+    g.fillStyle = '#1c1917'; g.fillRect(al.x - 15, al.y - HERO_H - 17, 30, 4);
+    g.fillStyle = '#4ade80'; g.fillRect(al.x - 15, al.y - HERO_H - 17, 30 * Math.max(0, al.hp / al.maxHp), 4);
+    if (al.down) drawDowned(g, al, d.t);
+  }
   // Hero (with a little shadow at its feet)
   const h = d.hero;
   g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(h.x, (h.onGround ? h.y : Math.min(GROUND, h.y + 60)) + 1, 14, 4, 0, 0, Math.PI * 2); g.fill();
+  if (h.down) g.globalAlpha = 0.5;
   drawHeroOutlined(g, look, h.x, h.y, h.face, { walk: h.walkT, atk: h.atkT / 240, air: !h.onGround, blink: h.invT > 0 && Math.floor(d.t / 90) % 2 === 0, iron: h.ironT > 0, t: d.t });
+  g.globalAlpha = 1;
+  if (h.down) drawDowned(g, h, d.t);
   // ✨ Active skill buffs float over your head
   const buffs = (Object.keys(h.bf ?? {}) as Buff[]).filter((b) => (h.bf[b] ?? 0) > 0);
   buffs.forEach((b, i) => {
@@ -744,6 +770,65 @@ export function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: 
   g.restore();
   drawWeather(g, d.region, d.t, cam, top, side, bottom);
 }
+
+/** Draw a room onto its canvas: the 360-wide world fitted to the screen, the camera following your hero. */
+export function paintRoom(c: HTMLCanvasElement, run: Run, look: Look, land: boolean, band: number, camY: { current: number | null }, dt: number) {
+  const g = c.getContext('2d')!;
+  // Fill the whole screen: fit the 360-wide world to the width. v0.0.1.73: the ground sits on top of the
+  // controls strip (so buttons sit on the dirt, not over the fight), and the camera rises when you climb.
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const cw = c.clientWidth, ch = c.clientHeight;
+  if (c.width !== Math.round(cw * dpr) || c.height !== Math.round(ch * dpr)) { c.width = Math.round(cw * dpr); c.height = Math.round(ch * dpr); }
+  // Sideways (v0.0.1.74): fit the height instead, so you see much further left and right; the buttons
+  // sit over the corners and the ground runs along the bottom.
+  const sc = Math.min(cw / VIEW_W, ch / (land ? 430 : 520)) * dpr;
+  const side = (c.width / sc - VIEW_W) / 2;
+  const visW = c.width / sc;
+  const cam = Math.max(side - 10 - (land ? visW * 0.3 : 0), Math.min(run.worldW - VIEW_W - side + 10, run.hero.x - visW * 0.38 + side));
+  const groundAt = ((ch - band) * dpr) / sc; // logical px from the top of the screen to the ground
+  const restY = GROUND - groundAt;
+  const want = Math.min(restY, run.hero.y - HERO_H - ((land ? 70 : 150) * dpr) / sc);
+  camY.current = camY.current === null ? want : camY.current + (want - camY.current) * Math.min(1, dt * 0.006);
+  const ox = (c.width - VIEW_W * sc) / 2, oy = -camY.current * sc;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.fillStyle = '#0f172a'; g.fillRect(0, 0, c.width, c.height);
+  g.setTransform(sc, 0, 0, sc, ox, oy);
+  g.imageSmoothingEnabled = false;
+  drawWorld(g, run, look, cam, oy / sc, ox / sc, camY.current + c.height / sc);
+}
+
+type Hold = (k: 'left' | 'right' | 'jump' | 'attack' | 'down', tapSound?: SoundKey) => Record<string, (e: React.PointerEvent) => void>;
+/** The buttons along the bottom: the stick, a snack, the skill bubbles, Jump and Attack. */
+export function RoomControls({ ctrl, input, bar, cd, snacks, style, hold, onSkill, onEmpty, onSnack }: { ctrl: React.RefObject<HTMLDivElement>; input: React.MutableRefObject<Input>; bar: (string | null)[]; cd: Record<string, number>; snacks: number; style: CombatStyle; hold: Hold; onSkill: (i: number) => void; onEmpty: () => void; onSnack: () => void }) {
+  return (
+    <div className="dg-controls" ref={ctrl}>
+      <Thumbstick input={input} />
+      {/* 🍖 Back by your thumb (v0.0.1.74, owner: "I liked the food nearby my fingers") — packed food now */}
+      <button className="dg-btn dg-snack" disabled={snacks <= 0} onClick={onSnack} aria-label={`Snack (${snacks} left)`}>🍖<span className="dg-n">{snacks}</span></button>
+      <div className="dg-act">
+        {bar.map((id, i) => {
+          const s = id ? SKILL_MAP[id] : null;
+          const left = id ? (cd[id] ?? 0) : 0;
+          return (
+            <button key={i} className={`dg-skill s${i} ${s ? '' : 'empty'}`} onPointerDown={(e) => { e.preventDefault(); if (s) onSkill(i); else onEmpty(); }} aria-label={s ? s.name : 'Empty skill bubble'}
+              style={{ ['--cd' as string]: s && left > 0 ? `${(left / s.cdMs) * 360}deg` : '0deg' }}>
+              <span>{s ? s.emoji : '+'}</span>
+            </button>
+          );
+        })}
+        <button className="dg-btn jump" {...hold('jump', 'whoosh')} aria-label="Jump">⤒</button>
+        <button className="dg-btn attack" {...hold('attack')} aria-label="Attack">{style === 'ranged' ? '🏹' : style === 'magic' ? '🪄' : '⚔️'}</button>
+      </div>
+    </div>
+  );
+}
+/** Hold-to-press buttons (Jump, Attack). */
+export const holdFor = (input: React.MutableRefObject<Input>): Hold => (k, tapSound) => ({
+  onPointerDown: (e: React.PointerEvent) => { e.preventDefault(); (e.target as HTMLElement).setPointerCapture?.(e.pointerId); input.current[k] = true; if (tapSound) sound.play(tapSound, { volume: 0.35, rate: 1.3 }); },
+  onPointerUp: () => { input.current[k] = false; },
+  onPointerCancel: () => { input.current[k] = false; },
+  onLostPointerCapture: () => { input.current[k] = false; },
+});
 
 // ----- The screen -----
 /** 🗝️ Combat-screen card: gear up for a new extraction run, or carry on the one you're on. */
@@ -1079,32 +1164,7 @@ function RoomPlay({ run: dRun, land, onEnd }: { run: DungeonRun; land: boolean; 
         if (run.phase !== before) finish(run.phase === 'won');
       }
       const c = canvas.current;
-      if (c) {
-        const g = c.getContext('2d')!;
-        // Fill the whole screen: fit the 360-wide world to the width. v0.0.1.73: the ground sits on top of the
-        // controls strip (so buttons sit on the dirt, not over the fight), and the camera rises when you climb.
-        const dpr = Math.min(2, window.devicePixelRatio || 1);
-        const cw = c.clientWidth, ch = c.clientHeight;
-        if (c.width !== Math.round(cw * dpr) || c.height !== Math.round(ch * dpr)) { c.width = Math.round(cw * dpr); c.height = Math.round(ch * dpr); }
-        // Sideways (v0.0.1.74): fit the height instead, so you see much further left and right; the buttons
-        // sit over the corners and the ground runs along the bottom.
-        const land = landRef.current;
-        const sc = Math.min(cw / VIEW_W, ch / (land ? 430 : 520)) * dpr;
-        const side = (c.width / sc - VIEW_W) / 2;
-        const visW = c.width / sc;
-        const cam = Math.max(side - 10 - (land ? visW * 0.3 : 0), Math.min(run.worldW - VIEW_W - side + 10, run.hero.x - visW * 0.38 + side));
-        const band = land ? 64 : controls.current?.offsetHeight ?? 240;
-        const groundAt = ((ch - band) * dpr) / sc; // logical px from the top of the screen to the ground
-        const restY = GROUND - groundAt;
-        const want = Math.min(restY, run.hero.y - HERO_H - ((land ? 70 : 150) * dpr) / sc);
-        camY.current = camY.current === null ? want : camY.current + (want - camY.current) * Math.min(1, dt * 0.006);
-        const ox = (c.width - VIEW_W * sc) / 2, oy = -camY.current * sc;
-        g.setTransform(1, 0, 0, 1, 0, 0);
-        g.fillStyle = '#0f172a'; g.fillRect(0, 0, c.width, c.height);
-        g.setTransform(sc, 0, 0, sc, ox, oy);
-        g.imageSmoothingEnabled = false;
-        drawWorld(g, run, look.current, cam, oy / sc, ox / sc, camY.current + c.height / sc);
-      }
+      if (c) paintRoom(c, run, look.current, landRef.current, landRef.current ? 64 : controls.current?.offsetHeight ?? 240, camY, dt);
       if (now - hudAt > 120) { hudAt = now; setTick((n) => n + 1); }
       schedule();
     };
@@ -1132,12 +1192,7 @@ function RoomPlay({ run: dRun, land, onEnd }: { run: DungeonRun; land: boolean; 
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
   });
 
-  const hold = (k: 'left' | 'right' | 'jump' | 'attack' | 'down', tapSound?: SoundKey) => ({
-    onPointerDown: (e: React.PointerEvent) => { e.preventDefault(); (e.target as HTMLElement).setPointerCapture?.(e.pointerId); input.current[k] = true; if (tapSound) sound.play(tapSound, { volume: 0.35, rate: 1.3 }); },
-    onPointerUp: () => { input.current[k] = false; },
-    onPointerCancel: () => { input.current[k] = false; },
-    onLostPointerCapture: () => { input.current[k] = false; },
-  });
+  const hold = holdFor(input);
   const skill = (i: number) => {
     const s = castSkill(run, i);
     if (s) playSound(s); else sound.play('tick', { rate: 0.7, volume: 0.4 });
@@ -1206,25 +1261,9 @@ function RoomPlay({ run: dRun, land, onEnd }: { run: DungeonRun; land: boolean; 
       {run.combo >= 3 && <div key={run.combo} className="dg-combo"><b>{run.combo}</b><span>HITS</span></div>}
       {/* v0.0.1.73 (owner: "the controls are too close together"): a strip of its own along the bottom — the stick
           answers anywhere on the left, and the skill bubbles sit in a curve around Attack with room between them. */}
-      <div className="dg-controls" ref={controls}>
-        <Thumbstick input={input} />
-        {/* 🍖 Back by your thumb (v0.0.1.74, owner: "I liked the food nearby my fingers") — packed food now */}
-        <button className="dg-btn dg-snack" disabled={run.snacks <= 0} onClick={() => { if (eatSnack(run)) sound.play('eat'); else sound.play('error', { volume: 0.5 }); }} aria-label={`Snack (${run.snacks} left)`}>🍖<span className="dg-n">{run.snacks}</span></button>
-        <div className="dg-act">
-          {bar.map((id, i) => {
-            const s = id ? SKILL_MAP[id] : null;
-            const cd = id ? (run.cd[id] ?? 0) : 0;
-            return (
-              <button key={i} className={`dg-skill s${i} ${s ? '' : 'empty'}`} onPointerDown={(e) => { e.preventDefault(); if (s) skill(i); else { sound.play('click'); setBook(true); } }} aria-label={s ? s.name : 'Empty skill bubble'}
-                style={{ ['--cd' as string]: s && cd > 0 ? `${(cd / s.cdMs) * 360}deg` : '0deg' }}>
-                <span>{s ? s.emoji : '+'}</span>
-              </button>
-            );
-          })}
-          <button className="dg-btn jump" {...hold('jump', 'whoosh')} aria-label="Jump">⤒</button>
-          <button className="dg-btn attack" {...hold('attack')} aria-label="Attack">{run.style === 'ranged' ? '🏹' : run.style === 'magic' ? '🪄' : '⚔️'}</button>
-        </div>
-      </div>
+      <RoomControls ctrl={controls} input={input} bar={bar} cd={run.cd} snacks={run.snacks} style={run.style} hold={hold}
+        onSkill={skill} onEmpty={() => { sound.play('click'); setBook(true); }}
+        onSnack={() => { if (eatSnack(run)) sound.play('eat'); else sound.play('error', { volume: 0.5 }); }} />
       {confirm && (
         <div className="dg-over">
           <div className="dg-panel">
@@ -1243,7 +1282,7 @@ function RoomPlay({ run: dRun, land, onEnd }: { run: DungeonRun; land: boolean; 
 }
 
 /** 🏰 What a run earned: XP, loot, and the boss's treasure (pet, Cottage piece, lore note). */
-function DungeonFound({ found, rested, region }: { found: ExRun['found']; rested: boolean; region: string }) {
+export function DungeonFound({ found, rested, region }: { found: ExRun['found']; rested: boolean; region: string }) {
   const xp = Object.entries(found.xp).filter(([, n]) => (n ?? 0) > 0);
   const at = game.dungeonBossReadyAt(region as Run['region']);
   return (
@@ -1263,7 +1302,7 @@ function DungeonFound({ found, rested, region }: { found: ExRun['found']; rested
 // The installed app is locked to portrait, so on a phone held upright the dungeon screen is turned a quarter
 // turn with CSS and you turn the phone to the left. Touches arrive in screen coordinates, so they are turned
 // back into the screen's own (local) coordinates here.
-const view = { rot: false, root: null as HTMLElement | null };
+export const view = { rot: false, root: null as HTMLElement | null };
 function toLocal(cx: number, cy: number): { x: number; y: number } {
   const r = view.root?.getBoundingClientRect();
   if (!r) return { x: cx, y: cy };
@@ -1275,14 +1314,14 @@ function localRect(el: HTMLElement) {
   return { left: a.x, top: a.y, width: view.rot ? b.height : b.width, height: view.rot ? b.width : b.height };
 }
 /** A phone held upright: turn the dungeon sideways. (On a computer, just show it as it is.) */
-const wantsTurn = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches && window.innerHeight > window.innerWidth;
+export const wantsTurn = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches && window.innerHeight > window.innerWidth;
 
 // ----- 🕹️ Thumbstick (owner's wish, v0.0.1.71): drag sideways to walk (a small tilt walks slowly),
 // pull down to drop through a ledge with Jump. It follows your thumb wherever you first touch inside it.
 const STICK_R = 46;
 // v0.0.1.73: the whole left part of the controls strip is the stick's touch area — the stick appears where your
 // thumb lands, so you can't miss it.
-function Thumbstick({ input }: { input: React.MutableRefObject<Input> }) {
+export function Thumbstick({ input }: { input: React.MutableRefObject<Input> }) {
   const zone = useRef<HTMLDivElement>(null);
   const [knob, setKnob] = useState<{ x: number; y: number } | null>(null);
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);

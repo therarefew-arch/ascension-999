@@ -52,7 +52,34 @@ export interface Hero {
   hp: number; maxHp: number; atkCd: number; atkT: number; invT: number; ironT: number; dashT: number; spinT: number; walkT: number;
   /** ✨ Skill buffs (v0.0.1.83): ms left on each. */
   bf: Partial<Record<Buff, number>>;
+  /** 🤝 Co-op: knocked down (a partner can revive you by standing close for REVIVE_MS), and how far along that is. */
+  down?: boolean; reviveT?: number;
 }
+/** 🤝 Co-op (v0.0.2.0): everything that belongs to one player — their hero, how hard they hit each monster, how much of
+ * each monster's hit they take (`hs`, from their own armour), cooldowns, skill bar, food, looks and name. The leader's
+ * seat lives on the dungeon itself; the friend's in `d.ally`. `swapSeats` trades them so every rule written for
+ * `d.hero` works for either player. */
+export interface Seat { hero: Hero; hit: Record<string, number>; hs: Record<string, number>; cd: Record<string, number>; bar: (string | null)[]; style: CombatStyle; jumpHeld: boolean; snacks: number; look?: unknown; name?: string }
+const SEAT_KEYS = ['hero', 'hit', 'hs', 'cd', 'bar', 'style', 'jumpHeld', 'snacks', 'look', 'name'] as const;
+export function swapSeats(d: Dungeon) {
+  const a = d.ally as unknown as Record<string, unknown> | undefined;
+  if (!a) return;
+  const me = d as unknown as Record<string, unknown>;
+  for (const k of SEAT_KEYS) { const t = me[k]; me[k] = a[k]; a[k] = t; }
+  d.seat = d.seat ? 0 : 1;
+}
+/** Run `fn` as seat 0 (the leader) or 1 (the friend). */
+export function asSeat<T>(d: Dungeon, seat: number | undefined, fn: () => T): T {
+  if (!d.ally || (seat ?? 0) === d.seat) return fn();
+  swapSeats(d);
+  try { return fn(); } finally { swapSeats(d); }
+}
+/** 🤝 Monsters get this much more health with two of you (owner: "tougher, better loot" — each player gets their own
+ * loot for every kill). */
+export const COOP_HP = 1.9;
+export const REVIVE_MS = 2500;
+export const REVIVE_HP = 0.3;
+const IDLE: Input = { left: false, right: false, jump: false, attack: false };
 /** Buffs from skills: 🔥 Blazing Blade, 📯 War Cry, 🦅 Hawk Eye, 🌿 Regrowth, 🌵 Thorns, 🤺 Parry, 👼 Guardian Spirit,
  * 🩸 Life Leech, 🏰 Fortress, 💫 Undying. */
 export type Buff = 'rage' | 'cry' | 'hawk' | 'regen' | 'thorns' | 'parry' | 'guard' | 'leech' | 'fort' | 'undying';
@@ -72,13 +99,15 @@ export interface Mob {
   /** ❄️ Frozen still (ms) and 🪢 slowed to 40% (ms) by skills. */
   frozeT?: number; slowT?: number;
 }
-export interface Shot { x: number; y: number; vx: number; vy: number; dmg: number; mine: boolean; pierce: boolean; kind: 'arrow' | 'bolt' | 'fire' | 'spit' | 'wave'; ttl: number; hit: number[]; mult?: number; blast?: boolean; hits?: number; target?: number; slow?: boolean }
+export interface Shot { x: number; y: number; vx: number; vy: number; dmg: number; mine: boolean; pierce: boolean; kind: 'arrow' | 'bolt' | 'fire' | 'spit' | 'wave'; ttl: number; hit: number[]; mult?: number; blast?: boolean; hits?: number; target?: number; slow?: boolean;
+  /** Whose shot (seat), and for monster spit which monster it came from. */
+  by?: number; src?: string }
 export interface Pop { x: number; y: number; text: string; t: number; kind: 'hit' | 'crit' | 'hurt' | 'heal' | 'info'; mob?: number; stack?: number }
 /** A hit waiting to land (multi-hit skills space their hits out). */
-export interface QueuedHit { at: number; mob: number; mult: number; knock: number }
+export interface QueuedHit { at: number; mob: number; mult: number; knock: number; by?: number }
 export interface Fx { x: number; y: number; t: number; kind: 'slash' | 'spin' | 'boom' | 'zap' | 'rain' | 'slam' | 'claw' | 'nova' | 'meteor'; w?: number; x2?: number; y2?: number;
   /** Rain/meteor: damage when it lands, and whether it slows; nova/rain: its colour. */
-  mult?: number; slow?: boolean; c?: string }
+  mult?: number; slow?: boolean; c?: string; by?: number }
 
 /** A little particle: sparks, dust, poofs (purely for looks). */
 export interface Part { x: number; y: number; vx: number; vy: number; t: number; life: number; c: string; s: number; grav: number }
@@ -87,6 +116,9 @@ export interface Part { x: number; y: number; vx: number; vy: number; t: number;
 export interface Input { left: boolean; right: boolean; jump: boolean; attack: boolean; down?: boolean; moveX?: number }
 
 export interface Dungeon {
+  /** 🤝 Co-op: which seat's things are on the dungeon right now (0 = the leader), the other player's seat, how much of
+   * each monster's hit you take (1 for the leader), each monster's hit on the leader, and your looks/name. */
+  seat: 0 | 1; ally?: Seat; hs: Record<string, number>; touch: Record<string, number>; look?: unknown; name?: string;
   region: Region; style: CombatStyle; worldW: number; arenaX: number;
   plats: Plat[]; hero: Hero; mobs: Mob[]; shots: Shot[]; pops: Pop[]; fx: Fx[];
   /** Your hit per basic attack, per monster; their touch damage is on each mob. */
@@ -120,7 +152,7 @@ export interface Dungeon {
   hz: Hazard[];
   traps: { kind: 'spring' | 'bog' | 'vent' | 'thorn'; x: number; w: number; t: number }[];
   falls: { x: number; y: number; t: number }[];
-  wave: { x: number; hit: boolean } | null;
+  wave: { x: number; hit: boolean; hit2?: boolean } | null;
   gust: { dir: 1 | -1; warn: number; t: number } | null;
   hzCd: number;
   /** How hard a hazard hits (a share of what this town's monsters hit you for). */
@@ -136,7 +168,7 @@ export const NODE_SKILL: Record<NodeKind, SkillId> = { ore: 'mining', tree: 'woo
 /** How long you stand on a spot to harvest it (ms). */
 export const HARVEST_MS = 1800;
 /** One room of an extraction run: its kind, how deep it is (row), the health and food you walk in with. */
-export interface RoomSpec { kind: RoomKind; depth: number; hp: number; snacks: number; why?: Partial<Record<NodeKind, string>> }
+export interface RoomSpec { kind: RoomKind; depth: number; hp: number; snacks: number; why?: Partial<Record<NodeKind, string>>; coop?: boolean }
 /** Ledges go up to this many rows above the ground. */
 export const MAX_ROW = 5;
 /** How much a 🍓 berry patch heals (share of max health). */
@@ -225,23 +257,42 @@ const SIZE: Record<string, [number, number]> = {
   rat: [34, 26], sprite: [30, 34], bandit: [32, 52], boar: [46, 34], bear: [48, 46], treant: [44, 60], crab: [40, 28],
   bird: [36, 34], ghost: [34, 42], goat: [40, 40], lizard: [44, 26], tortoise: [46, 32], wyrm: [56, 40],
 };
-export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[], seed = Math.floor(Math.random() * 2 ** 31), room?: RoomSpec): Dungeon {
+/** 🤝 How hard a player hits each of this town's monsters and how hard each hits them (their gear and levels). The friend's
+ * phone works this out for itself and sends it to the leader, who runs the room. */
+export interface HeroCard { style: CombatStyle; hit: Record<string, number>; touch: Record<string, number>; maxHp: number; bar: (string | null)[]; look?: unknown; name?: string }
+export function heroCard(p: PlayerState, region: Region, room?: RoomSpec): Omit<HeroCard, 'bar' | 'look' | 'name'> {
   const style = weaponStyle(p);
   const fair = fairPower(region);
-  const mobsDefs = townMonsters(region);
-  const boss = townBoss(region)!;
   const hit: Record<string, number> = {};
   const touch: Record<string, number> = {};
   const ammo = null;
-  for (const m of [...mobsDefs, boss]) {
+  for (const m of [...townMonsters(region), townBoss(region)!]) {
     const edge = rawPower(p, m, ammo);
     const even = rawPower(p, { ...m, style }, ammo);
     const you = { hit: Math.sqrt(edge.hit * even.hit), hurt: Math.sqrt(edge.hurt * even.hurt) };
     hit[m.id] = Math.max(1, you.hit * (ATTACK_MS[style] / TURN_MS));
     touch[m.id] = fair[m.id].hurt * 1.4 * Math.min(3, Math.max(0.35, you.hurt / fair[m.id].rawHurt)) * TUNE.hurt * depthHurt(room);
   }
-  const hp = maxHp(p);
+  return { style, hit, touch, maxHp: maxHp(p) };
+}
+/** 🤝 The friend steps into the room (on the leader's phone). */
+export function addAlly(d: Dungeon, card: HeroCard) {
+  const hs: Record<string, number> = {};
+  let sum = 0, n = 0;
+  for (const id of Object.keys(d.touch)) { hs[id] = (card.touch[id] ?? d.touch[id]) / Math.max(0.001, d.touch[id]); sum += hs[id]; n++; }
+  hs._avg = n ? sum / n : 1;
+  d.ally = {
+    hero: { x: 30, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp: card.maxHp, maxHp: card.maxHp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0, bf: {} },
+    hit: card.hit, hs, cd: {}, bar: card.bar.slice(0, BAR_SIZE), style: card.style, jumpHeld: false, snacks: SNACKS, look: card.look, name: card.name,
+  };
+}
+export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[], seed = Math.floor(Math.random() * 2 ** 31), room?: RoomSpec): Dungeon {
+  const fair = fairPower(region);
+  const mobsDefs = townMonsters(region);
+  const boss = townBoss(region)!;
+  const { style, hit, touch, maxHp: hp } = heroCard(p, region, room);
   const d: Dungeon = {
+    seat: 0, hs: {}, touch,
     region, style, worldW: 0, arenaX: 0, plats: [], mobs: [], shots: [], pops: [], fx: [], hit,
     hero: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp, maxHp: hp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0, bf: {} },
     cd: {}, bar: bar.slice(0, BAR_SIZE), snacks: SNACKS, kills: 0, t: 0, phase: 'play', jumpHeld: false, rs: seed, nextId: 1, bossId: boss.id,
@@ -303,7 +354,7 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
   const spawn = (def: MonsterDef, x: number, plat: Plat, rank: number) => {
     const [w, h] = SIZE[def.art] ?? [40, 40];
     const elite = room?.kind === 'elite';
-    const mhp = Math.round((fair[def.id].rawHit * (ATTACK_MS[style] / TURN_MS)) * (3 + 3 * rank) * (elite ? 1.8 : 1));
+    const mhp = Math.round((fair[def.id].rawHit * (ATTACK_MS[style] / TURN_MS)) * (3 + 3 * rank) * (elite ? 1.8 : 1) * (room?.coop ? COOP_HP : 1));
     d.mobs.push({
       id: d.nextId++, m: def.id, x, y: plat.y, w: elite ? Math.round(w * 1.2) : w, h: elite ? Math.round(h * 1.2) : h, hp: mhp, maxHp: mhp, dir: rand(d) < 0.5 ? 1 : -1,
       min: plat.x1 + w / 2, max: plat.x2 - w / 2, speed: 0.035 + rand(d) * 0.03, touch: touch[def.id] * (elite ? 1.25 : 1), elite: elite || undefined,
@@ -368,7 +419,7 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
   }
   // 👑 The boss waits in its clearing at the end.
   const bw = 96, bh = 96;
-  const bhp = Math.round(fair[boss.id].rawHit * (ATTACK_MS[style] / TURN_MS) * 42);
+  const bhp = Math.round(fair[boss.id].rawHit * (ATTACK_MS[style] / TURN_MS) * 42 * (room?.coop ? COOP_HP : 1));
   d.mobs.push({
     id: d.nextId++, m: boss.id, x: d.arenaX + (room ? 600 : 360), y: GROUND, w: bw, h: bh, hp: bhp, maxHp: bhp, dir: -1,
     min: d.arenaX + 60, max: d.worldW - 60, speed: 0.05, touch: touch[boss.id] * (room ? BOSS_TOUCH : 1), shoots: boss.style !== 'melee', atkCd: 2500, hitT: 0, dead: 0,
@@ -433,7 +484,7 @@ function hitMob(d: Dungeon, m: Mob, mult: number, knock = 6): number {
 }
 /** A multi-hit: `hits` strikes on one monster, spaced out so each number pops on its own. */
 function multiHit(d: Dungeon, m: Mob, hits: number, mult: number, knock = 6, delay = 0) {
-  for (let i = 0; i < hits; i++) d.queue.push({ at: d.t + delay + i * HIT_GAP, mob: m.id, mult, knock: i === hits - 1 ? knock : 2 });
+  for (let i = 0; i < hits; i++) d.queue.push({ at: d.t + delay + i * HIT_GAP, mob: m.id, mult, knock: i === hits - 1 ? knock : 2, by: d.seat });
 }
 
 /** Monsters inside a box in front of the hero. */
@@ -468,7 +519,7 @@ function angleTo(s: { x: number; y: number }, m: Mob, speed: number, face: numbe
 function shoot(d: Dungeon, kind: Shot['kind'], mult: number, opts: Partial<Shot> = {}, spread = 0) {
   const h = d.hero;
   const sp = Math.abs(opts.vx ?? (kind === 'arrow' ? 0.62 : 0.48));
-  const s: Shot = { x: h.x + h.face * 14, y: h.y - 34, vx: 0, vy: 0, dmg: 0, mine: true, pierce: false, kind, ttl: 900, hit: [], mult, ...opts };
+  const s: Shot = { x: h.x + h.face * 14, y: h.y - 34, vx: 0, vy: 0, dmg: 0, mine: true, pierce: false, kind, ttl: 900, hit: [], mult, by: d.seat, ...opts };
   const t = aimTarget(d);
   const a = (t ? angleTo(s, t, sp, h.face) : 0) + spread;
   s.vx = h.face * sp * Math.cos(a);
@@ -485,9 +536,11 @@ function popSpit(d: Dungeon, box: { x1: number; x2: number; y1: number; y2: numb
   }
   return any;
 }
-function hurtHero(d: Dungeon, dmg: number, from: number, mob?: Mob) {
+function hurtHero(d: Dungeon, dmg: number, from: number, mob?: Mob, src?: string) {
   const h = d.hero;
-  if (h.invT > 0 || d.phase !== 'play') return;
+  if (h.invT > 0 || d.phase !== 'play' || h.down) return;
+  // 🤝 Each player takes a monster's hit through their own armour.
+  dmg *= d.hs[mob?.m ?? src ?? '_avg'] ?? d.hs._avg ?? 1;
   const bf = h.bf;
   if (mob && (bf.parry ?? 0) > 0) {
     delete bf.parry; h.invT = 600;
@@ -518,6 +571,10 @@ function hurtHero(d: Dungeon, dmg: number, from: number, mob?: Mob) {
       delete bf.guard; h.hp = Math.round(h.maxHp * 0.3); h.invT = 1500;
       pop(d, h.x, h.y - HERO_H - 24, 'Guardian Spirit!', 'heal');
       burst(d, h.x, h.y - HERO_H / 2, 24, ['#fef9c3', '#fde68a', '#ffffff'], 0.3, -0.0002, 4, 900);
+    } else if (d.ally) {
+      // 🤝 Down, not out: your partner can get you back up.
+      h.hp = 0; h.down = true; h.reviveT = 0; h.vx = 0;
+      pop(d, h.x, h.y - HERO_H - 24, 'Down! Get to me!', 'info');
     } else { h.hp = 0; d.phase = 'ko'; }
   }
 }
@@ -525,6 +582,14 @@ function hurtHero(d: Dungeon, dmg: number, from: number, mob?: Mob) {
 // ----- Skills -----
 /** Use the skill in bar slot i. Returns the sound to play, or null if it can't be used now. */
 export function castSkill(d: Dungeon, i: number): string | null {
+  if (d.hero.down) return null;
+  const nf = d.fx.length, ns = d.shots.length;
+  const r = castSkillNow(d, i);
+  for (let k = nf; k < d.fx.length; k++) d.fx[k].by ??= d.seat;
+  for (let k = ns; k < d.shots.length; k++) d.shots[k].by ??= d.seat;
+  return r;
+}
+function castSkillNow(d: Dungeon, i: number): string | null {
   const id = d.bar[i];
   if (!id || d.phase !== 'play' || (d.cd[id] ?? 0) > 0) return null;
   const s = SKILL_MAP[id];
@@ -661,7 +726,7 @@ function buff(d: Dungeon, b: Buff, ms: number, label: string): null {
 /** 🍖 A packed snack: heal 30%. */
 export function eatSnack(d: Dungeon): boolean {
   const h = d.hero;
-  if (d.snacks <= 0 || d.phase !== 'play' || h.hp >= h.maxHp) return false;
+  if (d.snacks <= 0 || d.phase !== 'play' || h.hp >= h.maxHp || h.down) return false;
   d.snacks--;
   const heal = Math.round(h.maxHp * 0.3);
   h.hp = Math.min(h.maxHp, h.hp + heal);
@@ -671,12 +736,20 @@ export function eatSnack(d: Dungeon): boolean {
 
 // ----- One step of the world -----
 /** Moves everything forward by dt ms. Returns sounds to play. */
-export function step(d: Dungeon, dt: number, input: Input): string[] {
+/** Heroes still on their feet, with their seat (0 = the leader, 1 = the friend). */
+function standing(d: Dungeon): { h: Hero; seat: number }[] {
+  const out = [{ h: d.hero, seat: d.seat as number }];
+  if (d.ally) out.push({ h: d.ally.hero, seat: d.seat ? 0 : 1 });
+  return out.filter((x) => !x.h.down);
+}
+/** 🤝 Is this hero the friend's? (Pickups like gold and chests stay the leader's in co-op part 1.) */
+const isFriend = (d: Dungeon) => !!d.ally && d.seat === 1;
+
+export function step(d: Dungeon, dt: number, input: Input, allyInput: Input = IDLE): string[] {
   const sounds: string[] = [];
   dt = Math.min(40, dt);
   d.t += dt;
-  const h = d.hero;
-  for (const k of Object.keys(d.cd)) d.cd[k] = Math.max(0, d.cd[k] - dt);
+  for (const cd of [d.cd, d.ally?.cd]) if (cd) for (const k of Object.keys(cd)) cd[k] = Math.max(0, cd[k] - dt);
   d.pops = d.pops.filter((p) => (p.t += dt) < 900);
   d.shake = Math.max(0, d.shake - dt * 0.02);
   for (const p of d.parts) { p.t += dt; p.vy += p.grav * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
@@ -692,16 +765,184 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
     d.queue = d.queue.filter((q) => q.at > d.t);
     for (const q of due) {
       const m = d.mobs.find((x) => x.id === q.mob && x.hp > 0);
-      if (m) { hitMob(d, m, q.mult, q.knock); sounds.push('hit'); }
+      if (m) { asSeat(d, q.by, () => hitMob(d, m, q.mult, q.knock)); sounds.push('hit'); }
     }
   }
   if (d.phase !== 'play') {
     for (const m of d.mobs) if (m.hp <= 0) m.dead = Math.max(0, m.dead - dt);
     return sounds;
   }
+  stepSeat(d, dt, input, sounds);
+  if (d.ally) { asSeat(d, 1, () => stepSeat(d, dt, allyInput, sounds)); stepRevive(d, dt, sounds); }
+  if (d.phase !== 'play') return sounds;
+  // 🚪 A room is done when its monsters are beaten and someone walks through the door.
+  if (d.room && d.room.kind !== 'boss' && !alive(d).length && standing(d).some((x) => x.h.x >= d.room!.door - 20)) { d.phase = 'won'; sounds.push('levelup'); }
+  stepHazards(d, dt, sounds);
+  // Arrow Rain / Blizzard / Meteor land in waves
+  for (const f of d.fx) {
+    if ((f.kind === 'rain' || f.kind === 'meteor') && f.t >= 0 && f.t - dt < 0) {
+      asSeat(d, f.by, () => {
+        for (const m of alive(d).filter((o) => Math.abs(o.x - f.x) < (f.w ?? 150) / 2 && (f.kind === 'rain' || Math.abs(o.y - f.y) < 110)).slice(0, MAX_TARGETS)) { hitMob(d, m, f.mult ?? 1.2, f.kind === 'meteor' ? 16 : 4); if (f.slow) m.slowT = 3000; }
+      });
+      if (f.kind === 'meteor') { d.shake = Math.max(d.shake, 7); burst(d, f.x, f.y - 10, 22, ['#fb923c', '#fde68a', '#78716c'], 0.35, 0.0009, 4, 700); sounds.push('boom'); }
+      else sounds.push('tick');
+    }
+  }
+  d.fx = d.fx.filter((f) => f.kind !== 'rain' || f.t < 300);
+
+  // Shots
+  for (const s of d.shots) {
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+    s.ttl -= dt;
+    if (s.mine) asSeat(d, s.by, () => {
+      // Magic bolts curve gently toward the monster they were aimed at.
+      if (s.target !== undefined) {
+        const t = d.mobs.find((m) => m.id === s.target && m.hp > 0);
+        if (t) {
+          const sp = Math.hypot(s.vx, s.vy);
+          const a = Math.atan2(t.y - t.h / 2 - s.y, t.x - s.x);
+          const k = Math.min(1, dt * 0.012);
+          s.vx += (Math.cos(a) * sp - s.vx) * k;
+          s.vy += (Math.sin(a) * sp - s.vy) * k;
+        }
+      }
+      popSpit(d, { x1: s.x - 9, x2: s.x + 9, y1: s.y - 9, y2: s.y + 9 });
+      for (const m of alive(d)) {
+        if (s.hit.includes(m.id)) continue;
+        // A forgiving box: small monsters (rats, crabs) are easy to hit too.
+        if (Math.abs(s.x - m.x) < m.w / 2 + 6 && s.y > m.y - Math.max(m.h, 30) - 10 && s.y < m.y + 8) {
+          if (s.blast) {
+            for (const o of alive(d).filter((o) => Math.abs(o.x - s.x) < 85 && Math.abs(o.y - m.y) < 95).slice(0, MAX_TARGETS)) { hitMob(d, o, s.mult ?? 1, 12); multiHit(d, o, 2, 0.4, 2, 380); }
+            d.fx.push({ x: s.x, y: s.y, t: 0, kind: 'boom', w: 80 });
+            sounds.push('boom');
+            s.ttl = 0;
+            break;
+          }
+          if (s.slow) m.slowT = 4000;
+          if ((s.hits ?? 1) > 1) multiHit(d, m, s.hits!, s.mult ?? 1, 6); else hitMob(d, m, s.mult ?? 1);
+          sounds.push('hit');
+          s.hit.push(m.id);
+          if (!s.pierce || s.hit.length >= MAX_TARGETS) { s.ttl = 0; break; }
+        }
+      }
+    });
+    else for (const x of standing(d)) {
+      if (overlap(heroBox(x.h), { x1: s.x - 5, x2: s.x + 5, y1: s.y - 5, y2: s.y + 5 })) {
+        asSeat(d, x.seat, () => hurtHero(d, s.dmg, s.x, undefined, s.src));
+        sounds.push('hurt');
+        s.ttl = 0;
+        break;
+      }
+    }
+  }
+  d.shots = d.shots.filter((s) => s.ttl > 0 && s.x > -50 && s.x < d.worldW + 50);
+
+  // Monsters — each goes after whichever hero is nearer.
+  const st = standing(d);
+  const furthest = st.length ? Math.max(...st.map((x) => x.h.x)) : d.hero.x;
+  for (const m of d.mobs) {
+    if (m.hp <= 0) { m.dead = Math.max(0, m.dead - dt); continue; }
+    m.hitT = Math.max(0, m.hitT - dt);
+    if (m.frozeT) { m.frozeT = Math.max(0, m.frozeT - dt); if (m.frozeT > 0) continue; }
+    if (m.slowT) m.slowT = Math.max(0, m.slowT - dt);
+    const slow = m.slowT ? 0.4 : 1;
+    if (m.hop) m.hop = Math.max(0, m.hop - dt);
+    if (m.kb) { m.x = Math.max(m.min, Math.min(m.max, m.x + m.kb * dt)); m.kb *= Math.pow(0.985, dt); if (Math.abs(m.kb) < 0.01) m.kb = 0; }
+    const tgt = st.length ? st.reduce((p, q) => (Math.abs(q.h.x - m.x) + Math.abs(q.h.y - m.y) < Math.abs(p.h.x - m.x) + Math.abs(p.h.y - m.y) ? q : p)) : { h: d.hero, seat: d.seat as number };
+    const h = tgt.h;
+    const dx = h.x - m.x;
+    const sameRow = Math.abs(h.y - m.y) < 40;
+    const near = Math.abs(dx) < (m.boss ? 420 : 200) && (sameRow || m.boss);
+    if (m.restT) m.restT = Math.max(0, m.restT - dt);
+    if (m.boss && furthest < d.arenaX) { /* waits in its clearing */ }
+    else if (m.restT) { /* catching its breath after bumping into someone */ }
+    else if (near && m.hitT <= 0) { m.dir = dx > 0 ? 1 : -1; m.x += m.dir * m.speed * 1.4 * slow * dt; }
+    else if (m.hitT <= 0) {
+      m.x += m.dir * m.speed * slow * dt;
+      if (m.x < m.min || m.x > m.max) m.dir = m.x < m.min ? 1 : -1;
+    }
+    m.x = Math.max(m.min, Math.min(m.max, m.x));
+    // Touch
+    // After bumping into you a monster pauses a moment (v0.0.1.81) — a window to hit back or slip past, so you
+    // can't get pinned in a corner.
+    for (const x of st) {
+      if (overlap(heroBox(x.h), mobBox(m)) && x.h.dashT <= 0 && x.h.invT <= 0 && !x.h.down) {
+        sounds.push('hurt');
+        asSeat(d, x.seat, () => hurtHero(d, m.touch, m.x, m));
+        if (d.room) m.restT = m.boss ? 900 : 700;
+        break;
+      }
+    }
+    // Spit from the ranged and magic ones — calmed down in v0.0.1.72 (owner: "their attacks become like a
+    // bullet hell"): only from your own row and close by, a glow first, no more than 2 flying at once
+    // (the boss gets 1 of its own), and your swings/shots can pop them.
+    m.atkCd -= dt;
+    if (m.windT) {
+      m.windT -= dt;
+      if (m.windT <= 0) {
+        m.windT = 0;
+        const sp = m.boss ? 0.22 : 0.19;
+        m.dir = dx > 0 ? 1 : -1;
+        d.shots.push({ x: m.x + m.dir * m.w * 0.3, y: Math.min(m.y - 14, h.y - HERO_H / 2), vx: m.dir * sp, vy: 0, dmg: m.touch * 0.9, mine: false, pierce: false, kind: 'spit', ttl: 1600, hit: [], target: m.boss ? -1 : undefined, src: m.m });
+        sounds.push('whoosh');
+      }
+    } else if (m.shoots && m.atkCd <= 0 && Math.abs(dx) < (m.boss ? 300 : 220) && Math.abs(h.y - m.y) < 45 && (!m.boss || h.x >= d.arenaX)) {
+      const flying = d.shots.filter((s) => !s.mine && (m.boss ? s.target === -1 : s.target !== -1)).length;
+      if (flying < (m.boss ? 1 : 2) + (d.ally ? 1 : 0)) { m.windT = m.boss ? 500 : 550; m.atkCd = m.boss ? 2400 : 3400 + rand(d) * 1800; }
+      else m.atkCd = 400; // someone else is spitting — wait a moment
+    }
+    // 🪂 Monsters on a ledge hop down to meet you when you walk underneath.
+    if (!m.boss && m.vy === undefined && m.y < GROUND && h.y > m.y + 40 && h.y - m.y < ROW_GAP * 2 + 30 && Math.abs(dx) < 75 && m.hitT <= 0) {
+      m.vy = -0.35; m.dir = dx > 0 ? 1 : -1;
+      pop(d, m.x, m.y - m.h - 6, '!', 'info');
+    }
+    if (m.vy !== undefined) {
+      const before = m.y;
+      m.vy += GRAV * dt;
+      m.y += m.vy * dt;
+      m.x += m.dir * 0.06 * dt;
+      if (m.vy > 0) {
+        const land = d.plats.find((pl) => pl.y > before + 1 && m.x >= pl.x1 && m.x <= pl.x2 && before <= pl.y && m.y >= pl.y && (pl.y >= GROUND || pl.y >= h.y - 5));
+        if (land) {
+          m.y = land.y; m.vy = undefined;
+          if (land.y >= GROUND) { m.min = Math.max(m.w / 2, m.x - 130); m.max = Math.min(d.arenaX - 40, m.x + 130); }
+          else { m.min = land.x1 + m.w / 2; m.max = land.x2 - m.w / 2; }
+          burst(d, m.x, m.y, 5, ['#ffffff', '#e7e5e4'], 0.09, -0.00005, 4, 380);
+        }
+      }
+      if (m.y > GROUND) { m.y = GROUND; m.vy = undefined; m.min = Math.max(m.w / 2, m.x - 130); m.max = Math.min(d.arenaX - 40, m.x + 130); }
+    }
+    // 👑 The boss's big slam: it glows first — jump over it!
+    if (m.boss && h.x >= d.arenaX) {
+      if ((m.slamT ?? 0) > 0) {
+        m.slamT! -= dt;
+        if (m.slamT! <= 0) {
+          d.fx.push({ x: m.x, y: GROUND, t: 0, kind: 'slam', w: 340 });
+          sounds.push('boom');
+          d.shake = 9;
+          for (let k = -4; k <= 4; k++) burst(d, m.x + k * 38, GROUND, 2, ['#e7e5e4', '#a8a29e'], 0.14, 0.0006, 5, 600);
+          for (const x of st) if (x.h.onGround && x.h.y >= GROUND - 2 && Math.abs(x.h.x - m.x) < 170) asSeat(d, x.seat, () => hurtHero(d, m.touch * (d.room ? BOSS_SLAM / BOSS_TOUCH : 2.6), m.x, undefined, m.m));
+          m.slamCd = 3800 + rand(d) * 1500;
+        }
+      } else {
+        m.slamCd = (m.slamCd ?? 4000) - dt;
+        if (m.slamCd <= 0) { m.slamT = 900; sounds.push('creak'); }
+      }
+    }
+  }
+  // Finished fading out? Gone for good.
+  d.mobs = d.mobs.filter((m) => m.hp > 0 || m.dead > 0);
+  return sounds;
+}
+
+/** One player's turn of the step: their timers, moving, jumping, pickups and attacks (as `d.hero`). */
+function stepSeat(d: Dungeon, dt: number, input: Input, sounds: string[]) {
+  const h = d.hero;
+  if (h.down) input = IDLE;
   h.invT = Math.max(0, h.invT - dt);
   if (h.ironT > 100000) { h.ironT -= dt; if (h.ironT <= 100000) h.ironT = 0; } else h.ironT = Math.max(0, h.ironT - dt);
-  if ((h.bf.regen ?? 0) > 0 && Math.floor(h.bf.regen! / 500) !== Math.floor(Math.max(0, h.bf.regen! - dt) / 500) && h.hp < h.maxHp) {
+  if ((h.bf.regen ?? 0) > 0 && !h.down && Math.floor(h.bf.regen! / 500) !== Math.floor(Math.max(0, h.bf.regen! - dt) / 500) && h.hp < h.maxHp) {
     const heal = Math.round(h.maxHp * 0.02); h.hp = Math.min(h.maxHp, h.hp + heal); pop(d, h.x, h.y - HERO_H - 8, `+${heal.toLocaleString()}`, 'heal');
   }
   for (const k of Object.keys(h.bf) as Buff[]) { h.bf[k] = (h.bf[k] ?? 0) - dt; if (h.bf[k]! <= 0) delete h.bf[k]; }
@@ -710,7 +951,8 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
 
   // Move
   const dir = input.moveX !== undefined && input.moveX !== 0 ? Math.max(-1, Math.min(1, input.moveX)) : (input.right ? 1 : 0) - (input.left ? 1 : 0);
-  if (h.dashT > 0) {
+  if (h.down) h.vx = 0;
+  else if (h.dashT > 0) {
     h.dashT -= dt;
     const before = h.x;
     h.x = Math.max(12, Math.min(d.worldW - 12, h.x + h.face * 0.9 * dt));
@@ -751,42 +993,42 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
   }
   if (h.y > GROUND) { h.y = GROUND; h.vy = 0; h.onGround = true; }
   if (h.onGround && falling > 0.35) burst(d, h.x, h.y, 6, ['#ffffff', '#e7e5e4'], 0.09, -0.00005, 4, 400);
-  stepHazards(d, dt, sounds);
-  // 💰 Gold piles
-  for (const gp of d.golds) {
-    if (!gp.got && Math.abs(gp.x - h.x) < 18 && Math.abs(gp.y - h.y) < 30) {
-      gp.got = true;
-      d.goldGot++;
-      burst(d, gp.x, gp.y - 8, 8, ['#fde68a', '#fbbf24', '#ffffff'], 0.16, 0.0007, 2, 450);
-      sounds.push('coin');
+  if (h.down) return;
+  if (!isFriend(d)) {
+    // 💰 Gold piles
+    for (const gp of d.golds) {
+      if (!gp.got && Math.abs(gp.x - h.x) < 18 && Math.abs(gp.y - h.y) < 30) {
+        gp.got = true;
+        d.goldGot++;
+        burst(d, gp.x, gp.y - 8, 8, ['#fde68a', '#fbbf24', '#ffffff'], 0.16, 0.0007, 2, 450);
+        sounds.push('coin');
+      }
     }
-  }
-  // 💰 Chests
-  for (const c of d.chests) {
-    if (!c.open && Math.abs(c.x - h.x) < 24 && Math.abs(c.y - h.y) < 30) {
-      c.open = true;
-      d.opened++;
-      pop(d, c.x, c.y - 40, 'Treasure!', 'info');
-      burst(d, c.x, c.y - 14, 18, ['#fde68a', '#fbbf24', '#ffffff'], 0.25, 0.0008, 3, 700);
-      sounds.push('coin');
+    // 💰 Chests
+    for (const c of d.chests) {
+      if (!c.open && Math.abs(c.x - h.x) < 24 && Math.abs(c.y - h.y) < 30) {
+        c.open = true;
+        d.opened++;
+        pop(d, c.x, c.y - 40, 'Treasure!', 'info');
+        burst(d, c.x, c.y - 14, 18, ['#fde68a', '#fbbf24', '#ffffff'], 0.25, 0.0008, 3, 700);
+        sounds.push('coin');
+      }
     }
-  }
-  // 🚪 A room is done when its monsters are beaten and you walk through the door.
-  if (d.room && d.room.kind !== 'boss' && h.x >= d.room.door - 20 && !alive(d).length) { d.phase = 'won'; sounds.push('levelup'); }
-  // ⛏️ Rare resource spots: stand still on one (on your feet) with the right tool to harvest it.
-  for (const n of d.nodes) {
-    if (n.done) continue;
-    const on = h.onGround && Math.abs(n.x - h.x) < 26 && Math.abs(n.y - h.y) < 30;
-    if (!on) { n.prog = 0; continue; }
-    const why = d.why[n.kind];
-    if (why) { if (!n.warned) { n.warned = true; pop(d, n.x, n.y - 52, why, 'info'); sounds.push('tick'); } continue; }
-    if (dir !== 0) { n.prog = 0; continue; }
-    n.prog += dt;
-    if (n.prog >= HARVEST_MS) {
-      n.done = true;
-      d.harvested.push(n.kind);
-      burst(d, n.x, n.y - 16, 14, n.kind === 'ore' ? ['#e7e5e4', '#a8a29e', '#fde68a'] : n.kind === 'fish' ? ['#7dd3fc', '#e0f2fe', '#ffffff'] : ['#86efac', '#4ade80', '#fde68a'], 0.22, 0.0008, 3, 600);
-      sounds.push(n.kind === 'ore' ? 'mine' : n.kind === 'tree' ? 'chop' : n.kind === 'fish' ? 'splash' : 'carve');
+    // ⛏️ Rare resource spots: stand still on one (on your feet) with the right tool to harvest it.
+    for (const n of d.nodes) {
+      if (n.done) continue;
+      const on = h.onGround && Math.abs(n.x - h.x) < 26 && Math.abs(n.y - h.y) < 30;
+      if (!on) { n.prog = 0; continue; }
+      const why = d.why[n.kind];
+      if (why) { if (!n.warned) { n.warned = true; pop(d, n.x, n.y - 52, why, 'info'); sounds.push('tick'); } continue; }
+      if (dir !== 0) { n.prog = 0; continue; }
+      n.prog += dt;
+      if (n.prog >= HARVEST_MS) {
+        n.done = true;
+        d.harvested.push(n.kind);
+        burst(d, n.x, n.y - 16, 14, n.kind === 'ore' ? ['#e7e5e4', '#a8a29e', '#fde68a'] : n.kind === 'fish' ? ['#7dd3fc', '#e0f2fe', '#ffffff'] : ['#86efac', '#4ade80', '#fde68a'], 0.22, 0.0008, 3, 600);
+        sounds.push(n.kind === 'ore' ? 'mine' : n.kind === 'tree' ? 'chop' : n.kind === 'fish' ? 'splash' : 'carve');
+      }
     }
   }
   // 🍓 A berry patch up high
@@ -824,172 +1066,57 @@ export function step(d: Dungeon, dt: number, input: Input): string[] {
       sounds.push('whoosh');
     }
   }
-  // Arrow Rain lands in waves
-  for (const f of d.fx) {
-    if ((f.kind === 'rain' || f.kind === 'meteor') && f.t >= 0 && f.t - dt < 0) {
-      for (const m of alive(d).filter((o) => Math.abs(o.x - f.x) < (f.w ?? 150) / 2 && (f.kind === 'rain' || Math.abs(o.y - f.y) < 110)).slice(0, MAX_TARGETS)) { hitMob(d, m, f.mult ?? 1.2, f.kind === 'meteor' ? 16 : 4); if (f.slow) m.slowT = 3000; }
-      if (f.kind === 'meteor') { d.shake = Math.max(d.shake, 7); burst(d, f.x, f.y - 10, 22, ['#fb923c', '#fde68a', '#78716c'], 0.35, 0.0009, 4, 700); sounds.push('boom'); }
-      else sounds.push('tick');
-    }
-  }
-  d.fx = d.fx.filter((f) => f.kind !== 'rain' || f.t < 300);
+}
 
-  // Shots
-  for (const s of d.shots) {
-    s.x += s.vx * dt;
-    s.y += s.vy * dt;
-    s.ttl -= dt;
-    if (s.mine) {
-      // Magic bolts curve gently toward the monster they were aimed at.
-      if (s.target !== undefined) {
-        const t = d.mobs.find((m) => m.id === s.target && m.hp > 0);
-        if (t) {
-          const sp = Math.hypot(s.vx, s.vy);
-          const a = Math.atan2(t.y - t.h / 2 - s.y, t.x - s.x);
-          const k = Math.min(1, dt * 0.012);
-          s.vx += (Math.cos(a) * sp - s.vx) * k;
-          s.vy += (Math.sin(a) * sp - s.vy) * k;
-        }
+/** 🤝 Stand next to a downed partner to get them back up. Both down = the room is lost. */
+function stepRevive(d: Dungeon, dt: number, sounds: string[]) {
+  const a = d.hero, b = d.ally!.hero;
+  for (const [down, up] of [[a, b], [b, a]] as const) {
+    if (!down.down) continue;
+    if (!up.down && Math.abs(up.x - down.x) < 44 && Math.abs(up.y - down.y) < 44) {
+      const before = down.reviveT ?? 0;
+      down.reviveT = before + dt;
+      if (Math.floor(before / 500) !== Math.floor(down.reviveT / 500)) burst(d, down.x, down.y - 20, 4, ['#fef9c3', '#86efac', '#ffffff'], 0.12, -0.0003, 3, 500);
+      if (down.reviveT >= REVIVE_MS) {
+        down.down = false; down.reviveT = 0; down.hp = Math.round(down.maxHp * REVIVE_HP); down.invT = 1500;
+        pop(d, down.x, down.y - HERO_H - 8, 'Back up!', 'heal');
+        burst(d, down.x, down.y - HERO_H / 2, 20, ['#fef9c3', '#fde68a', '#86efac', '#ffffff'], 0.28, -0.0002, 4, 800);
+        sounds.push('levelup');
       }
-      popSpit(d, { x1: s.x - 9, x2: s.x + 9, y1: s.y - 9, y2: s.y + 9 });
-      for (const m of alive(d)) {
-        if (s.hit.includes(m.id)) continue;
-        // A forgiving box: small monsters (rats, crabs) are easy to hit too.
-        if (Math.abs(s.x - m.x) < m.w / 2 + 6 && s.y > m.y - Math.max(m.h, 30) - 10 && s.y < m.y + 8) {
-          if (s.blast) {
-            for (const o of alive(d).filter((o) => Math.abs(o.x - s.x) < 85 && Math.abs(o.y - m.y) < 95).slice(0, MAX_TARGETS)) { hitMob(d, o, s.mult ?? 1, 12); multiHit(d, o, 2, 0.4, 2, 380); }
-            d.fx.push({ x: s.x, y: s.y, t: 0, kind: 'boom', w: 80 });
-            sounds.push('boom');
-            s.ttl = 0;
-            break;
-          }
-          if (s.slow) m.slowT = 4000;
-          if ((s.hits ?? 1) > 1) multiHit(d, m, s.hits!, s.mult ?? 1, 6); else hitMob(d, m, s.mult ?? 1);
-          sounds.push('hit');
-          s.hit.push(m.id);
-          if (!s.pierce || s.hit.length >= MAX_TARGETS) { s.ttl = 0; break; }
-        }
-      }
-    } else if (overlap(heroBox(h), { x1: s.x - 5, x2: s.x + 5, y1: s.y - 5, y2: s.y + 5 })) {
-      hurtHero(d, s.dmg, s.x);
-      sounds.push('hurt');
-      s.ttl = 0;
-    }
+    } else down.reviveT = Math.max(0, (down.reviveT ?? 0) - dt * 2);
   }
-  d.shots = d.shots.filter((s) => s.ttl > 0 && s.x > -50 && s.x < d.worldW + 50);
-
-  // Monsters
-  for (const m of d.mobs) {
-    if (m.hp <= 0) { m.dead = Math.max(0, m.dead - dt); continue; }
-    m.hitT = Math.max(0, m.hitT - dt);
-    if (m.frozeT) { m.frozeT = Math.max(0, m.frozeT - dt); if (m.frozeT > 0) continue; }
-    if (m.slowT) m.slowT = Math.max(0, m.slowT - dt);
-    const slow = m.slowT ? 0.4 : 1;
-    if (m.hop) m.hop = Math.max(0, m.hop - dt);
-    if (m.kb) { m.x = Math.max(m.min, Math.min(m.max, m.x + m.kb * dt)); m.kb *= Math.pow(0.985, dt); if (Math.abs(m.kb) < 0.01) m.kb = 0; }
-    const dx = h.x - m.x;
-    const sameRow = Math.abs(h.y - m.y) < 40;
-    const near = Math.abs(dx) < (m.boss ? 420 : 200) && (sameRow || m.boss);
-    if (m.restT) m.restT = Math.max(0, m.restT - dt);
-    if (m.boss && h.x < d.arenaX) { /* waits in its clearing */ }
-    else if (m.restT) { /* catching its breath after bumping into you */ }
-    else if (near && m.hitT <= 0) { m.dir = dx > 0 ? 1 : -1; m.x += m.dir * m.speed * 1.4 * slow * dt; }
-    else if (m.hitT <= 0) {
-      m.x += m.dir * m.speed * slow * dt;
-      if (m.x < m.min || m.x > m.max) m.dir = m.x < m.min ? 1 : -1;
-    }
-    m.x = Math.max(m.min, Math.min(m.max, m.x));
-    // Touch
-    // After bumping into you a monster pauses a moment (v0.0.1.81) — a window to hit back or slip past, so you
-    // can't get pinned in a corner.
-    if (overlap(heroBox(h), mobBox(m)) && h.dashT <= 0) { if (h.invT <= 0) { sounds.push('hurt'); hurtHero(d, m.touch, m.x, m); if (d.room) m.restT = m.boss ? 900 : 700; } }
-    // Spit from the ranged and magic ones — calmed down in v0.0.1.72 (owner: "their attacks become like a
-    // bullet hell"): only from your own row and close by, a glow first, no more than 2 flying at once
-    // (the boss gets 1 of its own), and your swings/shots can pop them.
-    m.atkCd -= dt;
-    if (m.windT) {
-      m.windT -= dt;
-      if (m.windT <= 0) {
-        m.windT = 0;
-        const sp = m.boss ? 0.22 : 0.19;
-        m.dir = dx > 0 ? 1 : -1;
-        d.shots.push({ x: m.x + m.dir * m.w * 0.3, y: Math.min(m.y - 14, h.y - HERO_H / 2), vx: m.dir * sp, vy: 0, dmg: m.touch * 0.9, mine: false, pierce: false, kind: 'spit', ttl: 1600, hit: [], target: m.boss ? -1 : undefined });
-        sounds.push('whoosh');
-      }
-    } else if (m.shoots && m.atkCd <= 0 && Math.abs(dx) < (m.boss ? 300 : 220) && Math.abs(h.y - m.y) < 45 && (!m.boss || h.x >= d.arenaX)) {
-      const flying = d.shots.filter((s) => !s.mine && (m.boss ? s.target === -1 : s.target !== -1)).length;
-      if (flying < (m.boss ? 1 : 2)) { m.windT = m.boss ? 500 : 550; m.atkCd = m.boss ? 2400 : 3400 + rand(d) * 1800; }
-      else m.atkCd = 400; // someone else is spitting — wait a moment
-    }
-    // 🪂 Monsters on a ledge hop down to meet you when you walk underneath.
-    if (!m.boss && m.vy === undefined && m.y < GROUND && h.y > m.y + 40 && h.y - m.y < ROW_GAP * 2 + 30 && Math.abs(dx) < 75 && m.hitT <= 0) {
-      m.vy = -0.35; m.dir = dx > 0 ? 1 : -1;
-      pop(d, m.x, m.y - m.h - 6, '!', 'info');
-    }
-    if (m.vy !== undefined) {
-      const before = m.y;
-      m.vy += GRAV * dt;
-      m.y += m.vy * dt;
-      m.x += m.dir * 0.06 * dt;
-      if (m.vy > 0) {
-        const land = d.plats.find((pl) => pl.y > before + 1 && m.x >= pl.x1 && m.x <= pl.x2 && before <= pl.y && m.y >= pl.y && (pl.y >= GROUND || pl.y >= h.y - 5));
-        if (land) {
-          m.y = land.y; m.vy = undefined;
-          if (land.y >= GROUND) { m.min = Math.max(m.w / 2, m.x - 130); m.max = Math.min(d.arenaX - 40, m.x + 130); }
-          else { m.min = land.x1 + m.w / 2; m.max = land.x2 - m.w / 2; }
-          burst(d, m.x, m.y, 5, ['#ffffff', '#e7e5e4'], 0.09, -0.00005, 4, 380);
-        }
-      }
-      if (m.y > GROUND) { m.y = GROUND; m.vy = undefined; m.min = Math.max(m.w / 2, m.x - 130); m.max = Math.min(d.arenaX - 40, m.x + 130); }
-    }
-    // 👑 The boss's big slam: it glows first — jump over it!
-    if (m.boss && h.x >= d.arenaX) {
-      if ((m.slamT ?? 0) > 0) {
-        m.slamT! -= dt;
-        if (m.slamT! <= 0) {
-          d.fx.push({ x: m.x, y: GROUND, t: 0, kind: 'slam', w: 340 });
-          sounds.push('boom');
-          d.shake = 9;
-          for (let k = -4; k <= 4; k++) burst(d, m.x + k * 38, GROUND, 2, ['#e7e5e4', '#a8a29e'], 0.14, 0.0006, 5, 600);
-          if (h.onGround && h.y >= GROUND - 2 && Math.abs(h.x - m.x) < 170) hurtHero(d, m.touch * (d.room ? BOSS_SLAM / BOSS_TOUCH : 2.6), m.x);
-          m.slamCd = 3800 + rand(d) * 1500;
-        }
-      } else {
-        m.slamCd = (m.slamCd ?? 4000) - dt;
-        if (m.slamCd <= 0) { m.slamT = 900; sounds.push('creak'); }
-      }
-    }
-  }
-  // Finished fading out? Gone for good.
-  d.mobs = d.mobs.filter((m) => m.hp > 0 || m.dead > 0);
-  return sounds;
+  if (a.down && b.down) d.phase = 'ko';
 }
 
 /** 🗺️ The town's hazards, one step. Every one gives a warning before it can hurt. */
 function stepHazards(d: Dungeon, dt: number, sounds: string[]) {
   if (!d.hz.length || d.phase !== 'play') return;
-  const h = d.hero;
-  const grounded = h.onGround && h.y >= GROUND - 2;
+  const st = standing(d);
+  const lead = d.hero; // things fall and roll in around the leader
   for (const t of d.traps) {
-    const near = Math.abs(t.x - h.x) < t.w / 2;
     if (t.kind === 'spring') t.t = Math.max(0, t.t - dt);
-    if (t.kind === 'thorn' && near && grounded) hurtHero(d, d.hzDmg * 0.6, t.x);
     if (t.kind === 'vent') {
       const cycle = VENT.quiet + VENT.glow + VENT.burst;
       t.t = (t.t + dt) % cycle;
-      if (t.t > VENT.quiet + VENT.glow) {
-        if (rand(d) < dt / 60) burst(d, t.x, GROUND - 10, 2, ['#fb923c', '#fbbf24', '#ef4444'], 0.25, -0.0004, 4, 500);
-        if (Math.abs(t.x - h.x) < 20 && h.y > GROUND - 130) hurtHero(d, d.hzDmg, t.x);
-      }
+      if (t.t > VENT.quiet + VENT.glow && rand(d) < dt / 60) burst(d, t.x, GROUND - 10, 2, ['#fb923c', '#fbbf24', '#ef4444'], 0.25, -0.0004, 4, 500);
     }
   }
+  for (const x of st) asSeat(d, x.seat, () => {
+    const h = d.hero;
+    const grounded = h.onGround && h.y >= GROUND - 2;
+    for (const t of d.traps) {
+      const near = Math.abs(t.x - h.x) < t.w / 2;
+      if (t.kind === 'thorn' && near && grounded) hurtHero(d, d.hzDmg * 0.6, t.x);
+      if (t.kind === 'vent' && t.t > VENT.quiet + VENT.glow && Math.abs(t.x - h.x) < 20 && h.y > GROUND - 130) hurtHero(d, d.hzDmg, t.x);
+    }
+  });
   // 🪨 Rockfalls / 🌠 falling stars: a glowing warning where it will land, then it lands
   if (d.hz.includes('rockfall') || d.hz.includes('stars')) {
     d.hzCd -= dt;
     if (d.hzCd <= 0) {
       d.hzCd = 2600 + rand(d) * 1600;
-      const x = Math.max(80, Math.min((d.room?.door ?? d.worldW) - 60, h.x + (rand(d) - 0.4) * 320));
-      const under = d.plats.filter((pl) => x >= pl.x1 && x <= pl.x2 && pl.y >= h.y - 5).sort((a, b) => a.y - b.y)[0];
+      const x = Math.max(80, Math.min((d.room?.door ?? d.worldW) - 60, lead.x + (rand(d) - 0.4) * 320));
+      const under = d.plats.filter((pl) => x >= pl.x1 && x <= pl.x2 && pl.y >= lead.y - 5).sort((a, b) => a.y - b.y)[0];
       d.falls.push({ x, y: under?.y ?? GROUND, t: FALL_WARN });
     }
     for (const f of d.falls) {
@@ -999,7 +1126,7 @@ function stepHazards(d: Dungeon, dt: number, sounds: string[]) {
         d.shake = Math.max(d.shake, 3);
         burst(d, f.x, f.y - 6, 12, star ? ['#fde68a', '#ffffff', '#fbbf24'] : ['#a8a29e', '#78716c', '#e7e5e4'], 0.22, 0.0009, 4, 600);
         sounds.push(star ? 'shing' : 'boom');
-        if (Math.abs(f.x - h.x) < 28 && Math.abs(f.y - h.y) < 50) hurtHero(d, d.hzDmg, f.x);
+        for (const x of st) if (Math.abs(f.x - x.h.x) < 28 && Math.abs(f.y - x.h.y) < 50) asSeat(d, x.seat, () => hurtHero(d, d.hzDmg, f.x));
         if (star) d.golds.push({ x: Math.round(f.x), y: f.y, got: false });
       }
     }
@@ -1009,14 +1136,15 @@ function stepHazards(d: Dungeon, dt: number, sounds: string[]) {
   if (d.hz.includes('waves')) {
     if (!d.wave) {
       d.hzCd -= dt;
-      if (d.hzCd <= 0) { d.hzCd = 4200 + rand(d) * 2500; d.wave = { x: h.x + 340, hit: false }; sounds.push('whoosh'); }
+      if (d.hzCd <= 0) { d.hzCd = 4200 + rand(d) * 2500; d.wave = { x: Math.max(lead.x, ...st.map((x) => x.h.x)) + 340, hit: false }; sounds.push('whoosh'); }
     } else {
       d.wave.x -= 0.24 * dt;
-      if (!d.wave.hit && grounded && Math.abs(d.wave.x - h.x) < 18) {
-        d.wave.hit = true;
-        hurtHero(d, d.hzDmg * 0.8, d.wave.x + 40);
+      for (const x of st) {
+        const key = x.seat ? 'hit2' : 'hit';
+        const grounded = x.h.onGround && x.h.y >= GROUND - 2;
+        if (!d.wave[key] && grounded && Math.abs(d.wave.x - x.h.x) < 18) { d.wave[key] = true; asSeat(d, x.seat, () => hurtHero(d, d.hzDmg * 0.8, d.wave!.x + 40)); }
       }
-      if (d.wave.x < h.x - 420) d.wave = null;
+      if (d.wave.x < Math.min(lead.x, ...st.map((x) => x.h.x)) - 420) d.wave = null;
     }
   }
   // 💨 Gusts: chimes and streaks first, then a push sideways
@@ -1027,12 +1155,16 @@ function stepHazards(d: Dungeon, dt: number, sounds: string[]) {
     } else if (d.gust.warn > 0) d.gust.warn -= dt;
     else {
       d.gust.t -= dt;
-      if (h.dashT <= 0) h.x = Math.max(12, Math.min(d.worldW - 12, h.x + d.gust.dir * 0.075 * dt));
-      if (d.room && d.room.kind !== 'boss' && alive(d).length) h.x = Math.min(h.x, d.room.door - 30);
+      for (const x of st) {
+        const h = x.h;
+        if (h.dashT <= 0) h.x = Math.max(12, Math.min(d.worldW - 12, h.x + d.gust.dir * 0.075 * dt));
+        if (d.room && d.room.kind !== 'boss' && alive(d).length) h.x = Math.min(h.x, d.room.door - 30);
+      }
       if (d.gust.t <= 0) d.gust = null;
     }
   }
 }
+
 
 /** How far along the path you are (0–1). */
 export const pathProgress = (d: Dungeon) => Math.min(1, d.hero.x / d.arenaX);

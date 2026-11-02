@@ -1,8 +1,11 @@
+import { newPartyCode, validCode } from './party';
+export { PartyRoom } from './party';
 // Ascension 999 — notification server (a Cloudflare Worker, free tier).
 //
 // - POST /schedule   the game sends a phone's upcoming notifications when you leave it ([] = cancel).
 // - GET  /inbox      the phone's background helper (public/sw.js) picks up messages after a push wakes it.
 // - every minute     sends a "wake up" push to each phone that has something due.
+// - /party/*         🤝 Co-op dungeon (v0.0.2.0): /party/new gives a code; /party/<CODE>?as=lead|friend is the live connection.
 // - /family/*        👪 Family (v0.0.1.55): create / join by invite link, the family board + feed, cheers, nudges; v0.0.1.56: the weekly family goal; v0.0.1.57: gifts.
 //
 // Pushes carry no data (so no encryption is needed): the phone fetches the text from /inbox.
@@ -11,7 +14,8 @@
 interface D1Result<T> { results: T[] }
 interface D1Stmt { bind(...v: unknown[]): D1Stmt; all<T = Record<string, unknown>>(): Promise<D1Result<T>>; first<T = Record<string, unknown>>(): Promise<T | null>; run(): Promise<unknown> }
 interface D1Database { prepare(sql: string): D1Stmt; batch(s: D1Stmt[]): Promise<unknown> }
-interface Env { DB: D1Database; VAPID_PUBLIC: string; VAPID_PRIVATE: string; VAPID_SUBJECT: string }
+interface DONamespace { idFromName(n: string): unknown; get(id: unknown): { fetch(req: Request): Promise<Response> } }
+interface Env { PARTY: DONamespace; DB: D1Database; VAPID_PUBLIC: string; VAPID_PRIVATE: string; VAPID_SUBJECT: string }
 interface PushSub { endpoint: string }
 interface Note { at: number; title: string; body: string; tag: string }
 
@@ -451,6 +455,14 @@ export default {
     }
 
     if (url.pathname.startsWith('/family/')) return family(req, url, env);
+
+    // 🤝 Co-op party rooms
+    if (url.pathname === '/party/new') return json({ code: newPartyCode() });
+    if (url.pathname.startsWith('/party/')) {
+      const code = url.pathname.slice('/party/'.length).toUpperCase();
+      if (!validCode(code)) return empty(404);
+      return env.PARTY.get(env.PARTY.idFromName(code)).fetch(req);
+    }
 
     if (url.pathname === '/') return new Response('Ascension 999 notification server is running.', { headers: CORS });
     return empty(404);

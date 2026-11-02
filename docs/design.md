@@ -642,3 +642,16 @@ turn-based adventure where nothing is ever lost; the Dungeon is the risky action
    weather, music, monsters, boss. Still to do: town-made room layouts, hazards and room names (e.g. Bluecliff sea caves
    with tide pools, Frosthold slippery ice, Cinderpeak lava vents, Lunaria foggy streets with the bell). **Built v0.0.1.80**
    (`data/dungeonTowns.ts`: names, hints and one signature hazard per town).
+
+
+## 🤝 Dungeon together (co-op) — v0.0.2.0
+
+Owner's choices: link up by **guild invite or a room code**, **2 players**, a downed player can be **revived by their
+partner** (both down = the room is lost), monsters are **tougher with two** and **each player gets the full loot** of
+every kill.
+
+- **Part 1 (v0.0.2.0) — built:** make a party (a 5-letter code) or join one; fight dungeon rooms of the leader's town
+  side by side, one after another (an elite every third room, a little tougher each time). Nothing worn is at risk.
+  The leader's phone runs the room; the friend's phone sends its buttons and draws the room from pictures.
+- **Part 2 — next:** the full extraction run together (pick rooms on the map together, shared gold/chests/rare spots,
+  Wick's stall, ways out, the boss, losing it all if both are knocked out) and inviting a guildmate from the Guild tab.

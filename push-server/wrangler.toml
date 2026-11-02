@@ -16,3 +16,12 @@ database_id = "f3d5860b-b5c3-4483-8593-960a7bd12d1e"
 VAPID_PUBLIC = "BAFKw6uDLzETHFFqSKx2euv83rctLVU6ISpeVinYreZOBpJ6VLvGAxrKv1HS86kB9NDG1GUlYP5HIwKLo2ibxf4"
 VAPID_SUBJECT = "https://therarefew-arch.github.io/ascension-999/"
 # VAPID_PRIVATE is a secret: npx wrangler secret put VAPID_PRIVATE  (value: contents of .vapid-private.json)
+
+# 🤝 Co-op dungeon party rooms (v0.0.2.0)
+[[durable_objects.bindings]]
+name = "PARTY"
+class_name = "PartyRoom"
+
+[[migrations]]
+tag = "v1-party"
+new_sqlite_classes = ["PartyRoom"]

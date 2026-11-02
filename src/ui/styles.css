@@ -2125,3 +2125,18 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .dg-root.land .dg-act .dg-skill.s1 { right: 115px; bottom: 177px; }
 .dg-root.land .dg-act .dg-skill.s2 { right: 34px; bottom: 194px; }
 .dg-root.land .dg-act .dg-skill.s3 { right: 255px; bottom: 153px; }
+
+/* 🤝 Dungeon together (v0.0.2.0) */
+.cp-panel { width: min(100%, 380px); }
+.cp-top { width: 100%; }
+.cp-name { width: 100%; display: flex; align-items: center; gap: 8px; color: #e7e5e4; }
+.cp-name input, .cp-join input { flex: 1; min-width: 0; padding: 9px 10px; border-radius: 10px; border: 1.5px solid #6b4f2a; background: #1a130a; color: #fde68a; font: inherit; }
+.cp-join { display: flex; gap: 8px; width: 100%; }
+.cp-join input { font-family: ui-monospace, monospace; font-size: 1.1rem; letter-spacing: 0.25em; text-transform: uppercase; text-align: center; }
+.cp-join .btn { width: auto; flex: none; padding-left: 18px; padding-right: 18px; }
+.cp-code { font-size: 2.6rem; font-weight: 900; letter-spacing: 0.3em; color: #fde68a; padding: 6px 14px 6px 22px; border-radius: 14px; border: 2px dashed #a16207; background: #1a130a; user-select: all; }
+.cp-err { color: #fca5a5; text-align: center; margin: 0; }
+.cp-partner { display: block; color: #a7f3d0; }
+.cp-down { position: absolute; left: 50%; top: 34%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 16px; border-radius: 14px; background: rgba(15, 10, 25, 0.8); border: 1.5px solid #c084fc; color: #f5f0e6; text-align: center; pointer-events: none; z-index: 4; max-width: 80%; }
+.dg-root.land .cp-panel { width: min(100%, 520px); }
+.dg-root.land .cp-code { font-size: 2rem; }

@@ -22,6 +22,7 @@ import { WAVES as WALL_WAVES } from '../../core/holdWall';
 import { RoadUp } from '../RoadUp';
 import { ExpeditionLaunch } from '../Expedition';
 import { DungeonLaunch } from '../Dungeon';
+import { CoopLaunch } from '../Coop';
 
 const STYLE_ICON = { melee: 'melee', ranged: 'ranged', magic: 'magic' } as const;
 const STYLE_NAME: Record<CombatStyle, string> = { melee: 'Melee', ranged: 'Ranged', magic: 'Magic' };
@@ -318,6 +319,7 @@ export function CombatScreen({ onItem }: { onItem: (id: string) => void }) {
             </div>
             <ExpeditionLaunch />
             <DungeonLaunch />
+            <CoopLaunch />
             <button className="lw-launch" style={{ marginTop: 8 }} onClick={() => setWatch(true)}>
               <span className="lw-launch-emoji">🏮</span>
               <span className="grow"><b>Lantern Watch</b><span className="small muted">{hasSavedNight(slot)
