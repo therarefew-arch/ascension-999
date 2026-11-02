@@ -653,7 +653,7 @@ every kill.
 - **Part 1 (v0.0.2.0) — built:** make a party (a 5-letter code) or join one; fight dungeon rooms of the leader's town
   side by side, one after another (an elite every third room, a little tougher each time). Nothing worn is at risk.
   The leader's phone runs the room; the friend's phone sends its buttons and draws the room from pictures.
-- **Part 2 — next:** the full extraction run together (pick rooms on the map together, shared gold/chests/rare spots,
+- **Part 2 (v0.0.2.4) — built:** the full extraction run together (pick rooms on the map together, shared gold/chests/rare spots,
   Wick's stall, ways out, the boss, losing it all if both are knocked out) and inviting a guildmate from the Guild tab.
 
 

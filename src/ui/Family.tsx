@@ -17,6 +17,9 @@ import { Sheet } from './components';
 import { ItemIcon } from './icons';
 import { getItem } from '../data/items';
 import { sound } from '../audio/sound';
+import { CoopShell } from './Coop';
+import { PARTY_AD_MS } from '../core/family';
+import { AREAS } from '../core/expedition';
 
 const SYNC_MS = 3 * 60_000;
 
@@ -268,6 +271,8 @@ export function FamilyTab() {
   const [nudged, setNudged] = useState<string[]>([]);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [giftTo, setGiftTo] = useState<FamilyMember | null>(null);
+  // 🤝 Joining a guildmate's open dungeon party
+  const [joinCode, setJoinCode] = useState<string | null>(null);
   if (!link) return <Start />;
 
   const invite = async () => {
@@ -320,6 +325,7 @@ export function FamilyTab() {
       <GiftsCard />
       {board && <GoalCard board={board} player={player} />}
       {giftTo && <GiftSheet to={giftTo} onClose={() => setGiftTo(null)} />}
+      {joinCode && <CoopShell joinCode={joinCode} onClose={() => setJoinCode(null)} />}
 
       {!board ? <p className="small muted">Loading the guild board…</p> : (
         <>
@@ -335,6 +341,9 @@ export function FamilyTab() {
                     {m.snap.best && <span className="tiny muted">Best: {SKILLS[m.snap.best.skill]?.name} {m.snap.best.level}</span>}
                     <span className="tiny muted">{m.snap.idle?.length ? m.snap.idle.join(' · ') : 'Resting'}</span>
                     <span className={`tiny ${seen(m.updated, board.now) === 'playing now' ? 'fam-now' : 'muted'}`}>{seen(m.updated, board.now)}</span>
+                    {!me && m.snap.party && board.now - m.snap.party.at < PARTY_AD_MS && (
+                      <button className="btn btn-sm btn-primary fam-party" onClick={() => { sound.play('creak'); setJoinCode(m.snap.party!.code); }}>🤝 Join {m.name}'s dungeon party{AREAS[m.snap.party.region as keyof typeof AREAS] ? ` in ${AREAS[m.snap.party.region as keyof typeof AREAS].name}` : ''}</button>
+                    )}
                   </div>
                   {!me && (
                     <div className="fam-btns">

@@ -15,12 +15,15 @@ import { weaponStyle } from '../core/combat';
 import { DUNGEON_TOWNS } from '../data/dungeonTowns';
 import type { Region } from '../data/tiers';
 import { useNoScroll } from './useNoScroll';
-import { DungeonFound, holdFor, lookOf, paintRoom, playSound, readBar, RoomControls, SkillBook, view, wantsTurn, writeBar, type Look } from './Dungeon';
+import { DungeonFound, DungeonShell, GearUp, holdFor, lookOf, paintRoom, playSound, readBar, RoomControls, RunEndPanel, RunMap, SkillBook, view, wantsTurn, WickStall, writeBar, type Look, type PartyCtx, type RunEnd } from './Dungeon';
+import { foodCount, roomOf, type DungeonRun } from '../core/dungeonRun';
+import { partyAd, syncSoon } from '../core/family';
+import type { ItemStack } from '../core/player';
 
 /** How often the leader sends the room picture (ms). */
 const PICTURE_MS = 60;
 /** The rooms of a co-op outing: fights, an elite every third room, a little tougher each time (depth 1–5). */
-const roomSpec = (n: number): RoomSpec => ({ kind: n % 3 === 2 ? 'elite' : 'fight', depth: Math.min(5, 1 + n), hp: 1e9, snacks: SNACKS, coop: true });
+const roomSpec = (n: number): RoomSpec => ({ kind: n % 3 === 2 ? 'elite' : 'fight', depth: Math.min(5, 1 + n), hp: 1e9, snacks: SNACKS, coop: true, practice: true });
 const newFound = (): ExRun['found'] => ({ items: [], xp: {}, kills: 0 });
 
 /** Combat-screen card. */
@@ -40,10 +43,17 @@ export function CoopLaunch() {
   );
 }
 
-type Stage = 'menu' | 'lobby' | 'play' | 'between';
+type Stage = 'menu' | 'lobby' | 'play' | 'between' | 'gear' | 'run';
+/** 🤝 The friend's card for a room of a run together: fighting numbers with the gear they took in, their run's health and food. */
+function runCard(name: string, slot: number | null): HeroCard | null {
+  const hero = game.dungeonHero();
+  const r = game.dungeonRunNow();
+  if (!hero || !r) return null;
+  return { ...heroCard(hero, r.region), bar: readBar(slot, hero), look: lookOf(hero), name, hp: r.hp, snacks: foodCount(r) };
+}
 type Listener = (m: PartyMsg) => void;
 
-function CoopShell({ onClose }: { onClose: () => void }) {
+export function CoopShell({ onClose, joinCode }: { onClose: () => void; joinCode?: string }) {
   const { player, slot } = useGame();
   const root = useRef<HTMLDivElement>(null);
   useNoScroll(root);
@@ -70,15 +80,27 @@ function CoopShell({ onClose }: { onClose: () => void }) {
   const [party, setParty] = useState<{ region: Region; lead: string } | null>(null); // friend: whose party
   const [room, setRoom] = useState<{ d?: Dungeon; n: number; key: number }>({ n: 0, key: 0 });
   const [result, setResult] = useState<{ won: boolean; found: ExRun['found'] } | null>(null);
+  // 🗝️ A run together: the leader's map (friend), whether the friend is geared up and in (leader), partner gone
+  const [runRows, setRunRows] = useState<DungeonRun['rows'] | null>(null);
+  const [friendIn, setFriendIn] = useState(false);
+  const [gone, setGone] = useState(false);
+  const friendCard = useRef<HeroCard | null>(null);
   const link = useRef<PartyLink | null>(null);
   const listener = useRef<Listener | null>(null);
   const region: Region = role === 'friend' && party ? party.region : player.location;
   useEffect(() => { sound.playMusic(musicFor(region)); }, [region]);
-  useEffect(() => () => { link.current?.close(); link.current = null; }, []);
+  useEffect(() => () => { link.current?.close(); link.current = null; partyAd.code = ''; }, []);
+  // 🏰 Joining from a guildmate's card
+  useEffect(() => { if (joinCode) { setTyped(joinCode); setTimeout(() => joinWith(joinCode), 0); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const why = player.dungeonRun ? "You're inside a dungeon run — finish it first (your gear is in there)." : '';
-  const leave = () => { sound.play('click'); link.current?.close(); link.current = null; onClose(); };
-  const lost = (msg: string) => { link.current?.close(); link.current = null; setErr(msg); setStage('menu'); setFriend(null); setParty(null); };
+  const leave = () => { sound.play('click'); link.current?.close(); link.current = null; partyAd.code = ''; onClose(); };
+  const lost = (msg: string) => {
+    link.current?.close(); link.current = null; partyAd.code = '';
+    // In a run together your own run carries on (it's saved) — open the 🗝️ Dungeon to keep going.
+    if (stage === 'run' || game.dungeonRunNow()) { setErr(`${msg} Your run is saved — carry on from 🗝️ Dungeon on the Combat screen.`); setStage('menu'); setGone(true); return; }
+    setErr(msg); setStage('menu'); setFriend(null); setParty(null);
+  };
 
   // Every message from the other phone comes through here; a room in play also gets them.
   const onMsg = useRef<Listener>(() => {});
@@ -86,8 +108,9 @@ function CoopShell({ onClose }: { onClose: () => void }) {
     if (m.t === 'nope') { lost(m.why); return; }
     if (role === 'lead') {
       if (m.t === 'peer' && m.on) link.current?.send({ t: 'party', region: player.location, lead: name });
-      if (m.t === 'peer' && !m.on) { setFriend(null); if (stage !== 'play') sound.play('whoosh'); }
+      if (m.t === 'peer' && !m.on) { setFriend(null); setFriendIn(false); friendCard.current = null; if (stage === 'run') setGone(true); if (stage !== 'play') sound.play('whoosh'); }
       if (m.t === 'card') { setFriend(m.card); setErr(''); sound.play('levelup', { rate: 1.3 }); }
+      if (m.t === 'ready') { friendCard.current = m.card; if (!friendIn) { setFriendIn(true); sound.play('levelup', { rate: 1.4 }); } }
       if (m.t === 'cant') setErr(m.why);
     } else {
       if (m.t === 'peer' && !m.on) { lost('The party leader left.'); return; }
@@ -98,7 +121,12 @@ function CoopShell({ onClose }: { onClose: () => void }) {
         link.current?.send({ t: 'card', card: { ...heroCard(player, m.region), bar: readBar(slot, player), look: lookOf(player), name } });
         sound.play('levelup', { rate: 1.3 });
       }
-      if (m.t === 'start') { setResult(null); setRoom((r) => ({ d: m.d, n: m.room, key: r.key + 1 })); setStage('play'); }
+      if (m.t === 'start' && stage !== 'run') { setResult(null); setRoom((r) => ({ d: m.d, n: m.room, key: r.key + 1 })); setStage('play'); }
+      if (m.t === 'mode' && m.run) {
+        if (game.dungeonRunNow()) { link.current?.send({ t: 'cant', why: `${name} is already inside a dungeon run.` }); setErr("You're already inside a dungeon run — finish it first."); return; }
+        setRunRows(null); setStage('gear');
+      }
+      if (m.t === 'run') setRunRows(m.rows);
     }
     listener.current?.(m);
   };
@@ -117,13 +145,17 @@ function CoopShell({ onClose }: { onClose: () => void }) {
       savePartyName(name);
       setRole('lead'); setCode(c); setStage('lobby');
       connect(c, 'lead');
+      // 🏰 Your guildmates see the party on your guild card and can tap to join.
+      Object.assign(partyAd, { code: c, region: player.location, at: Date.now() });
+      syncSoon();
       sound.play('creak');
     } catch { setErr("Couldn't reach the party server — check your connection."); }
     setBusy(false);
   };
-  const join = () => {
+  const join = () => joinWith(typed);
+  const joinWith = (raw: string) => {
     if (why) { setErr(why); return; }
-    const c = cleanCode(typed);
+    const c = cleanCode(raw);
     if (c.length !== 5) { setErr('A party code has 5 letters and numbers.'); sound.play('error', { volume: 0.5 }); return; }
     savePartyName(name);
     setErr(''); setRole('friend'); setCode(c); setStage('lobby');
@@ -163,7 +195,13 @@ function CoopShell({ onClose }: { onClose: () => void }) {
             : <p className="small muted center">Joining…</p>
         )}
         {err && <p className="small cp-err">{err}</p>}
-        {role === 'lead' && <button className="btn btn-hero" disabled={!friend} onClick={() => begin(0)}>{friend ? 'START' : 'WAITING FOR A FRIEND…'}</button>}
+        {role === 'lead' && (friend ? (
+          <div className="dg-panel-btns">
+            <button className="btn btn-hero" onClick={() => { if (why) { setErr(why); return; } link.current?.send({ t: 'mode', run: true }); setFriendIn(false); friendCard.current = null; setStage('gear'); sound.play('creak'); }}>🗝️ EXTRACTION RUN</button>
+            <button className="btn" onClick={() => begin(0)}>⚔️ Practice rooms (nothing at risk)</button>
+          </div>
+        ) : <button className="btn btn-hero" disabled>WAITING FOR A FRIEND…</button>)}
+        {role === 'lead' && <p className="tiny muted center">🏰 Guildmates can also join from your card on the Guild board.</p>}
       </div>
     </div>
   );
@@ -173,7 +211,7 @@ function CoopShell({ onClose }: { onClose: () => void }) {
   );
   else if (stage === 'play' && room.d) body = (
     <CoopFollow key={room.key} link={link.current!} start={room.d} n={room.n} lead={party?.lead ?? 'Leader'} land={land} listen={(l) => { listener.current = l; }}
-      onEnd={(won, found) => { listener.current = null; setResult({ won, found }); setStage('between'); }} onLeave={leave} />
+      onEnd={(won, found) => { listener.current = null; setResult({ won: !!won, found }); setStage('between'); }} onLeave={leave} />
   );
   else if (stage === 'between') body = (
     <div className="dg-over">
@@ -195,6 +233,26 @@ function CoopShell({ onClose }: { onClose: () => void }) {
       </div>
     </div>
   );
+  // 🗝️ A run together: gear up, then the run itself (each in its own screen)
+  if (stage === 'gear') {
+    const lead = role === 'lead';
+    return (
+      <GearUp region={region} onClose={leave} rows={lead ? undefined : runRows ?? undefined}
+        waiting={!lead && !runRows ? `Waiting for ${party?.lead ?? 'the leader'} to go in first…` : undefined}
+        note={`🤝 A run together with ${lead ? friend?.name ?? 'your friend' : party?.lead ?? 'your friend'}: you each bring your own gear, food and run bag, and each get the full loot of every kill. ${lead ? 'You pick the rooms. ' : 'They pick the rooms. '}If one of you goes down, the other can help them up — only if you're both knocked out do you lose it all.`}
+        onEntered={() => {
+          if (lead) { const r = game.dungeonRunNow(); if (r) link.current?.send({ t: 'run', rows: r.rows }); }
+          else { const c = runCard(name, slot); if (c) link.current?.send({ t: 'ready', card: c }); }
+          setStage('run');
+        }} />
+    );
+  }
+  if (stage === 'run' && role === 'lead') {
+    const ctx: PartyCtx | undefined = gone || !link.current ? undefined
+      : { role: 'lead', link: link.current, me: name, partner: friend?.name ?? 'your friend', ready: friendIn, card: () => friendCard.current, listen: (l) => { listener.current = l; } };
+    return <DungeonShell onClose={leave} party={ctx} />;
+  }
+  if (stage === 'run' && link.current) return <FollowShell link={link.current} lead={party?.lead ?? 'the leader'} me={name} listen={(l) => { listener.current = l; }} onClose={leave} />;
   return createPortal(
     <div className={`dg-root ${land ? 'land' : ''} ${size.turn ? 'rot' : ''}`} ref={root}
       style={size.turn ? { inset: 'auto', left: 0, top: 0, width: size.h, height: size.w, transformOrigin: '0 0', transform: `translate(${size.w}px, 0) rotate(90deg)` } : undefined}>
@@ -236,11 +294,11 @@ function useKeys(input: React.MutableRefObject<Input>, skill: (i: number) => voi
   });
 }
 
-function CoopHud({ d, n, region, partner, note, onBook, onLeave }: { d: Dungeon; n: number; region: Region; partner: string; note?: string; onBook: () => void; onLeave: () => void }) {
+function CoopHud({ d, n, region, partner, note, onBook, onLeave, run }: { d: Dungeon; n: number; region: Region; partner: string; note?: string; onBook: () => void; onLeave: () => void; run?: DungeonRun }) {
   const h = d.hero;
   const al = d.ally?.hero;
   const left = d.mobs.filter((m) => m.hp > 0).length;
-  const kind = roomSpec(n).kind;
+  const kind = run ? roomOf(run).kind : roomSpec(n).kind;
   return (
     <>
       <div className="dg-hud">
@@ -335,10 +393,14 @@ function CoopLead({ link, friend, region, n, name, land, listen, onEnd, onLeave 
 }
 
 /** 🤝 The friend's phone: sends button presses, draws the room from the leader's pictures. */
-function CoopFollow({ link, start, n, lead, land, listen, onEnd, onLeave }: {
+function CoopFollow({ link, start, n, lead, land, listen, onEnd, onLeave, run: dRun }: {
   link: PartyLink; start: Dungeon; n: number; lead: string; land: boolean;
-  listen: (l: Listener) => void; onEnd: (won: boolean, found: ExRun['found']) => void; onLeave: () => void;
+  listen: (l: Listener) => void; onEnd: (won: boolean | null, found: ExRun['found'], pending: ItemStack[], startSnacks: number, hero: Dungeon['hero'], snacksLeft: number) => void; onLeave: () => void;
+  /** 🗝️ In a run together: your run (loot goes into this room's finds, gold and chests too). */
+  run?: DungeonRun;
 }) {
+  const pending = useRef<ItemStack[]>([]);
+  const startSnacks = useRef(dRun ? foodCount(dRun) : 0);
   const { player, slot } = useGame();
   const region = start.region;
   const myStyle = weaponStyle(player);
@@ -363,12 +425,18 @@ function CoopFollow({ link, start, n, lead, land, listen, onEnd, onLeave }: {
         const now = performance.now();
         const p = pics.current;
         pics.current = { prev: p.at ? p.cur : null, cur: m.s, at: now, gap: p.at ? Math.max(30, Math.min(200, now - p.at)) : PICTURE_MS };
-        if (m.k?.length) game.dungeonReward(found.current, region, myStyle, m.k);
+        if (m.k?.length) game.dungeonReward(found.current, region, myStyle, m.k, dRun ? pending.current : undefined);
+        if (dRun && m.g) game.dungeonGold(pending.current, m.g);
+        if (dRun && m.o) for (let i = 0; i < m.o; i++) game.dungeonChest(pending.current);
         for (const s of m.snd ?? []) playSound(s);
       } else if (m.t === 'end' && !ended.current) {
         ended.current = true;
         sound.play(m.won ? 'levelup' : 'fail', { rate: 1.2 });
-        window.setTimeout(() => onEnd(m.won, found.current), 700);
+        const v = shown.current;
+        window.setTimeout(() => onEnd(m.won, found.current, pending.current, startSnacks.current, v.hero, v.snacks ?? 0), 700);
+      } else if (m.t === 'abort' && !ended.current) {
+        ended.current = true;
+        onEnd(null, found.current, [], startSnacks.current, shown.current.hero, shown.current.snacks ?? 0);
       }
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -390,10 +458,78 @@ function CoopFollow({ link, start, n, lead, land, listen, onEnd, onLeave }: {
   return (
     <>
       <canvas ref={canvas} className="dg-canvas" />
-      <CoopHud d={d} n={n} region={region} partner={lead} onBook={() => { sound.play('click'); setBook(true); }} onLeave={onLeave} />
+      <CoopHud d={d} n={n} region={region} partner={lead} onBook={() => { sound.play('click'); setBook(true); }} onLeave={onLeave} run={dRun} />
       <RoomControls ctrl={controls} input={input} bar={bar} cd={d.cd ?? {}} snacks={d.snacks ?? 0} style={myStyle} hold={holdFor(input)}
         onSkill={skill} onEmpty={() => { sound.play('click'); setBook(true); }} onSnack={() => { link.send({ t: 'eat' }); sound.play('eat'); }} />
       {book && <SkillBook player={player} bar={bar} onBar={saveBar} style={myStyle} onClose={() => { sound.play('click'); setBook(false); }} />}
     </>
+  );
+}
+
+/** 🤝 The friend's screen in a run together: the leader's map (you follow their choices), your own Wick's stall, the rooms
+ * (drawn from the leader's pictures) and the end. Your run — gear, food and run bag — is your own, saved on your phone. */
+function FollowShell({ link, lead, me, listen, onClose }: { link: PartyLink; lead: string; me: string; listen: (l: Listener) => void; onClose: () => void }) {
+  const { player, slot } = useGame();
+  const run = player.dungeonRun;
+  const root = useRef<HTMLDivElement>(null);
+  useNoScroll(root);
+  const [size, setSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight, turn: wantsTurn() }));
+  useEffect(() => {
+    const on = () => setSize({ w: window.innerWidth, h: window.innerHeight, turn: wantsTurn() });
+    window.addEventListener('resize', on);
+    const t = window.setInterval(on, 700);
+    return () => { window.removeEventListener('resize', on); clearInterval(t); };
+  }, []);
+  const land = size.turn || size.w > size.h;
+  view.rot = size.turn;
+  view.root = root.current;
+  const [room, setRoom] = useState<{ d: Dungeon; key: number } | null>(null);
+  const [shop, setShop] = useState(false);
+  const [end, setEnd] = useState<RunEnd | null>(null);
+  const roomListener = useRef<Listener | null>(null);
+  const region = run?.region ?? end?.region ?? player.location;
+  useEffect(() => { sound.playMusic(musicFor(region)); }, [region]);
+  // Keep the leader up to date with your health and food for the next room.
+  useEffect(() => { const c = runCard(me, slot); if (c && !end) link.send({ t: 'ready', card: c }); }, [run?.hp, run ? foodCount(run) : -1, run?.row, run?.at]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    listen((m) => {
+      if (m.t === 'go') { game.dungeonGo(m.i); setShop(false); }
+      else if (m.t === 'start') { setShop(false); setRoom((r) => ({ d: m.d, key: (r?.key ?? 0) + 1 })); }
+      else if (m.t === 'extract') {
+        const r = game.dungeonRunNow();
+        if (r) { const bag = game.dungeonExtract(false); setRoom(null); setEnd({ kind: 'out', region: r.region, bag }); }
+      } else roomListener.current?.(m);
+    });
+    return () => listen(null as unknown as Listener);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const roomDone = (won: boolean | null, found: ExRun['found'], pending: ItemStack[], startSnacks: number, hero: Dungeon['hero'], snacksLeft: number) => {
+    roomListener.current = null;
+    setRoom(null);
+    const r = game.dungeonRunNow();
+    if (!r || won === null) return; // back to the map: the room starts over
+    if (won) {
+      const boss = roomOf(r).kind === 'boss';
+      const bag = r.bag.map((x) => ({ ...x }));
+      for (const x of pending) { const b = bag.find((y) => y.id === x.id); if (b) b.qty += x.qty; else bag.push({ ...x }); }
+      // Down when the room was won? Your partner carries you through — back up with a little health.
+      const hp = hero.down ? Math.round(hero.maxHp * 0.3) : hero.hp;
+      game.dungeonRoomCleared(hp, Math.max(0, startSnacks - snacksLeft), pending, found.kills);
+      if (boss) setEnd({ kind: 'won', region: r.region, bag, found });
+    } else {
+      const lostRun = game.dungeonDie();
+      setEnd({ kind: 'dead', region: r.region, bag: [], lost: lostRun ?? undefined });
+    }
+  };
+  let body: React.ReactNode = null;
+  if (end) body = <RunEndPanel end={end} onClose={onClose} />;
+  else if (room && run) body = <CoopFollow key={room.key} link={link} start={room.d} n={run.row} lead={lead} land={land} run={run} listen={(l) => { roomListener.current = l; }} onEnd={roomDone} onLeave={onClose} />;
+  else if (run && shop) body = <WickStall run={run} onClose={() => { sound.play('click'); setShop(false); }} />;
+  else if (run) body = <RunMap run={run} onEnter={() => {}} onExtract={() => {}} onClose={onClose} onShop={() => { sound.play('coin'); setShop(true); }} follow={`Following ${lead} — they pick the rooms and when to leave.`} />;
+  return createPortal(
+    <div className={`dg-root ${land ? 'land' : ''} ${size.turn ? 'rot' : ''}`} ref={root}
+      style={size.turn ? { inset: 'auto', left: 0, top: 0, width: size.h, height: size.w, transformOrigin: '0 0', transform: `translate(${size.w}px, 0) rotate(90deg)` } : undefined}>
+      {body}
+    </div>,
+    document.body,
   );
 }

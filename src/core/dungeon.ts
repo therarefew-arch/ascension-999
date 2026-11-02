@@ -200,7 +200,9 @@ export const HARVEST_MS = 1800;
 /** One room of an extraction run: its kind, how deep it is (row), the health and food you walk in with. */
 export interface RoomSpec { kind: RoomKind; depth: number; hp: number; snacks: number; why?: Partial<Record<NodeKind, string>>; coop?: boolean;
   /** 🍀 The charm in your pocket (its Boon id) and how strong it is (1, or more for a ✨ Unique one). */
-  charm?: { boon: string; k: number } }
+  charm?: { boon: string; k: number };
+  /** 🤝 A practice room (co-op without a run): no crafting stations. */
+  practice?: boolean }
 /** Ledges go up to this many rows above the ground. */
 export const MAX_ROW = 5;
 /** How much a 🍓 berry patch heals (share of max health). */
@@ -291,7 +293,9 @@ const SIZE: Record<string, [number, number]> = {
 };
 /** 🤝 How hard a player hits each of this town's monsters and how hard each hits them (their gear and levels). The friend's
  * phone works this out for itself and sends it to the leader, who runs the room. */
-export interface HeroCard { style: CombatStyle; hit: Record<string, number>; touch: Record<string, number>; maxHp: number; bar: (string | null)[]; look?: unknown; name?: string }
+export interface HeroCard { style: CombatStyle; hit: Record<string, number>; touch: Record<string, number>; maxHp: number; bar: (string | null)[]; look?: unknown; name?: string;
+  /** In a run together: the friend's health and food going into the room. */
+  hp?: number; snacks?: number }
 export function heroCard(p: PlayerState, region: Region, room?: RoomSpec): Omit<HeroCard, 'bar' | 'look' | 'name'> {
   const style = weaponStyle(p);
   const fair = fairPower(region);
@@ -314,8 +318,8 @@ export function addAlly(d: Dungeon, card: HeroCard) {
   for (const id of Object.keys(d.touch)) { hs[id] = (card.touch[id] ?? d.touch[id]) / Math.max(0.001, d.touch[id]); sum += hs[id]; n++; }
   hs._avg = n ? sum / n : 1;
   d.ally = {
-    hero: { x: 30, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp: card.maxHp, maxHp: card.maxHp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0, bf: {} },
-    hit: card.hit, hs, cd: {}, bar: card.bar.slice(0, BAR_SIZE), style: card.style, jumpHeld: false, snacks: SNACKS, look: card.look, name: card.name,
+    hero: { x: 30, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp: Math.max(1, Math.min(card.maxHp, card.hp ?? card.maxHp)), maxHp: card.maxHp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0, bf: {} },
+    hit: card.hit, hs, cd: {}, bar: card.bar.slice(0, BAR_SIZE), style: card.style, jumpHeld: false, snacks: card.snacks ?? SNACKS, look: card.look, name: card.name,
   };
 }
 export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[], seed = Math.floor(Math.random() * 2 ** 31), room?: RoomSpec): Dungeon {
@@ -417,7 +421,7 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
   }
   // 🍳🛠️ Now and then a crafting station along the way (owner: "the resources you collect in the dungeon … usable at
   // randomly found crafting stations"). Not in co-op rooms (no run bag there).
-  if (room && !room.coop && (room.kind === 'fight' || room.kind === 'elite' || room.kind === 'treasure') && rand(d) < (room.kind === 'treasure' ? 0.6 : 0.35)) {
+  if (room && !room.practice && (room.kind === 'fight' || room.kind === 'elite' || room.kind === 'treasure') && rand(d) < (room.kind === 'treasure' ? 0.6 : 0.35)) {
     let x = 0;
     for (let tries = 0; tries < 20; tries++) { x = Math.round(pathEnd * (0.3 + rand(d) * 0.35)); if (!d.nodes.some((n) => n.y === GROUND && Math.abs(n.x - x) < 90)) break; }
     d.stations.push({ x, y: GROUND, kind: rand(d) < 0.55 ? 'kitchen' : 'bench', prog: 0 });

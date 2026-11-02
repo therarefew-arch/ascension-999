@@ -8,6 +8,7 @@
 // full loot of every kill).
 import { PUSH_SERVER } from './push';
 import { swapSeats, type Dungeon, type HeroCard, type Input } from './dungeon';
+import type { Room } from './dungeonRun';
 import type { Region } from '../data/tiers';
 
 export type PartyRole = 'lead' | 'friend';
@@ -21,10 +22,19 @@ export type PartyMsg =
   // leader → friend
   | { t: 'party'; region: Region; lead: string }
   | { t: 'start'; d: Dungeon; room: number }
-  | { t: 's'; s: Partial<Dungeon>; k?: { m: string; boss?: boolean }[]; snd?: string[] }
+  | { t: 's'; s: Partial<Dungeon>; k?: { m: string; boss?: boolean }[]; snd?: string[]; g?: number; o?: number }
   | { t: 'end'; won: boolean }
+  // 🗝️ An extraction run together (v0.0.2.4): the run is starting (gear up), the leader's map, which room they
+  // walked into, back to the map without finishing a room, and getting out together.
+  | { t: 'mode'; run: boolean }
+  | { t: 'run'; rows: Room[][] }
+  | { t: 'go'; i: number }
+  | { t: 'abort' }
+  | { t: 'extract' }
   // friend → leader
   | { t: 'card'; card: HeroCard }
+  /** In a run together: geared up and in (and later, health/food updates between rooms). */
+  | { t: 'ready'; card: HeroCard }
   | { t: 'cant'; why: string }
   | { t: 'in'; i: Input }
   | { t: 'sk'; i: number }

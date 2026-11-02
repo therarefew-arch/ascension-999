@@ -31,7 +31,12 @@ export interface FamilySnap {
   pet?: string;
   /** 🧭 For expedition heroes (v0.0.1.62): melee, ranged, magic, defense, health levels + best arrows/runes. */
   hero?: { lv: number[]; ammo?: string };
+  /** 🤝 An open dungeon party guildmates can join (v0.0.2.4): its code, town and when it was made. */
+  party?: { code: string; region: string; at: number };
 }
+/** 🤝 The party you've made right now (set by the co-op screen); shown on your guild card for 20 minutes. */
+export const partyAd = { code: '', region: '', at: 0 };
+export const PARTY_AD_MS = 20 * 60_000;
 export interface FamilyMember { id: string; name: string; updated: number; snap: FamilySnap }
 export interface FamilyMoment { id: number; member: string; kind: string; text: string; at: number; cheers: string[] }
 /** This week's family goal (the server adds up everyone's counts). */
@@ -165,7 +170,8 @@ export function familySnap(p: PlayerState): FamilySnap {
       if (a && a.style === style && (!ammo || a.power > ITEMS[ammo].ammo!.power)) ammo = s!.id;
     }
   }
-  return { town: p.location, total, best, idle: [...new Set(idle)].slice(0, 3), eq, pet: p.activePet ? PET_MAP[p.activePet]?.emoji : undefined, hero: { lv, ammo } };
+  const party = partyAd.code && Date.now() - partyAd.at < PARTY_AD_MS ? { ...partyAd } : undefined;
+  return { town: p.location, total, best, idle: [...new Set(idle)].slice(0, 3), eq, pet: p.activePet ? PET_MAP[p.activePet]?.emoji : undefined, hero: { lv, ammo }, party };
 }
 
 // ----- Big moments: queued while playing, sent with the next check-in -----

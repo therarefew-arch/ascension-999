@@ -1166,7 +1166,7 @@ export const game = {
 
   // ----- 🗝️ The extraction run (v0.0.1.77, owner's design: gear up, pick paths, get out or lose it all) -----
   /** Go in: everything you wear (and its gems) goes in with you, plus up to FOOD_MAX packed food. */
-  dungeonEnter(region: Region, food: ItemStack[], charm?: string): boolean {
+  dungeonEnter(region: Region, food: ItemStack[], charm?: string, rows?: DungeonRun['rows']): boolean {
     const p = snap.player;
     if (p.dungeonRun) { fail("You're already in the dungeon"); return false; }
     if (!p.regions.includes(region)) { fail('Discover this town first'); return false; }
@@ -1180,7 +1180,8 @@ export const game = {
     for (const x of list) { const got = removeFromBag(p.inventory, x.id, x.qty); if (got < x.qty) removeFromBank(p, x.id, x.qty - got); }
     if (charm && removeFromBag(p.inventory, charm, 1) < 1) removeFromBank(p, charm, 1);
     const run: DungeonRun = {
-      region, rows: newMap(), row: 0, at: 0, cleared: false, hp: 0,
+      // 🤝 In a run together, the friend walks the leader's map.
+      region, rows: rows?.length && rows.every((r) => Array.isArray(r) && r.length && r.every((x) => x && typeof x.kind === 'string' && Number.isFinite(x.seed))) ? rows.map((r) => r.map((x) => ({ kind: x.kind, seed: x.seed }))) : newMap(), row: 0, at: 0, cleared: false, hp: 0,
       gear: { ...p.equipment }, sockets: { ...p.sockets }, food: list.map((x) => ({ ...x })), bag: [], kills: 0, startedAt: Date.now(), charm,
     };
     run.hp = runMaxHp(p, run);
@@ -1192,6 +1193,8 @@ export const game = {
     emit();
     return true;
   },
+  /** 🤝 Your run as it is right now (the co-op screen reads it straight after going in). */
+  dungeonRunNow(): DungeonRun | undefined { return snap.player.dungeonRun; },
   /** You as you are inside the dungeon (wearing the gear you brought) — for fighting and drawing. */
   dungeonHero(): PlayerState | null {
     const p = snap.player;
