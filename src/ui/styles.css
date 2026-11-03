@@ -2215,3 +2215,162 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
   .topbar-chips { gap: 3px; }
   .topbar-chips .stat-chip { padding: 0 5px; gap: 3px; font-size: 0.74rem; }
 }
+
+/* =====================================================================
+   🎨 Minigame art pass (v0.0.2.12, owner: "let's improve how all the mini games look").
+   Every minigame sits inside .mg-skin.mg-skin-<skill> (SkillScreen). The skin sets colours
+   (--mg-a accent, --mg-b deep, --mg-c panel tint, --mg-p particles) and draws a little scene with
+   drifting particles behind the stage. Purely looks — no game rules change.
+   ===================================================================== */
+.mg-skin { display: contents; --mg-a: #f59e0b; --mg-b: #7c3f0e; --mg-c: #1c1714; --mg-p: rgba(253, 230, 138, 0.55); }
+.mg-skin-mining { --mg-a: #7dd3fc; --mg-b: #334155; --mg-c: #15191f; --mg-p: rgba(186, 230, 253, 0.6); }
+.mg-skin-smithing { --mg-a: #fb923c; --mg-b: #9a3412; --mg-c: #1f120c; --mg-p: rgba(253, 186, 116, 0.85); }
+.mg-skin-woodcutting { --mg-a: #86efac; --mg-b: #166534; --mg-c: #0f1a12; --mg-p: rgba(163, 230, 53, 0.7); }
+.mg-skin-firemaking { --mg-a: #fdba74; --mg-b: #c2410c; --mg-c: #140b08; --mg-p: rgba(251, 146, 60, 0.9); }
+.mg-skin-fishing { --mg-a: #67e8f9; --mg-b: #0e7490; --mg-c: #0b1a22; --mg-p: rgba(207, 250, 254, 0.55); }
+.mg-skin-cooking { --mg-a: #fcd34d; --mg-b: #b45309; --mg-c: #1d140c; --mg-p: rgba(255, 255, 255, 0.35); }
+.mg-skin-crafting { --mg-a: #fbbf24; --mg-b: #78350f; --mg-c: #1e150c; --mg-p: rgba(254, 215, 170, 0.5); }
+.mg-skin-enhancing { --mg-a: #c4b5fd; --mg-b: #5b21b6; --mg-c: #120d22; --mg-p: rgba(221, 214, 254, 0.8); }
+.mg-skin-runecrafting { --mg-a: #5eead4; --mg-b: #0f766e; --mg-c: #0a1a1a; --mg-p: rgba(153, 246, 228, 0.75); }
+.mg-skin-herblore { --mg-a: #bef264; --mg-b: #4d7c0f; --mg-c: #121a0d; --mg-p: rgba(254, 249, 195, 0.7); }
+
+/* --- The stage: a little window into the skill's world --- */
+.mg-skin .mg-stage {
+  overflow: hidden; isolation: isolate;
+  border: 3px solid color-mix(in srgb, var(--mg-a) 35%, #2a241e);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 36px color-mix(in srgb, var(--mg-a) 22%, transparent), inset 0 0 34px rgba(0, 0, 0, 0.65);
+}
+.mg-skin .mg-stage::before, .mg-skin .mg-stage::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: -1; }
+/* drifting particles (sparks, leaves, bubbles, motes…) */
+.mg-skin .mg-stage::after {
+  opacity: 0.9;
+  background-image:
+    radial-gradient(circle, var(--mg-p) 0 1.6px, transparent 2.4px),
+    radial-gradient(circle, var(--mg-p) 0 1.1px, transparent 1.8px),
+    radial-gradient(circle, var(--mg-p) 0 2px, transparent 2.8px);
+  background-size: 71px 113px, 47px 89px, 103px 157px;
+  background-position: 0 0, 23px 41px, 57px 13px;
+  animation: mgDriftUp 9s linear infinite;
+}
+/* Stage contents sit above the scenery (zero-strength rule, so games that place things absolutely keep doing so). */
+:where(.mg-skin .mg-stage > *) { position: relative; z-index: 1; }
+.mg-skin .mg-stage > .mg-feedback { z-index: 3; }
+@keyframes mgDriftUp { from { background-position: 0 0, 23px 41px, 57px 13px; } to { background-position: 0 -113px, 23px -48px, 57px -144px; } }
+@keyframes mgDriftDown { from { background-position: 0 0, 23px 41px, 57px 13px; } to { background-position: 30px 113px, 3px 130px, 77px 170px; } }
+@keyframes mgSway { 0%, 100% { background-position: 0 0, 23px 41px, 57px 13px; } 50% { background-position: 8px -30px, 15px 11px, 63px -17px; } }
+@keyframes mgTwinkle { from { opacity: 0.25; } to { opacity: 0.95; } }
+
+/* Mining: a cave wall with glinting ore specks */
+.mg-skin-mining .mg-stage::before { background:
+  radial-gradient(ellipse at 50% 45%, rgba(125, 211, 252, 0.16), transparent 55%),
+  radial-gradient(circle at 18% 28%, rgba(148, 163, 184, 0.35) 0 6px, transparent 7px),
+  radial-gradient(circle at 80% 70%, rgba(148, 163, 184, 0.3) 0 9px, transparent 10px),
+  radial-gradient(circle at 72% 18%, rgba(100, 116, 139, 0.35) 0 12px, transparent 13px),
+  radial-gradient(circle at 25% 80%, rgba(71, 85, 105, 0.45) 0 14px, transparent 15px),
+  linear-gradient(160deg, #283241, #151a22 60%, #0d1016); }
+.mg-skin-mining .mg-stage::after { animation: mgTwinkle 2.6s ease-in-out infinite alternate; }
+/* Smithing: the forge glows from below, sparks fly up */
+.mg-skin-smithing .mg-stage::before { background:
+  radial-gradient(ellipse at 50% 112%, rgba(251, 146, 60, 0.75), rgba(194, 65, 12, 0.35) 38%, transparent 62%),
+  repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 2px, transparent 2px 22px),
+  repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.14) 0 2px, transparent 2px 38px),
+  linear-gradient(180deg, #2a1610, #1a0d08); }
+.mg-skin-smithing .mg-stage::after { animation-duration: 3.2s; }
+/* Woodcutting: a leafy forest clearing, leaves drifting down */
+.mg-skin-woodcutting .mg-stage::before { background:
+  radial-gradient(ellipse at 50% -10%, rgba(253, 230, 138, 0.25), transparent 50%),
+  radial-gradient(circle at 10% 10%, #1f4d2b 0 38px, transparent 39px),
+  radial-gradient(circle at 92% 6%, #23562f 0 44px, transparent 45px),
+  radial-gradient(circle at 55% -6%, #1b4426 0 40px, transparent 41px),
+  linear-gradient(180deg, #16301c 0%, #112418 70%, #2b1d12 70.5%, #20160d); }
+.mg-skin-woodcutting .mg-stage::after { animation: mgDriftDown 11s linear infinite; }
+/* Firemaking: a dark night, embers rising */
+.mg-skin-firemaking .mg-stage::before { background:
+  radial-gradient(ellipse at 50% 100%, rgba(249, 115, 22, 0.55), rgba(124, 45, 18, 0.25) 40%, transparent 65%),
+  radial-gradient(circle at 15% 15%, rgba(255, 255, 255, 0.5) 0 1px, transparent 1.5px),
+  radial-gradient(circle at 70% 10%, rgba(255, 255, 255, 0.4) 0 1px, transparent 1.5px),
+  radial-gradient(circle at 88% 30%, rgba(255, 255, 255, 0.45) 0 1px, transparent 1.5px),
+  linear-gradient(180deg, #0c0a1c, #170c0a); }
+.mg-skin-firemaking .mg-stage::after { animation-duration: 4s; }
+/* Fishing: under the water, bubbles rising, light ripples */
+.mg-skin-fishing .mg-stage::before { background:
+  repeating-radial-gradient(ellipse at 50% -40%, rgba(255, 255, 255, 0.06) 0 6px, transparent 6px 26px),
+  radial-gradient(ellipse at 50% 0%, rgba(103, 232, 249, 0.3), transparent 60%),
+  linear-gradient(180deg, #11506a, #0b2c3d 65%, #081c26); }
+.mg-skin-fishing .mg-stage::after { animation-duration: 7s; }
+/* Cooking: a warm brick kitchen, steam drifting */
+.mg-skin-cooking .mg-stage::before { background:
+  radial-gradient(ellipse at 50% 105%, rgba(252, 211, 77, 0.35), transparent 55%),
+  repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.35) 0 2px, transparent 2px 18px),
+  repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.25) 0 2px, transparent 2px 34px),
+  linear-gradient(180deg, #4a2a1a, #2a1810); }
+.mg-skin-cooking .mg-stage::after { animation: mgSway 6s ease-in-out infinite; opacity: 0.6; }
+/* Crafting: a planked workbench with sawdust */
+.mg-skin-crafting .mg-stage::before { background:
+  radial-gradient(ellipse at 50% 40%, rgba(251, 191, 36, 0.18), transparent 60%),
+  repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.28) 0 2px, transparent 2px 40px),
+  repeating-linear-gradient(90deg, #5a3d22 0 20px, #4f351d 20px 40px); }
+.mg-skin-crafting .mg-stage::after { animation: mgDriftDown 14s linear infinite; opacity: 0.55; }
+/* Enhancing: an arcane circle under a starry purple sky */
+.mg-skin-enhancing .mg-stage::before { background:
+  radial-gradient(circle at 50% 50%, transparent 0 58px, rgba(196, 181, 253, 0.28) 59px 61px, transparent 62px),
+  radial-gradient(circle at 50% 50%, transparent 0 82px, rgba(196, 181, 253, 0.16) 83px 84px, transparent 85px),
+  radial-gradient(ellipse at 50% 45%, rgba(124, 58, 237, 0.35), transparent 65%),
+  linear-gradient(180deg, #1e1240, #0f0a1f); }
+.mg-skin-enhancing .mg-stage::after { animation: mgTwinkle 2.2s ease-in-out infinite alternate; }
+/* Runecrafting: a teal glow from an old altar */
+.mg-skin-runecrafting .mg-stage::before { background:
+  radial-gradient(ellipse at 50% 60%, rgba(94, 234, 212, 0.3), transparent 55%),
+  repeating-conic-gradient(from 0deg at 50% 60%, rgba(94, 234, 212, 0.06) 0 8deg, transparent 8deg 30deg),
+  linear-gradient(180deg, #0f2a2a, #081515); }
+.mg-skin-runecrafting .mg-stage::after { animation-duration: 6s; }
+/* Herblore: a sunny meadow, pollen floating */
+.mg-skin-herblore .mg-stage::before { background:
+  radial-gradient(ellipse at 50% -15%, rgba(254, 240, 138, 0.35), transparent 55%),
+  radial-gradient(ellipse at 20% 100%, #3f6212 0 40px, transparent 41px),
+  radial-gradient(ellipse at 80% 100%, #4d7c0f 0 50px, transparent 51px),
+  linear-gradient(180deg, #1f3313, #13200c); }
+.mg-skin-herblore .mg-stage::after { animation: mgSway 7s ease-in-out infinite; }
+
+/* --- The thing you work on: a soft halo, a gentle bob, a ring that bursts on a hit --- */
+.mg-skin .mg-rock, .mg-skin .tree-wrap, .mg-skin .anvil-wrap, .mg-skin .pan-wrap, .mg-skin .fire-wrap, .mg-skin .bench, .mg-skin .rune-wrap {
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 14px color-mix(in srgb, var(--mg-a) 30%, transparent));
+}
+.mg-skin .mg-rock { position: relative; background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--mg-a) 18%, #2b2722), #1d1a17 75%); border-color: color-mix(in srgb, var(--mg-a) 40%, #3f382f); animation: mgBob 3s ease-in-out infinite; }
+.mg-skin .mg-rock.locked-art { animation: none; }
+.mg-skin .mg-rock.hit { animation: thunk 0.28s ease-out, mgFlash 0.35s ease-out; }
+.mg-skin .mg-rock.hit::after { content: ''; position: absolute; inset: -6px; border-radius: 28px; border: 3px solid var(--mg-a); animation: mgRing 0.45s ease-out forwards; pointer-events: none; }
+@keyframes mgBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes mgFlash { 0% { filter: brightness(2.2); } 100% { filter: brightness(1); } }
+@keyframes mgRing { from { transform: scale(0.85); opacity: 1; } to { transform: scale(1.45); opacity: 0; } }
+.mg-skin .mg-stage-name { text-shadow: 0 2px 0 #000, 0 0 12px rgba(0, 0, 0, 0.8); letter-spacing: 0.3px; }
+.mg-skin .mg-stage-xp { background: rgba(0, 0, 0, 0.45); border: 1px solid color-mix(in srgb, var(--mg-a) 45%, transparent); border-radius: 99px; padding: 2px 10px; color: var(--mg-a); }
+
+/* --- Pop-ups: they burst in, PERFECT shines --- */
+.mg-skin .mg-float { font-size: 0.92rem; padding: 5px 12px; background: rgba(10, 8, 6, 0.86); border: 1.5px solid rgba(255, 255, 255, 0.12); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5); animation: mgPopUp 1.3s cubic-bezier(.2, 1.4, .4, 1) forwards; }
+.mg-skin .mg-good { border-color: color-mix(in srgb, var(--mg-a) 55%, transparent); color: #fff7e0; }
+.mg-skin .mg-perfect { background: linear-gradient(180deg, #4a3300, #1f1500); border-color: #fde68a; color: #fde68a; text-shadow: 0 0 8px rgba(253, 230, 138, 0.8); box-shadow: 0 0 16px rgba(251, 191, 36, 0.45); font-size: 1rem; }
+.mg-skin .mg-combo { background: linear-gradient(180deg, #053d2a, #021a12); color: #a7f3d0; border-color: #34d399; box-shadow: 0 0 14px rgba(52, 211, 153, 0.35); }
+@keyframes mgPopUp { 0% { transform: translateY(10px) scale(0.6); opacity: 0; } 14% { transform: translateY(0) scale(1.08); opacity: 1; } 24% { transform: scale(1); } 80% { opacity: 1; } 100% { transform: translateY(-22px); opacity: 0; } }
+
+/* --- The control panel: tinted by the skill, a glowing top edge --- */
+.mg-skin .mg-panel { position: relative; background: linear-gradient(180deg, color-mix(in srgb, var(--mg-c) 92%, #000), rgba(14, 12, 10, 0.95)); border-color: color-mix(in srgb, var(--mg-a) 28%, #2e2823); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); }
+.mg-skin .mg-panel::before { content: ''; position: absolute; left: 14px; right: 14px; top: -1px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--mg-a), transparent); opacity: 0.75; }
+.mg-skin .mg-label { color: #e7e0d4; font-weight: 900; letter-spacing: 0.3px; }
+.mg-skin .mg-hint { color: var(--mg-a); }
+
+/* --- Timing bars: a track with tick marks, a glowing zone, a bright marker --- */
+.mg-skin .strike-bar, .mg-skin .kindle-bar { background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 10%), linear-gradient(180deg, #050403, #14110e); box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.8); border-color: color-mix(in srgb, var(--mg-a) 25%, #3a332b); }
+.mg-skin .strike-bar.heat-bar { background: linear-gradient(90deg, #1e3a8a, #7c2d12 45%, #b45309 70%, #7f1d1d); }
+.mg-skin .strike-zone { background: linear-gradient(180deg, color-mix(in srgb, var(--mg-a) 75%, #fff), var(--mg-a) 45%, var(--mg-b)); box-shadow: 0 0 14px color-mix(in srgb, var(--mg-a) 60%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.5); animation: mgZone 1.6s ease-in-out infinite; }
+.mg-skin .strike-perfect { background: #fffbeb; opacity: 0.7; box-shadow: 0 0 8px #fff; }
+.mg-skin .strike-marker { width: 6px; background: #fff; box-shadow: 0 0 12px #fff, 0 0 4px var(--mg-a); }
+@keyframes mgZone { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.18); } }
+.mg-skin .reel-track { box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.6); border-color: color-mix(in srgb, var(--mg-a) 30%, #3a332b); }
+.mg-skin .reel-zone { background: color-mix(in srgb, var(--mg-a) 30%, transparent); border-color: var(--mg-a); box-shadow: 0 0 12px color-mix(in srgb, var(--mg-a) 50%, transparent); }
+.mg-skin .pip { box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.6); }
+.mg-skin .pip.good { background: var(--mg-a); border-color: #fff7e0; box-shadow: 0 0 8px var(--mg-a); }
+.mg-skin .carve-blade, .mg-skin .reel-hook { box-shadow: 0 0 12px #fff, 0 0 4px var(--mg-a); }
+
+/* --- Sub-game tabs (Reel It In / Sort the Catch…) take the skill's colour --- */
+.mg-skin .tab-pill.on { color: var(--mg-a); border-color: var(--mg-a); background: color-mix(in srgb, var(--mg-b) 35%, #120f0c); box-shadow: 0 0 12px color-mix(in srgb, var(--mg-a) 30%, transparent); }

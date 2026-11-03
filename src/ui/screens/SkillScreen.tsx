@@ -330,7 +330,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
                 ? 'Craft a tool first — then upgrade it here, even while it’s equipped. Your +1 replaces the old one.'
                 : 'Nothing here yet.'}
           </div>
-          {skill === 'enhancing' && <EnhancingGames />}
+          {skill === 'enhancing' && <div className="mg-skin mg-skin-enhancing"><EnhancingGames /></div>}
         </div>
       </div>
     );
@@ -387,6 +387,8 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
       </div>
       )}
 
+      {/* 🎨 v0.0.2.12: every minigame sits in its skill's own "skin" — scenery, colours and glow (styles.css .mg-skin-*). */}
+      <div className={`mg-skin mg-skin-${skill}`}>
       {unlocked ? (
         <Minigame key={skill} action={action} />
       ) : skill === 'enhancing' ? (
@@ -405,6 +407,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
           </div>
         </div>
       )}
+      </div>
 
       {unlocked && (
         <div className="idle-cta">
