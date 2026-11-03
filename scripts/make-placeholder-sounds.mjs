@@ -327,6 +327,14 @@ const sounds = {
     ['', shape(bandpass(noise(1.0, 1, 0), 800, 1700), (t) => 0.6 * Math.sin(Math.PI * Math.min(1, Math.max(0, t - 0.15) / 0.85)) ** 2)],
     ['', shape(sweep(420, 620, 1.0, 0.25, 0), (t) => Math.sin(Math.PI * Math.min(1, t / 1.0)) ** 2)],
   ), 0.16),
+  // 🃏 Spellcards (v0.0.2.14): a deck riffled together — a run of quick flicks speeding up, then a soft square-up tap.
+  riffle: norm(mix(
+    ...Array.from({ length: 22 }, (_, i) => ['', shape(bandpass(noise(0.03, 1, 0), 1800, 6500), (t) => Math.min(1, t / 0.002) * Math.exp(-110 * t)), 0.02 + 0.5 * (1 - Math.pow(1 - i / 22, 1.6))]),
+    ['', strike(520, [1, 2.1], [70, 110], [1, 0.3], 0.08, 0.8), 0.6],
+    ['', lowpass(noise(0.05, 0.6, 60), 900), 0.6],
+  ), 0.2),
+  // 🃏 A card sliding across felt: a soft low swish.
+  slide: norm(shape(bandpass(noise(0.2, 1, 0), 350, 2200), (t) => Math.sin(Math.PI * Math.min(1, t / 0.2)) ** 1.5 * (1 - t / 0.2 * 0.4)), 0.1),
   // 🐇 A little hop: a quick springy boing.
   boing: norm(shape(sweep(280, 680, 0.13, 1, 0), (t) => Math.min(1, t / 0.005) * Math.exp(-14 * t) * (0.7 + 0.3 * Math.sin(t * 600))), 0.09),
 };

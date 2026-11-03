@@ -32,31 +32,56 @@ function writeBest(slot: number | null, n: number) { try { localStorage.setItem(
 const wardName = (w: number) => (isDeep(w) ? `🌀 Deep ward ${w + 1}` : `Ward ${w + 1}/${WARDS}`);
 const bestText = (best: number) => (best > WARDS ? `deep ward ${best} 🌀` : best === WARDS ? 'all 6 wards! 🏆' : `ward ${best}`);
 
-function RuneCard({ c, picked, onClick, dim, className = '' }: { c: Card; picked?: boolean; onClick?: () => void; dim?: boolean; className?: string }) {
+/** Where the suit symbols sit on a card, like a real deck (x, y in % of the middle panel; f = upside down). */
+const PIPS: Record<number, [number, number, boolean?][]> = {
+  2: [[50, 12], [50, 88, true]],
+  3: [[50, 12], [50, 50], [50, 88, true]],
+  4: [[28, 12], [72, 12], [28, 88, true], [72, 88, true]],
+  5: [[28, 12], [72, 12], [50, 50], [28, 88, true], [72, 88, true]],
+  6: [[28, 12], [72, 12], [28, 50], [72, 50], [28, 88, true], [72, 88, true]],
+  7: [[28, 12], [72, 12], [50, 31], [28, 50], [72, 50], [28, 88, true], [72, 88, true]],
+  8: [[28, 12], [72, 12], [50, 31], [28, 50], [72, 50], [50, 69, true], [28, 88, true], [72, 88, true]],
+  9: [[28, 12], [72, 12], [28, 37], [72, 37], [50, 50], [28, 63, true], [72, 63, true], [28, 88, true], [72, 88, true]],
+  10: [[28, 12], [72, 12], [50, 25], [28, 37], [72, 37], [28, 63, true], [72, 63, true], [50, 75, true], [28, 88, true], [72, 88, true]],
+};
+
+/** A rune card that looks like a real playing card: corner indexes, suit symbols laid out by number, a foil for enchantments. */
+function RuneCard({ c, picked, onClick, dim, className = '', style }: { c: Card; picked?: boolean; onClick?: () => void; dim?: boolean; className?: string; style?: React.CSSProperties }) {
   const e = ELEMENT_INFO[c.el];
   return (
-    <button data-silent className={`sc-card ${picked ? 'picked' : ''} ${dim ? 'dim' : ''} ${className}`} style={{ ['--el' as string]: e.color }} onClick={onClick}
+    <button data-silent className={`sc-card el-${c.el} ${c.ench ? `ench-${c.ench}` : ''} ${picked ? 'picked' : ''} ${dim ? 'dim' : ''} ${className}`}
+      style={{ ['--el' as string]: e.color, ...style }} onClick={onClick}
       aria-label={`${c.v} of ${e.name}${c.ench ? `, ${c.ench}` : ''}${picked ? ', picked' : ''}`}>
-      <span className="sc-v">{c.v}</span>
-      <span className="sc-el">{e.emoji}</span>
-      {c.ench && <span className="sc-ench" title={ENCHANT_INFO[c.ench].text}>{ENCHANT_INFO[c.ench].emoji}</span>}
+      <span className="sc-face">
+        <span className="sc-corner tl"><b>{c.v}</b><i>{e.emoji}</i></span>
+        <span className="sc-pips">
+          {c.v === 1
+            ? <span className="sc-pip ace">{e.emoji}</span>
+            : (PIPS[c.v] ?? []).map(([x, y, f], i) => <span key={i} className={`sc-pip ${f ? 'f' : ''}`} style={{ left: `${x}%`, top: `${y}%` }}>{e.emoji}</span>)}
+        </span>
+        <span className="sc-corner br"><b>{c.v}</b><i>{e.emoji}</i></span>
+        {c.ench && <span className="sc-ench" title={ENCHANT_INFO[c.ench].text}>{ENCHANT_INFO[c.ench].emoji}</span>}
+      </span>
     </button>
   );
 }
 
 /** A number that rolls up from `from` to `to`. */
-function CountUp({ from = 0, to, ms = 650 }: { from?: number; to: number; ms?: number }) {
+function CountUp({ from = 0, to, ms = 650, ticks = false }: { from?: number; to: number; ms?: number; ticks?: boolean }) {
   const [n, setN] = useState(from);
   useEffect(() => {
     // A plain timer (not animation frames), so it always lands on the right number.
     const t0 = Date.now();
+    let last = 0;
     const id = window.setInterval(() => {
       const k = Math.min(1, (Date.now() - t0) / ms);
       setN(Math.round(from + (to - from) * (1 - (1 - k) ** 3)));
+      // 🔊 a soft tick as the number climbs, rising in pitch (slowing down with the number)
+      if (ticks && k < 1 && Date.now() - last > 70 + k * 90) { last = Date.now(); sound.play('tick', { rate: 1.1 + k * 0.8, volume: 0.35 }); }
       if (k >= 1) clearInterval(id);
     }, 30);
     return () => clearInterval(id);
-  }, [from, to, ms]);
+  }, [from, to, ms, ticks]);
   return <>{n.toLocaleString()}</>;
 }
 
@@ -75,6 +100,7 @@ export function Spellcards() {
   const [showSpells, setShowSpells] = useState(false);
   const [giveUp, setGiveUp] = useState(false);
   const [tally, setTally] = useState<Tally | null>(null);
+  const [full, setFull] = useState(false);
   const run = load(slot);
   const best = readBest(slot);
   const lvl = skillLevel(player, 'enhancing');
@@ -96,6 +122,27 @@ export function Spellcards() {
     return xp;
   };
 
+  // ⛶ Full screen (v0.0.2.14): the table covers the whole screen; the browser goes full screen too where it can.
+  useEffect(() => {
+    if (!full) return;
+    const before = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    let wasFs = !!document.fullscreenElement;
+    const off = () => { if (document.fullscreenElement) wasFs = true; else if (wasFs) setFull(false); };
+    document.addEventListener('fullscreenchange', off);
+    return () => { document.body.style.overflow = before; document.removeEventListener('fullscreenchange', off); };
+  }, [full]);
+  useEffect(() => () => { if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}); }, []);
+  const toggleFull = () => {
+    sound.play('slide', { rate: 1.2, volume: 0.6 });
+    if (full) { setFull(false); if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}); return; }
+    setFull(true);
+    try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }).catch(() => {}); } catch { /* the overlay still covers the screen */ }
+  };
+  const fullBtn = <button className="sc-full-btn" onClick={toggleFull} aria-label={full ? 'Leave full screen' : 'Full screen'} title={full ? 'Leave full screen' : 'Full screen'}>{full ? '✕' : '⛶'}</button>;
+  /** Every screen of the game sits on the card table. */
+  const root = (extra = '') => `mg sc-root ${extra} ${full ? 'sc-full' : ''}`;
+
   // A calm card-table tune while you play. Leaving mid-tally still gives the ward's XP.
   const town = player.location;
   useEffect(() => {
@@ -114,8 +161,8 @@ export function Spellcards() {
       else if (s.kind === 'card') {
         const n = res.steps.slice(0, step).filter((x) => x.kind === 'card').length;
         if (s.text === 'fizzles') sound.play('whoosh', { rate: 0.9, volume: 0.6 });
-        else sound.play('tick', { rate: 1 + n * 0.09, volume: 0.8 });
-      } else if (s.mult) sound.play('boom', { rate: 0.9 + Math.min(0.4, step * 0.03), volume: 0.85 });
+        else { sound.play('tick', { rate: 1 + n * 0.09, volume: 0.8 }); sound.play('card', { rate: 1.2 + n * 0.06, volume: 0.3 }); }
+      } else if (s.mult) { sound.play('boom', { rate: 0.9 + Math.min(0.4, step * 0.03), volume: 0.85 }); game.vibrate(12); }
       else sound.play('coin', { rate: 1.25, volume: 0.6 });
     } else {
       // The total: a bigger chime for a bigger spell.
@@ -138,6 +185,8 @@ export function Spellcards() {
     const xp = payOwed();
     if (xp) {
       sound.play('levelup', { volume: 0.75 });
+      window.setTimeout(() => sound.play('match', { volume: 0.6 }), 180);
+      game.vibrate(40);
       push(`Ward broken! +${xp.enhancing.toLocaleString()} Enhancing · +${xp.magic.toLocaleString()} Magic`, 'combo');
     } else if (run.phase === 'lost') {
       sound.play('fail', { volume: 0.6 });
@@ -149,15 +198,19 @@ export function Spellcards() {
   };
 
   /** A few card flicks, as new cards are dealt. */
-  const dealSounds = (n: number) => {
-    for (let i = 0; i < n; i++) window.setTimeout(() => sound.play('card', { rate: 0.9 + Math.random() * 0.25, volume: 0.7 }), 60 + i * 70);
+  const dealSounds = (n: number, delay = 60) => {
+    for (let i = 0; i < n; i++) window.setTimeout(() => {
+      sound.play('slide', { rate: 0.95 + Math.random() * 0.2, volume: 0.65 });
+      sound.play('card', { rate: 1 + Math.random() * 0.2, volume: 0.45 });
+    }, delay + i * 75);
   };
 
-  const begin = () => { sound.play('enchant', { volume: 0.7 }); dealSounds(5); setPicked([]); commit(newRun()); };
+  const begin = () => { sound.play('riffle', { volume: 0.8 }); window.setTimeout(() => sound.play('enchant', { volume: 0.5 }), 650); dealSounds(8, 700); setPicked([]); commit(newRun()); };
 
   if (!run) {
     return (
-      <div className="mg">
+      <div className={root()}>
+        {fullBtn}
         <div className="sc-intro">
           <div className="sc-intro-cards" aria-hidden="true">
             {ELEMENTS.map((el, i) => <RuneCard key={el} c={{ id: i, el, v: [7, 7, 9, 10][i] }} />)}
@@ -179,9 +232,12 @@ export function Spellcards() {
   const toggle = (id: number) => {
     if (tally) return;
     setPicked((p) => {
-      if (p.includes(id)) { sound.play('card', { rate: 0.85, volume: 0.6 }); return p.filter((x) => x !== id); }
-      if (p.length >= MAX_PLAY) { sound.play('whoosh', { volume: 0.4 }); return p; }
-      sound.play('card', { rate: 1.1 + p.length * 0.05, volume: 0.75 });
+      if (p.includes(id)) { sound.play('slide', { rate: 1.25, volume: 0.45 }); sound.play('card', { rate: 0.8, volume: 0.45 }); return p.filter((x) => x !== id); }
+      if (p.length >= MAX_PLAY) { sound.play('whoosh', { volume: 0.4 }); game.vibrate(15); return p; }
+      // each extra card picked rings a little higher
+      sound.play('card', { rate: 1.05 + p.length * 0.08, volume: 0.75 });
+      sound.play('tick', { rate: 1.3 + p.length * 0.12, volume: 0.25 });
+      game.vibrate(6);
       return [...p, id];
     });
   };
@@ -196,6 +252,8 @@ export function Spellcards() {
     setPicked([]);
     if (run.phase === 'shop' || run.phase === 'won') owed.current = { run, ward: wardBefore };
     store(slot, run); // saved straight away; the tally is just the show
+    sound.play('whoosh', { rate: 1.15, volume: 0.6 });
+    cards.forEach((_, i) => window.setTimeout(() => sound.play('slide', { rate: 1.1 + i * 0.05, volume: 0.5 }), 40 + i * 55));
     setTally({ cards, res, before, step: 0, wardBefore, target });
   };
 
@@ -209,8 +267,8 @@ export function Spellcards() {
     const swapped = run.hand.length - picked.length;
     const why = redraw(run, picked);
     if (why) { push(why, 'miss'); return; }
-    sound.play('whoosh', { rate: 1.3, volume: 0.5 });
-    dealSounds(Math.min(6, swapped));
+    sound.play('riffle', { rate: 1.25, volume: 0.55 });
+    dealSounds(Math.min(8, swapped), 380);
     commit(run);
   };
 
@@ -226,7 +284,8 @@ export function Spellcards() {
   if (run.phase === 'won' && !tally) {
     const next = wardXp(lvl, run.ward + 1);
     return (
-      <div className="mg">
+      <div className={root()}>
+        {fullBtn}
         <div className="sc-intro sc-won">
           <h3>🏆 All six wards broken!</h3>
           <p className="small">A masterful run. So far: <b className="gold">+{run.xp.enhancing.toLocaleString()} Enhancing</b> · <b className="gold">+{run.xp.magic.toLocaleString()} Magic XP</b></p>
@@ -243,7 +302,8 @@ export function Spellcards() {
   if (run.phase === 'lost' && !tally) {
     const deep = isDeep(run.ward);
     return (
-      <div className="mg">
+      <div className={root()}>
+        {fullBtn}
         <div className="sc-intro">
           <h3>{deep ? '🌀 The deep closes in' : '💨 The ward held'}</h3>
           <p className="small">You scored {run.score.toLocaleString()} of {target.toLocaleString()} on {deep ? `deep ward ${run.ward + 1}` : `ward ${run.ward + 1}`}. Wards beaten: <b>{run.ward}</b>{deep ? ' 🏆' : `/${WARDS}`}.</p>
@@ -261,7 +321,8 @@ export function Spellcards() {
     const nextW = run.ward + 1;
     const nextXp = wardXp(lvl, nextW);
     return (
-      <div className="mg">
+      <div className={root()}>
+        {fullBtn}
         <div className="sc-shop">
           <div className="row-between">
             <h3>🧙 The Enchanter</h3>
@@ -277,7 +338,7 @@ export function Spellcards() {
                 <span className="sc-offer-emoji">{c.emoji}</span>
                 <div className="grow"><b>{c.name}</b><div className="small muted">{c.text}</div></div>
                 <button className="btn btn-primary btn-sm" disabled={run.sparks < c.cost || run.charms.length >= MAX_CHARMS}
-                  onClick={() => { const why = buyCharm(run, id); if (why) push(why, 'miss'); else { sound.play('coin'); commit(run); } }}>✨ {c.cost}</button>
+                  onClick={() => { const why = buyCharm(run, id); if (why) push(why, 'miss'); else { sound.play('coin'); sound.play('enchant', { rate: 1.3, volume: 0.4 }); game.vibrate(10); commit(run); } }}>✨ {c.cost}</button>
               </div>
             );
           })}
@@ -307,7 +368,7 @@ export function Spellcards() {
           )}
           <div className="btn-pair">
             <button className="btn btn-lg" disabled={run.sparks < run.shop.rerollCost} onClick={() => { const why = rerollShop(run); if (why) push(why, 'miss'); else { sound.play('card'); sound.play('tile', { volume: 0.5 }); commit(run); } }}>🎲 Reroll ✨{run.shop.rerollCost}</button>
-            <button className="btn btn-hero btn-lg" onClick={() => { nextWard(run); setPicked([]); sound.play('enchant', { volume: 0.6 }); dealSounds(5); commit(run); }}>Next ward ▶</button>
+            <button className="btn btn-hero btn-lg" onClick={() => { nextWard(run); setPicked([]); sound.play('riffle', { volume: 0.7 }); dealSounds(8, 600); commit(run); }}>Next ward ▶</button>
           </div>
           <p className="small dim">Sparks: 3 per ward + 1 per cast left + 1 for every 5 you save (up to +5).</p>
         </div>
@@ -329,7 +390,8 @@ export function Spellcards() {
   const keeping = picked.length > 0;
 
   return (
-    <div className="mg sc-play">
+    <div className={root('sc-play')}>
+      {fullBtn}
       <div className="sc-top">
         <div className="row-between">
           <b>{wardName(run.ward)}{quirk ? ` · ${quirk.name}` : ''}</b>
@@ -382,7 +444,7 @@ export function Spellcards() {
             <span className="sc-x">×</span>
             <span className={`sc-pow ${beat?.mult && !atTotal ? 'mult' : ''}`} key={`p${beat?.power}`}>{atTotal ? t.res.power : beat?.power}</span>
           </div>
-          <div className="sc-total mono">{atTotal ? <>= <CountUp to={t.res.total} ms={700} /></> : ' '}</div>
+          <div className="sc-total mono">{atTotal ? <>= <CountUp to={t.res.total} ms={700} ticks /></> : ' '}</div>
           <span className="sc-skip small dim">tap to skip</span>
         </button>
       ) : (
@@ -394,10 +456,15 @@ export function Spellcards() {
         </div>
       )}
 
-      <div className={`sc-hand ${t ? 'busy' : ''}`}>
-        {hand.map((c) => {
+      <div className={`sc-hand fan ${t ? 'busy' : ''}`}>
+        {hand.map((c, i) => {
           const scoring = preview?.scoring.some((s) => s.id === c.id);
-          return <RuneCard key={c.id} c={c} className="dealt" picked={picked.includes(c.id)} dim={!!preview && picked.includes(c.id) && !scoring} onClick={() => toggle(c.id)} />;
+          const mid = (hand.length - 1) / 2;
+          const off = i - mid;
+          const up = picked.includes(c.id);
+          // A gentle arc: cards tilt outwards and dip a little at the ends; picked ones rise.
+          return <RuneCard key={c.id} c={c} className="dealt" picked={up} dim={!!preview && up && !scoring} onClick={() => toggle(c.id)}
+            style={{ ['--rot' as string]: `${off * 3.2}deg`, ['--dip' as string]: `${Math.abs(off) ** 1.6 * 2.2}px`, ['--i' as string]: i, zIndex: i + 1 }} />;
         })}
       </div>
 
