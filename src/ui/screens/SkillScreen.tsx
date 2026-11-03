@@ -25,7 +25,7 @@ import { ItemIcon, UiIcon, type UiIconName } from '../icons';
 import { fmtDuration, fmtNum } from '../format';
 import { AnvilRhythm, StrikeVein } from '../Minigames';
 import { Chop, RuneTrace } from '../Minigames2';
-import { CraftingGames } from '../Joinery';
+import { CraftingGames } from '../Loom';
 import { EnhancingGames } from '../Runesong';
 import { FiremakingGames } from '../Wildfire';
 import { FishingGames } from '../TileMatch';

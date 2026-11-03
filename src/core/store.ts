@@ -909,7 +909,14 @@ export const game = {
   },
 
   /** XP-only reward (the fishing tile game). */
-  /** XP-only minigames (Sort the Catch, Pantry Prep, Joinery). Capped at `maxMult` × the recipe's XP. */
+  /** XP-only minigames (Sort the Catch, Pantry Prep, The Loom, Tinker's Tray). Capped at `maxMult` × the recipe's XP. */
+  /** 🧶 The Loom: a loom finished — on to the next level (up to 999). */
+  loomLevelUp() {
+    snap.player.loomLevel = Math.min(999, (snap.player.loomLevel ?? 1) + 1);
+    save();
+    emit();
+  },
+
   /** 🧺 Sort the Catch: a crate cleared — on to the next level (up to 999). */
   sortLevelUp() {
     snap.player.sortLevel = Math.min(999, (snap.player.sortLevel ?? 1) + 1);

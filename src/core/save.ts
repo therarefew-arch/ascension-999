@@ -398,6 +398,7 @@ function repair(raw: any): PlayerState {
   if (raw?.dungeonRun) p.dungeonRun = loadDungeonRun(raw.dungeonRun);
   { const hp = loadHappening(raw?.happening); if (hp) p.happening = hp; }
   if (typeof raw?.sortLevel === 'number' && raw.sortLevel >= 1) p.sortLevel = Math.min(999, Math.floor(raw.sortLevel));
+  if (typeof raw?.loomLevel === 'number' && raw.loomLevel >= 1) p.loomLevel = Math.min(999, Math.floor(raw.loomLevel));
   if (raw?.dungeonBossAt && typeof raw.dungeonBossAt === 'object') {
     p.dungeonBossAt = {};
     for (const [r, n] of Object.entries(raw.dungeonBossAt)) if ((REGIONS as readonly string[]).includes(r) && typeof n === 'number' && Number.isFinite(n)) p.dungeonBossAt[r as Region] = n;
