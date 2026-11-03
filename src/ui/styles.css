@@ -2634,3 +2634,14 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .mg-fs.on .lock-why { margin-top: 44px; }
 .mg-fs.on.mg-skin-farming { padding-top: calc(env(safe-area-inset-top, 0px) + 54px); }
 .mg-fs.on .garden { max-width: 520px; margin: 0 auto; width: 100%; }
+
+/* =====================================================================
+   🧰 The helper circle (v0.0.2.18): the helper a skill uses (tap to pause) and the one it turns up.
+   ===================================================================== */
+.hl-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.hl-chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 2px 9px; border-radius: 99px; font: inherit; font-size: 0.72rem; font-weight: 800; border: 1.5px solid; line-height: 1.5; text-align: left; }
+.hl-chip.use { color: #fde68a; border-color: #a16207; background: #2a1d06; cursor: pointer; }
+.hl-chip.use:active { transform: translateY(1px); }
+.hl-chip.use.off { color: #a8a29e; border-color: #57534e; background: #1c1917; border-style: dashed; }
+.hl-chip.none { color: #a8a29e; border-color: #44403c; background: #1c1917; font-weight: 700; }
+.hl-chip.make { color: #c7d2fe; border-color: #3730a3; background: #12122a; font-weight: 700; }

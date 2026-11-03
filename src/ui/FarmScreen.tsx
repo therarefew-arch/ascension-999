@@ -2,6 +2,7 @@
 // Minigame "Garden Helpers": pests and weeds pop up on growing plots — tap them for XP and faster growth.
 import { useEffect, useState } from 'react';
 import { MinigameFrame } from './MinigameFrame';
+import { HelperRow } from './Helpers';
 import { sound } from '../audio/sound';
 import { getItem } from '../data/items';
 import { CROPS, tierLevel } from '../data/tiers';
@@ -62,6 +63,7 @@ export function FarmScreen() {
         <ProgressBar value={prog.fraction} />
         <div className="mastery-sub mono"><span className="muted">{prog.maxed ? 'MAX' : `${fmtNum(prog.into)} / ${fmtNum(prog.needed)} XP`}</span></div>
         <BoostRow skill="farming" />
+        <HelperRow skill="farming" />
         <GoalRow skill="farming" place="📍 Your Garden, Pocketvale" />
       </div>
 

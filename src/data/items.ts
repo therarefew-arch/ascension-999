@@ -6,6 +6,7 @@ import { FESTIVALS, TREAT_BUFF } from './festivals';
 import { ASC_RELIC_TIER, RELICS, relicItemId, type RelicKey } from './relics';
 import { ASCENSION_LEVEL, BONUSES, isAscendedId, parseAscended, type AscParts, type BonusKey } from './ascended';
 import { CHARMS, LOST_MEALS } from './lostRecipes';
+import { HELPERS } from './helpers';
 
 export type ItemCategory = 'ore' | 'bar' | 'log' | 'material' | 'fish' | 'food' | 'weapon' | 'armour' | 'tool' | 'gem' | 'ammo' | 'currency' | 'treasure'
   | 'herb' | 'crop' | 'seed' | 'meal' | 'charm';
@@ -530,6 +531,10 @@ for (const r of RELICS) {
     },
   });
 }
+
+// ----- 🧰 Helpers: by-products of one skill that boost another (data/helpers.ts) -----
+items.push(...HELPERS.map((h): ItemDef => ({ id: h.id, name: h.name, category: 'material', tier: 'oak', icon: 'coins', emoji: h.emoji, stackable: true, value: 5,
+  description: `${h.blurb} Used up on its own while you train ${h.helps[0].toUpperCase()}${h.helps.slice(1)}.` })));
 
 // ----- 🎁 Rare finds while gathering (open them from the bag) and the treasures inside -----
 // Never gems: gems only come from bosses.

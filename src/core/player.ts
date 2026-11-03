@@ -120,6 +120,8 @@ export interface PlayerState {
   bounties: { day: string; list: Bounty[]; rerolled: boolean };
   /** 🪓 Seasoned tools: actions done per skill (tools get a little faster with use). */
   toolUses: Partial<Record<SkillId, number>>;
+  /** 🧰 Helpers you paused (item ids) — they stay in your bag/bank instead of being used. */
+  helpersOff: string[];
   /** 🍲 Active meal and brew bonuses, keyed by kind + skill. */
   buffs: Record<string, ActiveBuff>;
   /** 🌱 Your garden plots (Farming). */
@@ -232,6 +234,7 @@ export function newPlayer(now = Date.now()): PlayerState {
     tutorial: { step: 0, progress: 0, done: false },
     bounties: { day: '', list: [], rerolled: false },
     toolUses: {},
+    helpersOff: [],
     buffs: {},
     farm: { plots: [null, null, null, null] },
     cottage: [],

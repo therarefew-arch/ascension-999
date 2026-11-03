@@ -11,6 +11,7 @@ import { rollFestivalToken } from './festivals';
 import { familyCount } from './family';
 import { countInBag, removeFromBag } from './inventory';
 import { giveLoot, rollLoot, rollPet } from './loot';
+import { dropHelper, helperWorks, takeHelper } from './helpers';
 import type { PlayerState } from './player';
 
 export const PLOTS = 4;
@@ -71,9 +72,15 @@ export function plant(p: PlayerState, i: number, seedId: string, report: Progres
 export function harvest(p: PlayerState, i: number, report: ProgressReport, now = Date.now()): boolean {
   const plot = p.farm.plots[i];
   if (!plot || !plotReady(plot, now)) return false;
-  const loot = rollLoot(`harvest_${CROPS[plot.crop].key}`);
-  giveLoot(p, loot);
-  for (const st of loot) report.gained[st.id] = (report.gained[st.id] ?? 0) + st.qty;
+  // 🧰 Compost (from Cooking): a chance of an extra handful.
+  const helper = takeHelper(p, 'farming', report);
+  for (let k = helperWorks(helper, 'extra') ? 2 : 1; k > 0; k--) {
+    const loot = rollLoot(`harvest_${CROPS[plot.crop].key}`);
+    giveLoot(p, loot);
+    for (const st of loot) report.gained[st.id] = (report.gained[st.id] ?? 0) + st.qty;
+  }
+  // 🪱 Digging up the bed turns up bait worms (for Fishing).
+  dropHelper(p, 'farming', report);
   addXp(p, { skill: 'farming' }, report, harvestXp(plot.crop));
   // 🎪 Harvesting is worth a few festival rolls (it's a big, slow action).
   for (let k = 0; k < 5; k++) rollFestivalToken(p, report, now);

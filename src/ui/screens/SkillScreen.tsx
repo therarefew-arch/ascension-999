@@ -27,6 +27,7 @@ import { AnvilRhythm, StrikeVein } from '../Minigames';
 import { Chop, RuneTrace } from '../Minigames2';
 import { CraftingGames } from '../Loom';
 import { MinigameFrame } from '../MinigameFrame';
+import { HelperRow } from '../Helpers';
 import { EnhancingGames } from '../Runesong';
 import { FiremakingGames } from '../Wildfire';
 import { FishingGames } from '../TileMatch';
@@ -357,6 +358,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
           {eta && <span className="gold"><UiIcon name="clock" size={13} /> next lv {fmtDuration(eta.ms)}</span>}
         </div>
         <BoostRow skill={skill} />
+        <HelperRow skill={skill} />
         <GoalRow skill={skill} place={`📍 ${placeName(player.location, skill)}, ${player.location}`} />
         {lvl >= ASCENSION_LEVEL && <MasteryRow skill={skill} level={lvl} />}
       </div>

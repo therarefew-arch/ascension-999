@@ -63,6 +63,7 @@ import { RELIC_MAP } from '../data/relics';
 import { gatherXpPerHour, REGIONS, tierForLevel } from '../data/tiers';
 import { REROLL_COST, socketGem, unsocketGem } from './equipment';
 import { countInBag, countInBank, removeFromBag, removeFromBank } from './inventory';
+import { toggleHelper } from './helpers';
 import { MONSTER_MAP, MONSTERS } from '../data/monsters';
 import { clampReward } from './minigames';
 import { newPlayer, type PlayerState } from './player';
@@ -609,6 +610,14 @@ export const game = {
     play('coin');
     buzz([15, 30, 15]);
     toast(`🌟 Lucky Star! ${loot.map((g) => (g.id === 'coins' ? `+${g.qty} coins` : `+${g.qty} ${getItem(g.id).name}`)).join(' · ')}`, 'level');
+    save();
+    emit();
+  },
+  /** 🧰 Pause or resume using a helper. */
+  toggleHelper(id: string) {
+    const on = toggleHelper(snap.player, id);
+    play('click');
+    toast(on ? `🧰 Using ${getItem(id).name} again` : `🧰 Saving your ${getItem(id).name} for later`);
     save();
     emit();
   },

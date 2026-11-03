@@ -29,6 +29,8 @@ import { MASTERY_NUM, masteredCount } from './mastery';
 import { ascBonus, ascXpMult, rollAscendedDrops } from './ascension';
 import { MONSTER_MAP } from '../data/monsters';
 import { weaponStyle } from './combat';
+import { dropHelper, helperWorks, takeHelper } from './helpers';
+import { HELPER } from '../data/helpers';
 
 export interface ProgressReport {
   /** The first running activity (kept for simple screens). */
@@ -305,8 +307,11 @@ export function completeAction(
   // 🌋 The Mountain Stirs: Emberite mining in Cinderpeak gives double XP and more ember geodes.
   const stirring = stirBoosts(p, action, opts.at ?? Date.now());
   const fromSlot = upgradeSource(p, action);
+  // 🧰 A helper from another skill (data/helpers.ts) is used up for this action, if you have one.
+  const helper = takeHelper(p, action.skill, report, action);
   // Enhancing can fail: then only the materials are used, the item itself stays.
-  const success = action.kind !== 'enhance' || Math.random() < enhanceChance(p, action, opts.chanceBonus ?? 0);
+  const success = action.kind !== 'enhance'
+    || Math.random() < enhanceChance(p, action, (opts.chanceBonus ?? 0) + (helper?.effect === 'luck' ? HELPER.luck : 0));
   // ✨ Relics: a free second log / ore / meal, or smithing that uses no materials.
   let relicRolls = 0;
   let thrifty = false;
@@ -325,9 +330,13 @@ export function completeAction(
     const thriftChance = (action.skill === 'smithing' && relicOn(p, 'hearthsong_hammer')
       ? (relicAsc(p, 'hearthsong_hammer') ? RELIC_ASC.thriftChance : RELIC.thriftChance) : 0)
       + ascBonus(p, 'th', action.skill) / 100;
-    thrifty = action.inputs.length > 0 && thriftChance > 0 && Math.random() < thriftChance
+    thrifty = action.inputs.length > 0 && ((thriftChance > 0 && Math.random() < thriftChance) || helperWorks(helper, 'save'))
       && (satchelOn(p) || canFitAll(p.inventory, maxLoot(opts.lootTable ?? action.lootTable)));
+    // 🧰 Pit props, rock salt, bait, grease, baskets, ink: a chance of one more result.
+    if (helperWorks(helper, 'extra')) relicRolls++;
   }
+  // 🧰 Training a skill now and then turns up its own helper (for another skill).
+  dropHelper(p, action.skill, report);
   for (const input of action.inputs) {
     if (thrifty) break;
     if (input.item === action.upgrades) {
@@ -405,7 +414,7 @@ export function completeAction(
   }
   // 🎪 Festival tokens.
   rollFestivalToken(p, report, opts.at ?? Date.now());
-  addXp(p, action, report, Math.round(action.xp * (opts.xpMult ?? 1) * (stirring ? STIR_XP_MULT : 1)));
+  addXp(p, action, report, Math.round(action.xp * (opts.xpMult ?? 1) * (stirring ? STIR_XP_MULT : 1) * (helper?.effect === 'xp' ? HELPER.xp : 1)));
   report.actions++;
   familyCount(p, action.skill); // 🏆 weekly family goal
   const pet = rollPet(p, action.skill);

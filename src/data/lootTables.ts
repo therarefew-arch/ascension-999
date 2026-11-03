@@ -5,6 +5,7 @@ import { GEM_RANGES, GEM_TYPES, gemId, RARITIES, type GemRarity, type GemType } 
 import { CROPS, FISH, HERBS, METALS, TIER_COUNT, WOODS } from './tiers';
 import { RARE_FISH, RARE_FISH_CHANCE, rareFishIn } from './rareFish';
 import { FESTIVALS, TOKEN_CHANCE, TOKEN_CHANCE_KILL } from './festivals';
+import { HELPER, HELPERS } from './helpers';
 
 /** Where a loot table is used. Gems may only appear in 'boss' and 'miniboss' tables. */
 export type LootSource = 'skilling' | 'monster' | 'miniboss' | 'boss';
@@ -150,6 +151,12 @@ for (let t = 0; t < TIER_COUNT; t++) {
 // ----- 🌱 Harvesting a garden plot: a handful of the crop, and often a seed or two back -----
 for (let t = 0; t < TIER_COUNT; t++) {
   tables.push({ id: `harvest_${CROPS[t].key}`, source: 'skilling', entries: [e(CROPS[t].key, 3, 6, 1), e(`${CROPS[t].key}_seed`, 1, 2, 0.6)] });
+}
+
+// ----- 🧰 Helpers turn up while you train their skill (a harvest turns up more) -----
+for (const h of HELPERS) {
+  const farm = h.from === 'farming';
+  tables.push({ id: `helper_${h.from}`, source: 'skilling', entries: [e(h.id, farm ? HELPER.harvestMin : HELPER.min, farm ? HELPER.harvestMax : HELPER.max, farm ? HELPER.harvestChance : HELPER.dropChance)] });
 }
 
 // ----- 🎁 Rare finds while gathering, and what's inside when you open them -----

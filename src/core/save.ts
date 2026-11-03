@@ -2,6 +2,7 @@
 // Every save has a version number; old saves are upgraded by MIGRATIONS so they never break.
 import { ITEM_LIST, ITEMS, type SkillId } from '../data/items';
 import { loadHappening } from './happenings';
+import { HELPERS } from '../data/helpers';
 import { ACTIONS } from '../data/skills';
 import { INVENTORY_SLOTS, MAX_BAG_SLOTS, MAX_IDLE_SLOTS, SAVE_VERSION, newPlayer, type ItemStack, type Loadout, type PlayerState } from './player';
 import { PET_MAP } from '../data/pets';
@@ -446,6 +447,7 @@ function repair(raw: any): PlayerState {
   if (raw?.toolUses && typeof raw.toolUses === 'object') {
     for (const [s, n] of Object.entries(raw.toolUses)) if (s in p.skills && typeof n === 'number' && n > 0) p.toolUses[s as SkillId] = Math.floor(n);
   }
+  if (Array.isArray(raw?.helpersOff)) p.helpersOff = raw.helpersOff.filter((id: unknown) => typeof id === 'string' && HELPERS.some((h) => h.id === id));
   // Settling In (v16): older saves that are already past the start skip it.
   if (raw?.tutorial && typeof raw.tutorial === 'object') {
     p.tutorial = { step: Math.max(0, Math.floor(Number(raw.tutorial.step) || 0)), progress: Math.max(0, Number(raw.tutorial.progress) || 0), done: !!raw.tutorial.done };
