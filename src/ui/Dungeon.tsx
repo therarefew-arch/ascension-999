@@ -189,7 +189,8 @@ const POP_STYLE = {
 } as const;
 const SOUND_OF: Record<string, [SoundKey, number]> = {
   jump: ['whoosh', 1.4], hit: ['hit', 1], whoosh: ['whoosh', 1], boom: ['boom', 1], shing: ['shing', 1], rune: ['rune', 1], ignite: ['ignite', 1],
-  enchant: ['enchant', 1], block: ['block', 1], levelup: ['levelup', 1], tick: ['tick', 1.2], hurt: ['hurt', 1], creak: ['creak', 0.8], eat: ['eat', 1.1], coin: ['coin', 1], mine: ['mine', 1], chop: ['chop', 1], splash: ['splash', 1], carve: ['carve', 1],
+  enchant: ['enchant', 1], block: ['block', 1], levelup: ['levelup', 1], tick: ['tick', 1.2], hurt: ['hurt', 1], creak: ['creak', 0.8], eat: ['eat', 1.1],
+  snort: ['snort', 1], rumble: ['rumble', 1], screech: ['screech', 1], toll: ['toll', 1], swell: ['swell', 1], whistle: ['whistle', 1], horn: ['horn', 1], howl: ['howl', 1], boing: ['boing', 1.1], coin: ['coin', 1], mine: ['mine', 1], chop: ['chop', 1], splash: ['splash', 1], carve: ['carve', 1],
 };
 export const playSound = (k: string) => { const s = SOUND_OF[k]; if (s) sound.play(s[0], { rate: s[1] * (0.95 + Math.random() * 0.1), volume: 0.7 }); };
 

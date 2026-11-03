@@ -12,7 +12,9 @@ export type SoundKey =
   // Sort the Catch: tile flip clack, basket thud
   | 'clack' | 'thud'
   // 🧺 Prying open the Pedlar's crates
-  | 'creak';
+  | 'creak'
+  // 🗝️ Dungeon attack warnings: charge, underground, swoop, lights out, volley, falling, call, wind, hop
+  | 'snort' | 'rumble' | 'screech' | 'toll' | 'swell' | 'whistle' | 'horn' | 'howl' | 'boing';
 export type MusicKey = 'music_town' | 'music_mahjong' | 'music_ironmoor' | 'music_coalhaven' | 'music_bluecliff'
   | 'music_kitchen' | 'music_lunaria' | 'music_cinderpeak' | 'music_frosthold' | 'music_voidreach' | 'music_starfall' | 'music_celestine' | 'music_rift'
   | 'music_title' | 'music_parade';
@@ -25,6 +27,7 @@ export const EFFECT_SOUNDS: SoundKey[] = [
   'card', 'tick', 'boom',
   'clack', 'thud',
   'creak',
+  'snort', 'rumble', 'screech', 'toll', 'swell', 'whistle', 'horn', 'howl', 'boing',
 ];
 export const MUSIC_TRACKS: MusicKey[] = ['music_town', 'music_mahjong', 'music_ironmoor', 'music_coalhaven', 'music_bluecliff', 'music_kitchen', 'music_lunaria', 'music_cinderpeak', 'music_frosthold', 'music_voidreach', 'music_starfall', 'music_celestine', 'music_rift', 'music_title', 'music_parade'];
 

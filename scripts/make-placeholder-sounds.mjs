@@ -289,6 +289,46 @@ const sounds = {
   tile: mix(['', tone([140, 95], 0.12, 0.16, 30)], ['', noise(0.025, 0.08, 120)]),
   match: mix(['', tone([1046, 1568], 0.35, 0.07, 9)], ['', tone([1318, 1976], 0.45, 0.06, 7), 0.09]),
   welcome: mix(['', tone([392], 0.5, 0.08, 4)], ['', tone([523], 0.5, 0.08, 4), 0.15], ['', tone([659], 0.8, 0.08, 3), 0.3]),
+  // ----- 🗝️ Dungeon attack warnings (v0.0.2.9): each monster/boss move has its own sound so you hear it coming -----
+  // 🐗 A charger's snort: two quick nasal huffs and a low grunt.
+  snort: norm(mix(
+    ['', shape(bandpass(noise(0.14, 1, 0), 250, 1100), (t) => Math.min(1, t / 0.01) * Math.exp(-14 * t))],
+    ['', shape(bandpass(noise(0.2, 1, 0), 200, 900), (t) => Math.min(1, t / 0.015) * Math.exp(-10 * t)), 0.17],
+    ['', shape(sweep(110, 80, 0.35, 1, 0), (t) => Math.min(1, t / 0.02) * Math.exp(-6 * t) * (0.5 + 0.5 * Math.sin(t * 180))), 0.1],
+  ), 0.25),
+  // 🪨 Something moving underground: a low swelling rumble with pebbles rattling.
+  rumble: norm(mix(
+    ['', shape(lowpass(lowpass(noise(0.8, 1, 0), 160), 160), (t) => Math.sin(Math.PI * Math.min(1, t / 0.8)) ** 1.2)],
+    ['', shape(sweep(55, 40, 0.8, 0.5, 0), (t) => Math.sin(Math.PI * Math.min(1, t / 0.8)) * (0.6 + 0.4 * Math.sin(t * 40)))],
+    ['', norm(pops(0.8, 10, 1, 3), 0.25)],
+  ), 0.3),
+  // 🦅 A bird's cry before it dives: a falling, wavering screech.
+  screech: norm(mix(
+    ['', (() => { const n = Math.floor(0.38 * RATE); const o = new Float32Array(n); let ph = 0; for (let i = 0; i < n; i++) { const t = i / RATE; const f = 2300 - 1100 * (t / 0.38) + 120 * Math.sin(t * 2 * Math.PI * 26); ph += (2 * Math.PI * f) / RATE; o[i] = (Math.sin(ph) + 0.3 * Math.sin(2 * ph)) * Math.min(1, t / 0.02) * Math.min(1, (0.38 - t) / 0.08); } return o; })()],
+    ['', shape(bandpass(noise(0.38, 1, 0), 2000, 5000), (t) => 0.15 * Math.min(1, t / 0.02) * Math.exp(-6 * t))],
+  ), 0.14),
+  // 🔔 The lights go out: one deep, slow bell toll.
+  toll: norm(mix(
+    ['', strike(196, [1, 2, 2.4, 3, 4.2, 5.4], [1.2, 1.6, 2.2, 2.6, 3.5, 4.5], [1, 0.6, 0.5, 0.35, 0.25, 0.15], 2.4, 1)],
+    ['', shape(sweep(98, 98, 2.4, 0.4, 1.2), (t) => Math.min(1, t / 0.05))],
+  ), 0.28),
+  // ✨ A boss gathering power before a volley: a rising hum with a shimmer.
+  swell: norm(mix(
+    ['', shape(sweep(260, 820, 0.6, 1, 0), (t) => (t / 0.6) ** 1.5 * Math.min(1, (0.6 - t) / 0.03))],
+    ['', shape(highpass(noise(0.6, 1, 0), 3000), (t) => (t / 0.6) ** 2 * 0.3 * Math.min(1, (0.6 - t) / 0.03))],
+  ), 0.17),
+  // 💣 Something falling from above: a long descending whistle.
+  whistle: norm(shape(sweep(1500, 620, 0.75, 1, 0), (t) => Math.min(1, t / 0.05) * (0.4 + 0.6 * (t / 0.75)) * Math.min(1, (0.75 - t) / 0.04)), 0.11),
+  // 📯 A boss calls its friends: a low hunting horn.
+  horn: norm(lowpass((() => { const n = Math.floor(0.95 * RATE); const o = new Float32Array(n); let ph = 0; for (let i = 0; i < n; i++) { const t = i / RATE; const f = 147 * (0.97 + 0.03 * Math.min(1, t / 0.12)); ph += (2 * Math.PI * f) / RATE; let v = 0; for (let k = 1; k <= 6; k++) v += Math.sin(k * ph) / k; o[i] = v * Math.min(1, t / 0.08) * Math.min(1, (0.95 - t) / 0.2); } return o; })(), 1400), 0.24),
+  // 💨 Wind howling through the hall.
+  howl: norm(mix(
+    ['', shape(bandpass(noise(1.0, 1, 0), 350, 800), (t) => Math.sin(Math.PI * Math.min(1, t / 1.0)) ** 1.5)],
+    ['', shape(bandpass(noise(1.0, 1, 0), 800, 1700), (t) => 0.6 * Math.sin(Math.PI * Math.min(1, Math.max(0, t - 0.15) / 0.85)) ** 2)],
+    ['', shape(sweep(420, 620, 1.0, 0.25, 0), (t) => Math.sin(Math.PI * Math.min(1, t / 1.0)) ** 2)],
+  ), 0.16),
+  // 🐇 A little hop: a quick springy boing.
+  boing: norm(shape(sweep(280, 680, 0.13, 1, 0), (t) => Math.min(1, t / 0.005) * Math.exp(-14 * t) * (0.7 + 0.3 * Math.sin(t * 600))), 0.09),
 };
 
 for (const [name, s] of Object.entries(sounds)) if (want(name)) writeFileSync(join(OUT, `${name}.wav`), wav(Array.from(s)));

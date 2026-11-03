@@ -1081,6 +1081,8 @@ function floorAt(d: Dungeon, x: number, y: number): number {
   const under = d.plats.filter((pl) => x >= pl.x1 && x <= pl.x2 && pl.y >= y - 5).sort((a, b) => a.y - b.y)[0];
   return under?.y ?? GROUND;
 }
+/** 🔊 What each boss attack sounds like as it winds up (v0.0.2.9) — so you hear it coming. */
+const BOSS_SOUND: Record<BossAtk, string> = { slam: 'creak', pillars: 'rumble', volley: 'swell', rain: 'whistle', charge: 'snort', wave: 'rumble', dark: 'toll', summon: 'horn', gust: 'howl' };
 const BOSS_WIND: Record<BossAtk, number> = { slam: 900, pillars: 300, volley: BOSS.volleyWind, rain: 400, charge: BOSS.chargeWind, wave: BOSS.waveWind, dark: 600, summon: BOSS.summonWind, gust: BOSS.gustWarn };
 
 /** 👑 The boss's turn: what it left on the ground lands or rolls on, and when it's ready it starts its next attack —
@@ -1130,7 +1132,7 @@ function stepBoss(d: Dungeon, m: Mob, h: Hero, dt: number, sounds: string[]) {
     m.atk = { k, s: 'wind', t: BOSS_WIND[k] };
     if (k === 'slam') m.slamT = BOSS_WIND.slam;
     else if (kit?.names[k]) pop(d, m.x, m.y - m.h - 46, kit.names[k]!, 'info');
-    sounds.push(k === 'slam' || k === 'charge' ? 'creak' : 'tick');
+    sounds.push(BOSS_SOUND[k]);
     if (k === 'charge') m.dir = h.x > m.x ? 1 : -1;
     if (k === 'pillars') {
       // Under each of you, and one either side of the boss's favourite target.
@@ -1241,7 +1243,7 @@ function stepMove(d: Dungeon, m: Mob, h: Hero, dt: number, slow: number, sounds:
       if (mv.s === 'idle') {
         if (mv.cd <= 0 && sameRow && Math.abs(dx) < 280 && m.hitT <= 0 && !m.restT) {
           mv.s = 'wind'; mv.t = MOVE.chargeWind; m.dir = dx > 0 ? 1 : -1;
-          pop(d, m.x, m.y - m.h - 8, '!', 'info'); sounds.push('creak');
+          pop(d, m.x, m.y - m.h - 8, '!', 'info'); sounds.push('snort');
         }
         return false;
       }
@@ -1259,7 +1261,7 @@ function stepMove(d: Dungeon, m: Mob, h: Hero, dt: number, slow: number, sounds:
     }
     case 'burrow': {
       if (mv.s === 'idle') {
-        if (mv.cd <= 0 && ground && h.onGround && h.y >= GROUND - 2 && Math.abs(dx) < 320 && m.hitT <= 0) { mv.s = 'dig'; mv.t = MOVE.burrowDig; sounds.push('mine'); }
+        if (mv.cd <= 0 && ground && h.onGround && h.y >= GROUND - 2 && Math.abs(dx) < 320 && m.hitT <= 0) { mv.s = 'dig'; mv.t = MOVE.burrowDig; sounds.push('mine', 'rumble'); }
         return false;
       }
       if (mv.s === 'dig') { mv.t -= dt; if (rand(d) < dt / 50) burst(d, m.x, m.y, 3, ['#8a5a3a', '#6b4426', '#a8a29e'], 0.14, 0.0008, 3, 400); if (mv.t <= 0) { m.hidden = true; mv.s = 'under'; mv.t = 2600; } return true; }
@@ -1289,7 +1291,7 @@ function stepMove(d: Dungeon, m: Mob, h: Hero, dt: number, slow: number, sounds:
       const home = m.homeY ?? m.y;
       if (mv.s === 'idle') {
         m.y = home + Math.sin(d.t / 300 + m.id) * 3;
-        if (mv.cd <= 0 && Math.abs(dx) < 240 && h.y > m.y) { mv.s = 'aim'; mv.t = MOVE.swoopAim; mv.tx = h.x; mv.ty = h.y - 16; mv.x0 = m.x; mv.y0 = m.y; m.dir = dx > 0 ? 1 : -1; sounds.push('creak'); }
+        if (mv.cd <= 0 && Math.abs(dx) < 240 && h.y > m.y) { mv.s = 'aim'; mv.t = MOVE.swoopAim; mv.tx = h.x; mv.ty = h.y - 16; mv.x0 = m.x; mv.y0 = m.y; m.dir = dx > 0 ? 1 : -1; sounds.push('screech'); }
         return false;
       }
       if (mv.s === 'aim') { mv.t -= dt; if (mv.t <= 0) { mv.s = 'dive'; mv.t = MOVE.swoopDive; m.mul = MOVE.swoopHit; sounds.push('whoosh'); } return true; }
@@ -1305,7 +1307,7 @@ function stepMove(d: Dungeon, m: Mob, h: Hero, dt: number, slow: number, sounds:
     }
     case 'hop': {
       if (mv.s === 'idle') {
-        if (mv.cd <= 0 && sameRow && Math.abs(dx) < 240 && m.hitT <= 0 && m.vy === undefined) { mv.s = 'air'; mv.vy = -MOVE.hopUp; mv.y0 = m.y; m.dir = dx > 0 ? 1 : -1; }
+        if (mv.cd <= 0 && sameRow && Math.abs(dx) < 240 && m.hitT <= 0 && m.vy === undefined) { mv.s = 'air'; mv.vy = -MOVE.hopUp; mv.y0 = m.y; m.dir = dx > 0 ? 1 : -1; sounds.push('boing'); }
         return false;
       }
       m.y += (mv.vy ?? 0) * dt;
@@ -1567,7 +1569,7 @@ function stepHazards(d: Dungeon, dt: number, sounds: string[]) {
   if (d.hz.includes('wind')) {
     if (!d.gust) {
       d.hzCd -= dt;
-      if (d.hzCd <= 0) { d.hzCd = 5000 + rand(d) * 2500; d.gust = { dir: rand(d) < 0.5 ? 1 : -1, warn: 900, t: 1600 }; sounds.push('tick'); }
+      if (d.hzCd <= 0) { d.hzCd = 5000 + rand(d) * 2500; d.gust = { dir: rand(d) < 0.5 ? 1 : -1, warn: 900, t: 1600 }; sounds.push('howl'); }
     } else if (d.gust.warn > 0) d.gust.warn -= dt;
     else {
       d.gust.t -= dt;
