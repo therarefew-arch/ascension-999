@@ -389,24 +389,19 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
 
       {/* 🎨 v0.0.2.12: every minigame sits in its skill's own "skin" — scenery, colours and glow (styles.css .mg-skin-*). */}
       <div className={`mg-skin mg-skin-${skill}`}>
-      {unlocked ? (
-        <Minigame key={skill} action={action} />
-      ) : skill === 'enhancing' ? (
-        <EnhancingGames key="locked" />
-      ) : (
-        <div className="mg">
-          <div className="mg-stage">
-            <div className="mg-rock locked-art"><ItemIcon id={action.iconItem} size={72} /></div>
-            <div className="mg-stage-name">{action.name}</div>
-            <div className="mg-stage-xp"><UiIcon name="lock" size={14} /> {!regionOpen(action.region)
-              ? `Found in ${action.region} (level ${action.level}) — coming in a future update`
-              : regionLocked
-                ? `Travel to ${action.region} to unlock this (level ${action.level})`
-                : `Unlocks at ${SKILLS[skill].name} level ${action.level}`}</div>
-            {tag && <div className="small muted">{tag}</div>}
-          </div>
+      {/* v0.0.2.15 (owner: "I would like to see why I can't do things"): a locked pick no longer hides the minigame —
+          a clear 🔒 line says why, and the game below shows (and refuses to pay out) too. */}
+      {!unlocked && (
+        <div className="lock-why" role="status">
+          <span className="lock-why-icon"><UiIcon name="lock" size={16} /></span>
+          <span className="grow"><b>{action.name}</b> is locked — {!regionOpen(action.region)
+            ? `found in ${action.region} (level ${action.level}), coming in a future update`
+            : regionLocked
+              ? `travel to ${action.region} to unlock it (level ${action.level})`
+              : `unlocks at ${SKILLS[skill].name} level ${action.level} (you're ${lvl})`}.{tag ? <span className="small muted"> {tag}</span> : null}</span>
         </div>
       )}
+      {unlocked || skill !== 'enhancing' ? <Minigame key={skill} action={action} /> : <EnhancingGames key="locked" />}
       </div>
 
       {unlocked && (

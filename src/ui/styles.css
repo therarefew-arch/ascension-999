@@ -2554,3 +2554,12 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 @media (min-height: 760px) { .sc-root.sc-full .sc-hand.fan { padding-bottom: 18px; } }
 @media (prefers-reduced-motion: reduce) { .sc-card.ench-gilded .sc-face::after, .sc-card.ench-charged, .sc-card.ench-radiant .sc-face::after, .sc-hand.fan .sc-card.dealt { animation: none; } }
 .sc-root.sc-full .sc-preview, .sc-root.sc-full .sc-stage { margin-top: auto; }
+
+/* 🔒 Why something is locked (v0.0.2.15) — shown above the minigame instead of hiding it */
+.lock-why { display: flex; align-items: flex-start; gap: 10px; margin: 8px 14px 0; padding: 10px 12px; border-radius: 14px; background: linear-gradient(180deg, rgba(69, 26, 3, 0.85), rgba(30, 14, 4, 0.9)); border: 1.5px solid #b45309; color: #fde7c4; font-size: 0.86rem; line-height: 1.35; }
+.lock-why-icon { flex: none; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: rgba(245, 158, 11, 0.2); color: var(--gold); }
+.lock-why b { color: var(--gold); }
+/* Fix (v0.0.2.15): since the minigame "skin" wrapper (v0.0.2.12) the game tabs (REEL / SORT THE CATCH, SPELLCARDS…)
+   and the 🔒 line sat one level deeper than `.skill-screen > *`, so they slid behind the scenery and looked missing.
+   Zero-strength rule, so full screen modes (position: fixed) still win. */
+:where(.skill-screen > .mg-skin) > * { position: relative; z-index: 1; }

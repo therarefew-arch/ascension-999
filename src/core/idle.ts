@@ -176,6 +176,16 @@ export function drainFire(p: PlayerState, ms: number) {
  * `manual` = played by hand (minigame): the cooking fire must already be lit.
  * While idling, the fire is fed automatically from logs in the bag.
  */
+/** Is this activity still locked for you (town not open or not found yet, a lost recipe not learned, level too low)?
+ * Only the "unlock" checks — not tools or materials. Used so XP-only minigames never pay out for locked things. */
+export function lockedReason(p: PlayerState, action: ActionDef): string | null {
+  if (!regionOpen(action.region)) return `Found in ${action.region} — coming in a future update`;
+  if (action.region && !p.regions.includes(action.region)) return `Travel to ${action.region} to unlock this`;
+  if (action.lost && !(p.recipes ?? []).includes(action.id)) return "A lost recipe you haven't learned yet";
+  if (skillLevel(p, action.skill) < action.level) return `Needs level ${action.level}`;
+  return null;
+}
+
 export function whyCantDo(p: PlayerState, action: ActionDef, opts: { manual?: boolean; start?: boolean } = {}): string | null {
   if (!regionOpen(action.region)) return `Found in ${action.region} — coming in a future update`;
   if (action.region && !p.regions.includes(action.region)) return `Travel to ${action.region} to unlock this`;

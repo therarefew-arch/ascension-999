@@ -6,7 +6,7 @@ import type { SoundKey } from '../audio/soundList';
 import { getItem, rollUniqueGear, UNIQUE_CHANCE, UNIQUE_IDS, UNIQUE_SUFFIX, type EquipSlot } from '../data/items';
 import { ACTIONS, SKILLS } from '../data/skills';
 import { equip, unequip } from './equipment';
-import {
+import { lockedReason,
   addXp, advanceIdle, chooseSlot, completeAction, drainFire, emptyReport, runningSlots, skillLevel, slotOf, startIdle, stokeFire, stopIdle,
   whyCantDo, type ProgressReport,
 } from './idle';
@@ -920,6 +920,9 @@ export const game = {
   minigameXp(actionId: string, xp: number, maxMult = 3) {
     const action = ACTIONS[actionId];
     if (!action || xp <= 0) return;
+    // v0.0.2.15: minigames now show on locked things too (owner: "I would like to see why I can't do things") — they never pay out for them.
+    const locked = lockedReason(snap.player, action);
+    if (locked) { fail(locked); return; }
     const report = emptyReport(actionId);
     addXp(snap.player, action, report, Math.round(Math.min(xp, action.xp * maxMult)));
     trackRequests(snap.player, report, 1);
