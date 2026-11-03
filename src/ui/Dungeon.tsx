@@ -7,7 +7,7 @@ import { sound } from '../audio/sound';
 import { musicFor, type SoundKey } from '../audio/soundList';
 import {
   BAR_SIZE, FALL_WARN, HARVEST_MS, VENT, HERO_H, NODE_KINDS, type NodeKind, bossDef, bossOf, defaultBar, eatSnack, GROUND, newDungeon, pathProgress, SKILL_MAP, SKILLS, step, castSkill, VIEW_H, VIEW_W, BUFF_EMOJI, type Buff, REVIVE_MS, charmText, UNIQUE_CHARM_K, type StationKind, addAlly, asSeat, type HeroCard,
-  whyCantUseSkill, type Dungeon as Run, type Input,
+  whyCantUseSkill, type Dungeon as Run, type Input, BOSS, BOSS_KIT,
 } from '../core/dungeon';
 import { AREAS, townBoss, type Run as ExRun } from '../core/expedition';
 import { DUNGEON_TOWNS } from '../data/dungeonTowns';
@@ -580,6 +580,50 @@ export function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: 
     g.fillStyle = 'rgba(37,99,235,0.85)'; g.beginPath(); g.moveTo(x - 30, GROUND); g.quadraticCurveTo(x - 6, GROUND - 34, x + 14, GROUND - 22); g.quadraticCurveTo(x + 30, GROUND - 10, x + 60, GROUND); g.fill();
     g.fillStyle = '#e0f2fe'; g.beginPath(); g.arc(x - 4, GROUND - 26, 6, 0, Math.PI * 2); g.arc(x + 6, GROUND - 24, 5, 0, Math.PI * 2); g.fill();
   }
+  // 👑 What the boss's attacks left on the ground: marks where something bursts up or drops, and rolling ripples
+  {
+    const kit = BOSS_KIT[d.bossId];
+    const c = kit?.c ?? '#f87171', c2 = kit?.c2 ?? '#ffffff';
+    for (const f of d.bx ?? []) {
+      if (f.k === 'ripple') {
+        const dir = f.dir ?? 1;
+        g.fillStyle = c; g.globalAlpha = 0.9;
+        g.beginPath(); g.moveTo(f.x - dir * 34, GROUND); g.quadraticCurveTo(f.x - dir * 8, GROUND - 30, f.x + dir * 8, GROUND - 18); g.quadraticCurveTo(f.x + dir * 20, GROUND - 6, f.x + dir * 30, GROUND); g.fill();
+        g.fillStyle = c2; g.fillRect(f.x - dir * 6 - 3, GROUND - 22, 6, 4);
+        g.globalAlpha = 1;
+        continue;
+      }
+      if (f.t > 0) {
+        // The warning: a pulsing ring that tightens as it gets close
+        const warn = f.k === 'pillar' ? BOSS.pillarWarn : BOSS.rainWarn;
+        const k = Math.max(0, Math.min(1, 1 - f.t / warn));
+        // a dark rim first so pale colours (snow, lamplight) still stand out on the ground
+        g.strokeStyle = '#1c1917'; g.globalAlpha = 0.6; g.lineWidth = 6;
+        g.beginPath(); g.ellipse(f.x, f.y + 1, 30 - k * 6, 7, 0, 0, Math.PI * 2); g.stroke();
+        g.strokeStyle = c; g.globalAlpha = 0.6 + 0.4 * Math.sin(d.t / 60); g.lineWidth = 3;
+        g.beginPath(); g.ellipse(f.x, f.y + 1, 30 - k * 6, 7, 0, 0, Math.PI * 2); g.stroke();
+        g.globalAlpha = 0.25 + k * 0.3; g.fillStyle = c; g.beginPath(); g.ellipse(f.x, f.y + 1, (30 - k * 6) * k, 6 * k, 0, 0, Math.PI * 2); g.fill();
+        g.globalAlpha = 1;
+        if (f.k === 'drop' && f.t < 380) {
+          const fy = f.y - 340 * (f.t / 380);
+          g.fillStyle = c; g.beginPath(); g.arc(f.x, fy - 10, 9, 0, Math.PI * 2); g.fill();
+          g.fillStyle = c2; g.fillRect(f.x - 4, fy - 15, 4, 4);
+          g.strokeStyle = c; g.globalAlpha = 0.5; g.lineWidth = 4; g.beginPath(); g.moveTo(f.x, fy - 18); g.lineTo(f.x + 8, fy - 60); g.stroke(); g.globalAlpha = 1;
+        }
+        if (f.k === 'pillar' && f.t < 250) { g.fillStyle = c2; for (let i = 0; i < 3; i++) g.fillRect(f.x - 12 + i * 10, f.y - 4 - ((d.t / 2 + i * 9) % 10), 3, 3); }
+      } else {
+        const q = Math.min(1, -f.t / 350);
+        g.globalAlpha = 1 - q;
+        if (f.k === 'pillar') {
+          const hgt = 120 * Math.min(1, -f.t / 90);
+          g.fillStyle = c; g.fillRect(f.x - 14, f.y - hgt, 28, hgt);
+          g.fillStyle = c2; g.fillRect(f.x - 5, f.y - hgt, 10, hgt);
+          g.fillStyle = c; g.beginPath(); g.moveTo(f.x - 18, f.y - hgt + 4); g.lineTo(f.x, f.y - hgt - 18); g.lineTo(f.x + 18, f.y - hgt + 4); g.fill();
+        } else { g.strokeStyle = c; g.lineWidth = 4; g.beginPath(); g.ellipse(f.x, f.y, 20 + q * 30, 6 + q * 4, 0, 0, Math.PI * 2); g.stroke(); }
+        g.globalAlpha = 1;
+      }
+    }
+  }
   // 🍳🛠️ Crafting stations: a campfire kitchen or an old workbench, glowing when you're close
   for (const st of d.stations) {
     if (st.x < cam - side - 60 || st.x > cam + VIEW_W + side + 60) continue;
@@ -681,6 +725,24 @@ export function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: 
       g.fillStyle = `rgba(190,242,100,${0.25 + 0.45 * q})`;
       g.beginPath(); g.arc(m.x + m.dir * m.w * 0.3, Math.min(m.y - 14, d.hero.y - 29) + float, 3 + q * 6, 0, Math.PI * 2); g.fill();
     }
+    // 👑 A boss winding up one of its own attacks shows what's coming
+    if (m.boss && living && m.atk?.s === 'wind' && m.atk.k !== 'slam') {
+      const kit = BOSS_KIT[m.m];
+      const c = kit?.c ?? '#f87171';
+      const pulse = 0.4 + 0.4 * Math.sin(d.t / 60);
+      if (m.atk.k === 'charge') {
+        // A red lane along the ground the way it will rush
+        const end = m.dir > 0 ? m.max + m.w / 2 : m.min - m.w / 2;
+        g.fillStyle = `rgba(239,68,68,${0.15 + 0.2 * pulse})`; g.fillRect(Math.min(m.x, end), GROUND - 10, Math.abs(end - m.x), 12);
+        for (let i = 1; i <= 4; i++) { const ax = m.x + m.dir * (60 + i * 50); g.fillStyle = `rgba(239,68,68,${0.4 + 0.4 * pulse})`; g.beginPath(); g.moveTo(ax, GROUND - 14); g.lineTo(ax + m.dir * 12, GROUND - 6); g.lineTo(ax, GROUND + 2); g.fill(); }
+      } else {
+        // A glow that swells in the boss's own colour
+        const q = 1 - m.atk.t / Math.max(1, m.atk.k === 'volley' ? BOSS.volleyWind : m.atk.k === 'wave' ? BOSS.waveWind : 700);
+        g.globalAlpha = 0.2 + 0.4 * q; g.fillStyle = c;
+        g.beginPath(); g.arc(m.x, m.y - m.h / 2 + float, m.w * 0.55 + q * 14, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
+        if (m.atk.k === 'wave') { g.strokeStyle = c; g.lineWidth = 3; g.globalAlpha = pulse + 0.2; g.beginPath(); g.ellipse(m.x, GROUND + 2, 60 + q * 40, 9, 0, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1; }
+      }
+    }
     if (m.boss && (m.slamT ?? 0) > 0) {
       g.strokeStyle = `rgba(248,113,113,${0.4 + 0.4 * Math.sin(d.t / 60)})`; g.lineWidth = 3;
       g.beginPath(); g.ellipse(m.x, GROUND + 2, 170, 14, 0, 0, Math.PI * 2); g.stroke();
@@ -699,6 +761,7 @@ export function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: 
       for (let i = 0; i < 3; i++) { g.strokeStyle = i ? '#fde68a' : '#fff7e0'; g.lineWidth = 6 - i * 2; g.beginPath(); g.arc(s.x - dir * (10 + i * 10), s.y, 22 - i * 3, dir > 0 ? -1.2 : Math.PI - 1.2 + 0.0, dir > 0 ? 1.2 : Math.PI + 1.2); g.stroke(); }
       g.globalAlpha = 1;
     }
+    else if (s.c) { g.fillStyle = s.c; g.beginPath(); g.arc(s.x, s.y, 7, 0, Math.PI * 2); g.fill(); g.fillStyle = '#ffffff'; g.globalAlpha = 0.7; g.beginPath(); g.arc(s.x - 2, s.y - 2, 2.5, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1; }
     else { g.fillStyle = s.kind === 'fire' ? '#f97316' : s.kind === 'spit' ? '#a3e635' : look.orb; g.beginPath(); g.arc(s.x, s.y, s.kind === 'fire' ? 8 : 5, 0, Math.PI * 2); g.fill(); }
   }
   // 🤝 Your partner in co-op, with their name over their head
@@ -800,6 +863,24 @@ export function drawWorld(g: CanvasRenderingContext2D, d: Run, look: Look, cam: 
     const fog = g.createRadialGradient(hx, hy, 90, hx, hy, 300);
     fog.addColorStop(0, 'rgba(110,124,160,0)'); fog.addColorStop(0.55, 'rgba(110,124,160,0.6)'); fog.addColorStop(1, 'rgba(82,94,128,0.92)');
     g.fillStyle = fog; g.fillRect(cam - side - 60, -top - 60, VIEW_W + 2 * side + 120, bottom + top + 120);
+  }
+  // 🕯️ A boss snuffed the lights: only a little circle around you stays lit
+  if ((d.dark ?? 0) > 0) {
+    const fade = Math.min(1, d.dark / 500, (BOSS.dark - d.dark) / 400);
+    const hx = d.hero.x, hy = d.hero.y - HERO_H / 2;
+    const dk = g.createRadialGradient(hx, hy, 60, hx, hy, 210);
+    dk.addColorStop(0, 'rgba(8,6,12,0)'); dk.addColorStop(0.5, `rgba(8,6,12,${0.75 * fade})`); dk.addColorStop(1, `rgba(8,6,12,${0.94 * fade})`);
+    g.fillStyle = dk; g.fillRect(cam - side - 60, -top - 60, VIEW_W + 2 * side + 120, bottom + top + 120);
+    // …but the boss's glowing eyes and its shots still show through, so you can see what's coming
+    const kc = BOSS_KIT[d.bossId]?.c ?? '#fde68a';
+    const b = d.mobs.find((m) => m.boss && m.hp > 0);
+    if (b) {
+      g.globalAlpha = 0.35 * fade + 0.15 * Math.sin(d.t / 200); g.fillStyle = kc;
+      g.beginPath(); g.arc(b.x, b.y - b.h * 0.6, 26, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
+      g.fillStyle = '#fffbeb'; g.fillRect(b.x - 12, b.y - b.h * 0.62, 6, 5); g.fillRect(b.x + 6, b.y - b.h * 0.62, 6, 5);
+    }
+    for (const s of d.shots) if (s.c) { g.fillStyle = s.c; g.beginPath(); g.arc(s.x, s.y, 7, 0, Math.PI * 2); g.fill(); }
+    for (const f of d.bx ?? []) if (f.k !== 'ripple' && f.t > 0) { g.strokeStyle = kc; g.lineWidth = 2; g.beginPath(); g.ellipse(f.x, f.y + 1, 26, 6, 0, 0, Math.PI * 2); g.stroke(); }
   }
   // Damage numbers (MapleStory-style)
   g.textAlign = 'center'; g.lineJoin = 'round';

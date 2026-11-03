@@ -84,7 +84,7 @@ export function joinParty(code: string, role: PartyRole, on: { msg(m: PartyMsg):
 const pack = (m: unknown) => JSON.stringify(m, (k, v) => (typeof v === 'number' ? Math.round(v * 100) / 100 : k === 'hit' && Array.isArray(v) ? undefined : v));
 
 /** What changes in a room from moment to moment (the rest — ledges, looks, damage tables — comes once with 'start'). */
-const LIVE = ['hero', 'ally', 'mobs', 'shots', 'pops', 'fx', 'phase', 't', 'shake', 'combo', 'comboT', 'banner', 'golds', 'chests', 'treats', 'falls', 'wave', 'gust', 'traps', 'cd', 'snacks', 'kills', 'bossSeen'] as const;
+const LIVE = ['hero', 'ally', 'mobs', 'shots', 'pops', 'fx', 'phase', 't', 'shake', 'combo', 'comboT', 'banner', 'golds', 'chests', 'treats', 'falls', 'wave', 'gust', 'traps', 'cd', 'snacks', 'kills', 'bossSeen', 'bx', 'dark'] as const;
 export function roomPicture(d: Dungeon): Partial<Dungeon> {
   const o: Record<string, unknown> = {};
   for (const k of LIVE) o[k] = (d as unknown as Record<string, unknown>)[k];

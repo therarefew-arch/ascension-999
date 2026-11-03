@@ -90,6 +90,10 @@ export interface Mob {
   id: number; m: string; x: number; y: number; w: number; h: number; hp: number; maxHp: number; dir: 1 | -1;
   min: number; max: number; speed: number; touch: number; shoots: boolean; atkCd: number; hitT: number; dead: number;
   boss?: boolean; slamT?: number; slamCd?: number;
+  /** 👑 The boss attack under way (`s`: 'wind' = its warning, 'go' = happening, 'rest' = catching its breath) and the last one. */
+  atk?: { k: BossAtk; s: 'wind' | 'go' | 'rest'; t: number; hit?: number[] }; lastAtk?: BossAtk;
+  /** Called in by a boss: no loot. */
+  summon?: boolean;
   /** Knockback slide speed (px/ms) and a little hop when struck. */
   kb?: number; hop?: number;
   /** v0.0.1.72: a spitter glows for `windT` ms before it fires; ledge monsters can hop down (`vy`). */
@@ -107,8 +111,8 @@ export interface Mob {
   frozeT?: number; slowT?: number;
 }
 export interface Shot { x: number; y: number; vx: number; vy: number; dmg: number; mine: boolean; pierce: boolean; kind: 'arrow' | 'bolt' | 'fire' | 'spit' | 'wave'; ttl: number; hit: number[]; mult?: number; blast?: boolean; hits?: number; target?: number; slow?: boolean;
-  /** Whose shot (seat), and for monster spit which monster it came from. */
-  by?: number; src?: string }
+  /** Whose shot (seat), and for monster spit which monster it came from (and a boss volley's colour). */
+  by?: number; src?: string; c?: string }
 export interface Pop { x: number; y: number; text: string; t: number; kind: 'hit' | 'crit' | 'hurt' | 'heal' | 'info'; mob?: number; stack?: number }
 /** A hit waiting to land (multi-hit skills space their hits out). */
 export interface QueuedHit { at: number; mob: number; mult: number; knock: number; by?: number }
@@ -169,6 +173,8 @@ export interface Dungeon {
   hzCd: number;
   /** How hard a hazard hits (a share of what this town's monsters hit you for). */
   hzDmg: number;
+  /** 👑 Boss attacks on the ground (marks, ripples) and how long the lights stay out (ms). */
+  bx: BossFx[]; dark: number;
 }
 /** Vent cycle (ms): quiet, then glowing (the warning), then bursting. */
 export const VENT = { quiet: 2300, glow: 900, burst: 800 };
@@ -201,6 +207,41 @@ export const MOVE = {
   shell: 1500, shellTake: 0.25,
   stompWarn: 750, stompHit: 1.15, stompR: 85,
 };
+// ----- 👑 Boss attacks (v0.0.2.8): every boss has its slam plus 2–3 attacks of its own, each with a warning first. -----
+/** pillars = something bursts up under where you stand (move!); volley = a fan of slow shots (step between them or
+ * hop onto a ledge); rain = things drop on marked spots; charge = it rushes across its hall (jump over or get up a ledge);
+ * wave = ripples roll out along the ground both ways (jump them); dark = the lights go out for a while; summon = it calls
+ * two of the town's monsters (no loot from them); gust = wind pushes you toward it. */
+export type BossAtk = 'slam' | 'pillars' | 'volley' | 'rain' | 'charge' | 'wave' | 'dark' | 'summon' | 'gust';
+export interface BossKit { atks: BossAtk[]; names: Partial<Record<BossAtk, string>>; c: string; c2: string }
+/** Each town's boss: its attacks, what they're called (shown over it when it starts one) and their colours. */
+export const BOSS_KIT: Record<string, BossKit> = {
+  whispering_oak: { atks: ['pillars', 'summon'], names: { pillars: 'Hushing Roots', summon: 'Call of the Wood' }, c: '#65a30d', c2: '#fde68a' },
+  lamp_eater: { atks: ['dark', 'charge'], names: { dark: 'Snuff the Lamps', charge: 'Tunnel Rush' }, c: '#fbbf24', c2: '#57534e' },
+  bog_lantern: { atks: ['volley', 'pillars'], names: { volley: 'Will-o’-Wisp', pillars: 'Bog Bubbles' }, c: '#a3e635', c2: '#ecfccb' },
+  captain_barnacle: { atks: ['volley', 'rain'], names: { volley: 'Grapeshot', rain: 'Cannon Fire' }, c: '#f59e0b', c2: '#1e293b' },
+  lamplighter: { atks: ['dark', 'volley'], names: { dark: 'Snuffing Hush', volley: 'Lamp Flames' }, c: '#fde68a', c2: '#cbd5e1' },
+  ashhorn: { atks: ['charge', 'wave'], names: { charge: 'Lava Charge', wave: 'Molten Ripple' }, c: '#f97316', c2: '#fde047' },
+  pass_yeti: { atks: ['rain', 'wave'], names: { rain: 'Avalanche', wave: 'Frost Quake' }, c: '#e0f2fe', c2: '#38bdf8' },
+  ribbon_heron: { atks: ['volley', 'rain'], names: { volley: 'Ribbon Lash', rain: 'Starlit Feathers' }, c: '#f472b6', c2: '#c4b5fd' },
+  starhorn: { atks: ['rain', 'charge'], names: { rain: 'Falling Star', charge: 'Comet Rush' }, c: '#fde68a', c2: '#ffffff' },
+  old_nimbus: { atks: ['pillars', 'gust'], names: { pillars: 'Thunderclap', gust: 'Sky Breath' }, c: '#fef08a', c2: '#e0f2fe' },
+  old_tusk: { atks: ['charge', 'wave', 'summon'], names: { charge: 'Primal Charge', wave: 'Earthshaker', summon: 'Call of the Herd' }, c: '#a16207', c2: '#86efac' },
+};
+/** Boss attack timings (ms), speeds (px/ms) and how hard each lands (× the boss's touch; the slam is ×2.6). */
+export const BOSS = {
+  gapMin: 3600, gapMax: 5000,
+  pillarWarn: 950, pillarR: 26, pillarHit: 1.8,
+  volleyWind: 750, volleyN: 5, volleySpeed: 0.16, volleyHit: 1.0,
+  rainWarn: 1100, rainN: 5, rainR: 30, rainHit: 1.3,
+  chargeWind: 950, chargeSpeed: 0.42, chargeHit: 1.7, chargeRest: 900,
+  waveWind: 800, waveSpeed: 0.24, waveHit: 1.2,
+  dark: 6000,
+  summonWind: 700, summonN: 2,
+  gustWarn: 900, gustMs: 1700, gustPush: 0.07,
+};
+/** Something a boss attack left in the hall: a marked spot (pillar/drop) or a ripple rolling along the ground. */
+export interface BossFx { k: 'pillar' | 'drop' | 'ripple'; x: number; y: number; t: number; dir?: 1 | -1; hit?: number[] }
 export type StationKind = 'kitchen' | 'bench';
 /** Stand still at a station this long to open it. */
 export const STATION_MS = 450;
@@ -376,7 +417,7 @@ export function newDungeon(p: PlayerState, region: Region, bar: (string | null)[
     region, style, worldW: 0, arenaX: 0, plats: [], mobs: [], shots: [], pops: [], fx: [], hit,
     hero: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, hp, maxHp: hp, atkCd: 0, atkT: 0, invT: 0, ironT: 0, dashT: 0, spinT: 0, walkT: 0, bf: {} },
     cd: {}, bar: bar.slice(0, BAR_SIZE), snacks: SNACKS, kills: 0, t: 0, phase: 'play', jumpHeld: false, rs: seed, nextId: 1, bossId: boss.id,
-    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false, queue: [], treats: [], fallen: [], chests: [], opened: 0, nodes: [], harvested: [], why: room?.why ?? {}, golds: [], goldGot: 0, hz: [], traps: [], falls: [], wave: null, gust: null, hzCd: 2500, hzDmg: 0,
+    parts: [], freeze: 0, shake: 0, combo: 0, comboT: 0, banner: null, bossSeen: false, queue: [], treats: [], fallen: [], chests: [], opened: 0, nodes: [], harvested: [], why: room?.why ?? {}, golds: [], goldGot: 0, hz: [], traps: [], falls: [], wave: null, gust: null, hzCd: 2500, hzDmg: 0, bx: [], dark: 0,
   };
   if (room) { d.hero.hp = Math.max(1, Math.min(hp, room.hp)); d.snacks = room.snacks; }
   const bossRoom = !room || room.kind === 'boss';
@@ -574,7 +615,7 @@ function hitMob(d: Dungeon, m: Mob, mult: number, knock = 6): number {
   if (m.hp <= 0) {
     m.dead = 500;
     d.kills++;
-    d.fallen.push(m.boss ? { m: m.m, boss: true } : { m: m.m });
+    if (!m.summon) d.fallen.push(m.boss ? { m: m.m, boss: true } : { m: m.m });
     const MONSTER = MONSTER_MAP[m.m];
     burst(d, m.x, m.y - m.h / 2, 12, ['#ffffff', '#e7e5e4', '#d6d3d1'], 0.12, -0.0001, 6, 650);
     burst(d, m.x, m.y - m.h / 2, 10, [MONSTER.colors.body, MONSTER.colors.accent, MONSTER.colors.dark], 0.26, 0.0012, 3, 700);
@@ -963,7 +1004,7 @@ export function step(d: Dungeon, dt: number, input: Input, allyInput: Input = ID
     const sameRow = Math.abs(h.y - m.y) < 40;
     const near = Math.abs(dx) < (m.boss ? 420 : 200) && (sameRow || m.boss);
     if (m.restT) m.restT = Math.max(0, m.restT - dt);
-    const special = m.move && !m.boss ? stepMove(d, m, h, dt, slow, sounds) : false;
+    const special = m.move && !m.boss ? stepMove(d, m, h, dt, slow, sounds) : m.boss && !!m.atk && m.atk.k !== 'slam';
     if (special) { /* busy with its move */ }
     else if (m.boss && furthest < d.arenaX) { /* waits in its clearing */ }
     else if (m.restT) { /* catching its breath after bumping into someone */ }
@@ -978,6 +1019,10 @@ export function step(d: Dungeon, dt: number, input: Input, allyInput: Input = ID
     // can't get pinned in a corner.
     for (const x of st) {
       if (!m.hidden && overlap(heroBox(x.h), mobBox(m)) && x.h.dashT <= 0 && x.h.invT <= 0 && !x.h.down) {
+        // A charging boss hits each of you once per rush (it used to drag you along and hit you again).
+        const rush = m.atk?.k === 'charge' && m.atk.s === 'go' ? m.atk : undefined;
+        if (rush?.hit?.includes(x.seat)) continue;
+        if (rush) (rush.hit ??= []).push(x.seat);
         sounds.push('hurt');
         asSeat(d, x.seat, () => hurtHero(d, m.touch * (m.mul ?? 1), m.x, m));
         if (d.room) m.restT = m.boss ? 900 : 700;
@@ -1023,27 +1068,157 @@ export function step(d: Dungeon, dt: number, input: Input, allyInput: Input = ID
       }
       if (m.y > GROUND) { m.y = GROUND; m.vy = undefined; m.min = Math.max(m.w / 2, m.x - 130); m.max = Math.min(d.arenaX - 40, m.x + 130); }
     }
-    // 👑 The boss's big slam: it glows first — jump over it!
-    if (m.boss && h.x >= d.arenaX) {
-      if ((m.slamT ?? 0) > 0) {
-        m.slamT! -= dt;
-        if (m.slamT! <= 0) {
-          d.fx.push({ x: m.x, y: GROUND, t: 0, kind: 'slam', w: 340 });
-          sounds.push('boom');
-          d.shake = 9;
-          for (let k = -4; k <= 4; k++) burst(d, m.x + k * 38, GROUND, 2, ['#e7e5e4', '#a8a29e'], 0.14, 0.0006, 5, 600);
-          for (const x of st) if (x.h.onGround && x.h.y >= GROUND - 2 && Math.abs(x.h.x - m.x) < 170) asSeat(d, x.seat, () => hurtHero(d, m.touch * (d.room ? BOSS_SLAM / BOSS_TOUCH : 2.6), m.x, undefined, m.m));
-          m.slamCd = 3800 + rand(d) * 1500;
-        }
-      } else {
-        m.slamCd = (m.slamCd ?? 4000) - dt;
-        if (m.slamCd <= 0) { m.slamT = 900; sounds.push('creak'); }
-      }
-    }
+    // 👑 The boss's attacks: its big slam (it glows first — jump over it!) and its own ones (BOSS_KIT).
+    if (m.boss) stepBoss(d, m, h, dt, sounds);
   }
   // Finished fading out? Gone for good.
   d.mobs = d.mobs.filter((m) => m.hp > 0 || m.dead > 0);
   return sounds;
+}
+
+/** The floor under a spot: the highest ledge (or the ground) at or below `y`. */
+function floorAt(d: Dungeon, x: number, y: number): number {
+  const under = d.plats.filter((pl) => x >= pl.x1 && x <= pl.x2 && pl.y >= y - 5).sort((a, b) => a.y - b.y)[0];
+  return under?.y ?? GROUND;
+}
+const BOSS_WIND: Record<BossAtk, number> = { slam: 900, pillars: 300, volley: BOSS.volleyWind, rain: 400, charge: BOSS.chargeWind, wave: BOSS.waveWind, dark: 600, summon: BOSS.summonWind, gust: BOSS.gustWarn };
+
+/** 👑 The boss's turn: what it left on the ground lands or rolls on, and when it's ready it starts its next attack —
+ * never the same one twice in a row, always with a warning first. */
+function stepBoss(d: Dungeon, m: Mob, h: Hero, dt: number, sounds: string[]) {
+  const kit = BOSS_KIT[m.m];
+  const st = standing(d);
+  const grounded = (x: Hero) => x.onGround && x.y >= GROUND - 2;
+  const hurt = (x: { h: Hero; seat: number }, mul: number, from: number) => asSeat(d, x.seat, () => hurtHero(d, m.touch * mul, from, undefined, m.m));
+  const c = [kit?.c ?? '#f87171', kit?.c2 ?? '#ffffff', '#ffffff'];
+  // What earlier attacks left behind
+  if (d.dark > 0) d.dark = Math.max(0, d.dark - dt);
+  for (const f of d.bx) {
+    if (f.k === 'ripple') {
+      f.x += (f.dir ?? 1) * BOSS.waveSpeed * dt; f.t -= dt;
+      if (rand(d) < dt / 40) burst(d, f.x, GROUND - 4, 2, c, 0.12, 0.0008, 3, 350);
+      for (const x of st) if (!f.hit!.includes(x.seat) && grounded(x.h) && Math.abs(f.x - x.h.x) < 16) { f.hit!.push(x.seat); hurt(x, BOSS.waveHit, f.x - (f.dir ?? 1) * 30); }
+      if (f.x < d.arenaX - 60 || f.x > d.worldW + 40) f.t = 0;
+      continue;
+    }
+    const before = f.t;
+    f.t -= dt;
+    if (before > 0 && f.t <= 0) {
+      d.shake = Math.max(d.shake, f.k === 'pillar' ? 4 : 3);
+      sounds.push(f.k === 'pillar' ? 'boom' : 'shing');
+      burst(d, f.x, f.y - 8, 12, c, 0.24, f.k === 'pillar' ? -0.0002 : 0.0009, 4, 600);
+      for (const x of st) {
+        const hit = f.k === 'pillar'
+          ? Math.abs(f.x - x.h.x) < BOSS.pillarR && x.h.y <= f.y + 2 && x.h.y > f.y - 120
+          : Math.abs(f.x - x.h.x) < BOSS.rainR && Math.abs(f.y - x.h.y) < 60;
+        if (hit) hurt(x, f.k === 'pillar' ? BOSS.pillarHit : BOSS.rainHit, f.x);
+      }
+    }
+  }
+  d.bx = d.bx.filter((f) => (f.k === 'ripple' ? f.t > 0 : f.t > -350));
+  const inHall = st.some((x) => x.h.x >= d.arenaX);
+
+  // Ready for the next attack?
+  if (!m.atk) {
+    if (!inHall) return;
+    m.slamCd = (m.slamCd ?? 4000) - dt;
+    if (m.slamCd > 0) return;
+    const adds = d.mobs.filter((o) => o.summon && o.hp > 0).length;
+    const pool = (['slam', ...(kit?.atks ?? [])] as BossAtk[]).filter((k) => k !== m.lastAtk && !(k === 'dark' && d.dark > 0) && !(k === 'summon' && adds >= 2) && !(k === 'gust' && d.gust));
+    const k: BossAtk = pool.length ? pool[Math.floor(rand(d) * pool.length)] : 'slam';
+    m.lastAtk = k;
+    m.atk = { k, s: 'wind', t: BOSS_WIND[k] };
+    if (k === 'slam') m.slamT = BOSS_WIND.slam;
+    else if (kit?.names[k]) pop(d, m.x, m.y - m.h - 46, kit.names[k]!, 'info');
+    sounds.push(k === 'slam' || k === 'charge' ? 'creak' : 'tick');
+    if (k === 'charge') m.dir = h.x > m.x ? 1 : -1;
+    if (k === 'pillars') {
+      // Under each of you, and one either side of the boss's favourite target.
+      for (const x of st) d.bx.push({ k: 'pillar', x: x.h.x, y: floorAt(d, x.h.x, x.h.y), t: BOSS.pillarWarn });
+      for (const side of [-1, 1]) { const x = Math.max(d.arenaX + 30, Math.min(d.worldW - 30, h.x + side * (110 + rand(d) * 60))); d.bx.push({ k: 'pillar', x, y: floorAt(d, x, h.y), t: BOSS.pillarWarn + 250 }); }
+    }
+    if (k === 'rain') {
+      const off = (rand(d) - 0.5) * 40;
+      for (let i = 0; i < BOSS.rainN; i++) {
+        const x = Math.max(d.arenaX + 30, Math.min(d.worldW - 30, h.x + off + (i - 2) * 115));
+        d.bx.push({ k: 'drop', x, y: floorAt(d, x, h.y), t: BOSS.rainWarn + i * 140 });
+      }
+    }
+    if (k === 'gust') d.gust = { dir: m.x > h.x ? 1 : -1, warn: BOSS.gustWarn, t: BOSS.gustMs };
+    return;
+  }
+  const a = m.atk;
+  a.t -= dt;
+  if (a.k === 'slam') m.slamT = Math.max(0, a.t);
+  if (a.s === 'rest') { if (a.t <= 0) { m.atk = undefined; m.slamCd = BOSS.gapMin + rand(d) * (BOSS.gapMax - BOSS.gapMin); } return; }
+  const rest = (ms: number) => { m.atk = { k: a.k, s: 'rest', t: ms }; };
+  if (a.s === 'wind') {
+    if (a.k === 'charge' && rand(d) < dt / 60) burst(d, m.x - m.dir * 40, GROUND - 4, 2, ['#e7e5e4', '#a8a29e'], 0.1, 0.0006, 3, 300);
+    if (a.k === 'gust' && d.gust) d.gust.warn = Math.max(0, a.t);
+    if (a.t > 0) return;
+    switch (a.k) {
+      case 'slam': {
+        d.fx.push({ x: m.x, y: GROUND, t: 0, kind: 'slam', w: 340 });
+        sounds.push('boom');
+        d.shake = 9;
+        for (let k = -4; k <= 4; k++) burst(d, m.x + k * 38, GROUND, 2, ['#e7e5e4', '#a8a29e'], 0.14, 0.0006, 5, 600);
+        for (const x of st) if (grounded(x.h) && Math.abs(x.h.x - m.x) < 170) hurt(x, d.room ? BOSS_SLAM / BOSS_TOUCH : 2.6, m.x);
+        m.atk = undefined; m.slamCd = 3800 + rand(d) * 1500;
+        return;
+      }
+      case 'volley': {
+        const y0 = m.y - m.h * 0.55;
+        const base = Math.atan2(h.y - HERO_H / 2 - y0, h.x - m.x);
+        m.dir = h.x > m.x ? 1 : -1;
+        for (let i = 0; i < BOSS.volleyN; i++) {
+          const ang = base + (i - (BOSS.volleyN - 1) / 2) * 0.22;
+          d.shots.push({ x: m.x + m.dir * 30, y: y0, vx: Math.cos(ang) * BOSS.volleySpeed, vy: Math.sin(ang) * BOSS.volleySpeed, dmg: m.touch * BOSS.volleyHit, mine: false, pierce: false, kind: 'spit', ttl: 3200, hit: [], target: -2, src: m.m, c: c[0] });
+        }
+        sounds.push('whoosh');
+        rest(600);
+        return;
+      }
+      case 'charge': a.s = 'go'; a.t = 3000; m.mul = BOSS.chargeHit; sounds.push('whoosh'); return;
+      case 'wave': {
+        for (const dir of [-1, 1] as const) d.bx.push({ k: 'ripple', x: m.x + dir * 40, y: GROUND, t: 6000, dir, hit: [] });
+        d.shake = Math.max(d.shake, 6); sounds.push('boom');
+        burst(d, m.x, GROUND - 4, 14, c, 0.22, 0.0009, 4, 500);
+        rest(500);
+        return;
+      }
+      case 'dark': d.dark = BOSS.dark; sounds.push('whoosh'); m.atk = undefined; m.slamCd = 1400; return;
+      case 'summon': {
+        const defs = townMonsters(d.region).filter((def) => { const mv = moveOf(def); return mv !== 'swoop' && mv !== 'burrow'; });
+        for (let i = 0; i < BOSS.summonN && defs.length; i++) {
+          const def = defs[Math.floor(rand(d) * defs.length)];
+          const [w, hh] = SIZE[def.art] ?? [40, 40];
+          const x = Math.max(d.arenaX + 40, Math.min(d.worldW - 40, m.x + (i ? 1 : -1) * 90));
+          const hp = Math.max(1, Math.round(m.maxHp * 0.05));
+          d.mobs.push({ id: d.nextId++, m: def.id, x, y: GROUND, w, h: hh, hp, maxHp: hp, dir: h.x > x ? 1 : -1, min: d.arenaX + 30, max: d.worldW - 30, speed: 0.05, touch: (d.touch[def.id] ?? m.touch * 0.5), shoots: false, atkCd: 2000, hitT: 0, dead: 0, summon: true });
+          burst(d, x, GROUND - 20, 12, c, 0.2, 0.0006, 4, 500);
+        }
+        sounds.push('shing');
+        rest(700);
+        return;
+      }
+      case 'gust': a.s = 'go'; a.t = BOSS.gustMs; return;
+      default: rest(900); return; // pillars and rain land by themselves
+    }
+  }
+  // 'go'
+  if (a.k === 'charge') {
+    const before = m.x;
+    m.x = Math.max(m.min, Math.min(m.max, m.x + m.dir * BOSS.chargeSpeed * dt));
+    if (rand(d) < dt / 30) burst(d, m.x - m.dir * 40, GROUND - 6, 2, c, 0.12, 0.0006, 4, 320);
+    if (m.x === before || a.t <= 0) { m.mul = 1; d.shake = Math.max(d.shake, 6); sounds.push('boom'); rest(BOSS.chargeRest); }
+    return;
+  }
+  if (a.k === 'gust') {
+    // Old Nimbus breathes in: the wind pulls you toward it (stand against it, or hold a ledge).
+    if (d.gust) { d.gust.warn = 0; d.gust.t = a.t; }
+    if (!d.hz.includes('wind')) for (const x of st) if (x.h.dashT <= 0) x.h.x = Math.max(12, Math.min(d.worldW - 12, x.h.x + (m.x > x.h.x ? 1 : -1) * BOSS.gustPush * dt));
+    if (a.t <= 0) { d.gust = null; rest(400); }
+  }
 }
 
 /** 🐗 A monster's own move. Returns true while the move is in charge of where it goes (no patrolling then). */
