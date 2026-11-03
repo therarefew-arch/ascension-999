@@ -7,22 +7,44 @@
 // - Every pair fills the combo bar (7); a full bar adds +0.5× to the XP multiplier (max 3×).
 // - Helpers per crate: 🔀 Shuffle (the fish on the board swap around, still solvable), 🔍 Hint, ↩️ Undo.
 // Boards are built so they can always be cleared (fish are dealt in pairs in a pick-able order).
+// - 🪜 Levels 1–999 (v0.0.2.13, owner: "levels that go to 999, progressively harder"): `levelSpec` grows the pile
+//   (more tiles, more layers, upper layers fuller), adds kinds of fish and hands out fewer helpers. Fast early on,
+//   slower later (a square-root-ish curve). Clearing a crate moves you up a level (`player.sortLevel`).
 
 /** A tile: x, y in half-tile steps (so tiles can sit half over each other), z = layer. */
 export interface Tile { id: number; x: number; y: number; z: number; face: number }
 export interface Slot { face: number; ids: number[] }
 
-export const FACES = ['🐟', '🦐', '🦀', '🐚', '⭐', '🐙', '🐠', '⚓', '🐡', '🦑', '🐢', '🪸'];
+export const FACES = ['🐟', '🦐', '🦀', '🐚', '⭐', '🐙', '🐠', '⚓', '🐡', '🦑', '🐢', '🪸', '🦞', '🐬', '🦈', '🐋'];
+export const MAX_SORT_LEVEL = 999;
 export const BASKET = 4;
 /** How many alike clear. */
 export const MATCH = 2;
 export const COMBO_BAR = 7;
 export const HELPERS = { shuffle: 2, hint: 3, undo: 3 } as const;
-/** Board size in tiles (base layer). */
+/** Widest board in tiles (base layer) — the screen sizes tiles for this. */
 export const COLS = 6;
-export const ROWS = 7;
-/** How many kinds of fish a crate uses. */
-const BOARD_FACES = 10;
+export const ROWS = 8;
+
+export interface LevelSpec { cols: number; rows: number; layers: number; fill: number; kinds: number; helpers: Record<keyof typeof HELPERS, number> }
+/** How a level's crate is built. Level 1 is a small, gentle pile; level 999 a tall heap of 16 kinds with one of each helper. */
+export function levelSpec(level: number): LevelSpec {
+  const L = Math.max(1, Math.min(MAX_SORT_LEVEL, Math.floor(level)));
+  const e = Math.pow((L - 1) / (MAX_SORT_LEVEL - 1), 0.35); // 0 → 1, quick at first
+  const cols = L < 4 ? 4 : L < 12 ? 5 : 6;
+  const rows = L < 4 ? 4 : L < 12 ? 5 : L < 30 ? 6 : L < 120 ? 7 : 8;
+  return {
+    cols, rows,
+    layers: L < 8 ? 2 : L < 40 ? 3 : L < 150 ? 4 : L < 600 ? 5 : 6,
+    fill: Math.min(0.95, 0.45 + 0.5 * e),
+    kinds: Math.min(FACES.length, Math.round(5 + e * (FACES.length - 5))),
+    helpers: {
+      shuffle: L < 50 ? 3 : 2,
+      hint: L < 30 ? 4 : L < 120 ? 3 : L < 350 ? 2 : 1,
+      undo: L < 30 ? 4 : L < 120 ? 3 : L < 350 ? 2 : 1,
+    },
+  };
+}
 
 /** Does tile b lie on (part of) tile a? */
 const covers = (b: Tile, a: Tile) => b.z > a.z && Math.abs(b.x - a.x) < 2 && Math.abs(b.y - a.y) < 2;
@@ -34,25 +56,31 @@ function shuffled<T>(a: T[], rng: () => number): T[] {
   return b;
 }
 
-/** The pile's shape: a full base, a half-shifted second layer, and a few tiles on top. */
-function layout(rng: () => number): { x: number; y: number; z: number }[] {
+/** The pile's shape: a full base, then layers that alternate half-shifted and straight, each a little smaller,
+ * with holes so every crate looks different. Higher levels stack more layers and fill them more. */
+function layout(spec: LevelSpec, rng: () => number): { x: number; y: number; z: number }[] {
+  const { cols, rows } = spec;
   const s: { x: number; y: number; z: number }[] = [];
-  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) s.push({ x: x * 2, y: y * 2, z: 0 });
-  const mid: typeof s = [];
-  for (let y = 0; y < ROWS - 1; y++) for (let x = 0; x < COLS - 1; x++) mid.push({ x: x * 2 + 1, y: y * 2 + 1, z: 1 });
-  const top: typeof s = [];
-  for (let y = 1; y < ROWS - 1; y++) for (let x = 1; x < COLS - 1; x++) top.push({ x: x * 2, y: y * 2, z: 2 });
-  // Leave some holes in the upper layers so every crate looks different.
-  s.push(...shuffled(mid, rng).slice(0, 22), ...shuffled(top, rng).slice(0, 8));
+  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) s.push({ x: x * 2, y: y * 2, z: 0 });
+  for (let z = 1; z < spec.layers; z++) {
+    const half = z % 2 === 1;
+    const inset = Math.floor((z - 1) / 2); // straight layers shrink by one tile each side
+    const spots: typeof s = [];
+    if (half) { for (let y = inset; y < rows - 1 - inset; y++) for (let x = inset; x < cols - 1 - inset; x++) spots.push({ x: x * 2 + 1, y: y * 2 + 1, z }); }
+    else { for (let y = inset + 1; y < rows - 1 - inset; y++) for (let x = inset + 1; x < cols - 1 - inset; x++) spots.push({ x: x * 2, y: y * 2, z }); }
+    const share = spec.fill * (1 - 0.12 * (z - 1));
+    s.push(...shuffled(spots, rng).slice(0, Math.round(spots.length * share)));
+  }
   while (s.length % MATCH) s.pop();
   return s;
 }
 
 let nextId = 1;
-export function newBoard(rng: () => number = Math.random): Tile[] {
+export function newBoard(level = 1, rng: () => number = Math.random): Tile[] {
+  const spec = levelSpec(level);
   for (let attempt = 0; attempt < 200; attempt++) {
-    const tiles = layout(rng).map((p) => ({ id: nextId++, ...p, face: 0 }));
-    const kinds = shuffled(FACES.map((_, i) => i), rng).slice(0, BOARD_FACES);
+    const tiles = layout(spec, rng).map((p) => ({ id: nextId++, ...p, face: 0 }));
+    const kinds = shuffled(FACES.map((_, i) => i), rng).slice(0, spec.kinds);
     const triples = Array.from({ length: tiles.length / MATCH }, (_, i) => kinds[i % kinds.length]);
     if (dealExact(tiles, [], triples, rng)) return tiles;
   }
@@ -124,3 +152,11 @@ export function hintTile(tiles: Tile[], basket: Slot[]): Tile | null {
 export const matchXp = (baseXp: number) => Math.max(1, Math.round(baseXp));
 /** XP multiplier from full combo bars (+0.5× each, up to 3×). */
 export const comboMult = (bars: number) => Math.min(3, 1 + 0.5 * bars);
+/** Clearing a whole crate: a bigger bonus the higher the level (like the old ×2 XP + 2 bonus rolls at level 1). */
+export const clearReward = (level: number) => ({ xpMult: 2 + Math.min(3, (level - 1) / 300), bonusRolls: 2 + Math.floor(level / 250) });
+/** Board size in tiles (for drawing). */
+export function boardSize(tiles: Tile[]): { cols: number; rows: number } {
+  let w = 0, h = 0;
+  for (const t of tiles) { w = Math.max(w, t.x / 2 + 1); h = Math.max(h, t.y / 2 + 1); }
+  return { cols: Math.max(1, Math.ceil(w)), rows: Math.max(1, Math.ceil(h)) };
+}

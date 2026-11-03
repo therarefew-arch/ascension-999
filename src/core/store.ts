@@ -910,6 +910,13 @@ export const game = {
 
   /** XP-only reward (the fishing tile game). */
   /** XP-only minigames (Sort the Catch, Pantry Prep, Joinery). Capped at `maxMult` × the recipe's XP. */
+  /** 🧺 Sort the Catch: a crate cleared — on to the next level (up to 999). */
+  sortLevelUp() {
+    snap.player.sortLevel = Math.min(999, (snap.player.sortLevel ?? 1) + 1);
+    save();
+    emit();
+  },
+
   minigameXp(actionId: string, xp: number, maxMult = 3) {
     const action = ACTIONS[actionId];
     if (!action || xp <= 0) return;

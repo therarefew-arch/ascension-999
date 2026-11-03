@@ -397,6 +397,7 @@ function repair(raw: any): PlayerState {
   // 🧭 Expedition boss wins per town (v0.0.1.60)
   if (raw?.dungeonRun) p.dungeonRun = loadDungeonRun(raw.dungeonRun);
   { const hp = loadHappening(raw?.happening); if (hp) p.happening = hp; }
+  if (typeof raw?.sortLevel === 'number' && raw.sortLevel >= 1) p.sortLevel = Math.min(999, Math.floor(raw.sortLevel));
   if (raw?.dungeonBossAt && typeof raw.dungeonBossAt === 'object') {
     p.dungeonBossAt = {};
     for (const [r, n] of Object.entries(raw.dungeonBossAt)) if ((REGIONS as readonly string[]).includes(r) && typeof n === 'number' && Number.isFinite(n)) p.dungeonBossAt[r as Region] = n;

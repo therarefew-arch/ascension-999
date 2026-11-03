@@ -161,6 +161,8 @@ export interface PlayerState {
   dungeonBossAt?: Partial<Record<Region, number>>;
   /** 🎪 Today's town happening: how far you've joined in, and whether the prize is collected. */
   happening?: import('./happenings').HappeningState;
+  /** 🧺 Sort the Catch: the level you're on (1–999, v0.0.2.13). */
+  sortLevel?: number;
   /** 🗝️ The extraction run you're on (your worn gear is inside it while you're in the dungeon). */
   dungeonRun?: import('./dungeonRun').DungeonRun;
   /** 🎁 Gifts you sent that the server hasn't confirmed yet (already taken out of your save). */
