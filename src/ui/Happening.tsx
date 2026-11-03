@@ -7,10 +7,12 @@ import { happeningState, HAPPENING_XP, happeningOn, happeningPrize, whyCantClaim
 import { game, useGame } from '../core/store';
 import { sound } from '../audio/sound';
 import { fmtNum } from './format';
+import { FoldHead, useFold } from './Fold';
 
 export function HappeningCard({ onSkill }: { onSkill: (s: SkillId) => void }) {
   const { player } = useGame();
   useEffect(() => { game.ensureRequests(); }, []);
+  const [open, toggle] = useFold('happening', true);
   const h = happeningOn(player);
   if (!h) return null;
   // Read-only view of today's progress (the store makes it fresh each day).
@@ -24,10 +26,10 @@ export function HappeningCard({ onSkill }: { onSkill: (s: SkillId) => void }) {
   const skill = SKILLS[h.skill].name;
   return (
     <section className={`today-card hp-card ${here ? 'here' : ''}`}>
-      <div className="today-head">
-        <h2 className="section-title">🎪 HAPPENING</h2>
-        <span className={`chip ${here ? 'up' : ''}`}>{here ? 'Here today!' : `in ${h.town}`}</span>
-      </div>
+      <FoldHead title="🎪 HAPPENING" open={open} onToggle={toggle}
+        summary={!why ? <b className="gold">🎁 Prize ready!</b> : open ? (here ? 'Here today!' : `in ${h.town}`)
+          : <>{h.emoji} {st.claimed ? '✅' : `${Math.floor(Math.min(100, (st.progress / st.goal) * 100))}%`} · {here ? 'here' : h.town}</>} />
+      {open && <>
       <div className="hp-main">
         <span className="hp-emoji bob">{h.emoji}</span>
         <div className="grow">
@@ -57,6 +59,7 @@ export function HappeningCard({ onSkill }: { onSkill: (s: SkillId) => void }) {
         </>
       )}
       {tomorrow && <div className="small dim">Tomorrow: {tomorrow.emoji} {tomorrow.name} in {tomorrow.town}</div>}
+      </>}
     </section>
   );
 }

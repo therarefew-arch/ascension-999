@@ -2190,3 +2190,28 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .boost-chip.hap { background: rgba(244, 114, 182, 0.14); border-color: rgba(244, 114, 182, 0.45); color: #fbcfe8; }
 .hp-prog { display: flex; flex-direction: column; gap: 4px; }
 .hp-claim, .hp-go { align-self: flex-start; }
+
+/* v0.0.2.11 smoother screens: folding cards + the Combat screen's adventure grid */
+.fold-head { padding: 2px 0; min-height: 32px; text-align: left; gap: 8px; }
+.fold-sum { flex: none; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.fold-arrow { color: var(--gold); font-size: 0.75rem; }
+.lw-short { display: none; }
+.adv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 12px; }
+.adv-grid .lw-launch { flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 2px; padding: 10px 8px; margin: 0; min-height: 104px; }
+.adv-grid .lw-launch .grow { flex: none; }
+.adv-grid .lw-launch .small.muted { display: none; }
+.adv-grid .lw-launch b { font-size: 0.92rem; }
+.adv-grid .lw-launch-emoji { font-size: 1.7rem; }
+.adv-grid .lw-launch-go { display: none; }
+.adv-grid .lw-short { display: block; font-size: 0.72rem; color: var(--muted, #a8a29e); line-height: 1.25; }
+.adv-grid .dg-launch-boss { display: block; margin-top: 2px; font-size: 0.66rem; }
+/* v0.0.2.11: gear slots three across (5 armour slots in 2 rows, 9 tools in 3) — less scrolling */
+.gear-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.gear-grid .gear-slot { min-height: 104px; padding: 8px 4px; text-align: center; }
+.gear-grid .gear-slot b, .gear-grid .gear-slot .small { font-size: 0.74rem; line-height: 1.2; overflow-wrap: anywhere; }
+/* v0.0.2.11: on the smallest phones all four top-bar chips fit without hiding the idle chip */
+@media (max-width: 360px) {
+  .topbar { padding-left: 6px; padding-right: 6px; gap: 4px; }
+  .topbar-chips { gap: 3px; }
+  .topbar-chips .stat-chip { padding: 0 5px; gap: 3px; font-size: 0.74rem; }
+}

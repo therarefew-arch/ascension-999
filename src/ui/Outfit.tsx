@@ -1,5 +1,6 @@
 // 🧳 Outfit me (Gear screen): get every tool and armour piece for a town in one tap.
 import { useMemo, useState } from 'react';
+import { FoldHead, useFold } from './Fold';
 import { getItem, SLOT_LABELS } from '../data/items';
 import { REGIONS, type Region } from '../data/tiers';
 import { outfitCount, previewOutfit } from '../core/outfit';
@@ -14,6 +15,7 @@ export function OutfitCard() {
   const towns = REGIONS.filter((r) => player.regions.includes(r)) as Region[];
   const [pick, setPick] = useState<Region | null>(null);
   const [open, setOpen] = useState(false);
+  const [folded, toggleFold] = useFold('outfit', false);
   const town = pick && towns.includes(pick) ? pick : towns[towns.length - 1];
   const tier = REGIONS.indexOf(town);
   // A dry run on a copy of your save shows exactly what one tap would do.
@@ -24,7 +26,9 @@ export function OutfitCard() {
 
   return (
     <section className="card outfit">
-      <h3>🧳 Outfit me</h3>
+      <FoldHead title="🧳 OUTFIT ME" open={folded} onToggle={toggleFold}
+        summary={folded ? undefined : allSet ? <>✓ set for {town}</> : ready > 0 ? <b className="gold">{ready} ready for {town}</b> : <>for {town}</>} />
+      {folded && <>
       <p className="small muted">Makes and puts on every tool, armour piece and a weapon for a town in one tap. Bars are smelted from your ore and materials come from your bag and bank.</p>
       {towns.length > 1 && (
         <div className="outfit-towns">
@@ -64,6 +68,7 @@ export function OutfitCard() {
           ))}
         </ul>
       )}
+      </>}
     </section>
   );
 }

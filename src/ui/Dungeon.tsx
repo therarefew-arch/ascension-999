@@ -985,6 +985,7 @@ export function DungeonLaunch() {
           {run
             ? <span className="small muted">You're inside {AREAS[run.region].name} — room {run.row + 1} of {run.rows.length}, {found.toLocaleString()} thing{found === 1 ? '' : 's'} found. Your gear is in there with you. Tap to carry on.</span>
             : <span className="small muted">An extraction run through {AREAS[region].name}: gear up, choose your path room by room, and get out through a 🚪 way out or past the boss. Knocked out? Everything you brought and found is lost.</span>}
+          <span className="lw-short">{run ? `🎒 Room ${run.row + 1}/${run.rows.length} · ${found} found` : 'Extraction run'}</span>
           <span className="tiny dg-launch-boss">{bossAt ? `👑 Boss treasure back in ${Math.max(1, Math.ceil((bossAt - Date.now()) / 60_000))} min` : '👑 Boss treasure ready'}</span></span>
         <span className="lw-launch-go">▶</span>
       </button>

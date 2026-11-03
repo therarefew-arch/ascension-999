@@ -1,6 +1,6 @@
 // The game's version, shown on the title screen and in Settings.
 // Bump the last number with every update that goes live (v0.0.1.2 → v0.0.1.3 → …).
-export const GAME_VERSION = 'v0.0.2.10';
+export const GAME_VERSION = 'v0.0.2.11';
 
 /** One line about what the latest update added. */
-export const VERSION_NOTE = "🎪 Town happenings — each day a town holds a fishing derby, bake-off, miners' race or more: +20% XP for that skill and a prize for joining in";
+export const VERSION_NOTE = "🧹 Smoother screens — daily things first in town, adventures in a tidy grid, gear first on the Gear screen, and long cards fold away";

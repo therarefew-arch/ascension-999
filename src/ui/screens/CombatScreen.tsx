@@ -22,6 +22,7 @@ import { WAVES as WALL_WAVES } from '../../core/holdWall';
 import { RoadUp } from '../RoadUp';
 import { DungeonLaunch } from '../Dungeon';
 import { CoopLaunch } from '../Coop';
+import { FoldHead, useFold } from '../Fold';
 
 const STYLE_ICON = { melee: 'melee', ranged: 'ranged', magic: 'magic' } as const;
 const STYLE_NAME: Record<CombatStyle, string> = { melee: 'Melee', ranged: 'Ranged', magic: 'Magic' };
@@ -256,15 +257,16 @@ function Fight({ onItem }: { onItem: (id: string) => void }) {
 function BountyBoard() {
   const { player } = useGame();
   useEffect(() => { game.ensureBounties(); }, []);
+  const [open, toggle] = useFold('bounties', true);
   const list = player.bounties.list;
   if (!list.length) return null;
+  const ready = list.filter((b) => !b.claimed && b.progress >= b.goal).length;
+  const doneN = list.filter((b) => b.claimed).length;
   return (
     <section className="card bounty-board">
-      <div className="row-between">
-        <h3>📋 Bounty Board</h3>
-        <span className="small muted">{list.filter((b) => b.claimed).length}/{list.length} done · new each day</span>
-      </div>
-      {list.map((b, i) => {
+      <FoldHead title="📋 BOUNTY BOARD" open={open} onToggle={toggle}
+        summary={ready ? <b className="gold">{ready} to claim!</b> : open ? `${doneN}/${list.length} done · new each day` : `${doneN}/${list.length} done`} />
+      {open && list.map((b, i) => {
         const m = MONSTER_MAP[b.monster];
         const done = b.progress >= b.goal;
         const here = m.region === player.location;
@@ -314,25 +316,31 @@ export function CombatScreen({ onItem }: { onItem: (id: string) => void }) {
                 <span><UiIcon name={STYLE_ICON[style]} size={16} /> Fighting with <b className="gold">{STYLE_NAME[style]}</b>{player.equipment.weapon ? ` (${getItem(player.equipment.weapon).name})` : ' (fists)'}</span>
               </div>
               <HpBar hp={player.hp} max={max} tone="green" />
-              <p className="small muted">Triangle: Melee beats Ranged · Ranged beats Magic · Magic beats Melee. Your weapon sets your style. You heal slowly out of combat, and eat food automatically when low.</p>
+              <p className="tiny muted">Melee beats Ranged · Ranged beats Magic · Magic beats Melee · your weapon sets your style · you heal out of combat and eat when low.</p>
             </div>
+            {/* v0.0.2.11: the four adventures as a compact 2×2 grid, so the monsters aren't pushed far down. */}
+            <h2 className="section-title">⚔️ ADVENTURES</h2>
+            <div className="adv-grid">
             <DungeonLaunch />
             <CoopLaunch />
-            <button className="lw-launch" style={{ marginTop: 8 }} onClick={() => setWatch(true)}>
+            <button className="lw-launch" onClick={() => setWatch(true)}>
               <span className="lw-launch-emoji">🏮</span>
               <span className="grow"><b>Lantern Watch</b><span className="small muted">{hasSavedNight(slot)
                 ? '💾 You have a saved night — tap to carry on.'
-                : `Survive the night in ${player.location} — dodge the swarm, pick a power-up every level, face the dawn beast.`}</span></span>
+                : `Survive the night in ${player.location} — dodge the swarm, pick a power-up every level, face the dawn beast.`}</span>
+                <span className="lw-short">{hasSavedNight(slot) ? '💾 Night saved' : 'Survive till dawn'}</span></span>
               <span className="lw-launch-go">▶</span>
             </button>
-            {watch && <LanternWatch onClose={() => setWatch(false)} />}
             <button className="lw-launch hw-launch" onClick={() => setWall(true)}>
               <span className="lw-launch-emoji">🛡️</span>
               <span className="grow"><b>Hold the Wall</b><span className="small muted">{hasSavedWall(slot)
                 ? '💾 Your wall is waiting — tap to carry on.'
-                : `Build towers and hold ${player.location}'s gate for ${WALL_WAVES} waves against its monsters.`}</span></span>
+                : `Build towers and hold ${player.location}'s gate for ${WALL_WAVES} waves against its monsters.`}</span>
+                <span className="lw-short">{hasSavedWall(slot) ? '💾 Wall waiting' : `Towers · ${WALL_WAVES} waves`}</span></span>
               <span className="lw-launch-go">▶</span>
             </button>
+            </div>
+            {watch && <LanternWatch onClose={() => setWatch(false)} />}
             {wall && <HoldWall onClose={() => setWall(false)} />}
             <BountyBoard />
             {player.location === WEEKLY_BOSS.region && <WeeklyBoss />}

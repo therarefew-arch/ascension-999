@@ -1,5 +1,6 @@
 // 🎪 The festival stall (Town screen, any town) while a seasonal festival is on.
 import { FESTIVAL_PRICES, TREAT_BUFF } from '../data/festivals';
+import { FoldHead, useFold } from './Fold';
 import { SKILLS } from '../data/skills';
 import { activeFestival, festivalEndsAt, tokensHave, whyCantBuy, type StallItem } from '../core/festivals';
 import { game, useGame } from '../core/store';
@@ -14,6 +15,7 @@ export function FestivalBunting() {
 
 export function FestivalStall() {
   const { player } = useGame();
+  const [open, toggle] = useFold('festival', false);
   const f = activeFestival();
   if (!f) return null;
   const have = tokensHave(player, f);
@@ -22,12 +24,12 @@ export function FestivalStall() {
     { what: 'decoration', emoji: f.decoration.emoji, name: f.decoration.name, detail: 'Cottage keepsake · +1% XP to everything, forever', owned: player.cottage.includes(f.decoration.id) },
     { what: 'pet', emoji: f.pet.emoji, name: f.pet.name, detail: `Festival pet · +2% ${SKILLS[f.skill].name} XP while following you`, owned: player.pets.includes(f.pet.id) },
   ];
+  const left = fmtDuration(festivalEndsAt(f) - Date.now());
   return (
     <section className={`festival-card fest-${f.id}`}>
-      <div className="row-between">
-        <h2 className="section-title">{f.emoji} {f.name.toUpperCase()}</h2>
-        <span className="small muted">ends in {fmtDuration(festivalEndsAt(f) - Date.now())}</span>
-      </div>
+      <FoldHead title={<>{f.emoji} {f.name.toUpperCase()}</>} open={open} onToggle={toggle}
+        summary={open ? `ends in ${left}` : <>{f.token.emoji} <b className="mono">{have}</b> · {left}</>} />
+      {open && <>
       <p className="small">{f.blurb}</p>
       <p className="small muted">
         Everything you do can turn up a <b>{f.token.emoji} {f.token.name.toLowerCase()}</b> · <b>{SKILLS[f.skill].name} +10% XP</b> all festival long.
@@ -47,6 +49,7 @@ export function FestivalStall() {
           );
         })}
       </div>
+      </>}
     </section>
   );
 }

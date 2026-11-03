@@ -146,6 +146,15 @@ export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, o
 
       <SettlingIn onSkill={onSkill} onCombat={onCombat} />
 
+      {/* v0.0.2.11: the things you check every day come first, then this town's story, then the rest. */}
+      <GiftsCard />
+
+      <TodayCard onGo={goTo} />
+
+      <HappeningCard onSkill={onSkill} />
+
+      <PedlarCard />
+
       <SaveSafetyHint onSettings={onSettings} />
 
       <TravellerCard />
@@ -154,14 +163,6 @@ export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, o
       {here === 'Cinderpeak' && <CinderpeakCard onMining={() => onSkill('mining')} />}
 
       <FestivalStall />
-
-      <GiftsCard />
-
-      <TodayCard onGo={goTo} />
-
-      <HappeningCard onSkill={onSkill} />
-
-      <PedlarCard />
 
       <div className="services">
         <button className="service" onClick={onMarket}>

@@ -14,6 +14,7 @@ import { DiffChips, Sheet, StatCompare } from '../components';
 import { ItemIcon } from '../icons';
 import { ReforgePanel, StarforgeCard } from '../Starforge';
 import { OutfitCard } from '../Outfit';
+import { FoldHead, useFold } from '../Fold';
 
 const WHERE_TO_GET: Partial<Record<EquipSlot, string>> = {
   pickaxe: 'Craft one at the Workshop.',
@@ -173,25 +174,29 @@ export function GearScreen() {
   const { player } = useGame();
   const [picking, setPicking] = useState<EquipSlot | null>(null);
   const stats = equipmentStats(player);
+  const [statsOpen, toggleStats] = useFold('gearstats', false);
 
   return (
     <div className="screen">
       <h1 className="screen-title">GEAR</h1>
-      <OutfitCard />
-      <Loadouts />
+      {/* v0.0.2.11: what you're wearing comes first; Outfit me and the stats fold away. */}
       <h2 className="section-title">ARMOUR &amp; WEAPONS</h2>
       <SlotGrid slots={ARMOUR_SLOTS} onPick={setPicking} />
+      <OutfitCard />
+      <Loadouts />
       <h2 className="section-title">SKILLING TOOLS</h2>
       <SlotGrid slots={TOOL_SLOTS} onPick={setPicking} />
       <StarforgeCard />
       <div className="card">
-        <h3>Total stats</h3>
+        <FoldHead title="TOTAL STATS" open={statsOpen} onToggle={toggleStats} summary={statsOpen ? undefined : `⚔ ${stats.attack ?? 0} · 🛡 ${stats.defense ?? 0}`} />
+        {statsOpen && <>
         <div className="stat-list">
           {(Object.keys(STAT_LABELS) as (keyof ItemStats)[]).map((k) => (
             <div key={k} className="stat-line"><span>{STAT_LABELS[k]}</span><b>{stats[k] ?? 0}{k.endsWith('Speed') && (stats[k] ?? 0) > 0 ? <span className="muted"> · {(1 / toolSpeedMult(stats[k] ?? 0)).toFixed(1)}× as fast</span> : null}</b></div>
           ))}
         </div>
         <p className="small muted">Includes socketed gems. Tools make their skill faster (past 30%, each extra % counts a little less). Attack, Defense and Max HP help in combat.</p>
+        </>}
       </div>
       {picking && <SlotPicker slot={picking} onClose={() => setPicking(null)} />}
     </div>

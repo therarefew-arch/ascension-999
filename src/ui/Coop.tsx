@@ -35,7 +35,8 @@ export function CoopLaunch() {
       <button className="lw-launch dg-launch" onClick={() => { sound.play('click'); setOpen(true); }}>
         <span className="lw-launch-emoji">🤝</span>
         <span className="grow"><b>Dungeon together</b>
-          <span className="small muted">Team up with a friend in {AREAS[player.location].name}: make a party and share its code, or join theirs. Tougher monsters — and you each get the full loot of every kill. Nothing you wear is at risk.</span></span>
+          <span className="small muted">Team up with a friend in {AREAS[player.location].name}: make a party and share its code, or join theirs. Tougher monsters — and you each get the full loot of every kill. Nothing you wear is at risk.</span>
+          <span className="lw-short">Team up with a friend</span></span>
         <span className="lw-launch-go">▶</span>
       </button>
       {open && <CoopShell onClose={() => setOpen(false)} />}

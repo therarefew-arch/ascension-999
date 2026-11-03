@@ -3,6 +3,7 @@ import { getItem } from '../data/items';
 import { CLUE_IDS, LANTERN_COST, LANTERN_LEVEL, LANTERNS, questState, whyCantLight, whyCantRing } from '../core/lunaria';
 import { countInBag } from '../core/inventory';
 import { game, useGame } from '../core/store';
+import { FoldHead, useFold } from './Fold';
 
 function Step({ done, label, detail }: { done: boolean; label: string; detail?: string }) {
   return (
@@ -19,6 +20,7 @@ function Step({ done, label, detail }: { done: boolean; label: string; detail?: 
 export function SilentBell({ onJournal, onCombat }: { onJournal: () => void; onCombat: () => void }) {
   const { player } = useGame();
   const q = questState(player);
+  const [open, toggle] = useFold('silentbell', true);
 
   if (q.restored) {
     return (
@@ -32,9 +34,12 @@ export function SilentBell({ onJournal, onCombat }: { onJournal: () => void; onC
 
   const lightWhy = whyCantLight(player);
   const ringWhy = whyCantRing(player);
+  const steps = [q.arrived, q.clues >= CLUE_IDS.length, q.hushDefeated, q.lanterns >= LANTERNS];
+  const next = !q.arrived ? 'Arrive' : !q.hushDefeated ? 'Face The Hush' : q.lanterns < LANTERNS ? `Lanterns ${q.lanterns}/${LANTERNS}` : q.clues < CLUE_IDS.length ? `Clues ${q.clues}/${CLUE_IDS.length}` : 'Ring the bell';
   return (
     <section className="sb-card">
-      <h2 className="section-title">🔍 THE SILENT BELL</h2>
+      <FoldHead title="🔍 THE SILENT BELL" open={open} onToggle={toggle} summary={open ? `${steps.filter(Boolean).length}/5` : `${steps.filter(Boolean).length}/5 · next: ${next}`} />
+      {open && <>
       <p className="small muted">Every lantern went dark at once. The townsfolk are still here — just out of reach. Find out what happened, and bring them home.</p>
       <div className="sb-steps">
         <Step done={q.arrived} label="Arrive in Lunaria" />
@@ -59,6 +64,7 @@ export function SilentBell({ onJournal, onCombat }: { onJournal: () => void; onC
       {(lightWhy && q.hushDefeated && q.lanterns < LANTERNS) && <p className="small muted center">{lightWhy}</p>}
       {(!lightWhy || q.lanterns >= LANTERNS) && ringWhy && <p className="small muted center">{ringWhy}</p>}
       <button className="btn btn-wide" onClick={onJournal}>📜 Clues so far (Journal → Tales)</button>
+      </>}
     </section>
   );
 }
