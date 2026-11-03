@@ -7,6 +7,7 @@ import type { ActionDef } from '../data/skills';
 import { lockedReason } from '../core/idle';
 import { adjacent, joined, loomDone, loomSpec, loomXp, MAX_LOOM_LEVEL, newLoom, pegAt, YARN, YARN_NAMES } from '../core/loom';
 import { game, useGame } from '../core/store';
+import { useOwnFullScreen } from './MinigameFrame';
 import { UiIcon } from './icons';
 import { FeedbackLayer, useFeedback } from './Minigames';
 import { SteadyHands } from './Minigames2';
@@ -16,6 +17,7 @@ import { useNoScroll } from './useNoScroll';
 const CELL = 100;
 
 function TheLoom({ action }: { action: ActionDef }) {
+  useOwnFullScreen(); // has its own ⛶ (the skill screen's frame hides its button)
   const { player } = useGame();
   const { items, push } = useFeedback();
   const level = Math.min(MAX_LOOM_LEVEL, player.loomLevel ?? 1);

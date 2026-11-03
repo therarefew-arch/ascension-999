@@ -12,6 +12,7 @@ import {
   type LevelSpec, type Slot, type Tile,
 } from '../core/sortCatch';
 import { game, useGame } from '../core/store';
+import { useOwnFullScreen } from './MinigameFrame';
 import { UiIcon } from './icons';
 import { FeedbackLayer, gainText, useFeedback } from './Minigames';
 import { ReelItIn } from './Minigames2';
@@ -21,6 +22,7 @@ const LIFT = 4;
 type HelperKey = keyof LevelSpec['helpers'];
 
 export function TileMatch({ action }: { action: ActionDef }) {
+  useOwnFullScreen(); // has its own ⛶ (the skill screen's frame hides its button)
   const { player } = useGame();
   const { items, push } = useFeedback();
   const level = Math.min(MAX_SORT_LEVEL, player.sortLevel ?? 1);

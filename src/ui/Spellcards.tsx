@@ -9,6 +9,7 @@ import {
 } from '../core/spellcards';
 import { skillLevel } from '../core/idle';
 import { game, useGame } from '../core/store';
+import { useOwnFullScreen } from './MinigameFrame';
 import { FeedbackLayer, useFeedback } from './Minigames';
 
 /** The run in progress, per save slot. Kept while the app is open and on this device, so you can step away mid-run. */
@@ -91,6 +92,7 @@ interface Tally { cards: Card[]; res: Cast; before: number; step: number; wardBe
 const beatMs = (res: Cast, i: number) => (i >= res.steps.length ? 1100 : res.steps[i].kind === 'spell' ? 520 : res.steps[i].mult ? 560 : 330);
 
 export function Spellcards() {
+  useOwnFullScreen(); // has its own ⛶ (the skill screen's frame hides its button)
   const { player, slot } = useGame();
   const { items, push } = useFeedback();
   const [, bump] = useReducer((n: number) => n + 1, 0);

@@ -2602,3 +2602,35 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
   background: radial-gradient(ellipse at 50% 20%, rgba(253, 230, 138, 0.12), transparent 60%), linear-gradient(180deg, #2a1a0d, #1a1008); }
 .lm-root.lm-full .lm-frame { width: min(100%, calc(100dvh - 200px), 760px); }
 @media (prefers-reduced-motion: reduce) { .lm-board.done .lm-spool, .lm-done { animation: none; } }
+
+/* =====================================================================
+   ⛶ Full screen for every skill minigame (v0.0.2.17). <MinigameFrame> wraps the minigame area;
+   the button sits in its top-right corner; .on covers the screen in the skill's own colours.
+   ===================================================================== */
+.mg-skin-farming { --mg-a: #a3e635; --mg-b: #3f6212; --mg-c: #14200d; --mg-p: rgba(254, 249, 195, 0.6); }
+.mg-fs { position: relative; }
+.mg-fs-btn { position: absolute; top: 8px; right: 12px; z-index: 6; width: 34px; height: 34px; padding: 0; display: grid; place-items: center; cursor: pointer;
+  border-radius: 10px; border: 1.5px solid color-mix(in srgb, var(--mg-a, #f59e0b) 60%, #2a241e);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--mg-b, #7c3f0e) 70%, #1a1612), color-mix(in srgb, var(--mg-c, #1c1714) 80%, #000));
+  color: #fff8e6; font-size: 1.05rem; font-weight: 900; line-height: 1; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.55), 0 0 10px color-mix(in srgb, var(--mg-a, #f59e0b) 25%, transparent); }
+.mg-fs-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.55); }
+/* keep the corner button clear of what sits under it */
+.mg-fs .small-tabs { padding-right: 56px; }
+.mg-fs .lock-why { margin-right: 56px; }
+.mg-fs.mg-skin-farming { padding-top: 42px; }
+.mg-fs.mg-skin-farming .mg-fs-btn { top: 2px; right: 0; }
+
+/* covering the screen */
+.skill-screen > .mg-fs.on, .mg-fs.on { position: fixed; inset: 0; z-index: 85; margin: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column;
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) calc(env(safe-area-inset-right, 0px) + 8px) calc(env(safe-area-inset-bottom, 0px) + 12px) calc(env(safe-area-inset-left, 0px) + 8px);
+  background:
+    radial-gradient(ellipse at 50% 28%, color-mix(in srgb, var(--mg-b, #7c3f0e) 45%, transparent), transparent 65%),
+    linear-gradient(180deg, var(--mg-c, #1c1714), #07060a); }
+.mg-fs.on .mg-fs-btn { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 10px); right: calc(env(safe-area-inset-right, 0px) + 12px); }
+.mg-fs.on .mg-fs-body { flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 0; }
+.mg-fs.on .mg { flex: none; }
+.mg-fs.on .mg-stage { width: min(340px, 82vw); height: clamp(200px, 36vh, 340px); }
+.mg-fs.on .mg-stage.rs-stage { width: min(340px, 84vw); height: min(340px, 84vw); }
+.mg-fs.on .lock-why { margin-top: 44px; }
+.mg-fs.on.mg-skin-farming { padding-top: calc(env(safe-area-inset-top, 0px) + 54px); }
+.mg-fs.on .garden { max-width: 520px; margin: 0 auto; width: 100%; }

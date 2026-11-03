@@ -26,6 +26,7 @@ import { fmtDuration, fmtNum } from '../format';
 import { AnvilRhythm, StrikeVein } from '../Minigames';
 import { Chop, RuneTrace } from '../Minigames2';
 import { CraftingGames } from '../Loom';
+import { MinigameFrame } from '../MinigameFrame';
 import { EnhancingGames } from '../Runesong';
 import { FiremakingGames } from '../Wildfire';
 import { FishingGames } from '../TileMatch';
@@ -330,7 +331,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
                 ? 'Craft a tool first — then upgrade it here, even while it’s equipped. Your +1 replaces the old one.'
                 : 'Nothing here yet.'}
           </div>
-          {skill === 'enhancing' && <div className="mg-skin mg-skin-enhancing"><EnhancingGames /></div>}
+          {skill === 'enhancing' && <MinigameFrame skill="enhancing"><div className="mg-skin mg-skin-enhancing"><EnhancingGames /></div></MinigameFrame>}
         </div>
       </div>
     );
@@ -388,6 +389,8 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
       )}
 
       {/* 🎨 v0.0.2.12: every minigame sits in its skill's own "skin" — scenery, colours and glow (styles.css .mg-skin-*). */}
+      {/* ⛶ v0.0.2.17: every minigame can go full screen (ui/MinigameFrame.tsx). */}
+      <MinigameFrame key={skill} skill={skill}>
       <div className={`mg-skin mg-skin-${skill}`}>
       {/* v0.0.2.15 (owner: "I would like to see why I can't do things"): a locked pick no longer hides the minigame —
           a clear 🔒 line says why, and the game below shows (and refuses to pay out) too. */}
@@ -403,6 +406,7 @@ export function SkillScreen({ skill }: { skill: SkillId }) {
       )}
       {unlocked || skill !== 'enhancing' ? <Minigame key={skill} action={action} /> : <EnhancingGames key="locked" />}
       </div>
+      </MinigameFrame>
 
       {unlocked && (
         <div className="idle-cta">

@@ -1,6 +1,7 @@
 // 🌱 Farming: your garden. Plant seeds, watch them grow over real time, harvest for crops and XP.
 // Minigame "Garden Helpers": pests and weeds pop up on growing plots — tap them for XP and faster growth.
 import { useEffect, useState } from 'react';
+import { MinigameFrame } from './MinigameFrame';
 import { sound } from '../audio/sound';
 import { getItem } from '../data/items';
 import { CROPS, tierLevel } from '../data/tiers';
@@ -65,6 +66,7 @@ export function FarmScreen() {
       </div>
 
       <div className="screen">
+        <MinigameFrame skill="farming">
         <div className="garden">
           {Array.from({ length: PLOTS }, (_, i) => {
             const pl = player.farm.plots[i];
@@ -108,6 +110,7 @@ export function FarmScreen() {
             🌱 Plant all
           </button>
         </div>
+        </MinigameFrame>
 
         <div className="card">
           <h3>Seeds</h3>
