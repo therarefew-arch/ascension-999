@@ -2180,3 +2180,13 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .ct-ware { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.25); color: inherit; cursor: pointer; text-align: center; }
 .ct-ware:disabled { opacity: 0.45; cursor: default; }
 .ct-ware-pic { width: 46px; height: 46px; image-rendering: pixelated; background: #e9dcc1; border-radius: 6px; }
+
+/* 🎪 Town happenings (v0.0.2.10) */
+.hp-card { border-color: rgba(244, 114, 182, 0.45); background: linear-gradient(180deg, rgba(244, 114, 182, 0.08), transparent 60%), var(--card); }
+.hp-card.here { border-color: rgba(251, 191, 36, 0.7); box-shadow: 0 0 14px rgba(251, 191, 36, 0.18); }
+.hp-main { display: flex; gap: 10px; align-items: flex-start; }
+.hp-emoji { font-size: 2rem; line-height: 1; flex: none; }
+.hp-chips { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.boost-chip.hap { background: rgba(244, 114, 182, 0.14); border-color: rgba(244, 114, 182, 0.45); color: #fbcfe8; }
+.hp-prog { display: flex; flex-direction: column; gap: 4px; }
+.hp-claim, .hp-go { align-self: flex-start; }

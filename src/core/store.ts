@@ -16,6 +16,7 @@ import { applyLoadout, applyPreset, resetTracker, saveLoadout, savePreset } from
 import { finishWildfire, lightBonfire } from './firemaking';
 import { checkArrival, fastTravel, startWalk } from './travel';
 import { catchStar, claimGift, claimRequest, claimRequestBonus, ensureRequests, nextStarDelay, rollLoreFind, STAR, syncLore, trackRequests } from './cozy';
+import { claimHappening, ensureHappening } from './happenings';
 import type { LoreNote } from '../data/lore';
 import { LANTERNS, lightLantern, ringBell, whyCantLight, whyCantRing } from './lunaria';
 import { takeTravellerGift } from './cinderpeak';
@@ -697,9 +698,21 @@ export const game = {
     emit();
   },
   ensureRequests() {
-    const before = snap.player.requests.day;
+    const before = snap.player.requests.day + (snap.player.happening?.day ?? '') + (snap.player.happening?.id ?? '');
     ensureRequests(snap.player);
-    if (before !== snap.player.requests.day) { save(); emit(); }
+    ensureHappening(snap.player);
+    if (before !== snap.player.requests.day + (snap.player.happening?.day ?? '') + (snap.player.happening?.id ?? '')) { save(); emit(); }
+  },
+  /** 🎪 Collect today's happening prize (in its town, once you've joined in). */
+  claimHappening() {
+    const r = claimHappening(snap.player);
+    if (!r) { play('error'); return; }
+    play('levelup');
+    buzz(30);
+    celebrate();
+    toast(`${r.h.emoji} ${r.h.name} — ${r.h.host} hand you a prize! +${r.prize[0].qty.toLocaleString()} coins`, 'level');
+    save();
+    emit();
   },
 
   // ----- Travel -----

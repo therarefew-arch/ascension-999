@@ -8,6 +8,7 @@ import type { ProgressReport } from './idle';
 import { giveLoot } from './loot';
 import type { ItemStack, PlayerState } from './player';
 import { levelForXp, xpToNext } from './xp';
+import { trackHappening } from './happenings';
 
 /** Today's date in the player's own time zone, e.g. "2026-10-24". */
 export function today(now = Date.now()): string {
@@ -110,6 +111,7 @@ export function requestLabel(r: TownRequest): string {
 
 /** Counts progress from anything that happened (idle, minigames, fights). */
 export function trackRequests(p: PlayerState, report: ProgressReport | null, minigameRounds = 0) {
+  trackHappening(p, report); // 🎪 today's town happening counts the same things
   ensureRequests(p);
   for (const r of p.requests.tasks) {
     if (r.claimed || r.progress >= r.goal) continue;

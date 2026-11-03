@@ -22,6 +22,7 @@ import { equipmentStats } from './equipment';
 import { advanceFight, isFightId, type CombatReport } from './combat';
 import { STIR_XP_MULT, stirBoosts } from './cinderpeak';
 import { festivalXpMult, rollFestivalToken } from './festivals';
+import { happeningXpMult } from './happenings';
 import { recordRareFish, type RareCatch } from './fishJournal';
 import { RELIC, RELIC_ASC, relicAsc, relicOn } from './relics';
 import { MASTERY_NUM, masteredCount } from './mastery';
@@ -416,6 +417,8 @@ export function addXp(p: PlayerState, action: { skill: SkillId }, report: Progre
   xp = xp * buffXpMult(p, action.skill) * cottageXpMult(p, action.skill);
   // 🎪 The season's festival skill gets +10%.
   xp = xp * festivalXpMult(action.skill);
+  // 🎪 Today's town happening skill gets +20%.
+  xp = xp * happeningXpMult(p, action.skill);
   // ✨ The Wanderer's Crown: +5% XP in every skill.
   if (relicOn(p, 'wanderers_crown')) xp = xp * (relicAsc(p, 'wanderers_crown') ? RELIC_ASC.crownXp : RELIC.crownXp);
   // 🌟 Ascended bonuses.

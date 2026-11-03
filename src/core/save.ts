@@ -1,6 +1,7 @@
 // Saving and loading. Saves live in the browser's storage on the device.
 // Every save has a version number; old saves are upgraded by MIGRATIONS so they never break.
 import { ITEM_LIST, ITEMS, type SkillId } from '../data/items';
+import { loadHappening } from './happenings';
 import { ACTIONS } from '../data/skills';
 import { INVENTORY_SLOTS, MAX_BAG_SLOTS, MAX_IDLE_SLOTS, SAVE_VERSION, newPlayer, type ItemStack, type Loadout, type PlayerState } from './player';
 import { PET_MAP } from '../data/pets';
@@ -395,6 +396,7 @@ function repair(raw: any): PlayerState {
   if (Array.isArray(raw?.recipes)) p.recipes = raw.recipes.filter((x: unknown) => typeof x === 'string' && !!ACTIONS[x as string]?.lost);
   // 🧭 Expedition boss wins per town (v0.0.1.60)
   if (raw?.dungeonRun) p.dungeonRun = loadDungeonRun(raw.dungeonRun);
+  { const hp = loadHappening(raw?.happening); if (hp) p.happening = hp; }
   if (raw?.dungeonBossAt && typeof raw.dungeonBossAt === 'object') {
     p.dungeonBossAt = {};
     for (const [r, n] of Object.entries(raw.dungeonBossAt)) if ((REGIONS as readonly string[]).includes(r) && typeof n === 'number' && Number.isFinite(n)) p.dungeonBossAt[r as Region] = n;
