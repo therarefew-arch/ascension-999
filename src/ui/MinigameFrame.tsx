@@ -5,6 +5,7 @@
 // `useOwnFullScreen()` and the frame hides its button while they're showing.
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { sound } from '../audio/sound';
+import './MinigameFrame.css';
 
 const Ctx = createContext<{ own: (d: number) => void } | null>(null);
 
