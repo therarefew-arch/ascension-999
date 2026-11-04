@@ -1,0 +1,4 @@
+/* v0.0.2.19 fix: a game in its OWN full screen (Spellcards, The Loom) sits inside the minigame frame, and the frame's
+   z-index 1 (from `.skill-screen > :not(.screen-bg)`) trapped it under the "Idle this" button that comes after it.
+   Lift the frame while one is showing. */
+.skill-screen > .mg-fs:has(.sc-full, .lm-full, .st-full) { z-index: 85; }
