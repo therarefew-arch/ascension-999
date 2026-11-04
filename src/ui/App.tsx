@@ -187,7 +187,7 @@ export function App() {
       </main>
       {tab === 'skills' && <SkillStrip selected={skill} onSelect={setSkill} />}
 
-      <nav className="bottomnav" aria-label="Main">
+      <nav className={`bottomnav ${tab === 'skills' ? '' : 'fade'}`} aria-label="Main">
         {NAV.slice(0, 2).map((n) => (
           <button key={n.tab} className={`nav-btn ${tab === n.tab ? 'on' : ''}`} onClick={() => go(n.tab)} aria-current={tab === n.tab}>
             <UiIcon name={n.icon} /><span>{n.label}</span>
