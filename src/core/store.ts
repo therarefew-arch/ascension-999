@@ -15,6 +15,7 @@ import { PET_MAP } from '../data/pets';
 import { applyLoadout, applyPreset, resetTracker, saveLoadout, savePreset } from './qol';
 import { finishWildfire, lightBonfire } from './firemaking';
 import { checkArrival, fastTravel, startWalk } from './travel';
+import { weatherStarMult } from './weather';
 import { catchStar, claimGift, claimRequest, claimRequestBonus, ensureRequests, nextStarDelay, rollLoreFind, STAR, syncLore, trackRequests } from './cozy';
 import { claimHappening, ensureHappening } from './happenings';
 import type { LoreNote } from '../data/lore';
@@ -277,7 +278,8 @@ function tick(now = Date.now()) {
   if (snap.star && now > snap.star.until) { snap.star = null; emit(); }
   // (The Cottage telescope makes them come more often.)
   // 🏮 Lantern-lit (Lunaria town bonus) too.
-  const starGap = () => nextStarDelay() / (1 + (cottageStarPct(p) + ascBonus(p, 'ln')) / 100);
+  // 🌌 Starry nights (weather) bring them more often too.
+  const starGap = () => nextStarDelay() / (1 + (cottageStarPct(p) + ascBonus(p, 'ln')) / 100) / weatherStarMult(p, now);
   if (!nextStarAt) nextStarAt = now + starGap();
   if (!snap.star && now >= nextStarAt) {
     snap.star = { id: now, until: now + STAR.visibleMs };
