@@ -20,6 +20,7 @@ import { sound } from '../audio/sound';
 import { CoopShell } from './Coop';
 import { PARTY_AD_MS } from '../core/family';
 import { AREAS } from '../core/expedition';
+import { GuildHallCard } from './GuildHall';
 
 const SYNC_MS = 3 * 60_000;
 
@@ -324,6 +325,7 @@ export function FamilyTab() {
       </section>
       <GiftsCard />
       {board && <GoalCard board={board} player={player} />}
+      <GuildHallCard board={board} player={player} />
       {giftTo && <GiftSheet to={giftTo} onClose={() => setGiftTo(null)} />}
       {joinCode && <CoopShell joinCode={joinCode} onClose={() => setJoinCode(null)} />}
 

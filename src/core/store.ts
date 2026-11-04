@@ -83,6 +83,8 @@ import {
   FAMILY_KEEPSAKE, familyCount, familyLevelMoment, giftLabel, giftsWaiting, MAX_GIFT_STACKS, newGiftId, syncSoon, whyCantGift, type FamilyMember, familyMoment, goalReward, itemName, lastBoard, MEDAL_NAMES, MEDALS, playedToday, setBoard, thisWeek, dayKey,
   type FamilyBoard, type FamilyLink,
 } from './family';
+import { hallView, syncHall, takeForHall, hallGoods } from './guildHall';
+import { HALL_COIN_BACK, HALL_ROOMS, HALL_XP_BACK } from '../data/guildHall';
 
 /** Gaps longer than this count as "away" and show the summary card. */
 const AWAY_THRESHOLD_MS = 60 * 1000;
@@ -1892,6 +1894,14 @@ export const game = {
       save();
       emit();
     }
+    // 🏰 A Guild Hall room finished (by someone else's donation, or seen first on another phone)?
+    const rooms = syncHall(p, b);
+    if (rooms) {
+      const room = HALL_ROOMS[(p.hall?.built ?? 1) - 1];
+      play('levelup'); celebrate();
+      toast(`🏰 ${room.emoji} ${room.name} is finished! Everyone in the guild gets its bonus`, 'level');
+      save(); emit();
+    }
     const today = dayKey();
     if (p.hearth !== today && playedToday(b, p.family.m).length) {
       p.hearth = today;
@@ -1947,6 +1957,40 @@ export const game = {
     emit();
     syncSoon();
     return true;
+  },
+
+  /** 🏰 Donate up to `qty` of an item (bag first, then bank) to need `i` of the Guild Hall room being built.
+   *  You get a little back: coins (part of its value) and some of the XP it took. */
+  hallDonate(i: number, id: string, qty: number) {
+    const p = snap.player;
+    if (!p.family) return fail('Join a guild first');
+    const view = hallView(p, lastBoard());
+    if (!view?.room) return fail('Your Guild Hall is finished!');
+    const { taken, pts } = takeForHall(p, view, i, id, qty);
+    if (!taken) return fail(view.total[i] >= view.need ? 'That part of the room is already done' : "You don't have any of that");
+    const g = hallGoods().get(id)!;
+    const coins = Math.round(baseValue(getItem(id)) * taken * HALL_COIN_BACK);
+    if (coins > 0) giveLoot(p, [{ id: 'coins', qty: coins }], { overflowToBank: true });
+    const report = emptyReport(null);
+    const xp = Math.round(g.xp * taken * HALL_XP_BACK);
+    if (xp > 0) addXp(p, { skill: g.skill }, report, xp);
+    announceLevels(report);
+    play('coin');
+    // Did this finish the room?
+    const after = hallView(p, lastBoard());
+    if (after && after.room && after.total.every((t) => t >= after.need)) {
+      const room = after.room;
+      syncHall(p, lastBoard());
+      play('levelup'); celebrate();
+      toast(`🏰 ${room.emoji} ${room.name} is finished! Everyone in the guild gets its bonus`, 'level');
+      familyMoment(p, 'hall', `finished ${room.name} in the Guild Hall!`);
+    } else {
+      toast(`🏰 Gave ${taken.toLocaleString()} ${getItem(id).name} (+${pts.toLocaleString()} points)${coins ? ` · +${coins.toLocaleString()} coins` : ''}`, 'good');
+    }
+    save();
+    emit();
+    syncSoon();
+    return null;
   },
 
   /** 🏆 Claim the next step of this week's family goal (coins + a rare find; 🥇 also the family portrait, once). */
