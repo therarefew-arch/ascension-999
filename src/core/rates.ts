@@ -10,6 +10,7 @@ import { PET_XP_BONUS, petBoosts } from '../data/pets';
 import { buffXpMult } from './buffs';
 import { cottageXpMult } from './cottage';
 import { happeningXpMult } from './happenings';
+import { weatherXpMult } from './weather';
 import { countInBag, countInBank } from './inventory';
 import { REGIONS, regionOpen } from '../data/tiers';
 
@@ -91,5 +92,5 @@ function extraMult(p: PlayerState, skill: SkillId) {
   if (petBoosts(p.activePet, skill)) m *= 1 + PET_XP_BONUS;
   if (p.bonfire && p.bonfire.until > Date.now()) m *= 1.05;
   if (hearthLit(p)) m *= 1 + HEARTH_XP;
-  return m * buffXpMult(p, skill) * cottageXpMult(p, skill) * happeningXpMult(p, skill);
+  return m * buffXpMult(p, skill) * cottageXpMult(p, skill) * happeningXpMult(p, skill) * weatherXpMult(p, skill);
 }

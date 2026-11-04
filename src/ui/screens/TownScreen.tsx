@@ -18,6 +18,7 @@ import { SaveSafetyHint } from '../Backup';
 import { SettlingIn } from '../SettlingIn';
 import { PedlarCard } from '../Pedlar';
 import { HappeningCard } from '../Happening';
+import { WeatherCard, WeatherLayer, weatherEmoji } from '../Weather';
 import { GiftsCard } from '../Family';
 import { dayPhase } from '../PixelScene';
 
@@ -95,7 +96,7 @@ function TravelMap() {
             <div className={`region-row ${here ? 'here' : ''} ${tr?.town === r && tr.gift ? 'traveller' : ''}`}>
               <span className="region-num mono">{level}</span>
               <div className="grow">
-                <b>{r}</b> {here && <span className="chip up">You are here</span>} {tr?.town === r && <span className="chip traveller-chip">🎒 {tr.gift ? 'Traveller · gift' : 'Traveller'}</span>}
+                <b>{r}</b>{visited && <span className="wx-map" title="Weather there now"> {weatherEmoji(r)}</span>} {here && <span className="chip up">You are here</span>} {tr?.town === r && <span className="chip traveller-chip">🎒 {tr.gift ? 'Traveller · gift' : 'Traveller'}</span>}
                 <div className="small muted">{info?.blurb}{!visited && roadOpen ? ' · not yet discovered' : ''}</div>
                 {!roadOpen && <div className="small red">Road opens when any skill reaches level {info?.unlockLevel}</div>}
               </div>
@@ -134,6 +135,7 @@ export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, o
     <div className="screen">
       <div className="town-hero compact">
         <PixelScene scene={here === 'Lunaria' && player.lunaria.restored ? 'lunaria_restored' : here === 'Cinderpeak' && mountainStirs().active ? 'cinderpeak_stirring' : info?.scene ?? 'town'} dim={0} />
+        <WeatherLayer />
         <div className="town-title">
           <h1>{here.toUpperCase()}</h1>
           <p>{here === 'Lunaria' && player.lunaria.restored ? 'Lanterns lit, bell ringing — a town come home' : `${greeting()} · ${info?.blurb}`}</p>
@@ -152,6 +154,8 @@ export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, o
       <TodayCard onGo={goTo} />
 
       <HappeningCard onSkill={onSkill} />
+
+      <WeatherCard />
 
       <PedlarCard />
 

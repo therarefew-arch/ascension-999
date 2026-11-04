@@ -2645,3 +2645,37 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .hl-chip.use.off { color: #a8a29e; border-color: #57534e; background: #1c1917; border-style: dashed; }
 .hl-chip.none { color: #a8a29e; border-color: #44403c; background: #1c1917; font-weight: 700; }
 .hl-chip.make { color: #c7d2fe; border-color: #3730a3; background: #12122a; font-weight: 700; }
+
+/* ── 🌦️ Weather (v0.0.2.21): a layer over the town picture + the Town card ─────────────────────────────── */
+.wx-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 3; }
+.wx-layer i { position: absolute; display: block; animation-delay: calc(var(--k) * -1s); }
+.wx-rain i, .wx-storm i { width: 2px; height: 16px; border-radius: 1px; background: linear-gradient(180deg, rgba(190, 215, 255, 0.1), rgba(205, 225, 255, 0.95)); transform: rotate(12deg); animation: wx-fall calc(var(--d) * 1s) linear infinite; }
+.wx-snow i { width: 4px; height: 4px; border-radius: 50%; background: #fff; opacity: 0.85; animation: wx-drift calc(var(--d) * 6s) linear infinite; }
+.wx-ash i { width: 3px; height: 3px; border-radius: 1px; background: #9ca3af; opacity: 0.75; animation: wx-drift calc(var(--d) * 8s) linear infinite; }
+.wx-stars i { width: 2px; height: 2px; background: #fffbe6; box-shadow: 0 0 4px #fde68a; top: calc(var(--k) * 18%) !important; animation: wx-twinkle calc(var(--d) * 3s) ease-in-out infinite; }
+.wx-wind i { width: 34px; height: 1.5px; border-radius: 2px; background: rgba(255, 255, 255, 0.5); animation: wx-gust calc(var(--d) * 2.2s) ease-in infinite; }
+.wx-fog::before, .wx-fog::after { content: ''; position: absolute; inset: -20% -50%; background: radial-gradient(ellipse 30% 45% at 30% 35%, rgba(205, 214, 228, 0.55), transparent 70%), radial-gradient(ellipse 28% 40% at 70% 45%, rgba(205, 214, 228, 0.5), transparent 70%); animation: wx-fogmove 18s ease-in-out infinite alternate; }
+.wx-fog::after { animation-duration: 26s; animation-direction: alternate-reverse; opacity: 0.7; }
+.wx-grey { background: rgba(70, 78, 90, 0.28); }
+.wx-sun::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 12% 8%, rgba(255, 220, 130, 0.45), transparent 45%); animation: wx-pulse 6s ease-in-out infinite; }
+.wx-heat::before { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(255, 120, 40, 0.28), transparent 65%); animation: wx-pulse 3s ease-in-out infinite; }
+.wx-storm::after { content: ''; position: absolute; inset: 0; background: #e8f0ff; opacity: 0; animation: wx-flash 7s linear infinite; }
+.wx-storm { background: rgba(30, 36, 60, 0.3); }
+.wx-aurora::before { content: ''; position: absolute; left: -20%; right: -20%; top: 0; height: 60%; background: linear-gradient(100deg, transparent 10%, rgba(74, 222, 128, 0.35) 30%, rgba(167, 139, 250, 0.35) 55%, rgba(45, 212, 191, 0.3) 75%, transparent 90%); filter: blur(6px); animation: wx-aurora 9s ease-in-out infinite alternate; }
+@keyframes wx-fall { from { transform: translateY(-20px) rotate(12deg); } to { transform: translateY(190px) rotate(12deg); } }
+.wx-rain i, .wx-storm i { top: -16px !important; }
+@keyframes wx-drift { 0% { transform: translate(0, -170px); } 50% { transform: translate(10px, 0); } 100% { transform: translate(-4px, 170px); } }
+@keyframes wx-twinkle { 0%, 100% { opacity: 0.15; } 50% { opacity: 1; } }
+@keyframes wx-gust { from { transform: translateX(-120vw); opacity: 0; } 30% { opacity: 1; } to { transform: translateX(120vw); opacity: 0; } }
+@keyframes wx-fogmove { from { transform: translateX(-8%); } to { transform: translateX(8%); } }
+@keyframes wx-pulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+@keyframes wx-flash { 0%, 91%, 93.5%, 100% { opacity: 0; } 92% { opacity: 0.55; } 94% { opacity: 0.3; } }
+@keyframes wx-aurora { from { transform: translateX(-6%) skewY(-3deg); } to { transform: translateX(6%) skewY(3deg); } }
+@media (prefers-reduced-motion: reduce) { .wx-layer i, .wx-layer::before, .wx-layer::after { animation: none !important; } }
+.wx-card { border-color: rgba(125, 180, 230, 0.4); background: linear-gradient(180deg, rgba(125, 180, 230, 0.07), transparent 60%), var(--card); }
+.wx-line { margin: 2px 0 6px; }
+.wx-boost { margin-bottom: 4px; }
+.wx-others { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.wx-town { font-size: 0.78rem; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.03); color: var(--muted, #b8ada0); }
+.boost-chip.wx { background: rgba(125, 180, 230, 0.14); border-color: rgba(125, 180, 230, 0.45); color: #dbeafe; }
+.wx-map { font-size: 0.9em; }

@@ -671,3 +671,14 @@ Expeditions were retired (owner's call); their lost recipes moved into the Dunge
   as long, charms much stronger; worth six times as much.
 - **🍀 Charms:** pocket one when you gear up. Each has a dungeon effect; a charm is never lost.
 - **Next:** ✨ Unique gear from the workbench — a little better than standard, with a small extra buff.
+
+## 🌦️ Weather — v0.0.2.21
+
+Owner picked "daily weather" from a brainstorm (with the Guild Hall next). Each town has its own climate and the sky
+changes every 4 hours on the phone's clock — Frosthold mostly snow (northern lights at night), Coalhaven and Lunaria
+foggy, Cinderpeak heatwaves and ashfall, Celestine breezy, Bluecliff windy and stormy, Voidreach and Starfall starry
+at night. The weather **where you are** gives two skills +15% XP (e.g. rain: Fishing & Farming; snow: Smithing &
+Cooking; fog: Herblore & Runecrafting); starry nights bring Lucky Stars twice as often. Never a penalty — every
+weather favours something. Shown over the town picture, in a small Town card (what's next, and the weather in your
+other towns, so you can choose where to go), as a chip on skill screens, and on the travel map.
+

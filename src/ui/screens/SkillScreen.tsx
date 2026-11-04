@@ -15,6 +15,8 @@ import { goalChoices } from '../../core/cozy';
 import { xpBoost } from '../../core/boosts';
 import { hearthLit } from '../../core/family';
 import { HAPPENING_XP, happeningOn } from '../../core/happenings';
+import { weatherHere } from '../../core/weather';
+import { WeatherChip } from '../Weather';
 import { activeBuffs, buffText } from '../../core/buffs';
 import { mountainStirs, STIR_XP_MULT } from '../../core/cinderpeak';
 import { RipePicking } from '../HerbloreGame';
@@ -57,7 +59,8 @@ export function BoostRow({ skill }: { skill: SkillId }) {
   const hearth = hearthLit(player, now);
   const hap = happeningOn(player, now);
   const happening = hap && hap.skill === skill ? hap : null;
-  if (b.total <= 1.001 && seasoned === 0 && uses === 0 && !meals.length && !stirring && !hearth && !happening) return null;
+  const weather = !!weatherHere(player, now).boost[skill];
+  if (b.total <= 1.001 && seasoned === 0 && uses === 0 && !meals.length && !stirring && !hearth && !happening && !weather) return null;
   const pct = (m: number) => `+${Math.round((m - 1) * 100)}%`;
   return (
     <div className="boost-row">
@@ -73,6 +76,7 @@ export function BoostRow({ skill }: { skill: SkillId }) {
         </span>
       )}
       {happening && <span className="boost-chip hap" title={`Today's happening in ${happening.town}: +${Math.round(HAPPENING_XP * 100)}% XP all day`}>{happening.emoji} {happening.name} +{Math.round(HAPPENING_XP * 100)}%</span>}
+      <WeatherChip skill={skill} />
       {hearth && <span className="boost-chip hearth" title="Someone else in your guild played today: +5% XP in every skill">🔥 Hearth Together +5%</span>}
       {b.zeal > 1.001 && <span className="boost-chip zeal" title="Early levels are faster: ×3 below 90, fading to normal by 180">🌱 ×{b.zeal.toFixed(1).replace('.0', '')} early levels</span>}
       {b.catchUp > 1.001 && b.highestSkill && <span className="boost-chip catch" title="Skills behind your highest skill get +10% XP per 10 levels behind (up to +100%)">🧭 {pct(b.catchUp)} catching up to {SKILLS[b.highestSkill].name}</span>}
