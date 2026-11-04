@@ -376,7 +376,7 @@ export function UiIcon({ name, size = 24 }: { name: UiIconName; size?: number })
     case 'profile': body =<g {...common}><circle cx="12" cy="8" r="4" /><path d="M4 21 Q4 14 12 14 Q20 14 20 21" /></g>; break;
     case 'runecrafting': body = <g {...common}><circle cx="12" cy="12" r="9" /><path d="M12 6 V18 M7 9 L17 15 M17 9 L7 15" /></g>; break;
     case 'melee': case 'combat': body = <g {...common}><path d="M4 4 L14 14 M20 4 L10 14" /><path d="M12 16 L8 20 M12 16 L16 20" /><path d="M6 12 L12 18 L18 12" /></g>; break;
-    case 'ranged': case 'ammo': body = <g {...common}><path d="M6 3 Q20 6 21 18" /><path d="M6 3 L21 18" strokeWidth="1" /><path d="M3 21 L16 8" /><path d="M16 8 L13 8 M16 8 L16 11" /></g>; break;
+    case 'ranged': case 'ammo': body = <g {...common}><path d="M8 3 Q19 12 8 21" /><path d="M8 3 L8 21" strokeWidth="1" /><path d="M3 12 L20 12" /><path d="M17 9 L20 12 L17 15" /><path d="M3 10 L5 12 L3 14" strokeWidth="1.2" /></g>; break;
     case 'magic': body = <g {...common}><path d="M5 21 L15 9" /><circle cx="17" cy="7" r="3" /><path d="M20 2 L21 4 M22 8 L23 8 M13 3 L13 2" /></g>; break;
     case 'defense': body = <g {...common}><path d="M12 3 L20 6 Q20 15 12 21 Q4 15 4 6 Z" /><path d="M12 8 V16 M8 11 H16" /></g>; break;
     case 'health': case 'heart': body = <g {...common}><path d="M12 20 Q3 13 4 8 Q5 4 9 4 Q11 4 12 7 Q13 4 15 4 Q19 4 20 8 Q21 13 12 20 Z" /></g>; break;
