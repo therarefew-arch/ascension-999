@@ -150,6 +150,12 @@ function play(key: SoundKey) {
   sound.play(key);
 }
 
+/** 🔉 A sound made by idling (each action or idle fight hit): uses the Idle sounds slider. */
+function idlePlay(key: SoundKey) {
+  const v = snap.settings.idle ?? 1;
+  if (v > 0) sound.play(key, { volume: v * v });
+}
+
 function save() {
   if (snap.slot === null) return;
   if (saveGame(snap.slot, snap.player)) snap.lastSavedAt = Date.now();
@@ -308,13 +314,13 @@ function tick(now = Date.now()) {
   const fightingNow = p.fight?.monsterId;
   const report = advanceIdle(p, gap, now);
   trackBounties(p, report, fightingNow);
-  if (report.actions > 0 && action) play(report.failed > 0 ? 'fail' : action.sound);
+  if (report.actions > 0 && action) idlePlay(report.failed > 0 ? 'fail' : action.sound);
   if (report.failed > 0) toast('Enhance didn’t take this time — item kept safe', 'info');
   // Combat sounds
   if (report.combat) {
     const newest = p.fight?.log[p.fight.log.length - 1];
     if (newest && (newest !== lastLog || p.fight!.log.length !== fightLogBefore)) {
-      play(newest.kind === 'you' ? 'hit' : newest.kind === 'them' ? 'hurt' : newest.kind === 'loot' ? 'deposit' : 'click');
+      idlePlay(newest.kind === 'you' ? 'hit' : newest.kind === 'them' ? 'hurt' : newest.kind === 'loot' ? 'deposit' : 'click');
     }
     // (Drops show on the fight screen — no toast for every kill, to keep things calm.)
   }

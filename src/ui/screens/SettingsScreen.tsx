@@ -7,10 +7,11 @@ import { GAME_VERSION } from '../../version';
 import { BackupCard } from '../Backup';
 import { pushService, pushStatus, sendTestPush } from '../../core/push';
 
-const SLIDERS: { key: 'master' | 'effects' | 'music'; label: string; icon: 'sound' | 'music' }[] = [
+const SLIDERS: { key: 'master' | 'effects' | 'music' | 'idle'; label: string; icon: 'sound' | 'music' }[] = [
   { key: 'master', label: 'Master volume', icon: 'sound' },
   { key: 'effects', label: 'Effects volume', icon: 'sound' },
   { key: 'music', label: 'Music volume', icon: 'music' },
+  { key: 'idle', label: 'Idle sounds', icon: 'sound' },
 ];
 
 /** 🔔 Notifications while the game is closed (per device). */
@@ -85,6 +86,7 @@ export function SettingsScreen() {
           <span><b>Vibration</b><span className="small muted"> — gentle buzz on level-ups and good hits (Android)</span></span>
           <input type="checkbox" checked={settings.vibrate} onChange={(e) => game.setSettings({ ...settings, vibrate: e.target.checked })} />
         </label>
+        <p className="small muted">Idle sounds = the chop, clink and splash of each action while you idle (and idle fight hits). Turn it to 0% for a quiet idle.</p>
         <button className="btn" onClick={() => sound.play('levelup')}>Play a test sound</button>
         <p className="small muted">Sounds are quiet placeholders for now. Real sounds go in the assets/sounds folder.</p>
       </div>
