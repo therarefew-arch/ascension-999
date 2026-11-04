@@ -26,7 +26,7 @@ import { disablePush, enablePush, hasPushSubscription, refreshPush, sendNotes } 
 import { predictNotes } from './notifySchedule';
 import { MAX_LENGTH, MIN_LENGTH, runesongXp } from './runesong';
 import { wardXp } from './spellcards';
-import { activeFestival, buyAtStall, welcomeFestival, type StallItem } from './festivals';
+import { activeFestival, buyAtStall, spinWheel, welcomeFestival, type StallItem, type WheelResult } from './festivals';
 import { RARE_FISH_MAP } from '../data/rareFish';
 import { openFinds } from './finds';
 import { claimStep, trackTutorial, TUTORIAL } from './tutorial';
@@ -676,6 +676,16 @@ export const game = {
     save();
     emit();
   },
+  /** 🎡 Spin the festival Prize Wheel (prizes are given at once; the screen plays the spin). */
+  spinWheel(spins: number): WheelResult[] | null {
+    const res = spinWheel(snap.player, spins);
+    if (typeof res === 'string') { fail(res); return null; }
+    save();
+    emit();
+    return res;
+  },
+  /** 🎉 Confetti for a big wheel win (after the spin animation). */
+  wheelCheer() { celebrate(); play('levelup'); buzz([20, 40, 20]); },
   /** 🎁 Pick up the Traveller's gift at this town's well. */
   takeTravellerGift() {
     const got = takeTravellerGift(snap.player);

@@ -1,6 +1,8 @@
 // 🎪 Seasonal festivals on the phone's real calendar (see data/festivals.ts).
 // Tokens, treats and pets all come through the central loot system / reward pets.
-import { FESTIVAL_MAP, FESTIVAL_PRICES, FESTIVAL_XP_BONUS, FESTIVALS, type FestivalDef } from '../data/festivals';
+import { FESTIVAL_MAP, FESTIVAL_PRICES, FESTIVAL_XP_BONUS, FESTIVALS, WHEEL, WHEEL_COST, type FestivalDef, type WheelSlice } from '../data/festivals';
+import type { ItemStack } from './player';
+import { levelForXp } from './xp';
 import type { SkillId } from '../data/items';
 import type { ProgressReport } from './idle';
 import { canFitAll, countInBag, countInBank, removeFromBag, removeFromBank } from './inventory';
@@ -91,6 +93,58 @@ export function buyAtStall(p: PlayerState, what: StallItem, now = Date.now()): s
   if (what === 'decoration') p.cottage.push(f.decoration.id);
   if (what === 'pet') { grantPet(p, f.pet.id); if (!p.activePet) p.activePet = f.pet.id; }
   return null;
+}
+
+// ----- 🎡 The Prize Wheel: spin leftover tokens for prizes -----
+
+/** The plain coin prize: grows with your best skill. Coin bag = ×3, coin chest = ×8. */
+export function wheelCoins(p: PlayerState): number {
+  const best = Math.max(...Object.values(p.skills).map((s) => levelForXp(s.xp)));
+  return Math.round((20 + best * 0.8) * 2.5);
+}
+
+export function whyCantSpin(p: PlayerState, spins: number, now = Date.now()): string | null {
+  const f = activeFestival(now);
+  if (!f) return 'The festival stall is closed until the next festival';
+  if (tokensHave(p, f) < WHEEL_COST * spins) return `Needs ${WHEEL_COST * spins} ${f.token.name.toLowerCase()}s`;
+  return null;
+}
+
+export interface WheelResult { slice: number; got: ItemStack[] }
+
+/** Spin the wheel `spins` times (tokens from bag first, then bank). Prizes go through the loot system; what doesn't fit waits in the bank. */
+export function spinWheel(p: PlayerState, spins: number, now = Date.now(), rng: () => number = Math.random): WheelResult[] | string {
+  const why = whyCantSpin(p, spins, now);
+  if (why) return why;
+  const f = activeFestival(now)!;
+  const cost = WHEEL_COST * spins;
+  const fromBag = removeFromBag(p.inventory, f.token.id, cost);
+  if (fromBag < cost) removeFromBank(p, f.token.id, cost - fromBag);
+  const total = WHEEL.reduce((s, w) => s + w.weight, 0);
+  const out: WheelResult[] = [];
+  for (let n = 0; n < spins; n++) {
+    let r = rng() * total;
+    let slice = WHEEL.length - 1;
+    for (let i = 0; i < WHEEL.length; i++) { r -= WHEEL[i].weight; if (r <= 0) { slice = i; break; } }
+    const got = wheelPrize(p, f, WHEEL[slice], rng);
+    giveLoot(p, got, { overflowToBank: true });
+    out.push({ slice, got });
+  }
+  return out;
+}
+
+function wheelPrize(p: PlayerState, f: FestivalDef, s: WheelSlice, rng: () => number): ItemStack[] {
+  const c = wheelCoins(p);
+  switch (s.prize) {
+    case 'coins': return [{ id: 'coins', qty: c }];
+    case 'coins3': return [{ id: 'coins', qty: c * 3 }];
+    case 'coins8': return [{ id: 'coins', qty: c * 8 }];
+    case 'treat': return [...rollLoot(`festival_treat_${f.id}`, rng), ...rollLoot(`festival_treat_${f.id}`, rng)];
+    case 'tokens': return [{ id: f.token.id, qty: WHEEL_COST * 2 }];
+    case 'find': return rollLoot('wheel_find', rng);
+    case 'treasure': return rollLoot('wheel_treasure', rng);
+    case 'helpers': return rollLoot('wheel_helpers', rng).map((st) => ({ ...st, qty: 12 }));
+  }
 }
 
 /** First visit during a festival this year? (Marks it seen.) */

@@ -5,6 +5,7 @@ import { SKILLS } from '../data/skills';
 import { activeFestival, festivalEndsAt, tokensHave, whyCantBuy, type StallItem } from '../core/festivals';
 import { game, useGame } from '../core/store';
 import { fmtDuration } from './format';
+import { PrizeWheel } from './PrizeWheel';
 
 /** Little flags over the town banner during a festival. */
 export function FestivalBunting() {
@@ -49,6 +50,7 @@ export function FestivalStall() {
           );
         })}
       </div>
+      <PrizeWheel f={f} />
       </>}
     </section>
   );

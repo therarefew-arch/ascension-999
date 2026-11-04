@@ -159,6 +159,13 @@ for (const h of HELPERS) {
   tables.push({ id: `helper_${h.from}`, source: 'skilling', entries: [e(h.id, farm ? HELPER.harvestMin : HELPER.min, farm ? HELPER.harvestMax : HELPER.max, farm ? HELPER.harvestChance : HELPER.dropChance)] });
 }
 
+// ----- 🎡 Festival Prize Wheel: what a find / treasure / helper slice gives -----
+tables.push(
+  { id: 'wheel_find', source: 'skilling', entries: [], groups: [{ chance: 1, items: [{ item: 'bird_nest', weight: 1 }, { item: 'geode', weight: 1 }, { item: 'message_bottle', weight: 1 }] }] },
+  { id: 'wheel_treasure', source: 'skilling', entries: [], groups: [{ chance: 1, items: [{ item: 'golden_egg', weight: 1 }, { item: 'starlit_crystal', weight: 1 }, { item: 'sea_pearl', weight: 1 }] }] },
+  { id: 'wheel_helpers', source: 'skilling', entries: [], groups: [{ chance: 1, items: HELPERS.map((h) => ({ item: h.id, weight: 1 })) }] },
+);
+
 // ----- 🎁 Rare finds while gathering, and what's inside when you open them -----
 /** Chance per gathering action to turn up a find. */
 export const FIND_CHANCE = 1 / 250;

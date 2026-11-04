@@ -76,3 +76,20 @@ export const FESTIVAL_XP_BONUS = 0.1;
 export const TREAT_BUFF = { skill: 'all' as const, kind: 'xp' as const, pct: 2, minutes: 30, slot: 'treat' };
 
 export const FESTIVAL_MAP: Record<FestivalId, FestivalDef> = Object.fromEntries(FESTIVALS.map((f) => [f.id, f])) as Record<FestivalId, FestivalDef>;
+
+// 🎡 The Prize Wheel at the stall (v0.0.2.24, owner: "we should be able to gamble the seasonal coins").
+// A spin costs WHEEL_COST tokens. Never gems. Coins scale with your best skill (`wheelCoins` in core/festivals.ts).
+export type WheelPrize = 'coins' | 'treat' | 'coins3' | 'find' | 'tokens' | 'helpers' | 'coins8' | 'treasure';
+export interface WheelSlice { prize: WheelPrize; emoji: string; label: string; weight: number }
+export const WHEEL_COST = 5;
+/** In the order they sit around the wheel. */
+export const WHEEL: WheelSlice[] = [
+  { prize: 'coins', emoji: '🪙', label: 'Coins', weight: 28 },
+  { prize: 'treat', emoji: '🎁', label: '2 treats', weight: 22 },
+  { prize: 'find', emoji: '🪺', label: 'Rare find', weight: 12 },
+  { prize: 'coins3', emoji: '💰', label: 'Coin bag', weight: 14 },
+  { prize: 'tokens', emoji: '🔁', label: '10 tokens', weight: 8 },
+  { prize: 'helpers', emoji: '🧰', label: '12 helpers', weight: 8 },
+  { prize: 'coins8', emoji: '👑', label: 'Coin chest', weight: 6 },
+  { prize: 'treasure', emoji: '🏺', label: 'Treasure', weight: 2 },
+];
