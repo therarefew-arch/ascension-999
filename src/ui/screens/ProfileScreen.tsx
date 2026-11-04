@@ -1,4 +1,5 @@
 // Profile: your character wearing your gear, your stats, your pets, and settings.
+import { MAX_IDLE_SLOTS } from '../../core/player';
 import { useState } from 'react';
 import { ARMOUR_SLOTS, getItem, SLOT_LABELS } from '../../data/items';
 import { PETS, PET_XP_BONUS } from '../../data/pets';
@@ -87,7 +88,7 @@ function Stats() {
         <div className="stat-tile"><b>{player.pets.length}/{PETS.length}</b><span>Pets</span></div>
         <div className="stat-tile"><b>{fmtNum(found)}</b><span>Items found</span></div>
         <div className="stat-tile"><b>{fmtDuration(Date.now() - player.createdAt)}</b><span>Adventuring</span></div>
-        <div className="stat-tile"><b>{player.unlockedSlots}/3</b><span>Idle slots</span></div>
+        <div className="stat-tile"><b>{player.unlockedSlots}/{MAX_IDLE_SLOTS}</b><span>Idle slots</span></div>
         <div className="stat-tile"><b>{fmtNum(player.starsCaught)}</b><span>Lucky Stars</span></div>
         <div className="stat-tile"><b>{player.daily.streak}</b><span>Day streak</span></div>
         <div className="stat-tile"><b>{Object.keys(player.goals).length}</b><span>Goals set</span></div>

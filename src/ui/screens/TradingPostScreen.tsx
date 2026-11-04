@@ -1,7 +1,9 @@
 // The Trading Post: sell anything, buy basic materials, rotating deals, and coin upgrades.
 import { useEffect, useState } from 'react';
 import { getItem } from '../../data/items';
-import { ALL_SKILLS } from '../../data/skills';
+import { ALL_SKILLS, SKILLS } from '../../data/skills';
+import { MAX_PLOTS, plotCost, TUTOR, tutorCost, tutorLevel, whyCantTutor } from '../../market/upgrades';
+import { FoldHead, useFold } from '../Fold';
 import { skillLevel } from '../../core/idle';
 import { countInBag } from '../../core/inventory';
 import { MAX_BAG_SLOTS, MAX_IDLE_SLOTS } from '../../core/player';
@@ -115,6 +117,41 @@ function ShopTab() {
   );
 }
 
+/** 📚 Skill tutors: +1% XP per lesson in one skill, up to +25%. */
+function TutorsCard() {
+  const { player } = useGame();
+  const [open, toggle] = useFold('tutors', true);
+  const ready = ALL_SKILLS.filter((s) => !whyCantTutor(player, s)).length;
+  const sum = ALL_SKILLS.reduce((n, s) => n + tutorLevel(player, s), 0);
+  return (
+    <div className="card upgrade-card">
+      <FoldHead title={<>📚 SKILL TUTORS</>} open={open} onToggle={toggle}
+        summary={ready ? <b className="green">{ready} lesson{ready === 1 ? '' : 's'} ready</b> : `${sum} / ${ALL_SKILLS.length * TUTOR.max} lessons`} />
+      {open && <>
+        <p className="small muted">Each lesson gives that skill <b>+1% XP</b> forever, up to +{TUTOR.max}%. A new lesson opens every {TUTOR.perLevel} levels of the skill, and each one costs a little more.</p>
+        <div className="tu-list">
+          {ALL_SKILLS.map((s) => {
+            const n = tutorLevel(player, s);
+            const cost = tutorCost(player, s);
+            const why = whyCantTutor(player, s);
+            return (
+              <div key={s} className="tu-row">
+                <span className="tu-name">{SKILLS[s].name}</span>
+                <span className={`tu-lv mono ${n ? 'gold' : 'dim'}`}>+{n}%</span>
+                {cost === null
+                  ? <span className="chip up">Max</span>
+                  : <button className="btn btn-sm" disabled={!!why} title={why ?? undefined} onClick={() => game.buyTutor(s)}>
+                      {why && why.startsWith('Next lesson') ? `Lv ${(n + 1) * TUTOR.perLevel}` : `${fmtNum(cost)} 🪙`}
+                    </button>}
+              </div>
+            );
+          })}
+        </div>
+      </>}
+    </div>
+  );
+}
+
 function UpgradesTab() {
   const { player } = useGame();
   const total = ALL_SKILLS.reduce((sum, s) => sum + skillLevel(player, s), 0);
@@ -125,11 +162,18 @@ function UpgradesTab() {
       <div className="card upgrade-card">
         <div className="row"><UiIcon name="clock" size={22} /><b className="grow">Idle slots: {player.unlockedSlots}/{MAX_IDLE_SLOTS}</b></div>
         <p className="small muted">Each slot runs its own skill at the same time. Your total level is <b className="gold">{total}</b>.</p>
-        {nextSlot ? (
+        {nextSlot ? (nextSlot.both ? (
+          <>
+            <p className="small">🏆 <b>A big goal:</b> slot {player.unlockedSlots + 1} needs total level <b className={total >= nextSlot.level ? 'green' : ''}>{fmtNum(nextSlot.level)}</b> and <b className={player.coins >= nextSlot.coins ? 'green' : ''}>{fmtNum(nextSlot.coins)} coins</b>.</p>
+            <button className="btn btn-hero btn-wide" disabled={total < nextSlot.level || player.coins < nextSlot.coins} onClick={() => game.unlockSlot()}>
+              {total < nextSlot.level ? `Total level ${fmtNum(total)} / ${fmtNum(nextSlot.level)}` : `Unlock slot ${player.unlockedSlots + 1}: ${fmtNum(nextSlot.coins)} coins`}
+            </button>
+          </>
+        ) : (
           <button className="btn btn-hero btn-wide" disabled={total < nextSlot.level && player.coins < nextSlot.coins} onClick={() => game.unlockSlot()}>
             {total >= nextSlot.level ? `Unlock slot ${player.unlockedSlots + 1} (free — level ${nextSlot.level} reached)` : `Unlock slot ${player.unlockedSlots + 1}: ${fmtNum(nextSlot.coins)} coins (or total level ${nextSlot.level})`}
           </button>
-        ) : <p className="small green">All idle slots unlocked!</p>}
+        )) : <p className="small green">All idle slots unlocked!</p>}
       </div>
       <div className="card upgrade-card">
         <div className="row"><UiIcon name="bag" size={22} /><b className="grow">Bag: {player.inventory.length}/{MAX_BAG_SLOTS} slots</b></div>
@@ -139,6 +183,15 @@ function UpgradesTab() {
           </button>
         ) : <p className="small green">Your bag is as big as it gets!</p>}
       </div>
+      <div className="card upgrade-card">
+        <div className="row"><span style={{ fontSize: 22 }}>🌱</span><b className="grow">Garden plots: {player.farm.plots.length}/{MAX_PLOTS}</b></div>
+        {plotCost(player) !== null ? (
+          <button className="btn btn-hero btn-wide" disabled={player.coins < plotCost(player)!} onClick={() => game.buyPlot()}>
+            Plot {player.farm.plots.length + 1}: {fmtNum(plotCost(player)!)} coins
+          </button>
+        ) : <p className="small green">Your garden is as big as it gets!</p>}
+      </div>
+      <TutorsCard />
       <div className="card upgrade-card">
         <div className="row"><span style={{ fontSize: 22 }}>🎒</span><b className="grow">The Satchel</b>{player.satchel.owned && <span className="chip up">Owned</span>}</div>
         <p className="small muted">A sturdy satchel that sends anything that won't fit in your bag straight to the bank — so a full bag never stops your idling (even while you're away).</p>

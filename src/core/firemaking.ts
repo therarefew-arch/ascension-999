@@ -5,7 +5,7 @@ import { addXp, emptyReport, skillLevel, type ProgressReport } from './idle';
 import { countInBag, removeFromBag } from './inventory';
 import { giveLoot, rollLoot } from './loot';
 import type { PlayerState } from './player';
-import { regionOpen, tierLevel, tierRegion, WOODS, type Region } from '../data/tiers';
+import { gatherXpPerHour, regionOpen, tierForLevel, tierLevel, tierRegion, WOODS, type Region } from '../data/tiers';
 
 // ----- Bonfires -----
 
@@ -56,7 +56,10 @@ export function finishWildfire(p: PlayerState, hits: number, total: number, now 
   const report = emptyReport(null);
   const share = total ? hits / total : 0;
   const won = share >= WILDFIRE.winShare;
-  addXp(p, { skill: 'firemaking' }, report, Math.round((won ? 400 : 60) + hits * 6 + skillLevel(p, 'firemaking') * (won ? 4 : 0)));
+  // v0.0.2.26: paid in seconds of your tier's gathering XP, so it keeps up with your level (a win ≈ 2 min of idling).
+  const perSec = gatherXpPerHour(tierForLevel(skillLevel(p, 'firemaking'))) / 3600;
+  const old = (won ? 400 : 60) + hits * 6 + skillLevel(p, 'firemaking') * (won ? 4 : 0);
+  addXp(p, { skill: 'firemaking' }, report, Math.round(Math.max(old, perSec * ((won ? 120 : 20) + hits * 1.5))));
   if (won) {
     const loot = rollLoot('boss_wildfire');
     giveLoot(p, loot);

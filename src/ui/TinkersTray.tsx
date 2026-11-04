@@ -1,6 +1,7 @@
 // 🧵 Tinker's Tray — Crafting's match-3. Rules live in core/tinkersTray.ts.
 // Swap two neighbouring scraps (tap-tap or swipe) to line up 3+. Fill a customer's order in 20 moves.
 import { useEffect, useRef, useState } from 'react';
+import { minigameXpScale } from '../core/rates';
 import { sound } from '../audio/sound';
 import { musicFor } from '../audio/soundList';
 import type { ActionDef } from '../data/skills';
@@ -252,7 +253,7 @@ export function TinkersTray({ action }: { action: ActionDef }) {
         </div>
         <p className="mg-foot">
           Match 4 → {SPECIAL_INFO.row.emoji} Mallet ({'clears a line'}), an L or T → {SPECIAL_INFO.box.emoji} Toolbox ({SPECIAL_INFO.box.text}), 5 in a row → {SPECIAL_INFO.star.emoji} Master's Touch ({SPECIAL_INFO.star.text}).
-          No materials needed. A filled order gives <b>{orderXp(action.xp, 1, true, order.number).toLocaleString()} Crafting XP</b>; running out of moves still pays for what you gathered.
+          No materials needed. A filled order gives <b>{Math.round(orderXp(action.xp, 1, true, order.number) * minigameXpScale(player, action)).toLocaleString()} Crafting XP</b>; running out of moves still pays for what you gathered.
         </p>
       </div>
     </div>

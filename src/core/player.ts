@@ -37,8 +37,8 @@ import type { RelicKey } from '../data/relics';
 export const SAVE_VERSION = 22;
 /** Starting bag size. Can be upgraded with coins up to MAX_BAG_SLOTS. */
 export const INVENTORY_SLOTS = 30;
-export const MAX_BAG_SLOTS = 50;
-export const MAX_IDLE_SLOTS = 3;
+export const MAX_BAG_SLOTS = 70;
+export const MAX_IDLE_SLOTS = 4;
 /** Max of one stackable item in a single bag slot. */
 export const STACK_LIMIT = 999;
 /** Offline progress counts up to this long. */
@@ -125,6 +125,8 @@ export interface PlayerState {
   helpersOff: string[];
   /** 🍲 Active meal and brew bonuses, keyed by kind + skill. */
   buffs: Record<string, ActiveBuff>;
+  /** 📚 Skill tutors bought at the Trading Post: +1% XP per level in that skill (market/upgrades.ts). */
+  tutors: Partial<Record<SkillId, number>>;
   /** 🌱 Your garden plots (Farming). */
   farm: { plots: (Plot | null)[] };
   /** 🏡 Cottage furniture you've built (ids from core/cottage.ts). */
@@ -207,7 +209,7 @@ export function newPlayer(now = Date.now()): PlayerState {
     bank: [],
     equipment: {},
     sockets: {},
-    slots: [null, null, null],
+    slots: [null, null, null, null],
     unlockedSlots: 1,
     shop: { rotation: -1, bought: [] },
     lastStop: null,
@@ -239,6 +241,7 @@ export function newPlayer(now = Date.now()): PlayerState {
     toolUses: {},
     helpersOff: [],
     buffs: {},
+    tutors: {},
     farm: { plots: [null, null, null, null] },
     cottage: [],
     travellerGifts: [],

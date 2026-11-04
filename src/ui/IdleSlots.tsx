@@ -68,17 +68,18 @@ function LockedSlot({ index }: { index: number }) {
   const unlock = SLOT_UNLOCKS[index];
   const isNext = index === player.unlockedSlots;
   const total = ALL_SKILLS.reduce((sum, s) => sum + skillLevel(player, s), 0);
-  const free = total >= unlock.level;
+  const free = !unlock.both && total >= unlock.level;
+  const ok = unlock.both ? total >= unlock.level && player.coins >= unlock.coins : free || player.coins >= unlock.coins;
   return (
     <div className="slot-card locked">
       <div className="row">
         <UiIcon name="lock" size={20} />
         <span className="grow">Slot {index + 1} (Locked)</span>
-        <span className="mono small gold">Lv {unlock.level} or {fmtNum(unlock.coins)}g</span>
+        <span className="mono small gold">Lv {fmtNum(unlock.level)} {unlock.both ? '+' : 'or'} {fmtNum(unlock.coins)}g</span>
       </div>
       {isNext && (
-        <button className="btn btn-hero btn-wide" onClick={() => game.unlockSlot()} disabled={!free && player.coins < unlock.coins}>
-          {free ? 'UNLOCK (total level reached!)' : `UNLOCK FOR ${fmtNum(unlock.coins)} COINS`}
+        <button className="btn btn-hero btn-wide" onClick={() => game.unlockSlot()} disabled={!ok}>
+          {free ? 'UNLOCK (total level reached!)' : unlock.both && total < unlock.level ? `TOTAL LEVEL ${fmtNum(total)} / ${fmtNum(unlock.level)}` : `UNLOCK FOR ${fmtNum(unlock.coins)} COINS`}
         </button>
       )}
       {!isNext && <p className="small muted">Unlock slot {index} first.</p>}

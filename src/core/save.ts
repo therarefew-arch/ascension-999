@@ -4,6 +4,7 @@ import { HALL_ROOMS } from '../data/guildHall';
 import { ITEM_LIST, ITEMS, type SkillId } from '../data/items';
 import { loadHappening } from './happenings';
 import { HELPERS } from '../data/helpers';
+import { MAX_PLOTS, TUTOR } from '../market/upgrades';
 import { ACTIONS } from '../data/skills';
 import { INVENTORY_SLOTS, MAX_BAG_SLOTS, MAX_IDLE_SLOTS, SAVE_VERSION, newPlayer, type ItemStack, type Loadout, type PlayerState } from './player';
 import { PET_MAP } from '../data/pets';
@@ -437,12 +438,16 @@ function repair(raw: any): PlayerState {
     }
   }
   if (Array.isArray(raw?.farm?.plots)) {
-    p.farm.plots = [0, 1, 2, 3].map((i) => {
+    const n = Math.min(MAX_PLOTS, Math.max(4, raw.farm.plots.length));
+    p.farm.plots = Array.from({ length: n }, (_, i) => {
       const pl = raw.farm.plots[i];
       return pl && typeof pl.crop === 'number' && pl.crop >= 0 && pl.crop < 11 && typeof pl.readyAt === 'number'
         ? { crop: pl.crop, plantedAt: Number(pl.plantedAt) || Date.now(), readyAt: pl.readyAt, tendedMs: Number(pl.tendedMs) || 0 }
         : null;
     });
+  }
+  if (raw?.tutors && typeof raw.tutors === 'object') {
+    for (const [s, n] of Object.entries(raw.tutors)) if (s in p.skills && typeof n === 'number' && n > 0) p.tutors[s as SkillId] = Math.min(TUTOR.max, Math.floor(n));
   }
   // Bounty Board + seasoned tools (v17)
   if (raw?.bounties && typeof raw.bounties.day === 'string' && Array.isArray(raw.bounties.list)) {
@@ -509,7 +514,7 @@ function repair(raw: any): PlayerState {
     p.presets = [0, 1, 2].map((i) => {
       const pr = raw.presets[i];
       if (!pr || typeof pr.name !== 'string' || !Array.isArray(pr.actions)) return null;
-      return { name: pr.name.slice(0, 20), actions: [0, 1, 2].map((k) => (typeof pr.actions[k] === 'string' && ACTIONS[pr.actions[k]] ? pr.actions[k] : null)) };
+      return { name: pr.name.slice(0, 20), actions: Array.from({ length: MAX_IDLE_SLOTS }, (_, k) => (typeof pr.actions[k] === 'string' && ACTIONS[pr.actions[k]] ? pr.actions[k] : null)) };
     });
   }
   // Saves from before the starter questline that are already well underway skip it.

@@ -25,6 +25,7 @@ import { festivalXpMult, rollFestivalToken } from './festivals';
 import { happeningXpMult } from './happenings';
 import { weatherXpMult } from './weather';
 import { hallXpMult } from './guildHall';
+import { tutorXpMult } from '../market/upgrades';
 import { recordRareFish, type RareCatch } from './fishJournal';
 import { RELIC, RELIC_ASC, relicAsc, relicOn } from './relics';
 import { MASTERY_NUM, masteredCount } from './mastery';
@@ -444,6 +445,8 @@ export function addXp(p: PlayerState, action: { skill: SkillId }, report: Progre
   xp = xp * weatherXpMult(p, action.skill);
   // 🏰 Finished Guild Hall rooms.
   xp = xp * hallXpMult(p, action.skill);
+  // 📚 Skill tutors (Trading Post).
+  xp = xp * tutorXpMult(p, action.skill);
   // ✨ The Wanderer's Crown: +5% XP in every skill.
   if (relicOn(p, 'wanderers_crown')) xp = xp * (relicAsc(p, 'wanderers_crown') ? RELIC_ASC.crownXp : RELIC.crownXp);
   // 🌟 Ascended bonuses.

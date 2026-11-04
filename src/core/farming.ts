@@ -1,7 +1,7 @@
 // 🌱 Farming: plant seeds in your garden plots; they grow over real time (even while you're away).
 // Harvest for crops and Farming XP. The "Garden Helpers" minigame lets you tend growing plots a little.
 // Crops come from the central loot system (harvest_* tables).
-import { CROPS, regionOpen, tierLevel, tierRegion, tierXp } from '../data/tiers';
+import { CROPS, regionOpen, tierForLevel, tierLevel, tierRegion, tierXp } from '../data/tiers';
 import { getItem } from '../data/items';
 import type { ProgressReport } from './idle';
 import { addXp, equippedToolTier, skillLevel, toolSpeedMult } from './idle';
@@ -14,7 +14,6 @@ import { giveLoot, rollLoot, rollPet } from './loot';
 import { dropHelper, helperWorks, takeHelper } from './helpers';
 import type { PlayerState } from './player';
 
-export const PLOTS = 4;
 
 export interface Plot {
   /** Crop tier (index into CROPS). */
@@ -45,7 +44,7 @@ export function plotReady(plot: Plot | null, now = Date.now()): boolean {
 export function whyCantPlant(p: PlayerState, i: number, seedId: string): string | null {
   const seed = getItem(seedId);
   if (seed.seedOf === undefined) return "That isn't a seed";
-  if (i < 0 || i >= PLOTS) return 'No such plot';
+  if (i < 0 || i >= p.farm.plots.length) return 'No such plot';
   if (p.farm.plots[i]) return 'That plot is already growing something';
   const t = seed.seedOf;
   const region = tierRegion(t);
@@ -99,7 +98,8 @@ export function tend(p: PlayerState, i: number, report: ProgressReport, now = Da
   const total = growMs(plot.crop);
   const save = Math.min(total * TEND_SHARE, total * MAX_TEND_SHARE - plot.tendedMs);
   if (save > 0) { plot.readyAt -= save; plot.tendedMs += save; }
-  addXp(p, { skill: 'farming' }, report, Math.max(1, Math.round(baseXp(plot.crop) * 1.5)));
+  // Paid by your Farming tier (or the crop's, if higher), so it keeps up with your level.
+  addXp(p, { skill: 'farming' }, report, Math.max(1, Math.round(baseXp(Math.max(plot.crop, tierForLevel(skillLevel(p, 'farming')))) * 1.5)));
   return true;
 }
 

@@ -2,6 +2,7 @@
 // Pick free tiles off the pile into a 4-slot basket; two of a fish clear for Fishing XP.
 // v0.0.2.13 (owner): carved ivory tiles on a dock table, a ⛶ full screen mode, and levels 1–999 that get harder.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { minigameXpScale } from '../core/rates';
 import { createPortal } from 'react-dom';
 import { sound } from '../audio/sound';
 import { musicFor } from '../audio/soundList';
@@ -251,7 +252,7 @@ export function TileMatch({ action }: { action: ActionDef }) {
           <button className="btn btn-hero btn-lg btn-wide" onClick={fresh}><UiIcon name="play" size={18} /> {freshLabel}</button>
           <p className="mg-foot">
             Tap any tile that nothing is lying on (covered tiles look darker). It goes in your basket.
-            Two alike clear for <b>{matchXp(action.xp).toLocaleString()} Fishing XP</b> × your combo. The basket has {BASKET} slots — a 5th different fish overflows it.
+            Two alike clear for <b>{Math.round(matchXp(action.xp) * minigameXpScale(player, action)).toLocaleString()} Fishing XP</b> × your combo. The basket has {BASKET} slots — a 5th different fish overflows it.
             Every {COMBO_BAR} pairs adds +0.5× XP (up to 3×). Sort the whole crate to reach the next level (up to {MAX_SORT_LEVEL}) — each one is a bigger pile with more kinds of fish and fewer helpers, and a bigger bonus.
           </p>
         </div>

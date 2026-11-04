@@ -14,14 +14,16 @@ import { levelForXp } from '../core/xp';
 // ---------------------------------------------------------------------------
 
 /** SLOT_UNLOCKS[n] = how to unlock slot n+1 when you have n slots. Total level unlocks it for free. */
-export const SLOT_UNLOCKS: Record<number, { level: number; coins: number }> = {
+export const SLOT_UNLOCKS: Record<number, { level: number; coins: number; both?: boolean }> = {
   1: { level: 500, coins: 50_000 },
   2: { level: 1_500, coins: 250_000 },
+  // 4th slot (v0.0.2.26): a big goal — needs the total level AND the coins.
+  3: { level: 4_000, coins: 3_000_000, both: true },
 };
 
-/** Cost of the next +5 bag slots (null = already at the maximum of 50). */
+/** Cost of the next +5 bag slots (null = already at the maximum of 70). */
 export function bagUpgradeCost(currentSize: number): number | null {
-  const costs: Record<number, number> = { 30: 2_000, 35: 6_000, 40: 15_000, 45: 40_000 };
+  const costs: Record<number, number> = { 30: 2_000, 35: 6_000, 40: 15_000, 45: 40_000, 50: 120_000, 55: 300_000, 60: 700_000, 65: 1_500_000 };
   return costs[currentSize] ?? null;
 }
 

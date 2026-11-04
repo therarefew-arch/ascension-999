@@ -12,6 +12,7 @@ import { cottageXpMult } from './cottage';
 import { happeningXpMult } from './happenings';
 import { weatherXpMult } from './weather';
 import { hallXpMult } from './guildHall';
+import { tutorXpMult } from '../market/upgrades';
 import { countInBag, countInBank } from './inventory';
 import { REGIONS, regionOpen } from '../data/tiers';
 
@@ -28,6 +29,15 @@ export function xpPerHour(p: PlayerState, action: ActionDef): number {
 }
 
 /** Best unlocked action for a skill, by XP per second. */
+/**
+ * 🎮 XP-only minigames (v0.0.2.26, owner: "make sure all mini games scale experience with what level you are"):
+ * they pay at least as if you had picked the best thing you can do in that skill, whatever is selected.
+ */
+export function minigameXpScale(p: PlayerState, action: ActionDef): number {
+  const best = bestAction(p, action.skill);
+  return best && action.xp > 0 && best.xp > action.xp ? best.xp / action.xp : 1;
+}
+
 export function bestAction(p: PlayerState, skill: SkillId): ActionDef | null {
   const lvl = skillLevel(p, skill);
   let best: ActionDef | null = null;
@@ -93,5 +103,5 @@ function extraMult(p: PlayerState, skill: SkillId) {
   if (petBoosts(p.activePet, skill)) m *= 1 + PET_XP_BONUS;
   if (p.bonfire && p.bonfire.until > Date.now()) m *= 1.05;
   if (hearthLit(p)) m *= 1 + HEARTH_XP;
-  return m * buffXpMult(p, skill) * cottageXpMult(p, skill) * happeningXpMult(p, skill) * weatherXpMult(p, skill) * hallXpMult(p, skill);
+  return m * buffXpMult(p, skill) * cottageXpMult(p, skill) * happeningXpMult(p, skill) * weatherXpMult(p, skill) * hallXpMult(p, skill) * tutorXpMult(p, skill);
 }

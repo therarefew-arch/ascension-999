@@ -65,6 +65,8 @@ import { gatherXpPerHour, REGIONS, tierForLevel } from '../data/tiers';
 import { REROLL_COST, socketGem, unsocketGem } from './equipment';
 import { countInBag, countInBank, removeFromBag, removeFromBank } from './inventory';
 import { toggleHelper } from './helpers';
+import { buyPlot, buyTutor, tutorLevel } from '../market/upgrades';
+import { minigameXpScale } from './rates';
 import { MONSTER_MAP, MONSTERS } from '../data/monsters';
 import { clampReward } from './minigames';
 import { newPlayer, type PlayerState } from './player';
@@ -572,7 +574,10 @@ export const game = {
     const next = SLOT_UNLOCKS[p.unlockedSlots];
     if (!next) return false;
     const total = ALL_SKILLS.reduce((sum, s) => sum + levelForXp(p.skills[s].xp), 0);
-    if (total < next.level) {
+    if (next.both) {
+      if (total < next.level || p.coins < next.coins) { fail(`Needs total level ${next.level.toLocaleString()} and ${next.coins.toLocaleString()} coins`); return false; }
+      p.coins -= next.coins;
+    } else if (total < next.level) {
       if (p.coins < next.coins) { fail(`Needs total level ${next.level} or ${next.coins.toLocaleString()} coins`); return false; }
       p.coins -= next.coins;
     }
@@ -882,6 +887,26 @@ export const game = {
     save();
     emit();
   },
+  /** 📚 One more lesson from a skill tutor. */
+  buyTutor(s: SkillId) {
+    const why = buyTutor(snap.player, s);
+    if (why) return fail(why);
+    play('levelup');
+    buzz(20);
+    toast(`📚 ${SKILLS[s].name} tutor: +${tutorLevel(snap.player, s)}% XP`, 'level');
+    save();
+    emit();
+  },
+  /** 🌱 Buy another garden plot. */
+  buyPlot() {
+    const why = buyPlot(snap.player);
+    if (why) return fail(why);
+    play('levelup');
+    celebrate();
+    toast(`🌱 Garden plot ${snap.player.farm.plots.length} is ready to plant!`, 'level');
+    save();
+    emit();
+  },
   upgradeBag(): boolean {
     const p = snap.player;
     const cost = bagUpgradeCost(p.inventory.length);
@@ -960,7 +985,8 @@ export const game = {
     const locked = lockedReason(snap.player, action);
     if (locked) { fail(locked); return; }
     const report = emptyReport(actionId);
-    addXp(snap.player, action, report, Math.round(Math.min(xp, action.xp * maxMult)));
+    const scale = minigameXpScale(snap.player, action);
+    addXp(snap.player, action, report, Math.round(Math.min(xp * scale, action.xp * maxMult * scale)));
     trackRequests(snap.player, report, 1);
     trackTutorial(snap.player, report);
     announceLevels(report);

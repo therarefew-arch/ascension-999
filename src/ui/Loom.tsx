@@ -1,6 +1,7 @@
 // 🧶 Crafting's minigames: the Workbench (Steady Hands), The Loom (v0.0.2.16, replaced Joinery) and Tinker's Tray.
 // The Loom: draw a thread from each spool to its partner; threads can't cross; fill every cell. Rules in core/loom.ts.
 import { useEffect, useRef, useState } from 'react';
+import { minigameXpScale } from '../core/rates';
 import { sound } from '../audio/sound';
 import { musicFor } from '../audio/soundList';
 import type { ActionDef } from '../data/skills';
@@ -288,7 +289,7 @@ function TheLoom({ action }: { action: ActionDef }) {
           </div>
           <p className="mg-foot">
             Drag from a spool to its partner of the same colour. Threads can't cross — drawing over one cuts it.
-            Fill the <b>whole</b> loom to finish it: <b>{loomXp(deal.level, action.xp).toLocaleString()} Crafting XP</b>, and the next level is a bigger loom
+            Fill the <b>whole</b> loom to finish it: <b>{Math.round(loomXp(deal.level, action.xp) * minigameXpScale(player, action)).toLocaleString()} Crafting XP</b>, and the next level is a bigger loom
             with longer threads (up to {MAX_LOOM_LEVEL}). Tap 💡 to lay one thread for you. Colours: {YARN_NAMES.slice(0, loom.pegs.length).join(', ')}.
           </p>
         </div>

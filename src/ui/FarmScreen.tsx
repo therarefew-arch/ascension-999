@@ -6,7 +6,7 @@ import { HelperRow } from './Helpers';
 import { sound } from '../audio/sound';
 import { getItem } from '../data/items';
 import { CROPS, tierLevel } from '../data/tiers';
-import { growMs, MAX_TEND_SHARE, PLOTS, plotReady, whyCantPlant } from '../core/farming';
+import { growMs, MAX_TEND_SHARE, plotReady, whyCantPlant } from '../core/farming';
 import { countInBag } from '../core/inventory';
 import { game, useGame } from '../core/store';
 import { levelProgress, MAX_LEVEL } from '../core/xp';
@@ -70,7 +70,7 @@ export function FarmScreen() {
       <div className="screen">
         <MinigameFrame skill="farming">
         <div className="garden">
-          {Array.from({ length: PLOTS }, (_, i) => {
+          {Array.from({ length: player.farm.plots.length }, (_, i) => {
             const pl = player.farm.plots[i];
             if (!pl) {
               const why = chosen ? whyCantPlant(player, i, chosen) : 'No seeds in your bag';
