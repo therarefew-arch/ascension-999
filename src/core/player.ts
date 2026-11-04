@@ -4,6 +4,7 @@ import type { EquipSlot, SkillId } from '../data/items';
 import type { FightState } from './combat';
 import type { Region } from '../data/tiers';
 import type { FamilyLink, FamilyWeek, GiftOut } from './family';
+import type { HallState } from './guildHall';
 import type { TownRequest } from './cozy';
 import type { Bounty } from './bounties';
 import type { ActiveBuff } from './buffs';
@@ -153,6 +154,8 @@ export interface PlayerState {
   familyWeek?: FamilyWeek;
   /** 🔥 Hearth Together: the local day someone else in your family played (+5% XP that day). */
   hearth?: string;
+  /** 🏰 Guild Hall (v0.0.2.22): rooms finished + your donations to the one being built, for guild `f`. */
+  hall?: HallState;
   /** 🤝 Thank-you gifts sent to guildmates' heroes today (max 3 a day). */
   heroThanks?: { day: string; n: number };
   /** 📖 Lost recipes learned on expeditions (action ids). */

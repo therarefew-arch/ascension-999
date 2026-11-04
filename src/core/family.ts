@@ -9,6 +9,7 @@ import { PET_MAP } from '../data/pets';
 import { PUSH_SERVER, pushSubscription } from './push';
 import type { ItemStack, PlayerState } from './player';
 import { levelForXp } from './xp';
+import { hallSnap } from './guildHall';
 
 export interface FamilyLink {
   /** Family id (it's in the invite link). */
@@ -33,6 +34,8 @@ export interface FamilySnap {
   hero?: { lv: number[]; ammo?: string };
   /** 🤝 An open dungeon party guildmates can join (v0.0.2.4): its code, town and when it was made. */
   party?: { code: string; region: string; at: number };
+  /** 🏰 Guild Hall (v0.0.2.22): rooms you've seen finished, and your donations to the next one. */
+  hall?: { r: number; d: number[] };
 }
 /** 🤝 The party you've made right now (set by the co-op screen); shown on your guild card for 20 minutes. */
 export const partyAd = { code: '', region: '', at: 0 };
@@ -171,7 +174,7 @@ export function familySnap(p: PlayerState): FamilySnap {
     }
   }
   const party = partyAd.code && Date.now() - partyAd.at < PARTY_AD_MS ? { ...partyAd } : undefined;
-  return { town: p.location, total, best, idle: [...new Set(idle)].slice(0, 3), eq, pet: p.activePet ? PET_MAP[p.activePet]?.emoji : undefined, hero: { lv, ammo }, party };
+  return { town: p.location, total, best, idle: [...new Set(idle)].slice(0, 3), eq, pet: p.activePet ? PET_MAP[p.activePet]?.emoji : undefined, hero: { lv, ammo }, party, hall: hallSnap(p) };
 }
 
 // ----- Big moments: queued while playing, sent with the next check-in -----
@@ -299,5 +302,6 @@ export function seen(at: number, now: number): string {
 
 /** An emoji for each kind of moment. */
 export const MOMENT_ICON: Record<string, string> = {
+  hall: '🏰',
   hero: '🤝', join: '👋', leave: '🚪', town: '🗺️', level: '⭐', master: '✦', boss: '🏆', ascended: '🌟', pet: '🐾', parade: '🎪', wall: '🛡️', dawn: '🏮', fish: '🐟', goal: '🏆',
 };

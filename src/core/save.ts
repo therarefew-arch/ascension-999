@@ -1,5 +1,6 @@
 // Saving and loading. Saves live in the browser's storage on the device.
 // Every save has a version number; old saves are upgraded by MIGRATIONS so they never break.
+import { HALL_ROOMS } from '../data/guildHall';
 import { ITEM_LIST, ITEMS, type SkillId } from '../data/items';
 import { loadHappening } from './happenings';
 import { HELPERS } from '../data/helpers';
@@ -409,6 +410,13 @@ function repair(raw: any): PlayerState {
     for (const [r, n] of Object.entries(raw.expeditionWins)) if ((REGIONS as readonly string[]).includes(r) && Number.isInteger(n) && (n as number) > 0) p.expeditionWins[r as Region] = n as number;
   }
   if (typeof raw?.hearth === 'string' && /^\d{4}-\d\d-\d\d$/.test(raw.hearth)) p.hearth = raw.hearth;
+  // 🏰 Guild Hall (v0.0.2.22, no version bump: older saves start with none)
+  const gh = raw?.hall;
+  if (gh && typeof gh.f === 'string' && gh.f) {
+    const n = (v: unknown) => Math.max(0, Math.floor(Number(v) || 0));
+    const d = Array.isArray(gh.d) ? gh.d : [];
+    p.hall = { f: gh.f, built: Math.min(HALL_ROOMS.length, n(gh.built)), d: [n(d[0]), n(d[1]), n(d[2])] };
+  }
   // 📌 Kept-in-bag items (v22)
   if (Array.isArray(raw?.keep)) p.keep = Array.from(new Set(raw.keep.filter((id: unknown) => typeof id === 'string' && !!ITEMS[id as string])));
   // Fishing Journal + festivals (v21)

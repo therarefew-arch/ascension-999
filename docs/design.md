@@ -682,3 +682,14 @@ Cooking; fog: Herblore & Runecrafting); starry nights bring Lucky Stars twice as
 weather favours something. Shown over the town picture, in a small Town card (what's next, and the weather in your
 other towns, so you can choose where to go), as a chip on skill screens, and on the travel map.
 
+## 🏰 Guild Hall — v0.0.2.22
+
+Owner picked it from a brainstorm, with these choices: finished rooms give **small XP perks to everyone**, a room takes
+a family of 3–4 **about a week**, and **donating gives a little back** (a few coins + some XP).
+- The guild builds 10 rooms in order: Great Hearth, Long Kitchen, Forge Corner, Workshop, Herb Loft, Rune Library,
+  Boathouse, Armoury, Feast Hall, Guild Tower. Each asks for goods from 3 skills (logs, ore, fish, bars, meals,
+  herbs, crops, runes…) and gives +2–4% XP in a few skills to every member forever (the Tower: +2% in every skill).
+- Goods count as the time they took to make (1 point = 1 second of work), so a beginner's pine logs help as much as
+  a veteran's — everyone can chip in. Early rooms are small (6 h of work per need), later ones bigger (up to 24 h).
+- Works through the guild check-in — no new server pieces.
+
