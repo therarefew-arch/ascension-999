@@ -381,6 +381,23 @@ async function family(req: Request, url: URL, env: Env): Promise<Response> {
     return json({ ok: true, push: !!to.device });
   }
 
+  // 🚪 The guild's founder (the member who has been in it longest) can remove someone (v0.0.2.27).
+  // Their game finds out on its next check-in ("not a member") and forgets the guild; gifts waiting for them go back.
+  if (path === 'kick') {
+    const lead = await env.DB.prepare('SELECT id FROM members WHERE family = ? ORDER BY joined, id LIMIT 1').bind(me.family).first<{ id: string }>();
+    if (lead?.id !== me.id) return json({ error: 'Only the guild leader can remove members' }, 400);
+    const to = await env.DB.prepare('SELECT id, name, device FROM members WHERE id = ? AND family = ?').bind(str(d.to, 40), me.family).first<{ id: string; name: string; device: string | null }>();
+    if (!to || to.id === me.id) return json({ error: 'They are not in the guild' }, 400);
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM members WHERE id = ?').bind(to.id),
+      env.DB.prepare('DELETE FROM goals WHERE member = ?').bind(to.id),
+      // Gifts waiting for them go back to whoever sent them.
+      env.DB.prepare('UPDATE gifts SET to_m = from_m, returned = 1, at = ? WHERE to_m = ? AND returned = 0').bind(now, to.id),
+      env.DB.prepare('INSERT INTO feed (family, member, kind, text, at) VALUES (?, ?, ?, ?, ?)').bind(me.family, me.id, 'kick', `removed ${to.name} from the guild.`, now),
+    ]);
+    return json(await board(env, me.family, weekOf(d.wk), me.id));
+  }
+
   if (path === 'leave') {
     await env.DB.batch([
       env.DB.prepare('DELETE FROM members WHERE id = ?').bind(me.id),

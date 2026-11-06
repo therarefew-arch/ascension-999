@@ -249,7 +249,10 @@ export async function syncFamily(p: PlayerState): Promise<FamilyBoard> {
 
 export const cheerMoment = (l: FamilyLink, feed: number) => post<FamilyBoard>('cheer', { ...auth(l), feed, wk: weekKey() });
 export const nudgeMember = (l: FamilyLink, to: string) => post<{ ok: boolean; why?: string; push?: boolean }>('nudge', { ...auth(l), to });
-export const leaveFamily = (l: FamilyLink) => post<{ ok: boolean }>('leave', auth(l));
+/** 🚪 The guild leader (first on the board — the one in the guild longest) removes a member. */
+export const kickMember = (l: FamilyLink, to: string) => post<FamilyBoard>('kick', { ...auth(l), to, wk: weekKey() });
+export const isGuildLeader = (b: FamilyBoard | null, me: string) => b?.members[0]?.id === me;
+export const leaveFamily =(l: FamilyLink) => post<{ ok: boolean }>('leave', auth(l));
 
 /** The invite link for a family. */
 export function inviteLink(f: string): string {
@@ -303,5 +306,5 @@ export function seen(at: number, now: number): string {
 /** An emoji for each kind of moment. */
 export const MOMENT_ICON: Record<string, string> = {
   hall: '🏰',
-  hero: '🤝', join: '👋', leave: '🚪', town: '🗺️', level: '⭐', master: '✦', boss: '🏆', ascended: '🌟', pet: '🐾', parade: '🎪', wall: '🛡️', dawn: '🏮', fish: '🐟', goal: '🏆',
+  hero: '🤝', join: '👋', leave: '🚪', kick: '🚪', town: '🗺️', level: '⭐', master: '✦', boss: '🏆', ascended: '🌟', pet: '🐾', parade: '🎪', wall: '🛡️', dawn: '🏮', fish: '🐟', goal: '🏆',
 };

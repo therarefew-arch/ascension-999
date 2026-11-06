@@ -5,7 +5,11 @@
 import type { Note } from './notifySchedule';
 
 /** The notification server (push-server/ in this project). */
-export const PUSH_SERVER = 'https://ascension-999-push.ascension-999-push.workers.dev';
+// Dev only: localStorage['ui.pushServer'] can point at `npx wrangler dev` (so tests never touch the live guild server).
+export const PUSH_SERVER = (() => {
+  try { if (import.meta.env.DEV) { const s = localStorage.getItem('ui.pushServer'); if (s) return s; } } catch { /* fine */ }
+  return 'https://ascension-999-push.ascension-999-push.workers.dev';
+})();
 /** Public half of the game's push key (the private half lives only on the server). */
 const VAPID_PUBLIC = 'BAFKw6uDLzETHFFqSKx2euv83rctLVU6ISpeVinYreZOBpJ6VLvGAxrKv1HS86kB9NDG1GUlYP5HIwKLo2ibxf4';
 const SUB_KEY = 'push.subscription';

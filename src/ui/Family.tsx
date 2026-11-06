@@ -5,7 +5,7 @@ import { ALL_SKILLS, SKILLS } from '../data/skills';
 import { game, useGame } from '../core/store';
 import type { PlayerState } from '../core/player';
 import {
-  cheerMoment, clearInvite, giftLabel, giftsWaiting, MAX_GIFT_STACKS, whyCantGift, GOAL_EMOJI, goalReward, hearthLit, MEDAL_NAMES, MEDALS, nextWeekStart, playedToday, thisWeek, createFamily, familyInfo, inviteLink, joinFamily, lastBoard, lastFamilyName, leaveFamily,
+  cheerMoment, clearInvite, giftLabel, giftsWaiting, MAX_GIFT_STACKS, whyCantGift, GOAL_EMOJI, goalReward, hearthLit, MEDAL_NAMES, MEDALS, nextWeekStart, playedToday, thisWeek, createFamily, familyInfo, inviteLink, joinFamily, lastBoard, lastFamilyName, leaveFamily, kickMember, isGuildLeader,
   MOMENT_ICON, nudgeMember, onFamilyMoment, pendingInvite, rememberFamilyName, seen, setBoard, subscribeBoard, syncFamily,
   type FamilyBoard, type FamilyMember,
 } from '../core/family';
@@ -42,7 +42,7 @@ export function useFamilySync() {
       if (!p.family || stopped) return;
       syncFamily(p).then((b) => game.familyBoard(b)).catch((e: Error) => {
         // Removed from the family (or it was closed): forget it on this save.
-        if (/no longer in this guild/.test(e.message)) { setBoard(null); game.setFamily(null); }
+        if (/no longer in this guild/.test(e.message)) { setBoard(null); game.setFamily(null, `🚪 You're no longer in ${p.family?.family ?? 'the guild'}`); }
       });
     };
     run();
@@ -183,7 +183,14 @@ function GiftSheet({ to, onClose }: { to: FamilyMember; onClose: () => void }) {
   };
   const tooMany = chosen.length > MAX_GIFT_STACKS;
   return (
-    <Sheet title={`🎁 A gift for ${to.name}`} onClose={onClose}>
+    <Sheet title={`🎁 A gift for ${to.name}`} onClose={onClose} footer={
+      // In the footer so it never scrolls off the bottom (v0.0.2.27: it was hidden on some phones).
+      <div className="gift-foot">
+        {(chosen.length > 0 || coinN > 0) && <p className="small">Sending: <b>{giftLabel(chosen.map(([id, qty]) => ({ id, qty })), coinN)}</b></p>}
+        {tooMany && <p className="small red">Up to {MAX_GIFT_STACKS} kinds of things per gift.</p>}
+        <button className="btn btn-hero" disabled={tooMany || (!chosen.length && !coinN)} onClick={send}>SEND TO {to.name.toUpperCase()}</button>
+      </div>
+    }>
       <div className="gift-form">
         <label className="small">Coins <span className="tiny muted">(you have {player.coins.toLocaleString()})</span>
           <input className="name-input" inputMode="numeric" aria-label="Coins to send" value={coins} placeholder="0" onChange={(e) => setCoins(e.target.value.replace(/[^0-9]/g, ''))} />
@@ -202,9 +209,6 @@ function GiftSheet({ to, onClose }: { to: FamilyMember; onClose: () => void }) {
           ))}
         </div>
         <p className="tiny muted">Gems, Relics and Starlight can't be sent. Equipped gear stays on you.</p>
-        {(chosen.length > 0 || coinN > 0) && <p className="small">Sending: <b>{giftLabel(chosen.map(([id, qty]) => ({ id, qty })), coinN)}</b></p>}
-        {tooMany && <p className="small red">Up to {MAX_GIFT_STACKS} kinds of things per gift.</p>}
-        <button className="btn btn-hero" disabled={tooMany || (!chosen.length && !coinN)} onClick={send}>SEND TO {to.name.toUpperCase()}</button>
       </div>
     </Sheet>
   );
@@ -271,6 +275,7 @@ export function FamilyTab() {
   const [msg, setMsg] = useState<string | null>(null);
   const [nudged, setNudged] = useState<string[]>([]);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [confirmKick, setConfirmKick] = useState<string | null>(null);
   const [giftTo, setGiftTo] = useState<FamilyMember | null>(null);
   // 🤝 Joining a guildmate's open dungeon party
   const [joinCode, setJoinCode] = useState<string | null>(null);
@@ -305,6 +310,16 @@ export function FamilyTab() {
     setConfirmLeave(false);
   };
 
+  const kick = async (m: FamilyMember) => {
+    setConfirmKick(null);
+    try {
+      game.familyBoard(await kickMember(link, m.id));
+      sound.play('creak');
+      setMsg(`🚪 ${m.name} is no longer in the guild.`);
+    } catch (e) { setMsg((e as Error).message); }
+  };
+  const leader = isGuildLeader(board, link.m);
+
   const names = Object.fromEntries((board?.members ?? []).map((m) => [m.id, m.id === link.m ? 'You' : m.name]));
   return (
     <>
@@ -338,7 +353,7 @@ export function FamilyTab() {
                 <div key={m.id} className={`fam-member card ${me ? 'me' : ''}`}>
                   <MiniAvatar m={m} />
                   <div className="fam-info">
-                    <b>{m.name}{me ? ' (you)' : ''} {m.snap.pet ?? ''}</b>
+                    <b>{m.name}{me ? ' (you)' : ''} {m.snap.pet ?? ''}{board.members[0]?.id === m.id && <span className="tiny fam-lead"> 👑 Leader</span>}</b>
                     <span className="small">{m.snap.town ?? '—'} · total level <span className="mono">{m.snap.total ?? 0}</span></span>
                     {m.snap.best && <span className="tiny muted">Best: {SKILLS[m.snap.best.skill]?.name} {m.snap.best.level}</span>}
                     <span className="tiny muted">{m.snap.idle?.length ? m.snap.idle.join(' · ') : 'Resting'}</span>
@@ -351,6 +366,13 @@ export function FamilyTab() {
                     <div className="fam-btns">
                       <button className="btn fam-nudge" onClick={() => { sound.play('click'); setGiftTo(m); }} aria-label={`Send ${m.name} a gift`}>🎁</button>
                       <button className="btn fam-nudge" disabled={nudged.includes(m.id)} onClick={() => nudge(m)} aria-label={`Nudge ${m.name}`}>👋</button>
+                      {leader && <button className="btn fam-nudge fam-kick" onClick={() => { sound.play('click'); setConfirmKick(m.id); }} aria-label={`Remove ${m.name} from the guild`}>🚪</button>}
+                    </div>
+                  )}
+                  {confirmKick === m.id && (
+                    <div className="fam-kick-ask small">
+                      <span>Remove <b>{m.name}</b> from the guild? Gifts waiting for them go back to whoever sent them.</span>
+                      <span><button className="link-btn small red" onClick={() => kick(m)}>Yes, remove</button> <button className="link-btn small" onClick={() => setConfirmKick(null)}>Cancel</button></span>
                     </div>
                   )}
                 </div>
@@ -373,7 +395,7 @@ export function FamilyTab() {
                       <span className="tiny muted"> · {seen(e.at, board.now).replace('playing now', 'just now')}
                         {e.cheers.length > 0 && ` · 🎉 ${e.cheers.map((c) => names[c] ?? 'someone').join(', ')}`}</span>
                     </span>
-                    {!mine && e.kind !== 'leave' && (
+                    {!mine && e.kind !== 'leave' && e.kind !== 'kick' && (
                       <button className={`fam-cheer ${cheered ? 'on' : ''}`} disabled={cheered} onClick={() => cheer(e.id)} aria-label="Cheer">🎉</button>
                     )}
                   </li>

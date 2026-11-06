@@ -1,5 +1,6 @@
 // Small building blocks shared by the screens.
 import { useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { getItem, STAT_LABELS, type ItemStats } from '../data/items';
 import { ACTIONS } from '../data/skills';
 import { actionDuration } from '../core/idle';
@@ -54,7 +55,8 @@ export function Sheet({ title, onClose, children, footer }: { title: ReactNode; 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
-  return (
+  // Drawn at the top of the page: inside a screen, the bottom bar (and the Bag button) covered the sheet's bottom.
+  return createPortal(
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-grip" />
@@ -65,7 +67,8 @@ export function Sheet({ title, onClose, children, footer }: { title: ReactNode; 
         <div className="sheet-body">{children}</div>
         {footer && <div className="sheet-foot">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

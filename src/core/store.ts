@@ -1910,8 +1910,9 @@ export const game = {
   player(): PlayerState { return snap.player; },
 
   /** 👪 Join / leave a family (the Family tab talks to the server first). */
-  setFamily(link: FamilyLink | null) {
+  setFamily(link: FamilyLink | null, note?: string) {
     const p = snap.player;
+    if (note) toast(note, 'info');
     if (link) p.family = link;
     else {
       // Leaving: gifts that never reached the server come back.
