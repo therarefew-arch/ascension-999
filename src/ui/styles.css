@@ -2786,5 +2786,27 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .ar-pouch { display: flex; flex-direction: column; gap: 6px; }
 .ar-pouch-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--rc) 45%, transparent); background: rgba(255, 255, 255, 0.03); }
 @keyframes ar-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+/* v0.0.2.29 — the add-up: the rune being counted glows and lifts, the runes that boosted it flash, numbers fly up. */
+.ar-altar { position: relative; }
+.ar-cell { transition: transform 0.12s, box-shadow 0.12s, filter 0.12s; overflow: visible; }
+.ar-altar.counting .ar-cell.on:not(.now):not(.src) { filter: brightness(0.75); }
+.ar-cell.now { transform: scale(1.14); z-index: 3; box-shadow: 0 0 0 2px #fff7d6, 0 0 18px 4px var(--rc); filter: brightness(1.25); }
+.ar-cell.src { z-index: 2; box-shadow: 0 0 0 2px #5eead4, 0 0 14px 2px rgba(94, 234, 212, 0.75); animation: ar-src 0.35s ease-out; }
+.ar-cell.multd::after { content: ''; position: absolute; inset: -1px; border-radius: 11px; border: 1.5px solid #f0abfc; box-shadow: 0 0 8px rgba(240, 171, 252, 0.6); pointer-events: none; }
+.ar-pop { position: absolute; left: 50%; top: 0; transform: translate(-50%, -30%); font-family: var(--mono); font-weight: 900; font-size: 0.95rem; white-space: nowrap; pointer-events: none; z-index: 5;
+  color: #ecfeff; text-shadow: 0 2px 4px #000, 0 0 8px rgba(94, 234, 212, 0.8); animation: ar-fly 0.8s ease-out forwards; }
+.ar-pop.mult { color: #f5d0fe; font-size: 1.02rem; text-shadow: 0 2px 4px #000, 0 0 10px rgba(240, 171, 252, 0.9); }
+.ar-pop.big { color: #fde68a; font-size: 1.15rem; text-shadow: 0 2px 4px #000, 0 0 12px rgba(251, 191, 36, 0.95); }
+.ar-pop.eat { color: #fca5a5; font-size: 0.8rem; }
+.ar-hurry { position: absolute; right: 10px; bottom: -18px; color: var(--muted); opacity: 0.7; }
+.ar-gain { display: grid; place-items: center; min-height: 44px; }
+.ar-total { display: inline-block; color: #fbbf24; font-size: calc(1.25rem * var(--sz, 1)); text-shadow: 0 0 12px rgba(251, 191, 36, 0.45); }
+.ar-total.live { animation: ar-bump 0.18s ease-out; }
+.ar-bar.pouring .ar-fill { transition: width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1); filter: brightness(1.35); box-shadow: 0 0 14px rgba(94, 234, 212, 0.8); }
+.ar-bar.flash { animation: ar-ready 0.5s ease-in-out 3; }
+@keyframes ar-fly { 0% { opacity: 0; transform: translate(-50%, 10%) scale(0.7); } 20% { opacity: 1; transform: translate(-50%, -60%) scale(1.15); } 100% { opacity: 0; transform: translate(-50%, -170%) scale(1); } }
+@keyframes ar-bump { from { transform: scale(1.18); } to { transform: scale(1); } }
+@keyframes ar-src { from { transform: scale(1.08); } to { transform: scale(1); } }
+@keyframes ar-ready { 50% { box-shadow: 0 0 22px 6px rgba(251, 191, 36, 0.8); } }
 @keyframes ar-turn { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .ar-intro-emoji, .ar-cell.on, .ar-card { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .ar-intro-emoji, .ar-cell.on, .ar-card, .ar-total.live, .ar-cell.src, .ar-bar.flash { animation: none; } }

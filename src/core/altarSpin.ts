@@ -69,8 +69,9 @@ export const RARITY_COLOR: Record<Rarity, string> = { common: '#c9bfae', uncommo
 /** A rune in your pouch (with what it has grown, for good). */
 export interface PouchRune { uid: number; id: string; grow: number }
 
-/** One cell's result from a spin. */
-export interface CellResult { uid: number; id: string; value: number; eaten?: boolean; note?: string }
+/** One cell's result from a spin. `from` = the cells that boosted (or ate) it, `mult` = its multiplier — the screen
+ *  lights those up while it adds the spin up. */
+export interface CellResult { uid: number; id: string; value: number; eaten?: boolean; note?: string; from?: number[]; mult?: number }
 
 export interface AltarRun {
   seed: number;
@@ -144,6 +145,7 @@ export function spin(run: AltarRun): number {
   bag.slice(0, CELLS).forEach((r, k) => { at[cells[k]] = r; });
   const def = (i: number) => (at[i] ? RUNE_MAP[at[i]!.id] : null);
   const eaten = new Set<number>();
+  const src: Set<number>[] = Array.from({ length: CELLS }, () => new Set<number>());
   const notes: string[] = Array(CELLS).fill('');
 
   // 1. Voids eat a common rune next to them (gone from the pouch for good) and grow.
@@ -153,6 +155,7 @@ export function spin(run: AltarRun): number {
     if (!food.length) continue;
     const n = pick(run, food);
     eaten.add(n);
+    src[n].add(i);
     at[i]!.grow += 3;
     notes[i] = 'ate a rune! +3';
   }
@@ -177,13 +180,13 @@ export function spin(run: AltarRun): number {
     let x = d.base + at[i]!.grow;
     const nb = NB[i].filter(live);
     switch (d.id) {
-      case 'droplet': x += nb.filter((n) => def(n)!.el === 'water').length; break;
+      case 'droplet': { const w = nb.filter((n) => def(n)!.el === 'water'); w.forEach((n) => src[i].add(n)); x += w.length; break; }
       case 'spark': x += NB[i].filter((n) => !live(n)).length; break;
-      case 'boulder': x += 2 * nb.filter((n) => def(n)!.el === 'earth').length; break;
-      case 'bloom': x += 2 * nb.filter((n) => def(n)!.el === 'nature').length; break;
+      case 'boulder': { const e = nb.filter((n) => def(n)!.el === 'earth'); e.forEach((n) => src[i].add(n)); x += 2 * e.length; break; }
+      case 'bloom': { const e = nb.filter((n) => def(n)!.el === 'nature'); e.forEach((n) => src[i].add(n)); x += 2 * e.length; break; }
       case 'bell': x += at.filter((_, j) => live(j) && j !== i && rowOf(j) === rowOf(i)).length; break;
       case 'moon': x += 2 * empty; break;
-      case 'orb': x += 3 * new Set(nb.map((n) => def(n)!.el)).size; break;
+      case 'orb': nb.forEach((n) => src[i].add(n)); x += 3 * new Set(nb.map((n) => def(n)!.el)).size; break;
       case 'rift': x += run.pouch.length; break;
       case 'comet': if (rnd(run) < 1 / 3) { x += 25; notes[i] = 'streaks! +25'; } break;
     }
@@ -196,13 +199,13 @@ export function spin(run: AltarRun): number {
     const d = liveDef(i);
     if (!d) continue;
     const nb = NB[i].filter(live);
-    if (d.id === 'breeze') nb.forEach((n) => { if (def(n)!.el === 'fire') add[n] += 1; });
-    if (d.id === 'gale') nb.forEach((n) => { if (def(n)!.el === 'fire') add[n] += 2; });
-    if (d.id === 'sun') for (let j = 0; j < CELLS; j++) if (j !== i && live(j) && rowOf(j) === rowOf(i)) add[j] += 2;
+    if (d.id === 'breeze') nb.forEach((n) => { if (def(n)!.el === 'fire') { add[n] += 1; src[n].add(i); } });
+    if (d.id === 'gale') nb.forEach((n) => { if (def(n)!.el === 'fire') { add[n] += 2; src[n].add(i); } });
+    if (d.id === 'sun') for (let j = 0; j < CELLS; j++) if (j !== i && live(j) && rowOf(j) === rowOf(i)) { add[j] += 2; src[j].add(i); }
     if (d.el === 'dark' && d.id !== 'moon' && d.id !== 'void') {
       const lit = NB[i].some((n) => liveDef(n)?.id === 'lantern');
-      if (lit) { v[i] *= 2; nb.forEach((n) => { add[n] += 1; }); notes[i] = notes[i] || 'lantern-lit ×2'; }
-      else nb.forEach((n) => { add[n] -= 1; });
+      if (lit) { v[i] *= 2; nb.forEach((n) => { add[n] += 1; src[n].add(i); }); NB[i].forEach((n) => { if (liveDef(n)?.id === 'lantern') src[i].add(n); }); notes[i] = notes[i] || 'lantern-lit ×2'; }
+      else nb.forEach((n) => { add[n] -= 1; src[n].add(i); });
     }
   }
   for (let i = 0; i < CELLS; i++) v[i] = Math.max(0, v[i] + add[i]);
@@ -214,18 +217,21 @@ export function spin(run: AltarRun): number {
     const d = liveDef(i);
     if (!d) continue;
     const nb = NB[i].filter(live);
-    if ((d.id === 'ember' || d.id === 'blaze') && nb.some((n) => def(n)!.el === 'air')) mult[i] *= 2;
-    if (d.id === 'tide') nb.forEach((n) => { if (def(n)!.el === 'water') mult[n] *= 2; });
-    if (d.id === 'crown') nb.forEach((n) => { mult[n] *= 2; });
-    if (hasTrident && d.el === 'water') mult[i] *= 3;
+    if ((d.id === 'ember' || d.id === 'blaze') && nb.some((n) => def(n)!.el === 'air')) { mult[i] *= 2; nb.forEach((n) => { if (def(n)!.el === 'air') src[i].add(n); }); }
+    if (d.id === 'tide') nb.forEach((n) => { if (def(n)!.el === 'water') { mult[n] *= 2; src[n].add(i); } });
+    if (d.id === 'crown') nb.forEach((n) => { mult[n] *= 2; src[n].add(i); });
+    if (hasTrident && d.el === 'water') { mult[i] *= 3; at.forEach((r, j) => { if (live(j) && r!.id === 'trident' && j !== i) src[i].add(j); }); }
   }
   for (let i = 0; i < CELLS; i++) v[i] = Math.round(v[i] * mult[i]);
 
   // 6. Prisms copy the strongest neighbour.
   for (let i = 0; i < CELLS; i++) {
     if (liveDef(i)?.id !== 'prism') continue;
-    const best = Math.max(0, ...NB[i].filter((n) => live(n) && def(n)!.id !== 'prism').map((n) => v[n]));
-    v[i] += best;
+    const cand = NB[i].filter((n) => live(n) && def(n)!.id !== 'prism');
+    if (!cand.length) continue;
+    const top = cand.reduce((a, b) => (v[b] > v[a] ? b : a));
+    v[i] += v[top];
+    src[i].add(top);
   }
 
   // 7. Hourglass: one extra spin before the tithe, once per tithe.
@@ -233,7 +239,8 @@ export function spin(run: AltarRun): number {
   if (!run.hourglassUsed && at.some((r, i) => live(i) && r!.id === 'hourglass')) { run.hourglassUsed = true; extra = true; }
 
   const total = v.reduce((s, x) => s + x, 0);
-  run.grid = at.map((r, i) => (r ? { uid: r.uid, id: r.id, value: eaten.has(i) ? 0 : v[i], eaten: eaten.has(i) || undefined, note: notes[i] || undefined } : null));
+  run.grid = at.map((r, i) => (r ? { uid: r.uid, id: r.id, value: eaten.has(i) ? 0 : v[i], eaten: eaten.has(i) || undefined, note: notes[i] || undefined,
+    from: src[i].size ? [...src[i]] : undefined, mult: mult[i] > 1 ? mult[i] : undefined } : null));
   if (eaten.size) { const gone = new Set([...eaten].map((i) => at[i]!.uid)); run.pouch = run.pouch.filter((r) => !gone.has(r.uid)); }
   run.power += total;
   run.lastGain = total;

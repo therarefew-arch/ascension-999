@@ -335,6 +335,22 @@ const sounds = {
   ), 0.2),
   // 🃏 A card sliding across felt: a soft low swish.
   slide: norm(shape(bandpass(noise(0.2, 1, 0), 350, 2200), (t) => Math.sin(Math.PI * Math.min(1, t / 0.2)) ** 1.5 * (1 - t / 0.2 * 0.4)), 0.1),
+  // 🌀 Altar Spin (v0.0.2.29): a bright glass-bell ding for each rune counted (played higher and higher up a scale)…
+  ding: norm(mix(
+    ['', strike(1047, [1, 2.76, 5.4], [7, 12, 20], [1, 0.4, 0.18], 0.7, 1)],
+    ['', strike(2094, [1], [16], [0.25], 0.3, 1), 0.004],
+  ), 0.16),
+  // …a sparkling zing when a rune is multiplied…
+  zap: norm(mix(
+    ['', shape(sweep(600, 2400, 0.22, 1, 0), (t) => Math.min(1, t / 0.01) * Math.exp(-9 * t))],
+    ...[0, 1, 2, 3].map((k) => ['', strike(1568 * (1 + k * 0.26), [1, 2.01], [18, 30], [1, 0.3], 0.25, 0.6), 0.04 + k * 0.035]),
+  ), 0.15),
+  // …and a rising shimmer as the spin's total pours into the tithe bar.
+  pour: norm(mix(
+    ['', shape(sweep(300, 1200, 0.7, 1, 0), (t) => Math.sin(Math.PI * Math.min(1, t / 0.7)) ** 1.3)],
+    ['', shape(bandpass(noise(0.7, 1, 0), 2500, 7000), (t) => 0.35 * Math.sin(Math.PI * Math.min(1, t / 0.7)) ** 2)],
+    ...[0, 1, 2, 3, 4, 5].map((k) => ['', strike(880 * Math.pow(2, k / 5), [1, 2], [14, 24], [1, 0.3], 0.2, 0.5), 0.08 + k * 0.1]),
+  ), 0.14),
   // 🐇 A little hop: a quick springy boing.
   boing: norm(shape(sweep(280, 680, 0.13, 1, 0), (t) => Math.min(1, t / 0.005) * Math.exp(-14 * t) * (0.7 + 0.3 * Math.sin(t * 600))), 0.09),
 };
