@@ -2746,3 +2746,45 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .pw-odds { display: flex; flex-wrap: wrap; gap: 4px 10px; justify-content: center; }
 .pw-odds b { color: #e7dcc6; }
 @media (prefers-reduced-motion: reduce) { .pw-wheel { transition-duration: 300ms !important; } .pw-result.big { animation: none; } }
+
+/* ── 🌀 Altar Spin (v0.0.2.28, Runecrafting) ─────────────────────────────────────────────────────────── */
+.ar-root { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 18px; border: 1.5px solid rgba(45, 212, 191, 0.4);
+  background: radial-gradient(circle at 50% 35%, rgba(45, 212, 191, 0.14), transparent 60%), linear-gradient(180deg, #0f1f1d, #0b1413); }
+.ar-intro, .ar-end { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 8px 4px; }
+.ar-intro h3, .ar-end h3 { color: #5eead4; letter-spacing: 1px; }
+.ar-intro-emoji { font-size: 3rem; animation: ar-turn 9s linear infinite; }
+.ar-end.won .ar-intro-emoji { animation: ar-pop 0.6s ease-out; }
+.ar-end-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin: 4px 0 8px; }
+.ar-head { display: flex; flex-direction: column; gap: 5px; }
+.ar-bar { position: relative; height: 22px; border-radius: 99px; background: #071110; border: 1px solid #1f4a44; overflow: hidden; }
+.ar-fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #0d9488, #5eead4); transition: width 0.5s; }
+.ar-bar.ready .ar-fill { background: linear-gradient(90deg, #d97706, #fbbf24); box-shadow: 0 0 12px rgba(251, 191, 36, 0.6); }
+.ar-bar-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: 0.78rem; font-weight: 800; color: #ecfeff; text-shadow: 0 1px 2px #000; }
+.ar-altar { display: grid; gap: 5px; padding: 8px; border-radius: 16px; background: radial-gradient(circle, #16302c, #0a1716); border: 2px solid #1f4a44;
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.6), 0 0 18px rgba(45, 212, 191, 0.12); }
+.ar-cell { position: relative; aspect-ratio: 1; border-radius: 11px; background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(94, 234, 212, 0.15); display: grid; place-items: center; overflow: hidden; }
+.ar-cell.on { border: 1.5px solid var(--rc); background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--rc) 22%, transparent), rgba(0, 0, 0, 0.25)); animation: ar-pop 0.25s ease-out; }
+.ar-cell.eaten { opacity: 0.4; filter: grayscale(1); }
+.ar-rune { font-size: clamp(1.1rem, 7vw, 1.8rem); line-height: 1; }
+.ar-val { position: absolute; right: 3px; bottom: 1px; font-size: 0.7rem; font-weight: 900; color: #ecfeff; text-shadow: 0 1px 2px #000; }
+.ar-val.big { color: #fbbf24; font-size: 0.8rem; }
+.ar-note { position: absolute; left: 0; right: 0; top: 1px; font-size: 0.5rem; text-align: center; color: #fde68a; text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden; }
+.ar-gain { text-align: center; min-height: 22px; }
+.ar-msg { text-align: center; color: #5eead4; margin: 0; }
+.ar-row { display: flex; gap: 8px; }
+.ar-row > .btn { flex: 1; }
+.ar-spin { flex: 1.6 !important; }
+.ar-offer { display: flex; flex-direction: column; gap: 8px; }
+.ar-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.ar-card { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 14px; border: 1.5px solid var(--rc); cursor: pointer; color: var(--text); font: inherit;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--rc) 16%, #10201e), #0b1413); animation: ar-pop 0.25s ease-out; }
+.ar-card:active { transform: scale(0.96); }
+.ar-card-emoji { font-size: 1.7rem; line-height: 1.1; }
+.ar-card b { font-size: 0.82rem; }
+.ar-card-rar { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; color: var(--rc); font-weight: 800; }
+.ar-card-text { font-size: 0.66rem; line-height: 1.25; color: var(--muted); text-align: center; }
+.ar-pouch { display: flex; flex-direction: column; gap: 6px; }
+.ar-pouch-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--rc) 45%, transparent); background: rgba(255, 255, 255, 0.03); }
+@keyframes ar-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes ar-turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ar-intro-emoji, .ar-cell.on, .ar-card { animation: none; } }

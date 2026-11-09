@@ -305,6 +305,7 @@ export function seen(at: number, now: number): string {
 
 /** An emoji for each kind of moment. */
 export const MOMENT_ICON: Record<string, string> = {
+  altar: '🌀',
   hall: '🏰',
   hero: '🤝', join: '👋', leave: '🚪', kick: '🚪', town: '🗺️', level: '⭐', master: '✦', boss: '🏆', ascended: '🌟', pet: '🐾', parade: '🎪', wall: '🛡️', dawn: '🏮', fish: '🐟', goal: '🏆',
 };

@@ -693,3 +693,14 @@ a family of 3–4 **about a week**, and **donating gives a little back** (a few 
   a veteran's — everyone can chip in. Early rooms are small (6 h of work per need), later ones bigger (up to 24 h).
 - Works through the guild check-in — no new server pieces.
 
+## 🌀 Altar Spin — v0.0.2.28 (Runecrafting's second minigame)
+
+The owner wanted something "fun and creative, like the vampire survivor game or the super auto pets game" for
+Runecrafting, and picked Altar Spin from four ideas (also offered: Rune Satchel backpack battler, Essence Drop
+pachinko, Rune Bowl merge; Sigil Square, a sudoku-like grid, is kept as a possible extra).
+- A pouch of runes is spun onto a 5×4 altar; runes set off their neighbours (fire flares beside air, Tide doubles
+  water, Void eats runes and grows, Sprouts grow by water for good, Crown doubles everything around it…).
+- After each spin, add 1 of 3 new runes (or skip); rarer runes turn up later in the run.
+- Every 4 spins the Ley Spirit asks for a tithe of the power you've stored. Pay all 10 to win; each tithe paid gives
+  Runecrafting XP, plus a 🧹 cleanse (remove a rune) and a 🔄 reroll. Nothing is ever lost.
+
