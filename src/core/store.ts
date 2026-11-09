@@ -66,7 +66,8 @@ import { REROLL_COST, socketGem, unsocketGem } from './equipment';
 import { countInBag, countInBank, removeFromBag, removeFromBank } from './inventory';
 import { toggleHelper } from './helpers';
 import { buyPlot, buyTutor, tutorLevel } from '../market/upgrades';
-import { minigameXpScale } from './rates';
+import { bestAction, minigameXpScale } from './rates';
+import { ALTAR_TITHE_MIN, ALTAR_WIN_MIN, TITHES as ALTAR_TITHES } from './altarSpin';
 import { MONSTER_MAP, MONSTERS } from '../data/monsters';
 import { clampReward } from './minigames';
 import { newPlayer, type PlayerState } from './player';
@@ -1071,6 +1072,32 @@ export const game = {
    * 🎪 Pet Parade is over: coins for each win (a bonus for all 10), plus a rare find and — the first
    * time — Confetti the parade poodle for a full parade. Everything goes through the loot system.
    */
+  /**
+   * 🌀 Altar Spin: Runecrafting XP for each tithe paid (ALTAR_TITHE_MIN minutes of your best Runecrafting action at
+   * its base speed), and on a full run a bigger bonus, coins and confetti. Returns the XP given.
+   */
+  altarSpinReward(kind: 'tithe' | 'win'): number {
+    const p = snap.player;
+    const best = bestAction(p, 'runecrafting');
+    const perMin = best ? (best.xp * 60_000) / best.durationMs : 20;
+    const xp = Math.max(1, Math.round(perMin * (kind === 'win' ? ALTAR_WIN_MIN : ALTAR_TITHE_MIN)));
+    const report = emptyReport(null);
+    addXp(p, { skill: 'runecrafting' }, report, xp);
+    if (kind === 'win') {
+      const lvl = skillLevel(p, 'runecrafting');
+      giveLoot(p, [{ id: 'coins', qty: Math.round((30 + lvl * 0.9) * ALTAR_TITHES.length) }], { overflowToBank: true });
+      celebrate();
+      play('levelup');
+      familyMoment(p, 'altar', 'paid every tithe in Altar Spin!');
+    }
+    trackRequests(p, report, 1);
+    trackTutorial(p, report);
+    announceLevels(report);
+    save();
+    emit();
+    return xp;
+  },
+
   petParadeEnd(r: { wins: number }) {
     const p = snap.player;
     const best = Math.max(...ALL_SKILLS.map((s) => skillLevel(p, s)));
