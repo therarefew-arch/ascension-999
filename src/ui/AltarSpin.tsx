@@ -37,29 +37,66 @@ function writeRun(slot: number | null, run: AltarRun | null) {
   try { if (run && !run.over) localStorage.setItem(keyFor(slot), JSON.stringify(run)); else localStorage.removeItem(keyFor(slot)); } catch { /* no storage: the run lasts this visit */ }
 }
 
-/** Reveal order + timing for the cells after a spin. */
-const STEP_MS = 70;
+/** How a spin plays out (v0.0.2.29, owner: "satisfying sound effects… watching a number add up… an action light up"):
+ *  DEAL — the runes drop onto the altar one after another;
+ *  TALLY — each rune lights up in turn, the runes that boosted it flash, its points fly into a big running total
+ *          (a bell ding climbing a scale; a zing for multipliers, a boom for big ones), speeding up as it goes;
+ *  POUR — the total pours into the tithe bar. Tap the altar to hurry it along. */
+type Phase = 'idle' | 'deal' | 'tally' | 'pour';
+const DEAL_MS = 45;
+/** A pentatonic ladder (semitones) so the dings climb like a little tune. */
+const LADDER = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26, 28, 31];
+const dingRate = (k: number) => 0.75 * Math.pow(2, LADDER[Math.min(k, LADDER.length - 1)] / 12);
+
+interface Pop { cell: number; text: string; kind: 'add' | 'mult' | 'big' | 'eat'; key: number }
 
 export function AltarSpin() {
   const { slot } = useGame();
   const [run, setRun] = useState<AltarRun | null>(() => readRun(slot));
   const [, force] = useState(0);
-  const [shown, setShown] = useState(CELLS); // how many cells of the last spin are revealed
-  const [count, setCount] = useState(0); // the gain counting up
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [shown, setShown] = useState(CELLS); // how many runes of the last spin have dropped in
+  const [counted, setCounted] = useState<Set<number>>(() => new Set(Array.from({ length: CELLS }, (_, i) => i)));
+  const [cur, setCur] = useState(-1); // the rune being counted now
+  const [lit, setLit] = useState<number[]>([]); // the runes that boosted it
+  const [running, setRunning] = useState(0);
+  const [pending, setPending] = useState(0); // power not yet poured into the bar
+  const [pop, setPop] = useState<Pop | null>(null);
+  const [readyFlash, setReadyFlash] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [xpGot, setXpGot] = useState(0);
   const [pouchOpen, setPouchOpen] = useState(false);
   const timers = useRef<number[]>([]);
+  const finish = useRef<(() => void) | null>(null);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
   const commit = (r: AltarRun | null) => { writeRun(slot, r); setRun(r ? { ...r } : null); force((n) => n + 1); };
-  const busy = shown < CELLS;
+  const busy = phase !== 'idle';
+  const later = (ms: number, fn: () => void) => { timers.current.push(window.setTimeout(fn, ms)); };
 
   const start = () => {
     sound.play('riffle');
     const r = newRun();
-    setXpGot(0); setMsg(null); setShown(CELLS); setCount(0);
+    setXpGot(0); setMsg(null); setShown(CELLS); setRunning(0); setPending(0); setPhase('idle');
     commit(r);
+  };
+
+  /** The total lands in the bar (shared by the normal ending and "hurry"). */
+  const pourIn = (r: AltarRun, gain: number) => {
+    timers.current.forEach(clearTimeout); timers.current = [];
+    finish.current = null;
+    setShown(CELLS); setCounted(new Set(Array.from({ length: CELLS }, (_, i) => i))); setCur(-1); setLit([]); setPop(null);
+    setRunning(gain);
+    setPhase('pour');
+    const before = r.power - gain;
+    const due = titheDue(r);
+    sound.play('pour', { volume: 0.7 });
+    setPending(0);
+    if (before < due && r.power >= due) {
+      later(450, () => { sound.play('enchant'); game.vibrate(40); setReadyFlash(true); });
+      later(1900, () => setReadyFlash(false));
+    }
+    later(650, () => setPhase('idle'));
   };
 
   const doSpin = () => {
@@ -67,30 +104,55 @@ export function AltarSpin() {
     sound.play('riffle', { volume: 0.7 });
     const gain = spin(run);
     commit(run);
-    setMsg(null);
-    // Reveal the runes one by one (filled cells only), ringing higher as it goes, then count the total up.
-    setShown(0); setCount(0);
+    setMsg(null); setReadyFlash(false);
     timers.current.forEach(clearTimeout); timers.current = [];
+    setPending(gain); setRunning(0); setShown(0); setCounted(new Set()); setCur(-1); setLit([]); setPop(null);
+    setPhase('deal');
     const filled = run.grid.map((c, i) => (c ? i : -1)).filter((i) => i >= 0);
-    filled.forEach((_, k) => {
-      timers.current.push(window.setTimeout(() => {
-        setShown(k + 1);
-        const c = run.grid[filled[k]]!;
-        sound.play(c.value >= 10 ? 'boom' : 'rune', { rate: 0.8 + Math.min(0.9, k * 0.05), volume: c.value >= 10 ? 0.5 : 0.35 });
-        if (c.value >= 10) game.vibrate(15);
-      }, k * STEP_MS));
+    finish.current = () => pourIn(run, gain);
+
+    // DEAL: the runes drop in.
+    filled.forEach((_, k) => later(k * DEAL_MS, () => { setShown(k + 1); if (k % 2 === 0) sound.play('slide', { volume: 0.25, rate: 1 + k * 0.03 }); }));
+
+    // TALLY: count each rune, faster as it goes.
+    let t = filled.length * DEAL_MS + 250;
+    later(t - 120, () => setPhase('tally'));
+    let total = 0;
+    let step = 0;
+    filled.forEach((cell) => {
+      const c = run.grid[cell]!;
+      const k = step++;
+      const big = c.value >= 10;
+      later(t, () => {
+        setCur(cell);
+        setLit(c.from ?? []);
+        setCounted((s) => new Set(s).add(cell));
+        if (c.eaten) {
+          sound.play('thud', { volume: 0.5 });
+          setPop({ cell, text: 'eaten!', kind: 'eat', key: Date.now() });
+          return;
+        }
+        total += c.value;
+        setRunning(total);
+        if (c.mult) { sound.play('zap', { volume: 0.45, rate: 0.9 + Math.min(0.5, k * 0.03) }); game.vibrate(12); }
+        if (big) { sound.play('boom', { volume: 0.4, rate: 1.15 }); game.vibrate(20); }
+        sound.play('ding', { rate: dingRate(k), volume: 0.42 });
+        setPop({ cell, text: c.mult ? `×${c.mult} → +${c.value}` : `+${c.value}`, kind: big ? 'big' : c.mult ? 'mult' : 'add', key: Date.now() + cell });
+      });
+      t += Math.max(85, 260 - k * 14) + (c.mult ? 140 : 0) + (big ? 110 : 0) + (c.from?.length ? 60 : 0);
     });
-    const end = filled.length * STEP_MS;
-    timers.current.push(window.setTimeout(() => setShown(CELLS), end));
-    const ticks = 12;
-    for (let t = 1; t <= ticks; t++) {
-      timers.current.push(window.setTimeout(() => { setCount(Math.round((gain * t) / ticks)); if (t % 3 === 0) sound.play('tick', { volume: 0.3 }); }, end + t * 35));
-    }
+
+    // POUR.
+    later(t + 250, () => pourIn(run, gain));
   };
+
+  /** Tap the altar while it's counting to skip to the end. */
+  const hurry = () => { if ((phase === 'deal' || phase === 'tally') && finish.current) { sound.play('whoosh', { volume: 0.4 }); finish.current(); } };
 
   const pick = (id: string | null) => {
     if (!run || busy) return;
     sound.play(id ? 'slide' : 'whoosh');
+    setReadyFlash(false);
     const res = choose(run, id);
     if (res === 'paid' || res === 'won') {
       const xp = game.altarSpinReward('tithe') + (res === 'won' ? game.altarSpinReward('win') : 0);
@@ -117,8 +179,9 @@ export function AltarSpin() {
   }
 
   const due = titheDue(run);
-  const pct = Math.min(100, (run.power / due) * 100);
-  const ready = run.power >= due;
+  const barPower = run.power - pending;
+  const pct = Math.min(100, (barPower / due) * 100);
+  const ready = barPower >= due;
 
   // ----- Run over -----
   if (run.over) {
@@ -147,31 +210,37 @@ export function AltarSpin() {
           <b>Tithe {run.paid + 1}/{TITHES.length}</b>
           <span className={run.spinsLeft <= 1 && !ready ? 'red' : 'muted'}>{run.spinsLeft} spin{run.spinsLeft === 1 ? '' : 's'} left</span>
         </div>
-        <div className={`ar-bar ${ready ? 'ready' : ''}`}>
+        <div className={`ar-bar ${ready ? 'ready' : ''} ${phase === 'pour' ? 'pouring' : ''} ${readyFlash ? 'flash' : ''}`}>
           <div className="ar-fill" style={{ width: `${pct}%` }} />
-          <span className="ar-bar-text mono">{run.power.toLocaleString()} / {due.toLocaleString()}⚡</span>
+          <span className="ar-bar-text mono">{readyFlash ? '✨ TITHE READY! ✨' : `${barPower.toLocaleString()} / ${due.toLocaleString()}⚡`}</span>
         </div>
       </div>
 
-      <div className="ar-altar" style={{ gridTemplateColumns: `repeat(${COLS}, 1fr)` }}>
+      <div className={`ar-altar ${phase === 'tally' ? 'counting' : ''}`} style={{ gridTemplateColumns: `repeat(${COLS}, 1fr)` }} onClick={hurry}>
         {run.grid.map((c, i) => {
           const order = run.grid.slice(0, i + 1).filter(Boolean).length; // this cell's place in the reveal
           const show = c && order <= shown;
           const d = c ? RUNE_MAP[c.id] : null;
+          const done = counted.has(i);
           return (
-            <div key={i} className={`ar-cell ${show ? 'on' : ''} ${c?.eaten && show ? 'eaten' : ''}`} style={d ? { ['--rc' as string]: RARITY_COLOR[d.rarity] } : undefined}>
+            <div key={i} className={`ar-cell ${show ? 'on' : ''} ${c?.eaten && done ? 'eaten' : ''} ${cur === i ? 'now' : ''} ${lit.includes(i) ? 'src' : ''} ${done && c?.mult ? 'multd' : ''}`}
+              style={d ? { ['--rc' as string]: RARITY_COLOR[d.rarity] } : undefined}>
               {show && d && <>
                 <span className="ar-rune">{d.emoji}</span>
-                <span className={`ar-val mono ${c!.value >= 10 ? 'big' : ''}`}>{c!.eaten ? '✖' : c!.value}</span>
-                {c!.note && <span className="ar-note">{c!.note}</span>}
+                {done && <span className={`ar-val mono ${c!.value >= 10 ? 'big' : ''}`}>{c!.eaten ? '✖' : c!.value}</span>}
+                {done && c!.note && <span className="ar-note">{c!.note}</span>}
               </>}
+              {pop && pop.cell === i && <span key={pop.key} className={`ar-pop ${pop.kind}`}>{pop.text}</span>}
             </div>
           );
         })}
+        {phase === 'tally' && <span className="ar-hurry tiny">tap to hurry</span>}
       </div>
 
       <div className="ar-gain">
-        {run.spins > 0 ? <>Last spin <b className="mono gold">+{(busy ? count : run.lastGain).toLocaleString()}⚡</b></> : <span className="muted small">Spin the altar to begin</span>}
+        {run.spins > 0
+          ? <b key={running} className={`ar-total mono ${busy ? 'live' : ''}`} style={{ ['--sz' as string]: String(1 + Math.min(0.7, running / Math.max(1, due) * 0.9)) }}>+{(busy ? running : run.lastGain).toLocaleString()}⚡</b>
+          : <span className="muted small">Spin the altar to begin</span>}
       </div>
 
       {msg && <p className="small ar-msg" onClick={() => setMsg(null)}>{msg}</p>}
@@ -199,7 +268,7 @@ export function AltarSpin() {
         </div>
       ) : (
         <div className="ar-row">
-          <button className="btn" onClick={() => { sound.play('click'); setPouchOpen(true); }}>👝 Pouch ({run.pouch.length}){run.cleanses > 0 ? ` · 🧹${run.cleanses}` : ''}</button>
+          <button className="btn" onClick={() => { sound.play('click'); setPouchOpen(true); }}>{run.cleanses > 0 ? `👝 ${run.pouch.length} · 🧹${run.cleanses}` : `👝 Pouch · ${run.pouch.length}`}</button>
           <button className="btn btn-hero ar-spin" disabled={busy} onClick={doSpin}>🌀 SPIN</button>
         </div>
       )}

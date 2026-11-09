@@ -16,7 +16,9 @@ export type SoundKey =
   // 🗝️ Dungeon attack warnings: charge, underground, swoop, lights out, volley, falling, call, wind, hop
   | 'snort' | 'rumble' | 'screech' | 'toll' | 'swell' | 'whistle' | 'horn' | 'howl' | 'boing'
   // 🃏 Spellcards: a deck riffle, a card sliding on felt
-  | 'riffle' | 'slide';
+  | 'riffle' | 'slide'
+  // 🌀 Altar Spin: counting ding, multiplier zing, total pouring into the bar
+  | 'ding' | 'zap' | 'pour';
 export type MusicKey = 'music_town' | 'music_mahjong' | 'music_ironmoor' | 'music_coalhaven' | 'music_bluecliff'
   | 'music_kitchen' | 'music_lunaria' | 'music_cinderpeak' | 'music_frosthold' | 'music_voidreach' | 'music_starfall' | 'music_celestine' | 'music_rift'
   | 'music_title' | 'music_parade';
@@ -31,6 +33,7 @@ export const EFFECT_SOUNDS: SoundKey[] = [
   'creak',
   'snort', 'rumble', 'screech', 'toll', 'swell', 'whistle', 'horn', 'howl', 'boing',
   'riffle', 'slide',
+  'ding', 'zap', 'pour',
 ];
 export const MUSIC_TRACKS: MusicKey[] = ['music_town', 'music_mahjong', 'music_ironmoor', 'music_coalhaven', 'music_bluecliff', 'music_kitchen', 'music_lunaria', 'music_cinderpeak', 'music_frosthold', 'music_voidreach', 'music_starfall', 'music_celestine', 'music_rift', 'music_title', 'music_parade'];
 
