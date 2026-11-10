@@ -67,6 +67,7 @@ import { countInBag, countInBank, removeFromBag, removeFromBank } from './invent
 import { toggleHelper } from './helpers';
 import { buyPlot, buyTutor, tutorLevel } from '../market/upgrades';
 import { bestAction, minigameXpScale } from './rates';
+import { canDeliver, CLIENTS as COMMISSION_CLIENTS, commissionCoins, ensureCommissions } from './commissions';
 import {
   buyUpgrade as homeBuyUpgrade, collectEggs as homeCollectEggs, CROP_MAP as HOME_CROP_MAP, farmhand as homeFarmhand, homesteadXp, newHomestead,
   placeSprinkler as homePlace, sellBasket as homeSellBasket, tapTile as homeTapTile, type HomeCrop, type Homestead, type TapResult, type Upgrade as HomeUpgrade,
@@ -756,11 +757,36 @@ export const game = {
     emit();
   },
   ensureRequests() {
-    const before = snap.player.requests.day + (snap.player.happening?.day ?? '') + (snap.player.happening?.id ?? '');
+    const before = snap.player.requests.day + (snap.player.happening?.day ?? '') + (snap.player.happening?.id ?? '') + (snap.player.commissions?.day ?? '');
     ensureRequests(snap.player);
     ensureHappening(snap.player);
-    if (before !== snap.player.requests.day + (snap.player.happening?.day ?? '') + (snap.player.happening?.id ?? '')) { save(); emit(); }
+    ensureCommissions(snap.player);
+    if (before !== snap.player.requests.day + (snap.player.happening?.day ?? '') + (snap.player.happening?.id ?? '') + (snap.player.commissions?.day ?? '')) { save(); emit(); }
   },
+  /** 📜 Hand over a commission: its goods leave your bag (then bank); coins, bonus XP and a rare find come back. */
+  deliverCommission(i: number) {
+    const p = snap.player;
+    const c = ensureCommissions(p).list[i];
+    if (!c || c.done) return;
+    if (!canDeliver(p, c)) return fail('You don’t have everything yet');
+    for (const a of c.asks) {
+      const fromBag = removeFromBag(p.inventory, a.item, a.qty);
+      if (fromBag < a.qty) removeFromBank(p, a.item, a.qty - fromBag);
+    }
+    c.done = true;
+    const report = emptyReport(null);
+    for (const a of c.asks) if (a.xp > 0) addXp(p, { skill: a.skill }, report, a.xp);
+    const coins = commissionCoins(c);
+    giveLoot(p, [{ id: 'coins', qty: coins }, { id: ['bird_nest', 'geode', 'message_bottle'][Math.floor(Math.random() * 3)], qty: 1 }], { overflowToBank: true });
+    trackRequests(p, report, 0);
+    announceLevels(report);
+    play('levelup');
+    celebrate();
+    toast(`📜 ${COMMISSION_CLIENTS[c.client].emoji} ${COMMISSION_CLIENTS[c.client].name} is delighted: +${coins.toLocaleString()} coins, bonus XP and a rare find!`, 'level');
+    save();
+    emit();
+  },
+
   /** 🎪 Collect today's happening prize (in its town, once you've joined in). */
   claimHappening() {
     const r = claimHappening(snap.player);
