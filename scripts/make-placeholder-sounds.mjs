@@ -1068,23 +1068,93 @@ const N = (name) => 440 * Math.pow(2, ({ C: -9, Db: -8, D: -7, Eb: -6, E: -5, F:
   writeMusic('music_starfall', out, MR);
 }
 
-// Celestine Spires: airy and bright — rippling celesta arpeggios, a high pad, and wind chimes on the breeze. No drums.
+// Celestine Spires — "The Heavens Open" (v0.0.2.33; owner: the old song had "a lot of clashing sounds… we are in a
+// godly realm and the background music should reflect that"). A slow, majestic hymn in D major: a soft heavenly choir
+// swelling on every chord, a deep warm bass, harp sweeps rising between phrases, a calm noble melody that only ever
+// uses notes of the chord under it, and temple bells. Kept consonant on purpose:
+//  • plain triads (no 7ths), each chord fades fully before the next swells in, so neighbours never rub;
+//  • bells only play the chord's own notes, and nothing sits above ~1,200 Hz (the old chimes went past what an
+//    11 kHz file can hold and folded back as harsh, out-of-tune noise).
 {
-  const beat = 60 / 76, BAR = 4 * beat, E8 = beat / 2;
-  const ch = [['F3', 'A3', 'C4', 'E4'], ['D3', 'F3', 'A3', 'C4'], ['Bb2', 'D3', 'F3', 'A3'], ['C3', 'E3', 'G3', 'Bb3']].map((c) => c.map(N));
-  const bars = 36;
+  const bpm = 64, beat = 60 / bpm, BAR = 4 * beat;
+  const C = {
+    D: { bass: 'D2', voices: ['D3', 'A3', 'D4', 'Gb4'] },
+    G: { bass: 'G2', voices: ['D3', 'G3', 'B3', 'D4'] },
+    Bm: { bass: 'B1', voices: ['D3', 'Gb3', 'B3', 'D4'] },
+    A: { bass: 'A1', voices: ['Db3', 'E3', 'A3', 'E4'] },
+    Em: { bass: 'E2', voices: ['E3', 'G3', 'B3', 'E4'] },
+    Asus: { bass: 'A1', voices: ['D3', 'E3', 'A3', 'E4'] },
+  };
+  // Two 4-bar phrases; the melody gives two notes a bar, every one a note of its chord.
+  const P1 = { chords: ['D', 'G', 'Bm', 'A'], tune: [['A4', 'D5'], ['B4', 'D5'], ['Gb5', 'D5'], ['E5', 'Db5']] };
+  const P2 = { chords: ['G', 'D', 'Em', 'Asus'], tune: [['G5', 'D5'], ['Gb5', 'A4'], ['G4', 'B4'], ['A4', 'A4']] };
+  const P3 = { chords: ['G', 'D', 'Em', 'A'], tune: [['B4', 'D5'], ['A4', 'Gb4'], ['E4', 'G4'], ['A4', 'Db5']] };
+  const order = [P1, P1, P1, P2, P1, P3, P2, P1];
+  const bars = order.length * 4 + 2; // + a closing D held over two bars
   const out = new Float32Array(Math.floor(bars * BAR * MR) + MR * 3);
-  const rnd = seeded(33);
-  for (let b = 0; b < bars; b++) {
-    const c = ch[b % 4];
-    const start = Math.floor(b * BAR * MR);
-    fx.pad(out, start, Math.floor(BAR * MR * 1.1), c.map((f) => f * 2), 0.022, 0.004);
-    // arpeggio up and back down, an octave up
-    [0, 1, 2, 3, 2, 3, 1, 2].forEach((n, i) => fx.bell(out, start + Math.floor(i * E8 * MR), c[n] * 2, 0.022, 4.5));
-    // wind chimes: a few random high notes drifting in
-    for (let i = 0; i < 3; i++) if (rnd() < 0.5) fx.bell(out, start + Math.floor(rnd() * BAR * MR), [N('C6'), N('E6'), N('G6'), N('A6'), N('D7')][Math.floor(rnd() * 5)], 0.012, 2.5);
+
+  // Heavenly choir: each voice two slightly detuned "aah" tones with a slow vibrato; swells in, fades out fully.
+  const choir = (at, len, notes, amp) => addTo(out, at, len, (t) => {
+    const L = len / MR;
+    const env = Math.min(1, t / 0.9) ** 2 * Math.min(1, Math.max(0, (L - t) / 1.1)) ** 1.5;
+    let v = 0;
+    notes.forEach((n, k) => {
+      const f = N(n);
+      for (const d of [0.9985, 1.0015]) {
+        const ph = 2 * Math.PI * f * d * t + 0.003 * f * Math.sin(2 * Math.PI * (4.3 + k * 0.2) * t) / 4.3;
+        v += Math.sin(ph) + 0.32 * Math.sin(2 * ph) + 0.1 * Math.sin(3 * ph);
+      }
+    });
+    return (v / (notes.length * 2)) * env * amp;
+  });
+  // Deep, warm bass: a soft sine with a little 2nd harmonic, slow in and out.
+  const bass = (at, len, n, amp) => addTo(out, at, len, (t) => {
+    const L = len / MR, f = N(n);
+    const env = Math.min(1, t / 0.4) * Math.min(1, Math.max(0, (L - t) / 0.8));
+    return (Math.sin(2 * Math.PI * f * t) + 0.25 * Math.sin(4 * Math.PI * f * t)) * env * amp;
+  });
+  // A harp sweep up the chord over the last beat of a phrase.
+  const harpSweep = (at, chord, amp) => {
+    const v = C[chord].voices.map((n) => N(n));
+    const notes = [...v, ...v.map((f) => f * 2)].sort((a, b) => a - b).filter((f) => f < 1000);
+    notes.forEach((f, i) => fx.pluck(out, at + Math.floor(i * (beat / notes.length) * 1.6 * MR), f, amp * (0.7 + 0.3 * (i / notes.length))));
+  };
+
+  let bar = 0;
+  order.forEach((ph, pi) => {
+    ph.chords.forEach((name, ci) => {
+      const ch = C[name];
+      const at = Math.floor(bar * BAR * MR);
+      const len = Math.floor(BAR * 1.08 * MR);
+      const intro = pi === 0;
+      choir(at, len, ch.voices, intro ? 0.05 : 0.065);
+      if (!intro || ci >= 2) bass(at, Math.floor(BAR * MR), ch.bass, 0.05);
+      // Harp: a gentle broken chord on each beat (from the 2nd phrase), and a sweep to close each phrase.
+      if (pi >= 1) ch.voices.forEach((n, i) => fx.pluck(out, at + Math.floor(i * beat * MR), N(n) * (i === 3 ? 1 : 2), 0.018));
+      if (ci === 3) harpSweep(at + Math.floor(3 * beat * MR), name, 0.022);
+      // The melody (phrases 2–7), soft and breathy like a far-off horn.
+      if (pi >= 1 && pi <= 6) ph.tune[ci].forEach((n, k) => {
+        if (ci === 3 && k === 1 && ph.tune[ci][0] === n) return; // a held note
+        const held = ci === 3 && ph.tune[ci][0] === ph.tune[ci][1];
+        fx.bow(out, at + Math.floor(k * 2 * beat * MR), N(n), Math.floor((held ? 4 : 2) * beat * 0.97 * MR), 0.03, 0.22, 0.004, 0.004);
+      });
+      // Temple bells on the chord's own notes, from the middle of the song.
+      if (pi >= 3 && pi <= 6 && ci % 2 === 0) fx.bell(out, at, N(ch.voices[3]) * 2 > 1200 ? N(ch.voices[3]) : N(ch.voices[3]) * 2, 0.02, 2.2);
+      bar++;
+    });
+  });
+  // The close: a long D chord with a last bell.
+  {
+    const at = Math.floor(bar * BAR * MR);
+    choir(at, Math.floor(2 * BAR * MR), C.D.voices, 0.06);
+    bass(at, Math.floor(2 * BAR * MR), 'D2', 0.045);
+    fx.bell(out, at, N('D5') * 2 > 1200 ? N('D5') : N('D5') * 2, 0.018, 1.6);
   }
-  fx.gain(out, 2.1);
+
+  // Sit level with the other town songs (they're all about 0.022 RMS).
+  let q = 0;
+  for (const x of out) q += x * x;
+  fx.gain(out, 0.022 / Math.sqrt(q / out.length));
   fx.ends(out);
   writeMusic('music_celestine', out, MR);
 }
