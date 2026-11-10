@@ -174,6 +174,8 @@ export interface PlayerState {
   loomLevel?: number;
   /** 🌲 Forester's Grove level (v0.0.2.35, 1–999). */
   groveLevel?: number;
+  /** 🔥 Forge Rush level (v0.0.2.37, 1–999). */
+  forgeLevel?: number;
   /** 🗝️ The extraction run you're on (your worn gear is inside it while you're in the dungeon). */
   dungeonRun?: import('./dungeonRun').DungeonRun;
   /** 🎁 Gifts you sent that the server hasn't confirmed yet (already taken out of your save). */
