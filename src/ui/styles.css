@@ -2987,40 +2987,41 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 @keyframes fr-steam { from { box-shadow: 0 -4px 10px rgba(255, 255, 255, 0.15); } to { box-shadow: 0 -12px 18px rgba(255, 255, 255, 0.4); } }
 @media (prefers-reduced-motion: reduce) { .fr-intro-emoji, .fr-bar.hot, .fr-item.want, .fr-anvil.work, .fr-water.steam { animation: none; } }
 
-/* ── ⛏️ Deep Delve (v0.0.2.38, Mining) — a dark shaft lit by your lantern ───────────────────────────────── */
-.dd-root { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 18px; border: 1.5px solid #57534e; background: linear-gradient(180deg, #1c1917, #0c0a09); }
+/* ── ⛏️ Deep Delve (v0.0.2.38, Mining; v0.0.2.42 pixel-art shaft) — carved stone panel, timber-framed canvas ── */
+.dd-root { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 18px; border: 1.5px solid #57534e;
+  background: radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.08), transparent 60%), linear-gradient(180deg, #24201c, #12100e); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+.dd-frame { position: relative; padding: 5px; border-radius: 10px; background: linear-gradient(180deg, #7a4a24, #5a3416); box-shadow: inset 0 1px 0 #a06a38, inset 0 -2px 0 #3b2210, 0 4px 14px rgba(0, 0, 0, 0.5); }
+.dd-frame::before, .dd-frame::after { content: ''; position: absolute; top: 50%; width: 4px; height: 4px; border-radius: 50%; background: #c9a227; box-shadow: 0 0 0 1px #3b2210; }
+.dd-frame::before { left: 1px; } .dd-frame::after { right: 1px; }
+.dd-canvas { display: block; width: 100%; height: auto; border-radius: 6px; image-rendering: pixelated; touch-action: manipulation; cursor: pointer; background: #0c0a09; box-shadow: inset 0 0 0 1px #000; }
+.dd-canvas.still { cursor: default; }
+.dd-hud, .dd-camp-head { display: flex; gap: 6px; align-items: center; }
+.dd-camp-head > b { flex: 1; color: #f5e6c8; }
+.dd-hud .dd-chip { flex: 1; }
+.dd-chip { display: inline-flex; flex-direction: column; align-items: center; padding: 3px 10px 4px; border-radius: 10px; border: 1px solid #44403c; background: linear-gradient(180deg, #2c2723, #1a1714); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06); }
+.dd-chip > span { font-size: 0.58rem; letter-spacing: 0.12em; color: #a8a29e; }
+.dd-chip > b { font-family: ui-monospace, Menlo, monospace; font-size: 0.95rem; color: #f5f5f4; line-height: 1.15; }
+.dd-chip.gold { border-color: #854d0e; } .dd-chip.gold > b { color: #fcd34d; }
+.dd-oil { display: flex; align-items: center; gap: 7px; color: #e7e5e4; }
+.dd-oil-icon { font-size: 1.05rem; filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.8)); }
+.dd-oil-bar { flex: 1; height: 10px; border-radius: 99px; background: #0c0a09; border: 1px solid #44403c; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6); }
+.dd-oil-bar > div { height: 100%; border-radius: 99px; background: linear-gradient(180deg, #fde68a, #f59e0b 60%, #b45309); box-shadow: 0 0 8px rgba(251, 191, 36, 0.6); transition: width 0.25s; }
+.dd-oil.low .dd-oil-bar > div { background: linear-gradient(180deg, #fca5a5, #ef4444 60%, #7f1d1d); box-shadow: 0 0 8px rgba(239, 68, 68, 0.6); animation: fr-glow 0.6s ease-in-out infinite alternate; }
+.dd-oil.low .dd-oil-icon { animation: fr-glow 0.6s ease-in-out infinite alternate; }
+.dd-sack { display: flex; flex-wrap: wrap; gap: 2px; min-height: 22px; align-items: center; padding: 3px 6px; border-radius: 10px; background: rgba(0, 0, 0, 0.3); border: 1px dashed #44403c; }
+.dd-oreimg { image-rendering: pixelated; display: inline-block; vertical-align: middle; }
 .dd-camp { display: flex; flex-direction: column; gap: 8px; }
 .dd-ups { display: flex; flex-direction: column; gap: 6px; }
-.dd-up { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 12px; border: 1px solid #44403c; background: rgba(255, 255, 255, 0.03); }
-.dd-up-emoji { font-size: 1.5rem; }
-.dd-end { display: flex; flex-direction: column; gap: 4px; align-items: center; text-align: center; padding: 10px; border-radius: 14px; border: 1.5px solid #ca8a04; background: rgba(202, 138, 4, 0.1); animation: fr-in 0.3s ease-out; }
+.dd-up { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 12px; border: 1px solid #44403c; background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.15)); }
+.dd-up-emoji { font-size: 1.4rem; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: #1a1714; border: 1px solid #3f3a35; }
+.dd-pips { display: flex; gap: 3px; margin: 3px 0 2px; }
+.dd-pips i { width: 9px; height: 5px; border-radius: 2px; background: #292524; box-shadow: inset 0 0 0 1px #44403c; }
+.dd-pips i.on { background: linear-gradient(180deg, #fde68a, #d97706); box-shadow: none; }
+.dd-end { display: flex; flex-direction: column; gap: 5px; align-items: center; text-align: center; padding: 10px; border-radius: 14px; border: 1.5px solid #ca8a04; background: radial-gradient(circle at 50% 0%, rgba(250, 204, 21, 0.16), rgba(202, 138, 4, 0.05)); animation: fr-in 0.3s ease-out; }
 .dd-end.dark { border-color: #78716c; background: rgba(120, 113, 108, 0.12); }
-.dd-end-ores { font-size: 1.3rem; letter-spacing: 2px; }
-.dd-head { display: flex; justify-content: space-between; color: #e7e5e4; }
-.dd-oil { position: relative; height: 16px; border-radius: 99px; background: #0c0a09; border: 1px solid #44403c; overflow: hidden; }
-.dd-oil div { height: 100%; background: linear-gradient(90deg, #b45309, #fbbf24); transition: width 0.2s; }
-.dd-oil div.low { background: linear-gradient(90deg, #7f1d1d, #ef4444); animation: fr-glow 0.6s ease-in-out infinite alternate; }
-.dd-oil span { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; text-shadow: 0 1px 2px #000; }
-.dd-shaft { display: grid; gap: 2px; padding: 4px; border-radius: 12px; background: #0c0a09; border: 2px solid #292524; touch-action: manipulation; }
-.dd-shaft.dd-shaft { animation: dd-shake 0.12s ease-out; }
-.dd-cell { position: relative; aspect-ratio: 1; border: 0; border-radius: 4px; padding: 0; display: grid; place-items: center; cursor: default; font: inherit;
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35); filter: brightness(calc(1 - var(--dark, 0))); }
-.dd-cell.sky { background: linear-gradient(180deg, #38bdf8, #7dd3fc); filter: none; }
-.dd-cell.surface.open { background: linear-gradient(180deg, #65a30d, #3f6212); }
-.dd-cell.open { background: radial-gradient(circle at 50% 60%, #3a2f27, #1c1612); }
-.dd-cell.dirt { background: radial-gradient(circle at 30% 30%, #8b5e34, #6b4423); }
-.dd-cell.stone { background: radial-gradient(circle at 30% 30%, #8a8580, #5f5a55); }
-.dd-cell.rock { background: radial-gradient(circle at 30% 30%, #4b5563, #2b313b); }
-.dd-cell.near { cursor: pointer; outline: 2px solid rgba(253, 230, 138, 0.55); outline-offset: -2px; }
-.dd-cell.crack1::after, .dd-cell.crack2::after, .dd-cell.crack3::after { content: ''; position: absolute; inset: 0; border-radius: 4px; pointer-events: none;
-  background: linear-gradient(45deg, transparent 46%, rgba(0, 0, 0, 0.7) 48%, transparent 52%), linear-gradient(-30deg, transparent 47%, rgba(0, 0, 0, 0.6) 49%, transparent 52%); }
-.dd-cell.crack2::after { opacity: 1; background-size: 100% 100%, 70% 70%; }
-.dd-cell.crack3::after { background: linear-gradient(45deg, transparent 44%, rgba(0, 0, 0, 0.75) 47%, transparent 52%), linear-gradient(-30deg, transparent 45%, rgba(0, 0, 0, 0.7) 48%, transparent 53%), linear-gradient(80deg, transparent 46%, rgba(0, 0, 0, 0.6) 49%, transparent 52%); }
-.dd-ore { font-size: clamp(0.8rem, 4.5vw, 1.2rem); filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.4)); }
-.dd-me { font-size: clamp(1rem, 6vw, 1.6rem); filter: drop-shadow(0 0 10px rgba(253, 224, 71, 0.9)); }
+.dd-end-ores { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; }
 .dd-rope { border-color: #a16207; color: #fde68a; }
-@keyframes dd-shake { 0% { transform: translateX(2px); } 50% { transform: translateX(-2px); } 100% { transform: none; } }
-@media (prefers-reduced-motion: reduce) { .dd-shaft.dd-shaft, .dd-oil div.low { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .dd-oil.low .dd-oil-bar > div, .dd-oil.low .dd-oil-icon { animation: none; } }
 
 /* ── 🧪 The Apothecary (v0.0.2.39, Herblore) — a warm little herb shop: oak shelves, parchment map, candle glow ── */
 .ap-root { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 18px; border: 1.5px solid #8b6b3a;
