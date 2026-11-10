@@ -370,6 +370,18 @@ export function chooseAltar(run: AltarRun, id: string): boolean {
   run.altarOffer = [];
   return true;
 }
+/** ⏩ Pay the tithe now and skip the spins that are left (v0.0.2.31, owner: "move on early if I don't need the extra
+ *  rolls"). Each skipped spin turns into a 🔄 reroll, so moving on early never feels like a waste. */
+export function canPayEarly(run: AltarRun): boolean {
+  return !run.over && !run.offer.length && !run.altarOffer.length && run.spinsLeft > 0 && run.power >= titheDue(run);
+}
+export function payEarly(run: AltarRun): 'paid' | 'won' | 'ok' {
+  if (!canPayEarly(run)) return 'ok';
+  run.rerolls += run.spinsLeft;
+  run.spinsLeft = 0;
+  const res = settle(run);
+  return res === 'won' ? 'won' : res === 'paid' ? 'paid' : 'ok';
+}
 export function reroll(run: AltarRun): boolean {
   if (!run.offer.length || run.rerolls <= 0) return false;
   run.rerolls--;
