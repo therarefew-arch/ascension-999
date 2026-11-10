@@ -172,6 +172,8 @@ export interface PlayerState {
   sortLevel?: number;
   /** 🧶 The Loom: the level you're on (1–999, v0.0.2.16). */
   loomLevel?: number;
+  /** 🌲 Forester's Grove level (v0.0.2.35, 1–999). */
+  groveLevel?: number;
   /** 🗝️ The extraction run you're on (your worn gear is inside it while you're in the dungeon). */
   dungeonRun?: import('./dungeonRun').DungeonRun;
   /** 🎁 Gifts you sent that the server hasn't confirmed yet (already taken out of your save). */

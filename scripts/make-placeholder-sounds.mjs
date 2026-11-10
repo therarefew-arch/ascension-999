@@ -1161,6 +1161,61 @@ const N = (name) => 440 * Math.pow(2, ({ C: -9, Db: -8, D: -7, Eb: -6, E: -5, F:
   writeMusic('music_celestine', out, MR);
 }
 
+// 🌀 Altar Spin — "The Rune Altar" (v0.0.2.35, owner asked for the game's own song). Mystic and gently pulsing in
+// A minor (Am – F – C – G, plain triads): a rippling harp, a warm bass on each chord's root, a soft heartbeat drum,
+// a hushed pad, and crystal bells carrying the melody — every melody note is a note of its chord, and nothing sits
+// above ~1,400 Hz (the bell's 4× partial must stay under what an 11 kHz file can hold). Levelled to ~0.022 RMS.
+{
+  const bpm = 88, beat = 60 / bpm, BAR = 4 * beat, E8 = beat / 2;
+  const CH = {
+    Am: { root: 'A1', tones: ['A3', 'C4', 'E4', 'A4'] },
+    F: { root: 'F1', tones: ['F3', 'A3', 'C4', 'F4'] },
+    C: { root: 'C2', tones: ['G3', 'C4', 'E4', 'G4'] },
+    G: { root: 'G1', tones: ['G3', 'B3', 'D4', 'G4'] },
+  };
+  const prog = ['Am', 'F', 'C', 'G'];
+  // Melody A: four steps a bar; melody B: two long notes a bar, higher. Every note is in its chord.
+  const melA = { Am: ['E5', 'C5', 'A4', 'C5'], F: ['A4', 'C5', 'F5', 'C5'], C: ['G4', 'C5', 'E5', 'G5'], G: ['D5', 'B4', 'G4', 'B4'] };
+  const melB = { Am: ['A5', 'E5'], F: ['F5', 'C5'], C: ['G5', 'E5'], G: ['D5', 'G5'] };
+  const bars = 44;
+  const out = new Float32Array(Math.floor(bars * BAR * MR) + MR * 3);
+  const bassNote = (at, len, f, amp) => addTo(out, at, len, (t) => {
+    const L = len / MR;
+    return (Math.sin(2 * Math.PI * f * t) + 0.3 * Math.sin(4 * Math.PI * f * t)) * Math.min(1, t / 0.05) * Math.min(1, Math.max(0, (L - t) / 0.3)) * Math.exp(-0.35 * t) * amp;
+  });
+  for (let b = 0; b < bars; b++) {
+    const name = prog[b % 4], ch = CH[name];
+    const at = Math.floor(b * BAR * MR);
+    const intro = b < 4, quiet = b >= 20 && b < 28, outro = b >= 40;
+    const tones = ch.tones.map(N);
+    // Hushed pad: the chord, fading in and out inside its own bar (never overlapping the next chord).
+    fx.pad(out, at, Math.floor(BAR * MR), tones.map((f) => f), quiet ? 0.03 : 0.022, 0.003);
+    // Warm bass on the root, twice a bar.
+    if (!intro) for (const k of [0, 2]) bassNote(at + Math.floor(k * beat * MR), Math.floor(2 * beat * 0.95 * MR), N(ch.root) * 2, 0.07);
+    // Rippling harp: up and down the chord in eighths.
+    if (!quiet) [0, 1, 2, 3, 2, 1, 2, 3].forEach((n, i) => fx.pluck(out, at + Math.floor(i * E8 * MR), tones[n], i === 0 ? 0.03 : 0.02));
+    // Heartbeat drum on 1 and 3 (soft), in the main sections.
+    if (!intro && !quiet && !outro) { fx.drum(out, at, 0.07, 70); fx.drum(out, at + Math.floor(2 * beat * MR), 0.05, 70); }
+    // Crystal bells: melody A (bars 4–19), sparse in the quiet part, melody B (bars 28–39).
+    if (b >= 4 && b < 20) melA[name].forEach((n, i) => fx.bell(out, at + Math.floor(i * beat * MR), N(n), 0.03, 3));
+    if (quiet && b % 2 === 0) fx.bell(out, at, N(melB[name][0]), 0.025, 2);
+    if (b >= 28 && b < 40) melB[name].forEach((n, i) => {
+      fx.bell(out, at + Math.floor(i * 2 * beat * MR), N(n), 0.032, 2);
+      fx.bow(out, at + Math.floor(i * 2 * beat * MR), N(n) / 2, Math.floor(2 * beat * 0.95 * MR), 0.016, 0.2, 0.003, 0.004);
+    });
+  }
+  // A last soft A-minor chord to close.
+  {
+    const at = Math.floor(bars * BAR * MR) - Math.floor(BAR * MR);
+    fx.bell(out, at + Math.floor(BAR * 0.5 * MR), N('A4'), 0.025, 1.5);
+  }
+  let q = 0;
+  for (const x of out) q += x * x;
+  fx.gain(out, 0.022 / Math.sqrt(q / out.length));
+  fx.ends(out);
+  writeMusic('music_altar', out, MR);
+}
+
 // The Primordial Rift: old and wild — a deep frame drum, a buzzing low drone, a breathy wooden flute,
 // and the slow "first song" hum that every other town has been echoing.
 {

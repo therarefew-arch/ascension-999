@@ -716,3 +716,9 @@ Tithes were raised so a thoughtful player still wins most runs while grabbing th
 ### 🎚️ Shop sliders (v0.0.2.30)
 Trading Post and festival stall: a slider with 1 / 10 / ½ / Max chips to buy many at once.
 
+### 🌲 Forester's Grove + 🎶 Altar Spin's song (v0.0.2.35)
+- Woodcutting's second game (owner asked for "the sudoku like puzzle in woodcutting"): plant saplings so every row,
+  column and grove patch holds one of each tree. 4×4 → 6×6 → 9×9 over levels 1–999, always one answer, mistakes
+  only shown in red, notes and hints, Woodcutting XP that grows with the level.
+- Altar Spin has its own mystic, gently pulsing song ("The Rune Altar").
+
