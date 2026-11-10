@@ -18,6 +18,7 @@ import { SaveSafetyHint } from '../Backup';
 import { SettlingIn } from '../SettlingIn';
 import { PedlarCard } from '../Pedlar';
 import { HappeningCard } from '../Happening';
+import { CommissionsCard } from '../Commissions';
 import { WeatherCard, WeatherLayer, weatherEmoji } from '../Weather';
 import { GiftsCard } from '../Family';
 import { dayPhase } from '../PixelScene';
@@ -154,6 +155,8 @@ export function TownScreen({ onSkill, onSkills, onCombat, onMarket, onJournal, o
       <TodayCard onGo={goTo} />
 
       <HappeningCard onSkill={onSkill} />
+
+      <CommissionsCard />
 
       <WeatherCard />
 

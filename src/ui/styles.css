@@ -3085,3 +3085,15 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 .hs-left { position: absolute; top: 2px; left: 4px; color: #ecfccb; text-shadow: 0 1px 2px #000; font-size: 0.55rem; }
 .hs-msg { margin: 0; color: #d9f99d; text-align: center; }
 .hs-ups { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 14px; border: 1px solid #3f6212; background: rgba(0, 0, 0, 0.2); }
+
+/* ── 📜 Commissions (v0.0.2.41, Town) ────────────────────────────────────────────────────────────────── */
+.cm-card { border-color: rgba(217, 119, 6, 0.45); background: linear-gradient(180deg, rgba(217, 119, 6, 0.08), transparent 60%), var(--card); }
+.cm-job { display: flex; flex-direction: column; gap: 6px; padding: 9px 10px; margin-top: 8px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.025); }
+.cm-job.done { opacity: 0.7; }
+.cm-who { display: flex; gap: 9px; align-items: center; }
+.cm-emoji { font-size: 1.8rem; line-height: 1; }
+.cm-asks { display: flex; flex-direction: column; gap: 4px; }
+.cm-ask { display: flex; align-items: center; gap: 8px; padding: 3px 6px; border-radius: 8px; background: rgba(0, 0, 0, 0.2); }
+.cm-ask.ok { box-shadow: inset 3px 0 0 #4ade80; }
+.cm-ask.ok .mono { color: #86efac; }
+.cm-thanks { margin: 0; }

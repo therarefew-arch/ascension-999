@@ -1,5 +1,6 @@
 // Saving and loading. Saves live in the browser's storage on the device.
 // Every save has a version number; old saves are upgraded by MIGRATIONS so they never break.
+import { loadCommissions } from './commissions';
 import { loadHomestead } from './homestead';
 import { HALL_ROOMS } from '../data/guildHall';
 import { ITEM_LIST, ITEMS, type SkillId } from '../data/items';
@@ -408,6 +409,7 @@ function repair(raw: any): PlayerState {
   if (typeof raw?.apoLevel === 'number' && raw.apoLevel >= 1) p.apoLevel = Math.min(999, Math.floor(raw.apoLevel));
   // 🏡 Little Homestead (v0.0.2.40, no version bump)
   { const h = loadHomestead(raw?.homestead); if (h) p.homestead = h; }
+  { const c = loadCommissions(raw?.commissions); if (c) p.commissions = c; }
   // ⛏️ Deep Delve kit (v0.0.2.38, no version bump)
   if (raw?.delve && typeof raw.delve === 'object') {
     const n = (v: unknown, max = 1e12) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));

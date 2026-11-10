@@ -180,6 +180,8 @@ export interface PlayerState {
   apoLevel?: number;
   /** 🏡 Little Homestead (v0.0.2.40). */
   homestead?: import('./homestead').Homestead;
+  /** 📜 Today's commissions (v0.0.2.41). */
+  commissions?: import('./commissions').Commissions;
   /** ⛏️ Deep Delve upgrades, delve coins and deepest dive (v0.0.2.38). */
   delve?: import('./delve').DelveKit;
   /** 🗝️ The extraction run you're on (your worn gear is inside it while you're in the dungeon). */

@@ -722,3 +722,13 @@ Trading Post and festival stall: a slider with 1 / 10 / ½ / Max chips to buy ma
   only shown in red, notes and hints, Woodcutting XP that grows with the level.
 - Altar Spin has its own mystic, gently pulsing song ("The Rune Altar").
 
+### More second games + Commissions (v0.0.2.37 – v0.0.2.41)
+The owner noticed Mining, Smithing, Herblore and Farming still had only one minigame, and picked from fresh ideas:
+- 🔥 **Forge Rush** (Smithing): a cozy blacksmith shift — heat, hammer, quench and serve customers before they wander off.
+- ⛏️ **Deep Delve** (Mining): dig down a lantern-lit shaft; rope up with your haul before the oil runs out. Upgrades with delve coins.
+- 🧪 **The Apothecary** (Herblore): steer a brew across a potion map with herbs to cure a villager's small trouble. No timers.
+- 🏡 **Little Homestead** (Farming): a field of your own — till, sow, water, harvest, sell, expand and automate
+  (sprinklers, beehive, hen house, farmhand) — a cozy Stardew-like corner, not a full RPG.
+- 📜 **Commissions**: two townsfolk a day ask for goods from a few skills and pay well.
+More skills are planned "later" (owner) — when one is added, give it a minigame from the start.
+
