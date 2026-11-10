@@ -67,6 +67,7 @@ import { countInBag, countInBank, removeFromBag, removeFromBank } from './invent
 import { toggleHelper } from './helpers';
 import { buyPlot, buyTutor, tutorLevel } from '../market/upgrades';
 import { bestAction, minigameXpScale } from './rates';
+import { delveXp, haul as delveHaul, haulValue as delveValue, MAX_UPGRADE as DELVE_MAX_UPGRADE, NEW_KIT as NEW_DELVE_KIT, upgradeCost as delveUpgradeCost, type Dive } from './delve';
 import { ALTAR_TITHE_MIN, ALTAR_WIN_MIN, TITHES as ALTAR_TITHES } from './altarSpin';
 import { MONSTER_MAP, MONSTERS } from '../data/monsters';
 import { clampReward } from './minigames';
@@ -971,6 +972,43 @@ export const game = {
   /** 🧶 The Loom: a loom finished — on to the next level (up to 999). */
   loomLevelUp() {
     snap.player.loomLevel = Math.min(999, (snap.player.loomLevel ?? 1) + 1);
+    save();
+    emit();
+  },
+
+  /** ⛏️ Deep Delve: a dive is over — Mining XP, delve coins, deepest depth, a geode for every old chest brought home.
+   *  Returns the XP given (0 if the selected rock is locked). */
+  delveEnd(actionId: string, dive: Dive): number {
+    const p = snap.player;
+    const kit = p.delve ?? { ...NEW_DELVE_KIT };
+    const home = delveHaul(dive);
+    kit.coins += delveValue(home);
+    kit.best = Math.max(kit.best, dive.y);
+    p.delve = kit;
+    const action = ACTIONS[actionId];
+    let given = 0;
+    if (action && !lockedReason(p, action)) {
+      const xp = delveXp(dive, action.xp);
+      given = Math.round(xp * minigameXpScale(p, action));
+      this.minigameXp(actionId, xp, 400);
+    }
+    const chests = home.filter((o) => o === 'chest').length;
+    if (chests) giveLoot(p, [{ id: 'geode', qty: chests }], { overflowToBank: true });
+    save();
+    emit();
+    return given;
+  },
+  /** ⛏️ Spend delve coins on an upgrade. */
+  delveUpgrade(kind: 'pick' | 'lantern' | 'sack') {
+    const p = snap.player;
+    const kit = p.delve ?? { ...NEW_DELVE_KIT };
+    if (kit[kind] >= DELVE_MAX_UPGRADE) return fail('Already the best');
+    const cost = delveUpgradeCost(kind, kit[kind]);
+    if (kit.coins < cost) return fail(`Needs ${cost.toLocaleString()} delve coins`);
+    kit.coins -= cost;
+    kit[kind]++;
+    p.delve = kit;
+    play('levelup');
     save();
     emit();
   },
