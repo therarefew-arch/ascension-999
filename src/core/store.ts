@@ -67,6 +67,25 @@ import { countInBag, countInBank, removeFromBag, removeFromBank } from './invent
 import { toggleHelper } from './helpers';
 import { buyPlot, buyTutor, tutorLevel } from '../market/upgrades';
 import { bestAction, minigameXpScale } from './rates';
+import {
+  buyUpgrade as homeBuyUpgrade, collectEggs as homeCollectEggs, CROP_MAP as HOME_CROP_MAP, farmhand as homeFarmhand, homesteadXp, newHomestead,
+  placeSprinkler as homePlace, sellBasket as homeSellBasket, tapTile as homeTapTile, type HomeCrop, type Homestead, type TapResult, type Upgrade as HomeUpgrade,
+} from './homestead';
+import { harvestXp as gardenHarvestXp } from './farming';
+import { CROPS as GARDEN_CROPS, regionOpen as gardenRegionOpen, tierLevel as gardenTierLevel, tierRegion as gardenTierRegion } from '../data/tiers';
+
+/** 🏡 Farming XP for homestead harvests, scaled to your best garden crop. */
+function homeXp(crops: HomeCrop[]) {
+  const p = snap.player;
+  const lv = skillLevel(p, 'farming');
+  let best = 0;
+  GARDEN_CROPS.forEach((_, t) => { if (gardenTierLevel(t) <= lv && gardenRegionOpen(gardenTierRegion(t))) best = t; });
+  const report = emptyReport(null);
+  const xp = crops.reduce((s, c) => s + homesteadXp(c, gardenHarvestXp(best), GARDEN_CROPS[best].growMinutes), 0);
+  addXp(p, { skill: 'farming' }, report, xp);
+  trackRequests(p, report, 0);
+  announceLevels(report);
+}
 import { delveXp, haul as delveHaul, haulValue as delveValue, MAX_UPGRADE as DELVE_MAX_UPGRADE, NEW_KIT as NEW_DELVE_KIT, upgradeCost as delveUpgradeCost, type Dive } from './delve';
 import { ALTAR_TITHE_MIN, ALTAR_WIN_MIN, TITHES as ALTAR_TITHES } from './altarSpin';
 import { MONSTER_MAP, MONSTERS } from '../data/monsters';
@@ -1011,6 +1030,65 @@ export const game = {
     play('levelup');
     save();
     emit();
+  },
+
+  // ----- 🏡 Little Homestead (v0.0.2.40) -----
+  /** Your homestead (made the first time you open it). */
+  homestead(): Homestead {
+    const p = snap.player;
+    if (!p.homestead) { p.homestead = newHomestead(); save(); }
+    return p.homestead;
+  },
+  /** The obvious thing for a square: till / sow / water / harvest (harvests give Farming XP). */
+  homeTap(i: number, seedId: string): TapResult {
+    const p = snap.player;
+    const h = this.homestead();
+    const seed = HOME_CROP_MAP[seedId] ?? HOME_CROP_MAP.lettuce;
+    const { r, crop } = homeTapTile(h, i, seed, skillLevel(p, 'farming'), Date.now());
+    if (r === 'harvest' && crop) homeXp([crop]);
+    if (r !== 'nothing' && r !== 'poor' && r !== 'locked') { save(); emit(); }
+    return r;
+  },
+  /** The farmhand's rounds (and a fresh look at growth): call when the homestead is open. Returns crops picked. */
+  homeTick(): number {
+    const p = snap.player;
+    if (!p.homestead) return 0;
+    const got = homeFarmhand(p.homestead, skillLevel(p, 'farming'), Date.now());
+    if (got.length) { homeXp(got); save(); }
+    emit();
+    return got.length;
+  },
+  homeSell(): number {
+    const h = this.homestead();
+    const coins = homeSellBasket(h);
+    if (coins) { play('coin'); save(); emit(); }
+    return coins;
+  },
+  homeEggs(): number {
+    const h = this.homestead();
+    const n = homeCollectEggs(h, Date.now());
+    if (n) { play('eat'); save(); emit(); }
+    return n;
+  },
+  homeBuy(u: HomeUpgrade): boolean {
+    const h = this.homestead();
+    if (!homeBuyUpgrade(h, u, Date.now())) { fail('Not enough market coins'); return false; }
+    play('levelup');
+    save();
+    emit();
+    return true;
+  },
+  homePlaceSprinkler(i: number): boolean {
+    const h = this.homestead();
+    if (!homePlace(h, i, Date.now())) return false;
+    play('splash');
+    save();
+    emit();
+    return true;
+  },
+  homeSeed(id: string) {
+    const h = this.homestead();
+    if (HOME_CROP_MAP[id]) { h.seed = id; save(); emit(); }
   },
 
   /** 🧪 The Apothecary: a remedy handed over with 2+ stars — on to the next level (up to 999). */

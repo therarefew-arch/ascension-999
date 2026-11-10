@@ -14,13 +14,16 @@ import { ProgressBar } from './components';
 import { fmtDuration, fmtNum } from './format';
 import { PixelScene } from './PixelScene';
 import { BoostRow, GoalRow } from './screens/SkillScreen';
+import { Homestead } from './Homestead';
 
 const PESTS = ['🐛', '🐌', '🌾', '🐞'];
+let lastView: 'garden' | 'home' = 'garden';
 
 export function FarmScreen() {
   const { player } = useGame();
   const [, tick] = useState(0);
   const [seed, setSeed] = useState<string | null>(null);
+  const [view, setView] = useState<'garden' | 'home'>(lastView);
   const [pests, setPests] = useState<Record<number, { emoji: string; until: number }>>({});
   const prog = levelProgress(player.skills.farming.xp);
   useEffect(() => { const t = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(t); }, []);
@@ -68,6 +71,12 @@ export function FarmScreen() {
       </div>
 
       <div className="screen">
+        {/* v0.0.2.40: 🌱 your garden plots (as before) / 🏡 Little Homestead. */}
+        <div className="tab-row small-tabs">
+          <button className={`tab-pill ${view === 'garden' ? 'on' : ''}`} onClick={() => { setView('garden'); lastView = 'garden'; sound.play('click', { volume: 0.4 }); }}>🌱 GARDEN</button>
+          <button className={`tab-pill ${view === 'home' ? 'on' : ''}`} onClick={() => { setView('home'); lastView = 'home'; sound.play('click', { volume: 0.4 }); }}>🏡 HOMESTEAD</button>
+        </div>
+        {view === 'home' ? <Homestead /> : <>
         <MinigameFrame skill="farming">
         <div className="garden">
           {Array.from({ length: player.farm.plots.length }, (_, i) => {
@@ -132,6 +141,7 @@ export function FarmScreen() {
           )}
           <p className="small muted">Crops keep growing while you're away. Tap pests and weeds when they pop up to help: each one is a little XP and makes the crop grow a bit faster (up to {Math.round(MAX_TEND_SHARE * 100)}%).</p>
         </div>
+        </>}
       </div>
     </div>
   );
