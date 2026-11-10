@@ -27,6 +27,7 @@ import { TownScreen } from './screens/TownScreen';
 import { fmtNum } from './format';
 import { cozyBadge } from '../core/cozy';
 import { Confetti, LuckyStar } from './Cozy';
+import { BuffBurst } from './BuffBurst';
 import { FarmScreen } from './FarmScreen';
 import { CottageScreen } from './CottageScreen';
 
@@ -207,6 +208,7 @@ export function App() {
       {toasts_}
       <Confetti />
       <LuckyStar />
+      <BuffBurst />
       {bagOpen && <BagSheet onClose={closeBag} onItem={(id) => setItemView({ id, from: 'bag' })} />}
       {itemView && <ItemSheet id={itemView.id} from={itemView.from} onClose={closeItem} onReroll={(next) => setItemView({ id: next, from: 'bag' })} />}
       {idleOpen && <IdleSlots onClose={() => setIdleOpen(false)} />}

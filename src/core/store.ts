@@ -1671,14 +1671,17 @@ export const game = {
     emit();
   },
   /** 🍲 Eat a meal or drink a brew for its bonus. */
-  consumeBuff(id: string) {
+  /** Returns when the bonus now runs out (0 if it couldn't be eaten) — the screen shows a burst. */
+  consumeBuff(id: string): number {
     const why = consumeBuff(snap.player, id);
-    if (why) return fail(why);
+    if (why) { fail(why); return 0; }
     const item = getItem(id);
     play(item.id.includes('tea') || item.id.includes('tonic') || item.id.includes('brew') ? 'splash' : 'eat');
+    buzz([15, 30, 25]);
     toast(`${item.emoji} ${item.name}: ${buffText(item.buff!)} for ${item.buff!.minutes} minutes`, 'good');
     save();
     emit();
+    return Object.values(snap.player.buffs).find((b) => b.item === id)?.until ?? Date.now() + item.buff!.minutes * 60_000;
   },
   /** 📋 Bounty Board */
   ensureBounties() {
