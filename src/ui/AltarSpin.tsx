@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ActionDef } from '../data/skills';
 import {
-  CELLS, choose, cleanse, COLS, loadRun, newRun, RARITY_COLOR, reroll, RUNE_MAP, RUNES, SPINS_PER_TITHE, spin, TITHES, titheDue,
+  ALTAR_MAP, CELLS, choose, chooseAltar, cleanse, COLS, loadRun, newRun, RARITY_COLOR, reroll, RUNE_MAP, RUNES, SPINS_PER_TITHE, spin, TITHES, titheDue,
   type AltarRun,
 } from '../core/altarSpin';
 import { game, useGame } from '../core/store';
@@ -63,6 +63,8 @@ export function AltarSpin() {
   const [pending, setPending] = useState(0); // power not yet poured into the bar
   const [pop, setPop] = useState<Pop | null>(null);
   const [readyFlash, setReadyFlash] = useState(false);
+  const [bonusLine, setBonusLine] = useState<string | null>(null);
+  const [altarsOpen, setAltarsOpen] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [xpGot, setXpGot] = useState(0);
   const [pouchOpen, setPouchOpen] = useState(false);
@@ -86,6 +88,7 @@ export function AltarSpin() {
     timers.current.forEach(clearTimeout); timers.current = [];
     finish.current = null;
     setShown(CELLS); setCounted(new Set(Array.from({ length: CELLS }, (_, i) => i))); setCur(-1); setLit([]); setPop(null);
+    setBonusLine(r.bonus.length ? r.bonus.map((b) => `${b.emoji} +${b.value}`).join('  ') : null);
     setRunning(gain);
     setPhase('pour');
     const before = r.power - gain;
@@ -106,7 +109,7 @@ export function AltarSpin() {
     commit(run);
     setMsg(null); setReadyFlash(false);
     timers.current.forEach(clearTimeout); timers.current = [];
-    setPending(gain); setRunning(0); setShown(0); setCounted(new Set()); setCur(-1); setLit([]); setPop(null);
+    setPending(gain); setRunning(0); setShown(0); setCounted(new Set()); setCur(-1); setLit([]); setPop(null); setBonusLine(null);
     setPhase('deal');
     const filled = run.grid.map((c, i) => (c ? i : -1)).filter((i) => i >= 0);
     finish.current = () => pourIn(run, gain);
@@ -142,6 +145,20 @@ export function AltarSpin() {
       t += Math.max(85, 260 - k * 14) + (c.mult ? 140 : 0) + (big ? 110 : 0) + (c.from?.length ? 60 : 0);
     });
 
+    // 🏛️ Altar bonuses join the total one by one.
+    run.bonus.forEach((b, j) => {
+      t += 380;
+      later(t, () => {
+        setCur(-1); setLit([]);
+        total += b.value;
+        setRunning(total);
+        setBonusLine(`${b.emoji} ${b.name} +${b.value}`);
+        sound.play('zap', { volume: 0.5, rate: 1.1 + j * 0.12 });
+        sound.play('ding', { rate: dingRate(LADDER.length - 1) * (1 + j * 0.06), volume: 0.4 });
+        game.vibrate(15);
+      });
+    });
+
     // POUR.
     later(t + 250, () => pourIn(run, gain));
   };
@@ -154,10 +171,12 @@ export function AltarSpin() {
     sound.play(id ? 'slide' : 'whoosh');
     setReadyFlash(false);
     const res = choose(run, id);
+    if (res === 'poor') { sound.play('error'); setMsg('Not enough stored power for that rune.'); return; }
+    if (id && run.offer.length === 0) sound.play('coin', { volume: 0.5 });
     if (res === 'paid' || res === 'won') {
       const xp = game.altarSpinReward('tithe') + (res === 'won' ? game.altarSpinReward('win') : 0);
       setXpGot((x) => x + xp);
-      if (res === 'paid') { sound.play('levelup'); game.vibrate(30); setMsg(`🌀 Tithe ${run.paid} paid! +${xp.toLocaleString()} Runecrafting XP · 🧹 +1 cleanse · 🔄 +1 reroll`); }
+      if (res === 'paid') { sound.play('levelup'); game.vibrate(30); setMsg(`🌀 Tithe ${run.paid} paid! +${xp.toLocaleString()} Runecrafting XP · 🧹 +1 cleanse · 🔄 +1 reroll · 🏛️ pick an altar`); }
     }
     if (res === 'lost') { sound.play('fail'); game.vibrate(60); }
     commit(run);
@@ -170,7 +189,8 @@ export function AltarSpin() {
         <div className="ar-intro">
           <div className="ar-intro-emoji">🌀</div>
           <h3>Altar Spin</h3>
-          <p className="small muted">Your pouch of runes is spun onto the altar. Runes next to each other set each other off: 🔥 flares beside 💨, 🌊 doubles water, 🕳️ eats its neighbours… After each spin, add 1 of 3 new runes to your pouch.</p>
+          <p className="small muted">Your pouch of runes is spun onto the altar. Runes next to each other set each other off: 🔥 flares beside 💨, 🌊 doubles water, 🕳️ eats its neighbours… After each spin, add a new rune to your pouch — one is always free, better ones cost some of your stored ⚡.</p>
+          <p className="small muted">🏛️ Pick an altar at the start and after every tithe: each one changes how your runes combo for the rest of the run.</p>
           <p className="small muted">Every {SPINS_PER_TITHE} spins the Ley Spirit asks for a tithe of power. Pay all {TITHES.length} to win. Every tithe paid gives Runecrafting XP — nothing is ever lost.</p>
           <button className="btn btn-hero" onClick={start}>BEGIN A RUN</button>
         </div>
@@ -195,6 +215,7 @@ export function AltarSpin() {
             <span>Tithes paid <b className="mono">{run.paid}/{TITHES.length}</b></span>
             <span>Best spin <b className="mono">{run.best.toLocaleString()}⚡</b></span>
             <span>Pouch <b className="mono">{run.pouch.length}</b> runes</span>
+            {run.altars.length > 0 && <span>Altars {run.altars.map((a) => ALTAR_MAP[a].emoji).join(' ')}</span>}
             {xpGot > 0 && <span>Runecrafting XP <b className="mono gold">+{xpGot.toLocaleString()}</b></span>}
           </div>
           <button className="btn btn-hero" onClick={start}>NEW RUN</button>
@@ -214,6 +235,18 @@ export function AltarSpin() {
           <div className="ar-fill" style={{ width: `${pct}%` }} />
           <span className="ar-bar-text mono">{readyFlash ? '✨ TITHE READY! ✨' : `${barPower.toLocaleString()} / ${due.toLocaleString()}⚡`}</span>
         </div>
+        {run.altars.length > 0 && (
+          <button className="ar-altars" onClick={() => { sound.play('click', { volume: 0.4 }); setAltarsOpen((o) => !o); }} aria-expanded={altarsOpen}>
+            <span className="tiny muted">🏛️ Altars</span>
+            {run.altars.map((a) => <span key={a} className="ar-altar-chip" title={`${ALTAR_MAP[a].name}: ${ALTAR_MAP[a].text}`}>{ALTAR_MAP[a].emoji}</span>)}
+            <span className="tiny muted">{altarsOpen ? '▲' : '▼'}</span>
+          </button>
+        )}
+        {altarsOpen && (
+          <div className="ar-altar-list">
+            {run.altars.map((a) => <div key={a} className="tiny"><b>{ALTAR_MAP[a].emoji} {ALTAR_MAP[a].name}</b> <span className="muted">— {ALTAR_MAP[a].text}</span></div>)}
+          </div>
+        )}
       </div>
 
       <div className={`ar-altar ${phase === 'tally' ? 'counting' : ''}`} style={{ gridTemplateColumns: `repeat(${COLS}, 1fr)` }} onClick={hurry}>
@@ -241,22 +274,29 @@ export function AltarSpin() {
         {run.spins > 0
           ? <b key={running} className={`ar-total mono ${busy ? 'live' : ''}`} style={{ ['--sz' as string]: String(1 + Math.min(0.7, running / Math.max(1, due) * 0.9)) }}>+{(busy ? running : run.lastGain).toLocaleString()}⚡</b>
           : <span className="muted small">Spin the altar to begin</span>}
+        {bonusLine && <span key={bonusLine} className="ar-bonus small">{bonusLine}</span>}
       </div>
 
       {msg && <p className="small ar-msg" onClick={() => setMsg(null)}>{msg}</p>}
 
       {run.offer.length > 0 && !busy ? (
         <div className="ar-offer">
-          <div className="small muted">Add a rune to your pouch:</div>
+          <div className="small muted">Add a rune to your pouch <span className="tiny">(stored: <b className="mono">{run.power.toLocaleString()}⚡</b>{run.spinsLeft === 0 ? ` · tithe ${due.toLocaleString()}⚡ is taken next` : ''})</span>:</div>
           <div className="ar-cards">
-            {run.offer.map((id) => {
+            {run.offer.map((id, k) => {
               const d = RUNE_MAP[id];
+              const cost = run.prices[k] ?? 0;
+              const poor = cost > run.power;
+              // Buying on the last spin before the tithe must still leave enough to pay it.
+              const risky = !poor && cost > 0 && run.spinsLeft === 0 && run.power - cost < due;
               return (
-                <button key={id} className="ar-card" style={{ ['--rc' as string]: RARITY_COLOR[d.rarity] }} onClick={() => pick(id)}>
+                <button key={id} className={`ar-card ${poor || risky ? 'off' : ''}`} style={{ ['--rc' as string]: RARITY_COLOR[d.rarity] }} disabled={poor || risky} onClick={() => pick(id)}>
+                  <span className={`ar-price mono ${cost ? '' : 'free'}`}>{cost ? `${cost.toLocaleString()}⚡` : 'FREE'}</span>
                   <span className="ar-card-emoji">{d.emoji}</span>
                   <b>{d.name}</b>
                   <span className="ar-card-rar">{d.rarity} · ⚡{d.base}</span>
                   <span className="ar-card-text">{d.text}</span>
+                  {(poor || risky) && <span className="ar-card-why">{poor ? `need ${cost.toLocaleString()}⚡` : 'you’d miss the tithe'}</span>}
                 </button>
               );
             })}
@@ -264,6 +304,22 @@ export function AltarSpin() {
           <div className="ar-row">
             <button className="btn" disabled={run.rerolls <= 0} onClick={() => { if (reroll(run)) { sound.play('riffle'); commit(run); } }}>🔄 Reroll ({run.rerolls})</button>
             <button className="btn" onClick={() => pick(null)}>Skip</button>
+          </div>
+        </div>
+      ) : run.altarOffer.length > 0 && !busy ? (
+        <div className="ar-offer">
+          <div className="small muted">🏛️ {run.altars.length ? 'The Ley Spirit is pleased — choose another altar:' : 'Choose your first altar:'}</div>
+          <div className="ar-cards">
+            {run.altarOffer.map((id) => {
+              const a = ALTAR_MAP[id];
+              return (
+                <button key={id} className="ar-card ar-altar-card" onClick={() => { if (chooseAltar(run, id)) { sound.play('enchant'); game.vibrate(20); commit(run); } }}>
+                  <span className="ar-card-emoji">{a.emoji}</span>
+                  <b>{a.name}</b>
+                  <span className="ar-card-text">{a.text}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       ) : (

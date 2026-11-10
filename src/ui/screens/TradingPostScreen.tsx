@@ -5,7 +5,8 @@ import { ALL_SKILLS, SKILLS } from '../../data/skills';
 import { MAX_PLOTS, plotCost, TUTOR, tutorCost, tutorLevel, whyCantTutor } from '../../market/upgrades';
 import { FoldHead, useFold } from '../Fold';
 import { skillLevel } from '../../core/idle';
-import { countInBag } from '../../core/inventory';
+import { countInBag, spaceFor } from '../../core/inventory';
+import { QtySlider } from '../QtySlider';
 import { MAX_BAG_SLOTS, MAX_IDLE_SLOTS } from '../../core/player';
 import { game, useGame } from '../../core/store';
 import {
@@ -59,6 +60,7 @@ function SellTab() {
 
 function BuyTab() {
   const { player } = useGame();
+  const [more, setMore] = useState<string | null>(null);
   return (
     <>
       <p className="small muted">Local goods from {player.location}. Each town sells different things. Gems can never be bought — they only drop from bosses.</p>
@@ -77,8 +79,15 @@ function BuyTab() {
               </div>
               <div className="market-btns">
                 <button className="btn" disabled={player.coins < price} onClick={() => game.buy(id, 1)}>1</button>
-                <button className="btn btn-primary" disabled={player.coins < price * 10} onClick={() => game.buy(id, 10)}>10 · {fmtNum(price * 10)}g</button>
+                <button className={`btn btn-primary ${more === id ? 'on' : ''}`} disabled={player.coins < price} onClick={() => setMore(more === id ? null : id)}>🎚️ {more === id ? 'Less' : 'More'}</button>
               </div>
+              {more === id && (
+                <div className="market-more">
+                  <QtySlider max={Math.min(Math.floor(player.coins / price), spaceFor(player.inventory, id), 9999)}
+                    unit={(n) => `${fmtNum(price * n)}g`} onBuy={(n) => game.buy(id, n)} start={10} />
+                  {spaceFor(player.inventory, id) < Math.floor(player.coins / price) && <div className="tiny muted">Limited by the room in your bag.</div>}
+                </div>
+              )}
             </div>
           );
         })}

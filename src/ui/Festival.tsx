@@ -6,6 +6,8 @@ import { activeFestival, festivalEndsAt, tokensHave, whyCantBuy, type StallItem 
 import { game, useGame } from '../core/store';
 import { fmtDuration } from './format';
 import { PrizeWheel } from './PrizeWheel';
+import { QtySlider } from './QtySlider';
+import { useState } from 'react';
 
 /** Little flags over the town banner during a festival. */
 export function FestivalBunting() {
@@ -17,6 +19,7 @@ export function FestivalBunting() {
 export function FestivalStall() {
   const { player } = useGame();
   const [open, toggle] = useFold('festival', false);
+  const [more, setMore] = useState(false);
   const f = activeFestival();
   if (!f) return null;
   const have = tokensHave(player, f);
@@ -45,7 +48,18 @@ export function FestivalStall() {
               <div className="grow"><b>{r.name}</b><div className="small muted">{r.detail}</div></div>
               {r.owned
                 ? <span className="chip up">Yours</span>
-                : <button className="btn btn-primary btn-sm" disabled={!!why} title={why ?? undefined} onClick={() => game.buyAtStall(r.what)}>{f.token.emoji} {FESTIVAL_PRICES[r.what]}</button>}
+                : <div className="market-btns">
+                    <button className="btn btn-primary btn-sm" disabled={!!why} title={why ?? undefined} onClick={() => game.buyAtStall(r.what)}>{f.token.emoji} {FESTIVAL_PRICES[r.what]}</button>
+                    {r.what === 'treat' && Math.floor(have / FESTIVAL_PRICES.treat) > 1 && (
+                      <button className={`btn btn-sm ${more ? 'on' : ''}`} onClick={() => setMore((m) => !m)}>🎚️</button>
+                    )}
+                  </div>}
+              {r.what === 'treat' && more && !why && (
+                <div className="market-more">
+                  <QtySlider max={Math.floor(have / FESTIVAL_PRICES.treat)} unit={(n) => `${f.token.emoji} ${n * FESTIVAL_PRICES.treat}`}
+                    onBuy={(n) => game.buyAtStall('treat', n)} start={Math.min(5, Math.floor(have / FESTIVAL_PRICES.treat))} />
+                </div>
+              )}
             </div>
           );
         })}
