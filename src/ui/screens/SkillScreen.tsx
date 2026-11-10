@@ -20,13 +20,13 @@ import { WeatherChip } from '../Weather';
 import { hallXpMult } from '../../core/guildHall';
 import { activeBuffs, buffText } from '../../core/buffs';
 import { mountainStirs, STIR_XP_MULT } from '../../core/cinderpeak';
-import { RipePicking } from '../HerbloreGame';
 import { game, useGame } from '../../core/store';
 import { levelProgress, MAX_LEVEL } from '../../core/xp';
 import { ProgressBar, Sheet } from '../components';
 import { ItemIcon, UiIcon, type UiIconName } from '../icons';
 import { fmtDuration, fmtNum } from '../format';
 import { AnvilRhythm } from '../Minigames';
+import { HerbloreGames } from '../Apothecary';
 import { MiningGames } from '../DeepDelve';
 import { SmithingGames } from '../ForgeRush';
 import { WoodcuttingGames } from '../ForestersGrove';
@@ -163,7 +163,7 @@ const SCENES: Partial<Record<SkillId, SceneName>> = {
 const MINIGAMES: Partial<Record<SkillId, (p: { action: ActionDef }) => JSX.Element>> = {
   mining: MiningGames, smithing: SmithingGames, woodcutting: WoodcuttingGames, firemaking: FiremakingGames,
   fishing: FishingGames, cooking: CookingGames, crafting: CraftingGames, enhancing: EnhancingGames, runecrafting: RunecraftingGames,
-  herblore: RipePicking,
+  herblore: HerbloreGames,
 };
 
 const TAB_ICONS: Record<string, UiIconName> = {
