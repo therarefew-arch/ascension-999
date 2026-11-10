@@ -2,7 +2,7 @@
 // it doesn't have an alt yet"). Plant saplings so every row, every column and every grove patch (the boxes) holds
 // one of each tree. Engine only: no drawing.
 //  • Puzzles always have exactly ONE answer (made from a full grid, clues removed only while it stays unique).
-//  • Levels 1 → 999 (`groveSpec`): 4×4 → 6×6 (level 25) → 9×9 (level 200), with fewer starting trees as you go.
+//  • Levels 1 → 999 (`groveSpec`): always 9×9 (v0.0.2.36), with fewer starting trees as you go (50 → 25).
 //  • Cozy: a wrong sapling is only shown in red, never punished; hints fill a square for you.
 export const MAX_GROVE_LEVEL = 999;
 
@@ -14,14 +14,12 @@ export const TREES = [
 
 export interface GroveSpec { n: number; bw: number; bh: number; clues: number; hints: number }
 
-/** How big the grove is and how many trees start planted, by level. */
+/** How many trees start planted, by level. Always 9×9 (owner, v0.0.2.36: "only 9x9") — it gets harder as fewer
+ *  trees start planted: 50 at level 1 → 25 at level 999. */
 export function groveSpec(level: number): GroveSpec {
   const L = Math.max(1, Math.min(MAX_GROVE_LEVEL, Math.floor(level)));
-  const hints = L < 100 ? 3 : L < 500 ? 2 : 1;
-  if (L < 25) { const e = (L - 1) / 23; return { n: 4, bw: 2, bh: 2, clues: Math.round(9 - 3 * e), hints }; }
-  if (L < 200) { const e = (L - 25) / 174; return { n: 6, bw: 3, bh: 2, clues: Math.round(20 - 7 * e), hints }; }
-  const e = Math.pow((L - 200) / 799, 0.7);
-  return { n: 9, bw: 3, bh: 3, clues: Math.round(42 - 17 * e), hints };
+  const e = Math.pow((L - 1) / (MAX_GROVE_LEVEL - 1), 0.6);
+  return { n: 9, bw: 3, bh: 3, clues: Math.round(50 - 25 * e), hints: L < 300 ? 3 : L < 700 ? 2 : 1 };
 }
 
 export interface Grove {

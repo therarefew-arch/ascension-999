@@ -34,7 +34,8 @@ const keyFor = (slot: number | null) => `ui.grove.${slot ?? 0}`;
 function readSaved(slot: number | null): Saved | null {
   try {
     const s = JSON.parse(localStorage.getItem(keyFor(slot)) ?? 'null') as Saved | null;
-    return s && s.grove && Array.isArray(s.board) && s.board.length === s.grove.n * s.grove.n ? s : null;
+    // Groves are always 9×9 since v0.0.2.36 — an old smaller one in progress is swapped for a fresh 9×9.
+    return s && s.grove && s.grove.n === 9 && Array.isArray(s.board) && s.board.length === 81 ? s : null;
   } catch { return null; }
 }
 function writeSaved(slot: number | null, s: Saved) { try { localStorage.setItem(keyFor(slot), JSON.stringify(s)); } catch { /* no storage: lasts this visit */ } }
