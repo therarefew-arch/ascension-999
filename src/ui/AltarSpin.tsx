@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ActionDef } from '../data/skills';
 import {
-  ALTAR_MAP, CELLS, choose, chooseAltar, cleanse, COLS, loadRun, newRun, RARITY_COLOR, reroll, RUNE_MAP, RUNES, SPINS_PER_TITHE, spin, TITHES, titheDue,
+  ALTAR_MAP, canPayEarly, CELLS, choose, payEarly, chooseAltar, cleanse, COLS, loadRun, newRun, RARITY_COLOR, reroll, RUNE_MAP, RUNES, SPINS_PER_TITHE, spin, TITHES, titheDue,
   type AltarRun,
 } from '../core/altarSpin';
 import { game, useGame } from '../core/store';
@@ -173,13 +173,29 @@ export function AltarSpin() {
     const res = choose(run, id);
     if (res === 'poor') { sound.play('error'); setMsg('Not enough stored power for that rune.'); return; }
     if (id && run.offer.length === 0) sound.play('coin', { volume: 0.5 });
+    settled(res);
+  };
+  /** After a tithe: XP, sounds and the message. */
+  const settled = (res: string, skipped = 0) => {
+    if (!run) return;
     if (res === 'paid' || res === 'won') {
       const xp = game.altarSpinReward('tithe') + (res === 'won' ? game.altarSpinReward('win') : 0);
       setXpGot((x) => x + xp);
-      if (res === 'paid') { sound.play('levelup'); game.vibrate(30); setMsg(`🌀 Tithe ${run.paid} paid! +${xp.toLocaleString()} Runecrafting XP · 🧹 +1 cleanse · 🔄 +1 reroll · 🏛️ pick an altar`); }
+      if (res === 'paid') {
+        sound.play('levelup'); game.vibrate(30);
+        setMsg(`🌀 Tithe ${run.paid} paid! +${xp.toLocaleString()} Runecrafting XP · 🧹 +1 cleanse · 🔄 +${1 + skipped} reroll${skipped ? 's' : ''} · 🏛️ pick an altar`);
+      }
     }
     if (res === 'lost') { sound.play('fail'); game.vibrate(60); }
     commit(run);
+  };
+  /** ⏩ Pay now and skip the spins left. */
+  const moveOn = () => {
+    if (!run || busy || !canPayEarly(run)) return;
+    const skipped = run.spinsLeft;
+    sound.play('pour', { volume: 0.6 });
+    setReadyFlash(false);
+    settled(payEarly(run), skipped);
   };
 
   // ----- No run yet -----
@@ -229,7 +245,15 @@ export function AltarSpin() {
       <div className="ar-head">
         <div className="row-between small">
           <b>Tithe {run.paid + 1}/{TITHES.length}</b>
-          <span className={run.spinsLeft <= 1 && !ready ? 'red' : 'muted'}>{run.spinsLeft} spin{run.spinsLeft === 1 ? '' : 's'} left</span>
+          <span className={run.spinsLeft <= 1 && !ready ? 'red' : 'muted'}>🌀 {run.spinsLeft} spin{run.spinsLeft === 1 ? '' : 's'} left</span>
+        </div>
+        {/* v0.0.2.31 (owner: show what you have and what the tithe will take): the three numbers that matter. */}
+        <div className="ar-stats">
+          <div className="ar-stat"><span className="tiny muted">⚡ Stored</span><b className="mono">{barPower.toLocaleString()}</b></div>
+          <div className="ar-stat"><span className="tiny muted">🕯️ Tithe takes</span><b className="mono">{due.toLocaleString()}</b></div>
+          {ready
+            ? <div className="ar-stat good"><span className="tiny muted">✨ Spare</span><b className="mono">{(barPower - due).toLocaleString()}</b></div>
+            : <div className="ar-stat short"><span className="tiny muted">Still need</span><b className="mono">{(due - barPower).toLocaleString()}</b></div>}
         </div>
         <div className={`ar-bar ${ready ? 'ready' : ''} ${phase === 'pour' ? 'pouring' : ''} ${readyFlash ? 'flash' : ''}`}>
           <div className="ar-fill" style={{ width: `${pct}%` }} />
@@ -327,6 +351,11 @@ export function AltarSpin() {
           <button className="btn" onClick={() => { sound.play('click'); setPouchOpen(true); }}>{run.cleanses > 0 ? `👝 ${run.pouch.length} · 🧹${run.cleanses}` : `👝 Pouch · ${run.pouch.length}`}</button>
           <button className="btn btn-hero ar-spin" disabled={busy} onClick={doSpin}>🌀 SPIN</button>
         </div>
+      )}
+      {!busy && canPayEarly(run) && (
+        <button className="btn ar-early" onClick={moveOn}>
+          ⏩ Pay the tithe now — skip {run.spinsLeft} spin{run.spinsLeft === 1 ? '' : 's'} <span className="tiny">(+{run.spinsLeft} 🔄)</span>
+        </button>
       )}
 
       {pouchOpen && <PouchSheet run={run} onClose={() => setPouchOpen(false)} onCleanse={(uid) => { if (cleanse(run, uid)) { sound.play('whoosh'); commit(run); } }} />}
