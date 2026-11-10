@@ -975,6 +975,13 @@ export const game = {
     emit();
   },
 
+  /** 🌲 Forester's Grove: a grove planted — on to the next level (up to 999). */
+  groveLevelUp() {
+    snap.player.groveLevel = Math.min(999, (snap.player.groveLevel ?? 1) + 1);
+    save();
+    emit();
+  },
+
   /** 🧺 Sort the Catch: a crate cleared — on to the next level (up to 999). */
   sortLevelUp() {
     snap.player.sortLevel = Math.min(999, (snap.player.sortLevel ?? 1) + 1);

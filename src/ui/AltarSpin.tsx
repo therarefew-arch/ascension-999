@@ -9,6 +9,7 @@ import {
 } from '../core/altarSpin';
 import { game, useGame } from '../core/store';
 import { sound } from '../audio/sound';
+import { musicFor } from '../audio/soundList';
 import { RuneTrace } from './Minigames2';
 import { Sheet } from './components';
 
@@ -71,6 +72,10 @@ export function AltarSpin() {
   const timers = useRef<number[]>([]);
   const finish = useRef<(() => void) | null>(null);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
+
+  // 🎶 Its own song (v0.0.2.35); the town's song comes back when you leave.
+  const town = useGame().player.location;
+  useEffect(() => { sound.playMusic('music_altar'); return () => sound.playMusic(musicFor(town)); }, [town]);
 
   const commit = (r: AltarRun | null) => { writeRun(slot, r); setRun(r ? { ...r } : null); force((n) => n + 1); };
   const busy = phase !== 'idle';
