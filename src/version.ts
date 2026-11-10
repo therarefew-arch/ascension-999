@@ -1,6 +1,6 @@
 // The game's version, shown on the title screen and in Settings.
 // Bump the last number with every update that goes live (v0.0.1.2 → v0.0.1.3 → …).
-export const GAME_VERSION = 'v0.0.2.41';
+export const GAME_VERSION = 'v0.0.2.42';
 
 /** One line about what the latest update added. */
-export const VERSION_NOTE = "📜 Commissions — two townsfolk a day ask for goods from a few skills, and pay handsomely";
+export const VERSION_NOTE = "⛏️ Deep Delve gets a fresh look — a pixel-art mine shaft, a flickering lantern, glinting ore and flying rock chips";
