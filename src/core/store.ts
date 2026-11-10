@@ -676,13 +676,16 @@ export const game = {
     emit();
   },
   /** 🎪 Trade festival tokens at the stall. */
-  buyAtStall(what: StallItem) {
+  buyAtStall(what: StallItem, n = 1) {
     const why = buyAtStall(snap.player, what);
     if (why) return fail(why);
+    // 🎚️ More than one (treats only — the keepsake and pet are once each). Stops quietly when tokens or room run out.
+    let got = 1;
+    if (what === 'treat') while (got < n && !buyAtStall(snap.player, what)) got++;
     const f = activeFestival()!;
     play('coin');
     buzz(20);
-    if (what === 'treat') toast(`${f.treat.emoji} ${f.treat.name} — eat it from your bag for +5% XP`, 'good');
+    if (what === 'treat') toast(`${f.treat.emoji} ${got > 1 ? `${got} × ` : ''}${f.treat.name} — eat it from your bag for +5% XP`, 'good');
     if (what === 'decoration') { celebrate(); toast(`${f.decoration.emoji} ${f.decoration.name} added to your Cottage!`, 'level'); }
     if (what === 'pet') { celebrate(); play('levelup'); toast(`🎉 ${f.pet.emoji} ${f.pet.name} joined you!`, 'level'); }
     save();

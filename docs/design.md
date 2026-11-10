@@ -704,3 +704,15 @@ pachinko, Rune Bowl merge; Sigil Square, a sudoku-like grid, is kept as a possib
 - Every 4 spins the Ley Spirit asks for a tithe of the power you've stored. Pay all 10 to win; each tithe paid gives
   Runecrafting XP, plus a 🧹 cleanse (remove a rune) and a 🔄 reroll. Nothing is ever lost.
 
+### Altar Spin — deeper runs (v0.0.2.30)
+The owner found runs easy ("just buying the highest rated item and winning") and picked two changes:
+- **Runes cost power.** Every offer has one free common; better runes cost a share of the coming tithe from your
+  stored power, so each pick weighs "stronger pouch later" against "make this tithe".
+- **Altars.** Pick 1 of 3 at the start of a run and after each tithe; they stack and change how runes combo
+  (Hearth Altar fire ×1.5, Kite Altar air boosts everything, Snug Altar fewer runes but ×1.5, Hoarder's Altar
+  +1 per rune in the pouch, Pure Altar +50% with 3 or fewer elements, Merchant's Altar half prices…).
+Tithes were raised so a thoughtful player still wins most runs while grabbing the best rune every time doesn't.
+
+### 🎚️ Shop sliders (v0.0.2.30)
+Trading Post and festival stall: a slider with 1 / 10 / ½ / Max chips to buy many at once.
+

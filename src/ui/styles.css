@@ -2809,4 +2809,42 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 @keyframes ar-src { from { transform: scale(1.08); } to { transform: scale(1); } }
 @keyframes ar-ready { 50% { box-shadow: 0 0 22px 6px rgba(251, 191, 36, 0.8); } }
 @keyframes ar-turn { to { transform: rotate(360deg); } }
+/* v0.0.2.30 — prices on rune cards, the altars you've chosen, altar cards, altar bonuses in the add-up. */
+.ar-card { position: relative; padding-top: 18px; }
+.ar-price { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); padding: 1px 8px; border-radius: 99px; font-size: 0.68rem; font-weight: 900;
+  background: #0b1413; border: 1.5px solid #fbbf24; color: #fde68a; white-space: nowrap; }
+.ar-price.free { border-color: #5eead4; color: #99f6e4; }
+.ar-card.off { opacity: 0.5; filter: grayscale(0.6); }
+.ar-card-why { font-size: 0.6rem; color: #fca5a5; font-weight: 700; }
+.ar-altars { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; background: none; border: 0; padding: 2px 0; cursor: pointer; color: inherit; font: inherit; }
+.ar-altar-chip { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(180deg, #3b2f1c, #1c160d); border: 1px solid #a16207; font-size: 0.9rem; }
+.ar-altar-list { display: flex; flex-direction: column; gap: 3px; padding: 6px 8px; border-radius: 10px; background: rgba(0, 0, 0, 0.25); border: 1px solid #3b2f1c; }
+.ar-altar-card { --rc: #d6a64a; padding-top: 10px; background: linear-gradient(180deg, #3a2e19, #1a140b) !important; border-color: #d6a64a !important; box-shadow: inset 0 1px 0 rgba(255, 236, 179, 0.25), 0 0 12px rgba(214, 166, 74, 0.2); }
+.ar-altar-card b { color: #fde68a; }
+.ar-bonus { color: #fde68a; text-shadow: 0 0 8px rgba(251, 191, 36, 0.6); animation: ar-bump 0.25s ease-out; }
 @media (prefers-reduced-motion: reduce) { .ar-intro-emoji, .ar-cell.on, .ar-card, .ar-total.live, .ar-cell.src, .ar-bar.flash { animation: none; } }
+
+/* ── 🎚️ Quantity slider (v0.0.2.30, Trading Post + festival stall) — a gold coin handle on a dark inlaid track ── */
+.market-more { flex-basis: 100%; padding: 8px 4px 2px; border-top: 1px dashed var(--line); margin-top: 2px; }
+.qs { display: flex; flex-direction: column; gap: 8px; }
+.qs-row { display: flex; align-items: center; gap: 10px; }
+.qs-n { min-width: 56px; text-align: right; font-weight: 900; color: var(--gold); font-size: 1rem; }
+.qs-range { -webkit-appearance: none; appearance: none; flex: 1; height: 30px; background: transparent; margin: 0; cursor: pointer; touch-action: pan-y; }
+.qs-range:focus { outline: none; }
+.qs-range::-webkit-slider-runnable-track { height: 10px; border-radius: 99px; border: 1px solid #5a3d12;
+  background: linear-gradient(90deg, #b45309, #fbbf24 var(--pct), #1c160d var(--pct)); box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.6); }
+.qs-range::-moz-range-track { height: 10px; border-radius: 99px; border: 1px solid #5a3d12; background: #1c160d; box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.6); }
+.qs-range::-moz-range-progress { height: 10px; border-radius: 99px; background: linear-gradient(90deg, #b45309, #fbbf24); }
+.qs-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; margin-top: -10px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff6c9, #fbbf24 45%, #b45309 90%); border: 2px solid #78350f;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), inset 0 0 0 3px rgba(255, 236, 179, 0.35), 0 0 10px rgba(251, 191, 36, 0.35); }
+.qs-range::-moz-range-thumb { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff6c9, #fbbf24 45%, #b45309 90%);
+  border: 2px solid #78350f; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6); }
+.qs-range:active::-webkit-slider-thumb { transform: scale(1.12); }
+.qs-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.qs-chip { min-width: 38px; min-height: 34px; padding: 0 8px; border-radius: 10px; border: 1.5px solid #5a3d12; background: #1c160d; color: var(--muted); font-weight: 800; font-family: var(--mono); font-size: 0.78rem; cursor: pointer; }
+.qs-chip.on { border-color: #fbbf24; color: #fde68a; background: #2a1e0b; }
+.qs-buy { flex: 1; min-height: 40px; white-space: nowrap; font-size: 0.85rem; }
+@media (max-width: 360px) { .qs-row:last-child { flex-wrap: wrap; } .qs-buy { flex-basis: 100%; } }
+.festival-item { flex-wrap: wrap; }
+.festival-item > .grow { min-width: 0; flex: 1 1 120px; }
