@@ -403,6 +403,7 @@ function repair(raw: any): PlayerState {
   if (typeof raw?.sortLevel === 'number' && raw.sortLevel >= 1) p.sortLevel = Math.min(999, Math.floor(raw.sortLevel));
   if (typeof raw?.loomLevel === 'number' && raw.loomLevel >= 1) p.loomLevel = Math.min(999, Math.floor(raw.loomLevel));
   if (typeof raw?.groveLevel === 'number' && raw.groveLevel >= 1) p.groveLevel = Math.min(999, Math.floor(raw.groveLevel));
+  if (typeof raw?.forgeLevel === 'number' && raw.forgeLevel >= 1) p.forgeLevel = Math.min(999, Math.floor(raw.forgeLevel));
   if (raw?.dungeonBossAt && typeof raw.dungeonBossAt === 'object') {
     p.dungeonBossAt = {};
     for (const [r, n] of Object.entries(raw.dungeonBossAt)) if ((REGIONS as readonly string[]).includes(r) && typeof n === 'number' && Number.isFinite(n)) p.dungeonBossAt[r as Region] = n;

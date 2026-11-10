@@ -975,6 +975,13 @@ export const game = {
     emit();
   },
 
+  /** 🔥 Forge Rush: a shift with 2+ stars — on to the next level (up to 999). */
+  forgeLevelUp() {
+    snap.player.forgeLevel = Math.min(999, (snap.player.forgeLevel ?? 1) + 1);
+    save();
+    emit();
+  },
+
   /** 🌲 Forester's Grove: a grove planted — on to the next level (up to 999). */
   groveLevelUp() {
     snap.player.groveLevel = Math.min(999, (snap.player.groveLevel ?? 1) + 1);
