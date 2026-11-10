@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { usedSlots } from '../core/inventory';
 import { game, useGame } from '../core/store';
 import { ItemSlot, Sheet } from './components';
+import { ActiveBoosts } from './BuffBurst';
 import { useItemDrag, useUndoWindow } from './useItemDrag';
 
 /** Items in the bag since you last looked get a little ✨ dot (remembered on this device only). */
@@ -37,6 +38,7 @@ export function BagSheet({ onClose, onItem }: { onClose: () => void; onItem: (id
         </button>
       }
     >
+      <ActiveBoosts />
       {player.satchel.owned && (
         <button className={`satchel-toggle ${player.satchel.on ? 'on' : ''}`} onClick={() => game.toggleSatchel()}>
           🎒 Satchel {player.satchel.on ? 'on — overflow goes to the bank' : 'off — tap to turn on'}

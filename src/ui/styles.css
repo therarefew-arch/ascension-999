@@ -2848,3 +2848,35 @@ input[type='range'] { width: 100%; height: 36px; accent-color: var(--orange); }
 @media (max-width: 360px) { .qs-row:last-child { flex-wrap: wrap; } .qs-buy { flex-basis: 100%; } }
 .festival-item { flex-wrap: wrap; }
 .festival-item > .grow { min-width: 0; flex: 1 1 120px; }
+
+/* ── ✨ Boost burst + active boosts (v0.0.2.31) ─────────────────────────────────────────────────────────── */
+.bb-wrap { position: fixed; left: 50%; top: 42%; z-index: 60; pointer-events: none; display: grid; place-items: center; transform: translate(-50%, -50%); width: 0; height: 0; }
+.bb-ring { position: absolute; width: 120px; height: 120px; border-radius: 50%; border: 3px solid #fbbf24; box-shadow: 0 0 24px rgba(251, 191, 36, 0.8), inset 0 0 18px rgba(251, 191, 36, 0.5);
+  animation: bb-ring 0.9s ease-out forwards; }
+.bb-rays { position: absolute; width: 260px; height: 260px; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgba(253, 230, 138, 0.35) 0 8deg, transparent 8deg 24deg);
+  mask: radial-gradient(circle, transparent 28%, #000 32%, transparent 70%); -webkit-mask: radial-gradient(circle, transparent 28%, #000 32%, transparent 70%);
+  animation: bb-rays 2.1s ease-out forwards; }
+.bb-emoji { position: absolute; font-size: 4.2rem; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 16px rgba(251, 191, 36, 0.6)); animation: bb-emoji 2.1s cubic-bezier(0.2, 1.4, 0.4, 1) forwards; }
+.bb-text { position: absolute; top: 56px; display: flex; flex-direction: column; align-items: center; gap: 2px; white-space: nowrap; padding: 6px 14px; border-radius: 14px;
+  background: rgba(20, 14, 6, 0.88); border: 1.5px solid #fbbf24; box-shadow: 0 0 18px rgba(251, 191, 36, 0.45); animation: bb-text 2.1s ease-out forwards; }
+.bb-text b { color: #fde68a; font-size: 1.05rem; text-shadow: 0 0 10px rgba(251, 191, 36, 0.7); }
+.bb-text span { color: #fcd34d; font-size: 0.8rem; }
+.bb-spark { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: #fff7d6; box-shadow: 0 0 8px #fbbf24; transform: rotate(var(--a)) translateY(0); animation: bb-spark 0.9s ease-out forwards; }
+@keyframes bb-ring { from { transform: scale(0.2); opacity: 1; } to { transform: scale(2.2); opacity: 0; } }
+@keyframes bb-rays { 0% { transform: scale(0.3) rotate(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: scale(1.1) rotate(40deg); opacity: 0; } }
+@keyframes bb-emoji { 0% { transform: scale(0.2); opacity: 0; } 18% { transform: scale(1.25); opacity: 1; } 30% { transform: scale(1); } 80% { transform: translateY(-10px) scale(1); opacity: 1; } 100% { transform: translateY(-40px) scale(0.9); opacity: 0; } }
+@keyframes bb-text { 0%, 15% { transform: translateY(14px) scale(0.8); opacity: 0; } 30% { transform: translateY(0) scale(1.06); opacity: 1; } 40% { transform: scale(1); } 80% { transform: translateY(-14px); opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
+@keyframes bb-spark { from { transform: rotate(var(--a)) translateY(0) scale(1); opacity: 1; } to { transform: rotate(var(--a)) translateY(-110px) scale(0.3); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .bb-ring, .bb-rays, .bb-spark { display: none; } .bb-emoji, .bb-text { animation-duration: 0.01s; animation-delay: 0s; } }
+
+.ab-strip { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.ab-head { letter-spacing: 1px; }
+.ab-chip { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 12px; border: 1.5px solid rgba(251, 191, 36, 0.4);
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.12), rgba(20, 16, 10, 0.9)); }
+.ab-chip.fresh { animation: ab-fresh 1.2s ease-out 2; border-color: #fbbf24; }
+.ab-emoji { font-size: 1.5rem; filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.5)); }
+.ab-bar { height: 5px; margin-top: 4px; border-radius: 99px; background: #1c160d; overflow: hidden; }
+.ab-fill { height: 100%; background: linear-gradient(90deg, #b45309, #fbbf24); transition: width 1s linear; }
+.ab-time { color: var(--gold); }
+@keyframes ab-fresh { 0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.8); } 60% { box-shadow: 0 0 0 8px rgba(251, 191, 36, 0); } 100% { box-shadow: none; } }

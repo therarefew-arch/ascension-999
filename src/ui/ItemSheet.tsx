@@ -1,4 +1,5 @@
 // Details for one item, with the actions that make sense where it is (bag, bank, or worn).
+import { showBuffBurst } from './BuffBurst';
 import { useEffect } from 'react';
 import { getItem, MAX_UPGRADE, MEALS, SLOT_LABELS } from '../data/items';
 
@@ -114,7 +115,7 @@ export function ItemSheet({ id, from, onClose, onReroll }: { id: string; from: I
           <section className="block">
             <p className="small"><b>{buffText(item.buff)}</b> for {item.buff.minutes} minutes{item.buff.kind === 'speed' ? ' — actions go faster' : ''}.</p>
             {from === 'bag'
-              ? <button className="btn btn-primary btn-lg btn-wide" onClick={() => game.consumeBuff(id)}>{DRINKS.has(item.id) ? '🍵 Drink it' : '🍽️ Eat it'}</button>
+              ? <button className="btn btn-primary btn-lg btn-wide" onClick={() => { const until = game.consumeBuff(id); if (until) showBuffBurst(id, until); }}>{DRINKS.has(item.id) ? '🍵 Drink it' : '🍽️ Eat it'}</button>
               : <p className="small muted">Withdraw it to your bag to {DRINKS.has(item.id) ? 'drink' : 'eat'} it.</p>}
           </section>
         )}
