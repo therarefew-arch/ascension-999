@@ -176,6 +176,8 @@ export interface PlayerState {
   groveLevel?: number;
   /** 🔥 Forge Rush level (v0.0.2.37, 1–999). */
   forgeLevel?: number;
+  /** 🧪 The Apothecary level (v0.0.2.39, 1–999). */
+  apoLevel?: number;
   /** ⛏️ Deep Delve upgrades, delve coins and deepest dive (v0.0.2.38). */
   delve?: import('./delve').DelveKit;
   /** 🗝️ The extraction run you're on (your worn gear is inside it while you're in the dungeon). */
