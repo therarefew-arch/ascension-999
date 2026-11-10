@@ -404,6 +404,11 @@ function repair(raw: any): PlayerState {
   if (typeof raw?.loomLevel === 'number' && raw.loomLevel >= 1) p.loomLevel = Math.min(999, Math.floor(raw.loomLevel));
   if (typeof raw?.groveLevel === 'number' && raw.groveLevel >= 1) p.groveLevel = Math.min(999, Math.floor(raw.groveLevel));
   if (typeof raw?.forgeLevel === 'number' && raw.forgeLevel >= 1) p.forgeLevel = Math.min(999, Math.floor(raw.forgeLevel));
+  // ⛏️ Deep Delve kit (v0.0.2.38, no version bump)
+  if (raw?.delve && typeof raw.delve === 'object') {
+    const n = (v: unknown, max = 1e12) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
+    p.delve = { pick: n(raw.delve.pick, 8), lantern: n(raw.delve.lantern, 8), sack: n(raw.delve.sack, 8), coins: n(raw.delve.coins), best: n(raw.delve.best) };
+  }
   if (raw?.dungeonBossAt && typeof raw.dungeonBossAt === 'object') {
     p.dungeonBossAt = {};
     for (const [r, n] of Object.entries(raw.dungeonBossAt)) if ((REGIONS as readonly string[]).includes(r) && typeof n === 'number' && Number.isFinite(n)) p.dungeonBossAt[r as Region] = n;

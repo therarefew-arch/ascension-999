@@ -1,6 +1,6 @@
 // The game's version, shown on the title screen and in Settings.
 // Bump the last number with every update that goes live (v0.0.1.2 → v0.0.1.3 → …).
-export const GAME_VERSION = 'v0.0.2.37';
+export const GAME_VERSION = 'v0.0.2.38';
 
 /** One line about what the latest update added. */
-export const VERSION_NOTE = "🔥 Forge Rush — run a cozy smithy for Smithing: heat, hammer, quench and serve your customers";
+export const VERSION_NOTE = "⛏️ Deep Delve — dig down a lantern-lit mine shaft for Mining; rope up before the oil runs out";
