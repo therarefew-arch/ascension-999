@@ -1073,7 +1073,7 @@ const N = (name) => 440 * Math.pow(2, ({ C: -9, Db: -8, D: -7, Eb: -6, E: -5, F:
 // swelling on every chord, a deep warm bass, harp sweeps rising between phrases, a calm noble melody that only ever
 // uses notes of the chord under it, and temple bells. Kept consonant on purpose:
 //  • plain triads (no 7ths), each chord fades fully before the next swells in, so neighbours never rub;
-//  • bells only play the chord's own notes, and nothing sits above ~1,200 Hz (the old chimes went past what an
+//  • bells double the melody (same note, same beat — v0.0.2.34), and nothing sits above ~1,200 Hz (the old chimes went past what an
 //    11 kHz file can hold and folded back as harsh, out-of-tune noise).
 {
   const bpm = 64, beat = 60 / bpm, BAR = 4 * beat;
@@ -1130,16 +1130,18 @@ const N = (name) => 440 * Math.pow(2, ({ C: -9, Db: -8, D: -7, Eb: -6, E: -5, F:
       choir(at, len, ch.voices, intro ? 0.05 : 0.065);
       if (!intro || ci >= 2) bass(at, Math.floor(BAR * MR), ch.bass, 0.05);
       // Harp: a gentle broken chord on each beat (from the 2nd phrase), and a sweep to close each phrase.
-      if (pi >= 1) ch.voices.forEach((n, i) => fx.pluck(out, at + Math.floor(i * beat * MR), N(n) * (i === 3 ? 1 : 2), 0.018));
+      // (v0.0.2.34: always climbing — the chord's notes in order, an octave up, one per beat.)
+      if (pi >= 1) ch.voices.map((n) => N(n) * 2).sort((a, b) => a - b).forEach((f, i) => fx.pluck(out, at + Math.floor(i * beat * MR), f, 0.018));
       if (ci === 3) harpSweep(at + Math.floor(3 * beat * MR), name, 0.022);
       // The melody (phrases 2–7), soft and breathy like a far-off horn.
       if (pi >= 1 && pi <= 6) ph.tune[ci].forEach((n, k) => {
         if (ci === 3 && k === 1 && ph.tune[ci][0] === n) return; // a held note
         const held = ci === 3 && ph.tune[ci][0] === ph.tune[ci][1];
         fx.bow(out, at + Math.floor(k * 2 * beat * MR), N(n), Math.floor((held ? 4 : 2) * beat * 0.97 * MR), 0.03, 0.22, 0.004, 0.004);
+        // v0.0.2.34 (owner: the bells "feel random and don't go with the melody… not even the beat"): the temple bell
+        // now doubles the melody — same note, same moment — softly, in the middle of the song.
+        if (pi >= 3 && pi <= 6) fx.bell(out, at + Math.floor(k * 2 * beat * MR), N(n), 0.014, 3);
       });
-      // Temple bells on the chord's own notes, from the middle of the song.
-      if (pi >= 3 && pi <= 6 && ci % 2 === 0) fx.bell(out, at, N(ch.voices[3]) * 2 > 1200 ? N(ch.voices[3]) : N(ch.voices[3]) * 2, 0.02, 2.2);
       bar++;
     });
   });
@@ -1148,7 +1150,7 @@ const N = (name) => 440 * Math.pow(2, ({ C: -9, Db: -8, D: -7, Eb: -6, E: -5, F:
     const at = Math.floor(bar * BAR * MR);
     choir(at, Math.floor(2 * BAR * MR), C.D.voices, 0.06);
     bass(at, Math.floor(2 * BAR * MR), 'D2', 0.045);
-    fx.bell(out, at, N('D5') * 2 > 1200 ? N('D5') : N('D5') * 2, 0.018, 1.6);
+    fx.bell(out, at, N('D5'), 0.016, 1.6); // the melody's home note, on the downbeat
   }
 
   // Sit level with the other town songs (they're all about 0.022 RMS).
